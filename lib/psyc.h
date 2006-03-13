@@ -17,7 +17,7 @@ int(0..2) is_mmpvar(string var) {
     case "_reply":
     case "_trace":
 	return 1;
-    case "_amount_fragments";
+    case "_amount_fragments":
     case "_fragment":
     case "_encoding":
     case "_list_require_modules":
