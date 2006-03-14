@@ -1,5 +1,17 @@
 #define PMIXED	string|array(string|int)|int
 
+#define unless(x) if(!(x))
+#if __EFUN_DEFINED__(strstr)    // pike also provides search() says eMBee
+// rexxism: is small an abbreviation of big?
+# define abbrev(SMALL, BIG)     (strstr(BIG, SMALL) == 0)
+// the same thing at the tail of the string
+# define trail(SMALL, BIG)      (strstr(BIG, SMALL, -sizeof(SMALL)) != -1)
+#else
+# define abbrev(SMALL, BIG)     (SMALL == BIG[0..sizeof(SMALL)-1])
+# define trail(SMALL, BIG)      (SMALL == BIG[<sizeof(SMALL)..])
+#endif
+
+
 // 0
 // 1 means yes and merge it into psyc
 // 2 means yes but do not merge

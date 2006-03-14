@@ -17,6 +17,7 @@ class Circuit {
 
     void reset() {
 	lastval = lastkey = lastmod = 0;
+	inpacket = Psyc.mmp_p();
     }	
 
     // bytes missing in buf to complete the packet inpacket. (means: inpacket 
@@ -28,7 +29,7 @@ class Circuit {
     void create(Stdio.File so, string|void host, int|void port) {
 	so->set_nonblocking(start_read, write, close);
 
-	inpacket = Psyc.mmp_p();
+	reset();
 	
 	::create(so, host, port);
     }
@@ -39,18 +40,19 @@ class Circuit {
 
     int start_read(mixed id, string data) {
 
+	// is there anyone who would send \n\r ???
 	if (data[0 .. 2] == ".\n\r") {
 	    dl = "\n\r";
 	    if (sizeof(data) > 3)
-		inbuf = data[3..];
+		read(0, data[3..]);
 	} else if (data[0 .. 2] == ".\r\n") {
 	    dl = "\r\n";
 	    if (sizeof(data) > 3)
-		inbuf = data[3..];
+		read(0, data[3..]);
 	} else if (data[0 .. 1] != ".\n") {
 	    socket->close();
 	} else if (sizeof(data) > 2)
-	    inbuf = data[2 ..];
+	    read(0, data[2 ..]);
 
 	socket->set_read_callback(read);
     }
@@ -90,8 +92,21 @@ class Circuit {
 
 
 	if (!ret) {
+	    string t;
 	    predef::write("packet: %O\n", inpacket);
-	    inpacket = Psyc.mmp_p();
+	    // psyc parsen
+	    // hmm...
+	    if (t = inpacket["_target"]) {
+		Psyc.psyc_p p = Psyc.parse(inpacket->data);
+		if (stringp(p)) {
+		    predef::write("psyc-parser said: %s\n", p);
+		    socket->close();
+		} else
+		    Psyc.sendmsg(t, p);
+	    } else {
+		predef::write("not target!\n");
+		socket->close();
+	    }
 	    reset();
 
 	} else if (stringp(ret)) { 
@@ -133,7 +148,8 @@ LINE:	while(-1 < stop &&
 
 	    // check for an empty line.. start == stop
 	    mod = inbuf[start];
-	    predef::write("start: %d, stop: %d. mod: %d\n", start, stop, mod);
+	    predef::write("start: %d, stop: %d. mod: %c\n", start, stop, mod);
+	    predef::write("parsing line: '%s'\n", inbuf[start .. stop-1]);
 	    if (stop > start) switch(mod) {
 	    case '.':
 		// empty packet. should be accepted in any case.. 
@@ -149,13 +165,18 @@ LINE:	while(-1 < stop &&
 	    case '-':
 	    case '?':
 	    case ':':
-		num = sscanf(inbuf[start+LL .. stop-1], "%[A-Za-z_]\t%s", key, 
-			     val);
-		predef::write("mmp-parse: %s => %s\n", key, val);
+#ifdef LOVE_TELNET
+		num = sscanf(inbuf[start+1 .. stop-1], "%[A-Za-z_]%*[\t ]%s",
+#else
+		num = sscanf(inbuf[start+1 .. stop-1], "%[A-Za-z_]\t%s",
+#endif
+			     key, val);
 		if (num == 0) return "parsing error";
 		// this is either an empty string or a delete. we have to decide
 		// on that.
 		start_parse = stop+LL;
+		predef::write("mmp-parse: %s => %O (%O)\n", key, val, 
+			      inbuf[start+1..stop-1]);
 		if (num == 1) val = 0;
 		else if (key == "") {
 		   if (mod != lastmod) return "improper list continuation";

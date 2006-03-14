@@ -2,7 +2,6 @@
  * this is supposed to be a general "minimal" object for a user without
  * anyone being linked to it. 
  */
-
 class Person {
     array(mixed) clients = ({ });
     // wie waren diese unterschiedlichen level? fippo hatte doch das alles
@@ -22,8 +21,8 @@ class Person {
 	clients -= ({ o });
     }
 
-    void checkAuth(string type, mixed creds, function(int:mixed) cb, 
-		   array(mixed) extra) {
+    void checkAuth(string type, mixed creds, function cb, 
+		   mixed ... extra) {
 	if (type != "password") {
 	    throw(({ "invalid auth method provided\n",
 		   backtrace() }));
@@ -35,9 +34,9 @@ class Person {
 	}
 
 	if (has_index(v, "password")) {
-	    cb(creds == v["password"]);
+	    cb(creds == v["password"], @extra);
 	} else {
-	    cb(!sizeof(clients));
+	    cb(!sizeof(clients), @extra);
 	}
     }
 
@@ -45,10 +44,10 @@ class Person {
     void create(string nick) {
 	v = ([ ]); // doch hier, weil wir dann mit storage den nick brauchen
 	// soll die sich registern?
-	register_uniform();
+	write("user: %O\n", nick);
     }
 
-    void msg(psyc_p m) {
+    void msg(Psyc.psyc_p m) {
 	string source = m["_source"];
 	
 	switch(m->mc) {
@@ -57,12 +56,13 @@ class Person {
 	    string pw = m["_password"];
 	    void temp(int bol, Person p, string location) {
 		if (bol) {
-		    p->attach(User.Psyc(location));
-		    sendmsg(location, "_notice_link");
-		} else 
-		    sendmsg(location, "_error_invalid_password");
+		    p->attach(PsycUser(location));
+		    Psyc.sendmsg(location, "_notice_link");
+		} else {
+		    Psyc.sendmsg(location, "_error_invalid_password");
 		    // maybe a newbie...
-	    }
+		}
+	    };
 	    checkAuth("password", pw, temp); 
 	    return;
 
@@ -78,7 +78,7 @@ class Person {
 
 }
 
-class Psyc {
+class PsycUser {
 
     // could be the connection-object.
     string location;
@@ -87,7 +87,7 @@ class Psyc {
 	location = loc;
     }
 
-    void msg(psyc_p m) { 
+    void msg(Psyc.psyc_p m) { 
 
 	switch (m->mc) {
 	case "_request_store":
@@ -95,9 +95,8 @@ class Psyc {
 	
 	}
 	
-	sendmsg(location, m);
+	Psyc.sendmsg(location, m);
     }
     
 }
-
 
