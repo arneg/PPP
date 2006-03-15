@@ -14,6 +14,7 @@ class Circuit {
     PMIXED lastval;
     int lastmod;
     string lastkey;
+    function msg_cb;
 
     void reset() {
 	lastval = lastkey = lastmod = 0;
@@ -26,8 +27,12 @@ class Circuit {
     // packet.
     int m_bytes, start_parse;
 
-    void create(Stdio.File so, string|void host, int|void port) {
+    // wir brauchen eventuell noch ne callback für anderes als dolle messages
+    // vielleicht eine für den falls, dass wir die connection zumachen wollen
+    // ... böse andere seite schickt unfug etc.
+    void create(Stdio.File so, function cb, string|void host, int|void port) {
 	so->set_nonblocking(start_read, write, close);
+	msg_cb;
 
 	reset();
 	
@@ -94,15 +99,17 @@ class Circuit {
 	if (!ret) {
 	    string t;
 	    predef::write("packet: %O\n", inpacket);
-	    // psyc parsen
-	    // hmm...
+
 	    if (t = inpacket["_target"]) {
 		Psyc.psyc_p p = Psyc.parse(inpacket->data);
 		if (stringp(p)) {
 		    predef::write("psyc-parser said: %s\n", p);
 		    socket->close();
-		} else
-		    Psyc.sendmsg(t, p);
+		} else msg_cb(p);
+		// man könnte hier auch zum beispiel vereinbaren, dass man 
+		// die connection zumacht, wenn die msg_cb irgendwas
+		// bestimmtes returned
+		// TODO
 	    } else {
 		predef::write("not target!\n");
 		socket->close();

@@ -1,3 +1,5 @@
+// vim:syntax=lpc
+
 class Storage {
     mixed _destructstorecb;
 
@@ -58,6 +60,10 @@ class MappingBased {
 	    return copy_value(data);
 	}
     }
+
+    void clear() {
+	data = ([ ]);
+    }
 }
 
 class FlatFile {
@@ -65,29 +71,55 @@ class FlatFile {
 
     string filename;
 
-    void create(string file, mixed|void cb) {
+    string encode(mixed stuff) {
+	return encode_value(stuff);
+    }
+
+    mixed decode(string stuff) {
+	catch {
+	    return decode_value(stuff);
+	};
+    }
+
+    string readfile() {
 	Stdio.File in;
+	string ret;
+
+	catch {
+	    in = Stdio.File(filename, "r");
+	    ret = in->read();
+	    in->close();
+	};
+
+	return ret;
+    }
+
+    int writefile(string stuff) {
+	Stdio.File out;
+	mixed err;
+
+	err = catch {
+	    out = Stdio.File(filename, "cwt");
+	    out->write(stuff);
+	    out->close();
+	};
+
+	return !err;
+    }
+
+    void create(string file, mixed|void cb) {
 	filename = Stdio.simplify_path(file);
 
 	_destructstorecb = cb;
 
 	if (filename[0] != '/') filename = "./" + filename;
 
-	if (!catch { in = Stdio.File(filename, "r"); }) {
-	    data = decode_value(in->read());
-	    in->close();
-	}
+	data = decode(readfile());
 
 	if (!mappingp(data)) data = ([ ]);
     }
 
     int save() {
-	Stdio.File out;
-
-	if (!catch { out = Stdio.File(filename, "cwt"); }) {
-	    out->write(encode_value(data));
-
-	    return 1;
-	}
+	return writefile(encode(data));
     }
 }
