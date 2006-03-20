@@ -32,7 +32,7 @@ class Circuit {
     // ... böse andere seite schickt unfug etc.
     void create(Stdio.File so, function cb, string|void host, int|void port) {
 	so->set_nonblocking(start_read, write, close);
-	msg_cb;
+	msg_cb = cb;
 
 	reset();
 	
@@ -240,7 +240,7 @@ LINE:	while(-1 < stop &&
 	    if (lastmod != 0) {
 		if (lastmod != ':') 
 		    lastkey = String.int2char(lastmod) + lastkey;
-		inpacket->vars += ([ lastkey : lastval ]);
+		inpacket->vars[lastkey] = lastval;
 	    }
 
 	    lastmod = mod;

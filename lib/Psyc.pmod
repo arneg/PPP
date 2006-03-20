@@ -7,7 +7,7 @@ void register_uniform(string uni, object o) {
     unl2obj[uni] = o;
 }
 
-object find_object(string unl) {
+object find_local_object(string unl) {
     object o;
 
     if (o = unl2obj[unl]) return o;
@@ -85,9 +85,42 @@ Uni_c_orn parse_uniform(string s) {
     return u;
 }
 
+object|array(object) find_technical_target(psyc_p m) {
+
+    // nur für den überblick. wir müssen eventuell beim suchen einer passenden
+    // psyc connection gleich das paket mitgeben..  
+    switch (
+	    (m["_source"]) ? 1 : 0 |
+	    (m["_target"]) ? 2 : 0 |
+	    (m["_context"]) ? 4 : 0
+	    ) {
+    case 5:
+	// bogus again
+    case 7:
+	// bogus
+	// unicast in _context state. i dont see any use right now
+    case 6:
+	// unicast from _context to _target in _context state. 
+	// used to give someone who entered a context the current state.
+    case 4:
+	// standard multicast message in a _context state. castmsg
+    case 3:
+	//  simple unicast from _source to _target
+    
+    // do we need those? why not have psyc://host/ be the root
+    case 2:
+	// from root to _target (not state?)
+    case 1:
+	// to root from _source
+    case 0:
+	// from root to root... 
+    }
+
+}
+
 void sendmsg(string|object target, string|psyc_p mc, string|void data, 
 	     mapping(string:PMIXED)|void vars) {
-    if (stringp(target) && !(target = find_object(target))) {
+    if (stringp(target) && !(target = find_local_object(target))) {
 	// hm.
 	// croak!
     }
