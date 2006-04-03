@@ -1,5 +1,3 @@
-#define PMIXED	string|array(string|int)|int
-
 #define unless(x) if(!(x))
 #if __EFUN_DEFINED__(strstr)    // pike also provides search() says eMBee
 // rexxism: is small an abbreviation of big?

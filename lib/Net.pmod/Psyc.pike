@@ -1,3 +1,4 @@
+// vim:syntax=lpc
 #define LOVE_TELNET
 #include <psyc.h>
 // try to do some smart parsing + buffering. in many cases we have to re-parse
@@ -9,7 +10,9 @@ class Circuit {
     inherit Net.Circuit;
 
     string|String.Buffer inbuf;
+#ifdef LOVE_TELNET
     string dl;
+#endif
     Psyc.mmp_p inpacket;
     PMIXED lastval;
     int lastmod;
@@ -30,13 +33,17 @@ class Circuit {
     // wir brauchen eventuell noch ne callback für anderes als dolle messages
     // vielleicht eine für den falls, dass wir die connection zumachen wollen
     // ... böse andere seite schickt unfug etc.
-    void create(Stdio.File so, function cb, string|void host, int|void port) {
-	so->set_nonblocking(start_read, write, close);
+    void create(function cb, string host, int port) {
 	msg_cb = cb;
 
 	reset();
 	
 	::create(so, host, port);
+    }
+
+    int logon() {
+	socket->set_nonblocking(start_read, write, close);
+	
     }
 
     int write(mixed id) {
@@ -46,6 +53,7 @@ class Circuit {
     int start_read(mixed id, string data) {
 
 	// is there anyone who would send \n\r ???
+#ifdef LOVE_TELNET
 	if (data[0 .. 2] == ".\n\r") {
 	    dl = "\n\r";
 	    if (sizeof(data) > 3)
@@ -54,8 +62,11 @@ class Circuit {
 	    dl = "\r\n";
 	    if (sizeof(data) > 3)
 		read(0, data[3..]);
-	} else if (data[0 .. 1] != ".\n") {
+	} else 
+#endif
+	if (data[0 .. 1] != ".\n") {
 	    socket->close();
+	    return 1;
 	} else if (sizeof(data) > 2)
 	    read(0, data[2 ..]);
 
@@ -100,20 +111,8 @@ class Circuit {
 	    string t;
 	    predef::write("packet: %O\n", inpacket);
 
-	    if (t = inpacket["_target"]) {
-		Psyc.psyc_p p = Psyc.parse(inpacket->data);
-		if (stringp(p)) {
-		    predef::write("psyc-parser said: %s\n", p);
-		    socket->close();
-		} else msg_cb(p);
-		// man könnte hier auch zum beispiel vereinbaren, dass man 
-		// die connection zumacht, wenn die msg_cb irgendwas
-		// bestimmtes returned
-		// TODO
-	    } else {
-		predef::write("not target!\n");
-		socket->close();
-	    }
+	    msg_cb(inpacket);
+
 	    reset();
 
 	} else if (stringp(ret)) { 

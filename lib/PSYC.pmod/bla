@@ -1,0 +1,33 @@
+object|array(object) find_technical_target(psyc_p m) {
+
+    // nur für den überblick. wir müssen eventuell beim suchen einer passenden
+    // psyc connection gleich das paket mitgeben..  
+    switch (
+	    (m["_source"]) ? 1 : 0 |
+	    (m["_target"]) ? 2 : 0 |
+	    (m["_context"]) ? 4 : 0
+	    ) {
+    case 5:
+	// bogus
+    case 7:
+	// bogus again
+	// unicast in _context state. i dont see any use right now
+    case 6:
+	// unicast from _context to _target in _context state. 
+	// used to give someone who entered a context the current state.
+    case 4:
+	// standard multicast message in a _context state. castmsg
+    case 3:
+	//  simple unicast from _source to _target
+    
+    // do we need those? why not have psyc://host/ be the root
+    case 2:
+	// from root to _target (not state?)
+    case 1:
+	// to root from _source
+    case 0:
+	// from root to root... 
+    }
+
+}
+
