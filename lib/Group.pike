@@ -14,6 +14,8 @@ int msg(psyc_p m) {
 	    sendmsg(m["_source"], "_echo_group_enter");
 	else
 	    castmsg("_notice_group_enter", "", ([ ]));
+	    // castmsg means sendmsg with _context only??? makes much sense to
+	    // me ..
 	break;
     case "_request_leave":
 	sendmsg(m["_source"], "_notice_leave");
@@ -23,5 +25,3 @@ int msg(psyc_p m) {
     }
     
 }
-
-

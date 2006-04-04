@@ -1,5 +1,7 @@
+// vim:syntax=lpc
 // put that somewhere else.. maybe
 //
+#define THROW(s)	throw(({ (s), backtrace() }))
 class uniform {
     string scheme, transport, host, user, resource, slashes, query, body,
 	   userAtHost, pass, hostPort, circuit, root, unl;
@@ -16,7 +18,7 @@ uniform parse_uniform(string s) {
 
     u->unl = s;
     t = s;
-    if (!sscanf(t, "%s:%s", u->scheme, t)) return 0;
+    if (!sscanf(t, "%s:%s", u->scheme, t)) THROW("this is not uniforminess");
     u->slashes = "";
     switch(u->scheme) {
     case "sip":
@@ -54,6 +56,7 @@ uniform parse_uniform(string s) {
 class psyc_p {
     string mc, cache;
     mapping (string:mixed) vars;
+    mixed data;
 
     void create(string|void m, string|void d, 
 		mapping(string:mixed)|void v ) {
@@ -191,11 +194,12 @@ LINE:while (-1 < stop &&
 	case ':':
 	    num = sscanf(data[start+1 .. stop-1], "%[A-Za-z_]\t%s", key, val);
 	    write("psyc-parse: "+key+" => "+val+"\n");
-	    if (num == 0) return "Blub";
+	    if (num == 0) THROW("Blub");
 	    if (num == 1) val = 0;
 	    else if (key == "") { // list continuation
-		if (mod != lastmod) return "improper list continuation";
-		if (mod == '-') return "diminishing lists is not supported";
+		if (mod != lastmod) 
+		    THROW("improper list continuation");
+		if (mod == '-') THROW("diminishing lists is not supported");
 		if (stringp(lastval) || intp(lastval)) 
 		    lastval = ({ lastval, val });
 		else lastval += ({ val });
@@ -204,7 +208,7 @@ LINE:while (-1 < stop &&
 	    
 	    break;
 	case '\t': // variable continuation
-	    if (!lastmod) return "invalid variable continuation";
+	    if (!lastmod) THROW("invalid variable continuation");
 	    write("psyc-parse:\t+ "+data[start+1 .. stop]);
 	    if (arrayp(lastval))
 		lastval[-1] += "\n" + data[start+1 .. stop-1];
@@ -221,7 +225,7 @@ LINE:while (-1 < stop &&
 	    stop = -1;
 	    break;
 	default:
-	    return "Unknown variable modifier: " + mod;
+	    THROW("Unknown variable modifier: " + mod);
 	}
 
 	// TODO: modifier unterscheiden
@@ -239,7 +243,7 @@ LINE:while (-1 < stop &&
 	if (strlen(data) > 1 && data[0] == '_') { 
 	    packet->mc = data;
 	    packet->data = "";
-	} else return "Method is missing.";
+	} else THROW("Method is missing.");
     } else packet->data = data;  
 
     return packet;
