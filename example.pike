@@ -1,50 +1,11 @@
+// vim:syntax=lpc
 mapping targets = ([ ]);
 mapping connections = ([ ]);
 
 int main(int argc, array(string) argv) {
 
-    Stdio.Port p = Stdio.Port(4404, accept);
-    p->set_id(p);
     
     return -1;
-}
-
-void accept(Stdio.Port _) {
-    string peerhost;
-    Stdio.File __;
-    write("%O\n", _);
-    __ = _->accept();
-    peerhost = __->query_address();
-    
-    connections[peerhost] = MMP.Circuit(__, deliver, clo_sec);
-}
-
-void clo_sec(MMP.Circuit c) {
-    MMP.mmp_p p;
-
-    m_delete(connections, p->socket->peerhost);
-    
-    while (!c->isEmpty()) {
-	p = c->shift();
-	deliver(p);
-    }
-}
-
-void register_target(string target, object o) {
-    if (has_index(targets, target)) {
-	write("ERROR ERROR ERROR TARGET OVERWRITING IS AN ERROR ERROR ERROR\n");
-	return;
-    }
-
-    targets[target] = o;
-}
-
-void unregister_target(string target) {
-    m_delete(targets, target);
-}
-
-object find_target(string target) {
-    return targets[target];
 }
 
 // does _not_ check whether the uni->host is local.
@@ -60,14 +21,6 @@ object create_local(PSYC.uniform uni) {
 	break;
     case '$':
     }
-}
-
-void if_localhost(string host, function if_cb, function else_cb, 
-		  mixed ... args ) {
-    if (host == "localhost")
-	if_cb(args);
-    else
-	else_cb(args);
 }
 
 void deliver(MMP.mmp_p p) {

@@ -249,3 +249,110 @@ LINE:while (-1 < stop &&
     return packet;
 }
 
+class Server {
+    mapping(string:mixed) localhosts;
+    mapping(string:object) targets = ([ ]), 
+			   contexts = ([ ]), 
+			   connections = ([ ]);
+    function create_local, create_remote;
+    
+    void create(mapping(string:mixed) config) {
+
+	// looks terribly ugly..
+	if (has_index(config, "localhosts")) { 
+	    localhosts = config["localhosts"];
+	} else {
+	    localhosts = ([ ]);
+	}
+	localhosts += ([ 
+			"localhost" : 1,
+			"127.0.0.1" : 1,
+		      ]);
+
+	if (has_index(config, "create_local")) {
+	    create_local = config["create_local"];
+	} else {
+	    throw("urks");
+	}
+
+	if (has_index(config, "create_remote")) {
+	    create_local = config["create_remote"];
+	} else {
+	    throw("urks");
+	}
+
+	if (has_index(config, "ports")) {
+	    // more error-checking would be a good idea.
+	    int|string port;
+	    string ip;
+	    Stdio.Port p;
+	    foreach (port, config["ports"]) {
+		if (intp(port)) {
+		    p = Stdio.Port(port, accept);
+		} else { // is a string
+		    (ip, port) = port / ":";
+		    p = Stdio.Port(port, accept, ip);
+		    localhosts[ip] = 1;
+		}
+		p->set_id(p);
+	    }
+	} else throw("help!");
+    }
+
+    void accept(Stdio.Port _) {
+	string peerhost;
+	Stdio.File __;
+	write("%O\n", _);
+	__ = _->accept();
+	peerhost = __->query_address();
+
+	connections[peerhost] = MMP.Circuit(__, deliver, close);
+    }
+
+    void close(MMP.Circuit c) {
+	MMP.mmp_p p;
+
+	m_delete(connections, c->socket->peerhost);
+	
+	while (!c->isEmpty()) {
+	    p = c->shift();
+	    deliver(p);
+	}
+    }
+
+    void if_localhost(string host, function if_cb, function else_cb, 
+		      mixed ... args ) {
+	// this is rather blöde
+	void callback(string ip, function if_cb, function else_cb, 
+		      mixed ... args ) {
+	    if (has_index(localhosts, ip))
+		if_cb(args);
+	    else
+		else_cb(args);
+		
+	}
+	if (has_index(localhosts, host)) {
+	    if_cb(args);
+	} else if (sscanf(host, "%*d:%*d:%*d:%*d") == 4) {
+	    Protocols.DNS.async_ip_to_host(host, callback, if_cb, else_cb, 
+					   args);
+	} else {
+	    Protocols.DNS.async_host_to_ip(host, callback, if_cb, else_cb, 
+					   args);
+	}
+    }
+
+    void unicast(string target, string source, PSYC.psyc_p packet) {
+	MMP.mmp_p mpacket = MMP.mmp_p(packet, 
+				      ([ "_source" : source,
+					 "_target" : target ]);
+    }
+
+    void register_uniform(string uni, object o) {
+	targets[uni] = o;
+    }
+
+    void unregister_uniform(string uni) {
+	m_delete(targets, uni);
+    }
+}

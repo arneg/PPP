@@ -7,8 +7,9 @@ class mmp_p {
     // this actually does not exactly what we want.. 
     // because asking for a _source should return even _source_relay 
     // or _source_technical if present...
-    void create() {
-	vars = ([]);
+    void create(void|string|object d, void|mapping(string:mixed) v) {
+	vars = v||([]);
+	data = d||""; 
     }
     
     mixed `[](string id) {
@@ -164,6 +165,7 @@ class Circuit {
 
 	    tmp = shift();
 
+	    // i would prefer a way to handle fragments automatically..
 	    if (arrayp(tmp)) {
 		[s, tmp] = tmp;
 	    } else {
