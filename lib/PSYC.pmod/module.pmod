@@ -2,6 +2,10 @@
 // put that somewhere else.. maybe
 //
 #define THROW(s)	throw(({ (s), backtrace() }))
+#include <debug.h>
+
+class Dummy(mixed...params) { }
+
 class uniform {
     string scheme, transport, host, user, resource, slashes, query, body,
 	   userAtHost, pass, hostPort, circuit, root, unl;
@@ -9,6 +13,17 @@ class uniform {
 
     mixed cast(string type) {
 	if (type == "string") return unl;
+    }
+
+    string _sprintf(int type) {
+	if (type == 's') {
+	    return sprintf("PSYC.uniform(%s)", unl);
+	} else if (type = 'O') {
+	    return sprintf("PSYC.uniform(%O)", 
+			   aggregate_mapping(@Array.splice(indices(this), values(this))));
+	}
+
+	return UNDEFINED;
     }
 }
 
@@ -30,7 +45,7 @@ uniform parse_uniform(string s) {
     case "telnet":
 	    break;
     default:
-	    if (t[0..2] == "//") {
+	    if (t[0..1] == "//") {
 		    t = t[2..];
 		    u->slashes = "//";
 	    }
@@ -50,6 +65,8 @@ uniform parse_uniform(string s) {
 		u->transport = s;
     }
     u->host = t;
+
+    P2(("PSYC.parse_uniform", " created %s\n", u))
     return u;
 }
 
@@ -60,7 +77,7 @@ class psyc_p {
 
     void create(string|void m, string|void d, 
 		mapping(string:mixed)|void v ) {
-	mc = m;
+	if (mc) mc = m;
 	data = d||"";
 	vars = v||([]);
     }
@@ -68,9 +85,9 @@ class psyc_p {
     mixed cast(string type) {
 	switch(type) {
 	case "string":
-	    return cache || (cache = render(this_object()));
+	    return cache || (cache = .module.render(this_object()));
 	case "String.Buffer":
-	    return String.Buffer() + (cache || render(this));
+	    return String.Buffer() + (cache || .module.render(this));
 	default:
 	    return 0;
 	}
@@ -104,8 +121,6 @@ class psyc_p {
 }
 
 string|String.Buffer render(psyc_p o, void|String.Buffer to) {
-    string key, mod;
-    mixed temp;
     String.Buffer p;
 
     // this could be used to render several psyc-packets/mmp-packets at once
@@ -118,38 +133,8 @@ string|String.Buffer render(psyc_p o, void|String.Buffer to) {
     function add = p->add;
     function putchar = p->putchar;
 
-
-    if (mappingp(o->vars)) foreach (indices(o->vars), key) {
-
-	if (key[0] == '_') mod = ":";
-	else mod = key[0..0];
-	
-	temp = o->vars[key];
-
-	// we have to decide between deletions.. and "".. or 0.. or it
-	// a int zero not allowed?
-	if (temp) {
-	    if (key[0] == '_') putchar(':');
-	    add(key);
-	    putchar('\t');
-	    
-	    if (stringp(temp))
-		add(replace(temp, "\n", "\n\t")); 
-	    else if (arrayp(temp))
-		add(map(temp, replace, "\n", "\n\t") * ("\n"+mod+"\t"));
-	    else if (mappingp(temp))
-		add("dummy");
-	    else if (intp(temp))
-		add((string)temp);
-	    
-	    putchar('\n');
-	
-	} else {
-	    if (key[0] == '_') putchar(':');
-	    add(key);
-	    putchar('\n');
-	}
-    }
+    if (sizeof(o->vars))
+	MMP.render_vars(o->vars, p);
 
     add(o->mc);
     putchar('\n');
@@ -253,8 +238,40 @@ class Server {
     mapping(string:mixed) localhosts;
     mapping(string:object) targets = ([ ]), 
 			   contexts = ([ ]), 
+			   connecting = ([ ]),
 			   connections = ([ ]);
+    string bind_to;
+
     function create_local, create_remote;
+
+    // we could make the verbosity of this putput debug-level dependent
+    string _sprintf(int type) {
+	if (type == 'O') {
+	    if (bind_to)
+		return sprintf("PSYC.Server(%s)", bind_to);
+	    return "PSYC.Server(0.0.0.0)";
+	}
+    
+	return UNDEFINED;
+    }
+
+    void register_target(string t, object o) {
+	if (has_index(targets, t)) throw("murks");
+	targets[t] = o;
+    }
+
+    void unregister_target(string t) {
+	m_delete(targets, t);
+    }
+    
+    void register_context(string c, object o) {
+	if (has_index(contexts, c)) throw("murks");
+	contexts[c] = o;
+    }
+
+    void unregister_context(string c) {
+	m_delete(contexts, c);
+    }
     
     void create(mapping(string:mixed) config) {
 
@@ -286,27 +303,27 @@ class Server {
 	    int|string port;
 	    string ip;
 	    Stdio.Port p;
-	    foreach (port, config["ports"]) {
+	    foreach (config["ports"], port) {
 		if (intp(port)) {
 		    p = Stdio.Port(port, accept);
 		} else { // is a string
-		    (ip, port) = port / ":";
+		    [ip, port] = (port / ":");
 		    p = Stdio.Port(port, accept, ip);
 		    localhosts[ip] = 1;
+		    bind_to = ip;
 		}
 		p->set_id(p);
 	    }
 	} else throw("help!");
     }
 
-    void accept(Stdio.Port _) {
+    void accept(Stdio.Port lsocket) {
 	string peerhost;
-	Stdio.File __;
-	write("%O\n", _);
-	__ = _->accept();
-	peerhost = __->query_address();
+	Stdio.File socket;
+	socket = lsocket->accept();
+	peerhost = socket->query_address();
 
-	connections[peerhost] = MMP.Circuit(__, deliver, close);
+	connections[peerhost] = MMP.Server(socket, deliver, close);
     }
 
     void close(MMP.Circuit c) {
@@ -320,32 +337,163 @@ class Server {
 	}
     }
 
+    void connect(int success, Stdio.File so, string id) {
+	string peerhost;
+	MMP.Circuit c;
+	MMP.Utils.Queue q;
+
+	if (!success) {
+	    // TODO: send _failures back for every packet in the queue
+	    // .. or retry. dont know
+	    return;
+	}
+	
+	peerhost = so->query_address();
+
+	c = MMP.Circuit(so, deliver, close);
+	q = connecting[id];
+	
+	connections[peerhost] = c;
+
+	while (!q->is_empty()) {
+	    c->send(q->shift());
+	}
+    }
+
+    // simply sends an mmp-packet to host:port
+    void send_mmp(string host, string|int port, void|MMP.mmp_p packet) {
+	
+	void cb(string host, mixed ip, string|int port, void|MMP.mmp_p packet) {
+	    Stdio.File so;
+	    string id;
+
+	    if (ip == 0) {
+		// send a packet back to packet["_source"]... 
+		return;
+	    }
+	    // like socket->query_address()
+	    id = ip+" "+(string)port;
+	    if (!has_index(connecting, id)) {
+		so = Stdio.File();
+		if (bind_to)
+		    so->open_socket(UNDEFINED, bind_to);
+		so->async_connect(ip, port, connect, so, id);
+		connecting[id] = MMP.Utils.Queue();
+	    }
+	    
+	    if (packet) connecting[id]->push(packet);
+	};
+	
+	if (has_index(connections, host)) {
+	    connections[host]->send(packet);
+	    return;
+	}
+
+	if (sscanf("%*d.%*d.%*d.%*d", host) != 4) {
+	    Protocols.DNS.async_host_to_ip(host, cb, port, packet);
+	    return;
+	}
+
+	cb(host, host, port, packet);
+    }
+
     void if_localhost(string host, function if_cb, function else_cb, 
 		      mixed ... args ) {
 	// this is rather blöde
-	void callback(string ip, function if_cb, function else_cb, 
+	P2(("PSYC.Server", "if_localhost(%s, %O, %O, ...)\n", host, if_cb, 
+	    else_cb))
+	void callback(string host, mixed ip, function if_cb, function else_cb, 
 		      mixed ... args ) {
+
+	    // TODO: we need error_handling here!
+	    if (!ip) {
+		P1(("MMP.Server", "Could not resolve %s.\n", host))
+		return;
+	    } else {
+		P2(("MMP.Server", "%s resolves to %s.\n", host, ip))
+	    }
 	    if (has_index(localhosts, ip))
-		if_cb(args);
+		if_cb(@args);
 	    else
-		else_cb(args);
+		else_cb(@args);
 		
-	}
+	};
+
 	if (has_index(localhosts, host)) {
-	    if_cb(args);
+	    if_cb(@args);
 	} else if (sscanf(host, "%*d:%*d:%*d:%*d") == 4) {
 	    Protocols.DNS.async_ip_to_host(host, callback, if_cb, else_cb, 
-					   args);
+					   @args);
 	} else {
 	    Protocols.DNS.async_host_to_ip(host, callback, if_cb, else_cb, 
-					   args);
+					   @args);
 	}
     }
 
     void unicast(string target, string source, PSYC.psyc_p packet) {
+	P2(("PSYC.Server", "%O->unicast(%s, %s, %O)\n", this, target, source, 
+	    packet))
 	MMP.mmp_p mpacket = MMP.mmp_p(packet, 
 				      ([ "_source" : source,
-					 "_target" : target ]);
+					 "_target" : target ]));
+	if (has_index(targets, target)) {
+	    targets[target]->msg(mpacket);
+	    return;
+	}
+
+	// throws.. 
+	PSYC.uniform u = PSYC.parse_uniform(target);
+	send_mmp(u->host, u->port, mpacket);
+    }
+
+    void deliver_remote(MMP.mmp_p packet, string|PSYC.uniform target) {
+	P2(("PSYC.Server", "%O->deliver_remote(%O, %s)\n", this, packet, 
+	    target))
+
+	if (stringp(target))
+	    target = PSYC.parse_uniform(target);
+
+	send_mmp(target->host, target->port||4404, packet);
+    }
+
+    void deliver_local(MMP.mmp_p packet, string|PSYC.uniform target) {
+	P2(("PSYC.Server", "%O->deliver_local(%O, %s)\n", this, packet, 
+	    target))
+	if (!has_index(targets, target)) {
+	    object o = create_local(target);
+	    if (!o) {
+		P0(("PSYC.Server", "Could not summon a local object for %s.\n",
+		    target))
+		return;
+	    }
+	    targets[target] = o;
+	}
+	targets[target]->msg(packet);
+    }
+
+    // actual routing...
+    void deliver(MMP.mmp_p packet) {
+	
+	P2(("PSYC.Server", "%O->deliver(%O)\n", this, packet))
+	
+	string|PSYC.uniform target, source, context;
+	// this is maybe the most ... innovative piece of code on this planet
+	target = packet["_target"];
+	context = packet["_context"];
+	source = packet["_source"];
+
+	// this is a hack.. (works like psyced)
+	if (target) {
+	    if (has_index(targets, (string)target)) {
+		targets[target]->msg(packet);
+		return;
+	    } 
+	    
+	    if (stringp(target)) target = PSYC.parse_uniform(target);
+
+	    if_localhost(target->host, deliver_local, deliver_remote, packet, target);
+	}
+
     }
 
     void register_uniform(string uni, object o) {
