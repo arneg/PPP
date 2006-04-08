@@ -1,9 +1,13 @@
 // vim:syntax=lpc
-mapping targets = ([ ]);
-mapping connections = ([ ]);
 
 int main(int argc, array(string) argv) {
 
+    PSYC.Server dings = PSYC.Server(([
+				    "localhosts" : ([ "dings.l.tobij.de" : 1 ]),
+				    "ports" : ({ "62.75.216.40:4405" }),
+				    "create_local" : create_local,
+				    "create_remote" : lambda(mixed ... args) { },
+				     ]));
     
     return -1;
 }
@@ -21,44 +25,4 @@ object create_local(PSYC.uniform uni) {
 	break;
     case '$':
     }
-}
-
-void deliver(MMP.mmp_p p) {
-    mixed t = p["_target"];
-    
-    if (t) {
-
-	if (stringp(t)) {
-	    t = PSYC.parse_uniform(t);
-
-	    p["_target"] = t;
-	}
-
-	if_localhost(p["_target"]->host, deliver_local, deliver_remote, p); 
-    } else {
-	write("I dont know how to deliver this!");
-    }
-}
-
-void deliver_remote(MMP.mmp_p p) {
-    // find the connection orr.... queue it
-
-}
-
-void deliver_local(MMP.mmp_p p) {
-    object o;
-    mixed t;
-    mixed packet;
-
-    // this is much to unflexible.. but as a first approach. 
-    t = p["_target"];
-    o = find_target(t);
-    
-    if (!o) {
-	o = create_local(t);		
-    }
-    
-    packet = PSYC.parse(p->data);
-
-    o->msg(packet);
 }
