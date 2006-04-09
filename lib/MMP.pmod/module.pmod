@@ -1,7 +1,7 @@
 // vim:syntax=lpc
 //
 #include <debug.h>
-
+#define THROW(s)        throw(({ (s), backtrace() }))
 #if DEBUG
 void debug(string cl, string format, mixed ... args) {
     // erstmal nix weiter
@@ -55,6 +55,7 @@ string|String.Buffer render_vars(mapping(string:mixed) vars,
 
 string|String.Buffer render(mmp_p packet, void|String.Buffer to) {
     String.Buffer p;
+
     if (to)
 	p = to;	
     else 
@@ -66,16 +67,20 @@ string|String.Buffer render(mmp_p packet, void|String.Buffer to) {
     if (sizeof(packet->vars))
 	MMP.render_vars(packet->vars, p);
 
-    putchar('\n');
+    if (packet->data) { 
+	putchar('\n');
     
-    if (stringp(packet->data)) {
-	add(packet->data);
+	if (stringp(packet->data)) {
+	    add(packet->data);
+	} else {
+	    // TODO: every object contained in data needs a 
+	    // render(void|String.Buffer) method.
+	    add((string)packet->data);
+	}
+	add("\n.\n");
     } else {
-	// TODO: every object contained in data needs a 
-	// render(void|String.Buffer) method.
-	add((string)packet->data);
+	add(".\n");
     }
-    add("\n.\n");
 
     if (to)
 	return p;
@@ -92,7 +97,7 @@ class mmp_p {
     // or _source_technical if present...
     void create(void|string|object d, void|mapping(string:mixed) v) {
 	vars = v||([]);
-	data = d||""; 
+	data = d||0; 
     }
 
     mixed cast(string type) {
@@ -101,8 +106,20 @@ class mmp_p {
 	}
     }
 
+    string next() {
+	return (string)this;
+    }
+
+    int has_next() { 
+	return 0;
+    }
+
     string _sprintf(int type) {
 	if (type == 'O') {
+	    if (data == 0) {
+		return "MMP.mmp_p(Empty)\n";
+	    }
+
 	    return sprintf("MMP.mmp_p(%O, '%.15s..' )\n", vars, (string)data);
 	}
 
@@ -171,57 +188,19 @@ int(0..2) is_mmpvar(string var) {
     return 0;
 }
 
-class Queue() {
-    array a = ({ });
-
-    void push(mixed in) {
-	a += ({ in });
-    }
-
-    void unshift(mixed in) {
-	a = ({ in }) + a;
-    }
-
-    mixed shift() {
-	mixed t;
-
-	t = a[0];
-	a = a[1..];
-
-	return t;
-    }
-
-    mixed pop() {
-	mixed t;
-
-	t = a[-1];
-	a = a[0..sizeof(a)-2];
-
-	return t;
-    }
-
-    int _sizeof() {
-	return sizeof(a);
-    }
-
-    int isEmpty() {
-	return !sizeof(this);
-    }
-
-}
-
-
 class Circuit {
-    inherit Queue;
+    inherit MMP.Utils.Queue;
 
     Stdio.File|Stdio.FILE socket;
     string|String.Buffer inbuf;
 #ifdef LOVE_TELNET
     string dl;
 #endif
+    MMP.Utils.Queue q_neg = MMP.Utils.Queue();
     mmp_p inpacket;
     mixed lastval;
-    int lastmod, write_ready;
+    int lastmod, write_ready, write_okay; // sending may be forbidden during
+					  // certain parts of neg
     string lastkey, peerhost;
     function msg_cb, close_cb;
 
@@ -229,6 +208,12 @@ class Circuit {
 	lastval = lastkey = lastmod = 0;
 	inpacket = mmp_p();
     }	
+
+    void activate() {
+	write_okay = 1;
+	if (write_ready)
+	    write();
+    }
 
     // bytes missing in buf to complete the packet inpacket. (means: inpacket 
     // has _length )
@@ -241,6 +226,7 @@ class Circuit {
     // on close/error:
     // closecb(0); if connections gets closed,
     // 	 --> DISCUSS: closecb(string logmessage); on error? <--
+    // 	 maybe: closecb(object dings, void|string error)
     void create(Stdio.File|Stdio.FILE so, function cb, function closecb
 		) {
 	P2(("MMP.Circuit", "create(%O, %O, %O)\n", so, cb, closecb))
@@ -254,7 +240,27 @@ class Circuit {
     }
 
     int write(void|mixed id) {
-	if (isEmpty()) {
+	MMP.Utils.Queue currentQ;
+	// we could go for speed with
+	// function currentshift, currentunshift;
+	// as we'd only have to do the -> lookup for q_neg packages then ,)
+	
+	if (!write_okay) return (write_ready = 1, 0);
+
+	if (!q_neg->isEmpty()) {
+	    currentQ = q_neg;
+	    P2(("MMP.Circuit", "Negotiation stuff..\n"))
+	} else if (!isEmpty()) {
+	    currentQ = this;
+	    P2(("MMP.Circuit", "Normal queue...\n"))
+	} 
+#if DEBUG
+	else {
+	    P2(("MMP.Circuit", "No packets in queue.\n"))
+	}
+#endif
+
+	if (!currentQ) {
 	    write_ready = 1;
 	} else {
 	    int written;
@@ -263,23 +269,38 @@ class Circuit {
 
 	    write_ready = 0;
 
-	    tmp = shift();
+	    tmp = currentQ->shift();
 
-	    // i would prefer a way to handle fragments automatically..
 	    if (arrayp(tmp)) {
 		[s, tmp] = tmp;
-	    } else {
-		s = (string)tmp;
+		if (tmp) shift();
+	    } else /* if (objectp(tmp)) */ {
+		s = tmp->next();
+		if (tmp->has_next()) {
+		    currentQ->enqueue(tmp);
+		    currentQ = 0;
+		}
+		// TODO: HOOK
 	    }
 
+	    // TODO: encode
+	    s = trigger("encode", s);
 	    written = socket->write(s);
 
-	    P2(("MMP.Circuit", "%O wrote %d bytes.\n", this, written))
+	    P2(("MMP.Circuit", "%O wrote %d (of %d) bytes.\n", this, written, 
+		sizeof(s)))
 
 	    if (written != sizeof(s)) {
-		unshift(({ s[written..], tmp }));
+		if (currentQ == this) {
+		    q_neg->unshift(({ s[written..], tmp }));
+		    unshift(tmp);	
+		} else {
+		    q_neg->unshift(({ s[written..], 0 }));
+		}
 	    }
 	}
+
+	return 1;
     }
 
     int start_read(mixed id, string data) {
@@ -293,7 +314,9 @@ class Circuit {
 	} else 
 #endif
 	if (data[0 .. 1] != ".\n") {
+	    // TODO: error message
 	    socket->close();
+	    close_cb(this);
 	    return 1;
 	}
 P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", peerhost))
@@ -312,6 +335,7 @@ P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", peerhost))
 
     int read(mixed id, string data) {
 	string|int ret;
+	// TODO: decode
 
 	P2(("MMP.Circuit", "read %d bytes.\n", sizeof(data)))
 
@@ -346,11 +370,18 @@ P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", peerhost))
 		     parse()
 		     )) {
 		P2(("MMP.Circuit", "parsed %O.\n", inpacket))
-		msg_cb(inpacket);
-		reset();
+		if (inpacket->data) {
+		    // TODO: HOOK
+		    msg_cb(inpacket, this);
+		    reset(); // watch out. this may produce strange bugs...
+		} else {
+		    P2(("MMP.Circuit", "Got a ping.\n"))
+		}
 	    }
 	}) {
 	    P0(("MMP.Circuit", "Catched an error: '%s' backtrace: %O\n", @exeption))
+	    // TODO: error message
+	    close_cb(this);
 	    socket->close();
 	}
 
@@ -359,7 +390,17 @@ P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", peerhost))
     }
 
     int close(mixed id) {
+	// TODO: error message
+	close_cb(this);
+    }
 
+    void send_neg(mmp_p mmp) {
+P0(("MMP.Circuit", "%O->send_neg(%O)\n", this, mmp))
+	q_neg->push(mmp);
+
+	if (write_ready) {
+	    write();
+	}
     }
 
     void send(mmp_p mmp) {
@@ -377,10 +418,10 @@ P0(("MMP.Circuit", "%O->send(%O)\n", this, mmp))
 #ifdef LOVE_TELNET
 # define LL	sizeof(linebreak)
 # define LD	linebreak
-    int|string parse(void|string linebreak) {
+    int parse(void|string linebreak) {
 	if (!linebreak) linebreak = "\n";
 #else
-    int|string parse() {
+    int parse() {
 # define LL	1
 # define LD	"\n"
 #endif
@@ -407,10 +448,11 @@ LINE:	while(-1 < stop &&
 	    case '.':
 		// empty packet. should be accepted in any case.. 
 		// this may become a PING-PONG strategy
-		if (lastmod) {
-		    inpacket->data = 0;
-		}
-		
+		//
+		// it may be wrong to make a difference between packets without
+		// newline as delimiter.. and those with and without data..
+		inpacket->data = 0;
+		inbuf = INBUF[stop+LL .. ];
 		RETURN(0);
 		break;
 	    case '=':
@@ -424,15 +466,15 @@ LINE:	while(-1 < stop &&
 		num = sscanf(INBUF[start+1 .. stop-1], "%[A-Za-z_]\t%s",
 #endif
 			     key, val);
-		if (num == 0) return "parsing error";
+		if (num == 0) THROW("parsing error");
 		// this is either an empty string or a delete. we have to decide
 		// on that.
 		start_parse = stop+LL;
 		P2(("MMP.Parse", "%s => %O \n", key, val))
 		if (num == 1) val = 0;
 		else if (key == "") {
-		   if (mod != lastmod) return "improper list continuation";
-		   if (mod == '-') return "diminishing lists is not supported";
+		   if (mod != lastmod) THROW("improper list continuation");
+		   if (mod == '-') THROW( "diminishing lists is not supported");
 		   if (stringp(lastval) || intp(lastval)) 
 			lastval = ({ lastval, val });
 		   else lastval += ({ val });
@@ -440,7 +482,7 @@ LINE:	while(-1 < stop &&
 		}
 		break;
 	    case '\t':
-		if (!lastmod) return "invalid variable continuation";
+		if (!lastmod) THROW( "invalid variable continuation");
 P2(("MMP.Parse", "mmp-parse: + %s\n", INBUF[start+1 .. stop-1]))
 		if (arrayp(lastval))
 		    lastval[-1] += "\n" +INBUF[start+1 .. stop-1];
@@ -448,7 +490,7 @@ P2(("MMP.Parse", "mmp-parse: + %s\n", INBUF[start+1 .. stop-1]))
 		    lastval += "\n" +INBUF[start+1 .. stop-1];
 		continue LINE;
 	    default:
-		return "unknown modifier "+String.int2char(mod);
+		THROW("unknown modifier "+String.int2char(mod));
 
 	    } else {
 		// this else is an empty line.. 
@@ -509,10 +551,11 @@ P2(("MMP.Parse", "reached the data-part. finished.\n", ))
 class Active {
     inherit Circuit;
 
-    void start_read(mixed id) {
-	::start_read(id);
+    void start_read(mixed id, string data) {
+	::start_read(id, data);
 
-	so->write(".\n");
+	send_neg(mmp_p());
+	// we may need to write here in case of.. write_ready
     }
 }
 
@@ -522,6 +565,26 @@ class Server {
     void create(Stdio.File|Stdio.FILE so, function cb, function closecb) {
 	::create(so, cb, closecb);
 
-	so->write(".\n");
+	q_neg->unshift(mmp_p());
+	activate();
+    }
+
+#ifdef LOVE_TELNET
+    int parse(void|string ld) {
+	int ret = ::parse(ld);
+#else
+    int parse() {
+	int ret = ::parse();
+#endif
+
+	if (ret == 0) {
+	    if (inpacket->data == 0 && !sizeof(inpacket->vars)) {
+		// evil blocking
+		// TODO
+		send_neg(mmp_p());
+	    }
+	}
+
+	return ret;
     }
 }

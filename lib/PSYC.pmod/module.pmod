@@ -77,7 +77,7 @@ class psyc_p {
 
     void create(string|void m, string|void d, 
 		mapping(string:mixed)|void v ) {
-	if (mc) mc = m;
+	if (m) mc = m;
 	data = d||"";
 	vars = v||([]);
     }
@@ -240,6 +240,7 @@ class Server {
 			   contexts = ([ ]), 
 			   connecting = ([ ]),
 			   connections = ([ ]);
+    PSYC.psyc_p circuit_established;
     string bind_to;
 
     function create_local, create_remote;
@@ -315,6 +316,10 @@ class Server {
 		p->set_id(p);
 	    }
 	} else throw("help!");
+
+	circuit_established = PSYC.psyc_p("_notice_circuit_established", 
+					  "You got connected to %s.\n",
+			  ([ "_implementation" : "better than wurstbrote" ]));
     }
 
     void accept(Stdio.Port lsocket) {
@@ -324,16 +329,20 @@ class Server {
 	peerhost = socket->query_address();
 
 	connections[peerhost] = MMP.Server(socket, deliver, close);
+	connections[peerhost]->send_neg(MMP.mmp_p(circuit_established));
     }
 
     void close(MMP.Circuit c) {
-	MMP.mmp_p p;
-
 	m_delete(connections, c->socket->peerhost);
 	
 	while (!c->isEmpty()) {
+	    mixed p;
+
 	    p = c->shift();
-	    deliver(p);
+	    if (arrayp(p)) {
+		p = p[1];
+	    }
+	    deliver(p, this);
 	}
     }
 
@@ -351,6 +360,7 @@ class Server {
 	peerhost = so->query_address();
 
 	c = MMP.Circuit(so, deliver, close);
+	c->send_neg(MMP.mmp_p(circuit_established));
 	q = connecting[id];
 	
 	connections[peerhost] = c;
@@ -358,6 +368,7 @@ class Server {
 	while (!q->is_empty()) {
 	    c->send(q->shift());
 	}
+	m_delete(connecting, id);
     }
 
     // simply sends an mmp-packet to host:port
@@ -414,7 +425,7 @@ class Server {
 	    }
 	    if (has_index(localhosts, ip))
 		if_cb(@args);
-	    else
+	    else if (else_cb)
 		else_cb(@args);
 		
 	};
@@ -472,7 +483,7 @@ class Server {
     }
 
     // actual routing...
-    void deliver(MMP.mmp_p packet) {
+    void deliver(MMP.mmp_p packet, object connection) {
 	
 	P2(("PSYC.Server", "%O->deliver(%O)\n", this, packet))
 	
@@ -482,25 +493,84 @@ class Server {
 	context = packet["_context"];
 	source = packet["_source"];
 
-	// this is a hack.. (works like psyced)
-	if (target) {
+	if (packet->data) {
+	    packet->data = PSYC.parse(packet->data);
+	} else {
+	    P0(("PSYC.Server", "Nothing to deliver.\n"))
+	    return;
+	}
+
+	switch ((target ? 1 : 0)|
+		(source ? 2 : 0)|
+		(context ? 4 : 0)) {
+	case 3:
+	case 1:
 	    if (has_index(targets, (string)target)) {
 		targets[target]->msg(packet);
 		return;
 	    } 
-	    
 	    if (stringp(target)) target = PSYC.parse_uniform(target);
 
-	    if_localhost(target->host, deliver_local, deliver_remote, packet, target);
+	    if (target->resource) {
+		if_localhost(target->host, deliver_local, deliver_remote, 
+			     packet, target);
+	    } else { // rootmsg
+#ifdef DEBUG
+		void dummy(MMP.mmp_p p, object c) {
+		    P0(("PSYC.Server", "%O lives in crazytown.\n", c))
+		};
+#else
+		function dummy;
+#endif
+		if_localhost(target->host, rootmsg, dummy, 
+			     packet, connection);
+	    }
+	    break;
+	case 2:
+	case 0:
+	    rootmsg(packet, connection);
+	    break;
+	case 4:
+	    // multicast
+	    break;
+	case 5:
+	    // unicast in context-state..
+	    break;
+	case 6:
+	    // bullshit.. 
+	    break;
+	case 7:
+	    // even more bullshit
+	    break;
+	default:
+
+	}
+	// this is a hack.. (works like psyced)
+	if (target) {
+	    
+
 	}
 
     }
 
-    void register_uniform(string uni, object o) {
-	targets[uni] = o;
-    }
+    void rootmsg(MMP.mmp_p packet, object connection) {
+	
+	if (packet->data != 0) {
+	    // try to parse psyc here.
+	    PSYC.psyc_p message;
 
-    void unregister_uniform(string uni) {
-	m_delete(targets, uni);
+	    message = packet->data;
+
+	    switch (message->mc) {
+		// ich weiss nichtmehr so genau. in FORK wird das eh alles
+		// anders.. ,)
+	    case "_notice_circuit_established":
+	    case "_status_circuit":
+		// auch hier nicht sicher
+		connection->activate();
+	    }
+	} else { // hmm
+
+	}
     }
 }
