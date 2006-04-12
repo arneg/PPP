@@ -5,7 +5,7 @@
 #if DEBUG
 void debug(string cl, string format, mixed ... args) {
     // erstmal nix weiter
-    predef::write("(%s)\t"+format, cl, @args);
+    predef::werror("(%s)\t"+format, cl, @args);
 }
 #endif
 
@@ -196,22 +196,12 @@ class Circuit {
 #endif
     MMP.Utils.Queue q_neg = MMP.Utils.Queue();
     mmp_p inpacket;
-    mixed lastval;
+    string|array(string) lastval; // mappings are not supported in psyc right
+				  // now anyway..
     int lastmod, write_ready, write_okay; // sending may be forbidden during
 					  // certain parts of neg
     string lastkey, peerhost;
     function msg_cb, close_cb;
-
-    void reset() {
-	lastval = lastkey = lastmod = 0;
-	inpacket = mmp_p();
-    }	
-
-    void activate() {
-	write_okay = 1;
-	if (write_ready)
-	    write();
-    }
 
     // bytes missing in buf to complete the packet inpacket. (means: inpacket 
     // has _length )
@@ -235,6 +225,36 @@ class Circuit {
 	close_cb = closecb;
 
 	reset();
+	//::create();
+    }
+
+    void reset() {
+	lastval = lastkey = lastmod = 0;
+	inpacket = mmp_p();
+    }	
+
+    void activate() {
+	write_okay = 1;
+	if (write_ready)
+	    write();
+    }
+
+    void send_neg(mmp_p mmp) {
+P0(("MMP.Circuit", "%O->send_neg(%O)\n", this, mmp))
+	q_neg->push(mmp);
+
+	if (write_ready) {
+	    write();
+	}
+    }
+
+    void send(mmp_p mmp) {
+P0(("MMP.Circuit", "%O->send(%O)\n", this, mmp))
+	push(mmp);
+
+	if (write_ready) {
+	    write();
+	}
     }
 
     int write(void|mixed id) {
@@ -271,6 +291,8 @@ class Circuit {
 
 	    if (arrayp(tmp)) {
 		[s, tmp] = tmp;
+		// it seems more logical to me, to put all this logic into
+		// close.
 		if (tmp) shift();
 	    } else /* if (objectp(tmp)) */ {
 		s = tmp->next();
@@ -332,7 +354,7 @@ P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", peerhost))
     }
 
     int read(mixed id, string data) {
-	string|int ret;
+	int ret = 0;
 	// TODO: decode
 
 	P2(("MMP.Circuit", "read %d bytes.\n", sizeof(data)))
@@ -376,6 +398,7 @@ P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", peerhost))
 		    P2(("MMP.Circuit", "Got a ping.\n"))
 		}
 	    }
+	    if (ret > 0) m_bytes = ret;
 	}) {
 	    P0(("MMP.Circuit", "Catched an error: '%s' backtrace: %O\n", @exeption))
 	    // TODO: error message
@@ -392,27 +415,8 @@ P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", peerhost))
 	close_cb(this);
     }
 
-    void send_neg(mmp_p mmp) {
-P0(("MMP.Circuit", "%O->send_neg(%O)\n", this, mmp))
-	q_neg->push(mmp);
-
-	if (write_ready) {
-	    write();
-	}
-    }
-
-    void send(mmp_p mmp) {
-P0(("MMP.Circuit", "%O->send(%O)\n", this, mmp))
-	push(mmp);
-
-	if (write_ready) {
-	    write();
-	}
-    }
-
     // works quite similar to the psyc-parser. we may think about sharing some
     // source-code. 
-#define INBUF	((string)inbuf)
 #ifdef LOVE_TELNET
 # define LL	sizeof(linebreak)
 # define LD	linebreak
@@ -423,9 +427,10 @@ P0(("MMP.Circuit", "%O->send(%O)\n", this, mmp))
 # define LL	1
 # define LD	"\n"
 #endif
+
 #define RETURN(x)	ret = (x); stop = -1
-	string key;
-	mixed val;
+#define INBUF	((string)inbuf)
+	string key, val;
 	int mod, start, stop, num, ret;
 
 	ret = -1;
@@ -437,6 +442,8 @@ P0(("MMP.Circuit", "%O->send(%O)\n", this, mmp))
 LINE:	while(-1 < stop && 
 	      -1 < (stop = (start = (mod) ? stop+LL : start_parse, 
 			    search(inbuf, LD, start)))) {
+	    // TODO: we could do start_parse = stop+LL here since
+	    // 	     all failures throw anyway..
 
 	    // check for an empty line.. start == stop
 	    mod = INBUF[start];
@@ -473,7 +480,7 @@ LINE:	while(-1 < stop &&
 		else if (key == "") {
 		   if (mod != lastmod) THROW("improper list continuation");
 		   if (mod == '-') THROW( "diminishing lists is not supported");
-		   if (stringp(lastval) || intp(lastval)) 
+		   if (!arrayp(lastval)) 
 			lastval = ({ lastval, val });
 		   else lastval += ({ val });
 		   continue LINE;
@@ -544,6 +551,10 @@ P2(("MMP.Parse", "reached the data-part. finished.\n", ))
 
 	return ret;
     }
+#undef INBUF
+#undef RETURN(x)
+#undef LL
+#undef LD
 }
 
 class Active {
@@ -553,7 +564,6 @@ class Active {
 	::start_read(id, data);
 
 	send_neg(mmp_p());
-	// we may need to write here in case of.. write_ready
     }
 }
 
@@ -577,8 +587,6 @@ class Server {
 
 	if (ret == 0) {
 	    if (inpacket->data == 0 && !sizeof(inpacket->vars)) {
-		// evil blocking
-		// TODO
 		send_neg(mmp_p());
 	    }
 	}
