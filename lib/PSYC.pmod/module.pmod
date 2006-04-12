@@ -87,9 +87,9 @@ class psyc_p {
 	case "string":
 	    return cache || (cache = .module.render(this_object()));
 	case "String.Buffer":
-	    return String.Buffer() + (cache || .module.render(this));
+	    return String.Buffer() + (string)this;
 	default:
-	    return 0;
+	    return UNDEFINED;
 	}
     }
 
@@ -148,12 +148,12 @@ string|String.Buffer render(psyc_p o, void|String.Buffer to) {
 #ifdef LOVE_TELNET
 psyc_p|string parse(string data, string|void linebreak) {
     if (linebreak == 0) linebreak = "\n";
-#define LL	linebreak
-#define LD	sizeof(linebreak)
+# define LL	linebreak
+# define LD	sizeof(linebreak)
 #else
 psyc_p|string parse(string data) {
-#define LL	"\n"
-#define LD	1
+# define LL	"\n"
+# define LD	1
 #endif
     int start, stop, num, lastmod, mod;
     string key, lastkey; 

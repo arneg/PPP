@@ -127,8 +127,6 @@ class mmp_p {
     }
     
     mixed `[](string id) {
-	int a;
-	array(string) l;
 	if (has_index(vars, id)) {
 	    return vars[id];
 	}
@@ -284,7 +282,7 @@ class Circuit {
 	    }
 
 	    // TODO: encode
-	    s = trigger("encode", s);
+	    //s = trigger("encode", s);
 	    written = socket->write(s);
 
 	    P2(("MMP.Circuit", "%O wrote %d (of %d) bytes.\n", this, written, 
