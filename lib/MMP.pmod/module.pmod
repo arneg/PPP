@@ -87,9 +87,55 @@ string|String.Buffer render(mmp_p packet, void|String.Buffer to) {
     return p->get();
 }
 
+array(object) renderRequestChain(array(object) modules, string hook) {
+    mapping s2o = ([ ]), usedby = ([ ]);
+    array(object) ret = ({ });
+
+    foreach (modules, object tmp) {
+	if (has_index(s2o, tmp->provides)) {
+	    throw(({ sprintf("only one object at a time can provide %O.\n",
+			     tmp->provides),
+		   backtrace() }));
+	}
+
+	s2o[tmp->provides] = tmp;
+    }
+
+    void rec(string t, string current) {
+	object o;
+	mixed cb;
+
+	o = s2o[t];
+	usedby[t] = current;
+
+	if (multisetp(cb = o->before)
+	     || mappingp(cb = o->before) && multisetp(cb = cb[hook])) {
+	    foreach (indices(cb), string dep) {
+		if (has_index(usedby, dep)) {
+		    if (usedby[dep] == current) {
+			throw(({ "found a loop (see backtrace for path).\n", backtrace() }));
+		    }
+		} else if (has_index(s2o, dep)) {
+		    rec(dep, current);	
+		}
+	    }
+	}
+
+	ret += ({ o });
+    };
+
+    foreach (s2o; string s; mixed o) {
+	if (!has_index(usedby, s))
+	    rec(s, s);
+    }
+
+    return reverse(ret);
+}
+
 class mmp_p {
     mapping(string:mixed) vars;
     string|object data;
+    function parsed = 0, sent = 0; 
 
     // experimental variable family inheritance...
     // this actually does not exactly what we want.. 
@@ -196,6 +242,7 @@ class Circuit {
 #endif
     MMP.Utils.Queue q_neg = MMP.Utils.Queue();
     mmp_p inpacket;
+    mapping(string:mixed) in_state;
     string|array(string) lastval; // mappings are not supported in psyc right
 				  // now anyway..
     int lastmod, write_ready, write_okay; // sending may be forbidden during
@@ -228,9 +275,39 @@ class Circuit {
 	//::create();
     }
 
+    void assign(mapping state, string key, mixed val) {
+	state[key] = val;	
+    }
+
+    void augment(mapping state, string key, mixed val) {
+	
+	if (arrayp(val)) {
+	    foreach (val, string t) {
+		augment(state, key, t);
+	    }
+	} else {
+	    // do the same with inpacket->vars too
+	    if (arrayp(state[key])) {
+		state[key] += ({ val });
+	    } else {
+		state[key] = ({ state[key], val });
+	    }
+	}
+    }
+
+    void diminish(mapping state, string key, mixed val) {
+	if (arrayp(state[key])) {
+	    state[key] -= ({ val });
+	} else if (has_index(state, key)) {
+	    if (state[key] == val)
+		m_delete(state, key);
+	}
+    }
+
+
     void reset() {
 	lastval = lastkey = lastmod = 0;
-	inpacket = mmp_p();
+	inpacket = mmp_p(0, copy(in_state));
     }	
 
     void activate() {
@@ -317,6 +394,9 @@ P0(("MMP.Circuit", "%O->send(%O)\n", this, mmp))
 		} else {
 		    q_neg->unshift(({ s[written..], 0 }));
 		}
+	    } else {
+		if (tmp->sent)
+		    tmp->sent();
 	    }
 	}
 
@@ -392,6 +472,8 @@ P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", peerhost))
 		P2(("MMP.Circuit", "parsed %O.\n", inpacket))
 		if (inpacket->data) {
 		    // TODO: HOOK
+		    if (inpacket->parsed)
+			inpacket->parsed();
 		    msg_cb(inpacket, this);
 		    reset(); // watch out. this may produce strange bugs...
 		} else {
@@ -442,17 +524,13 @@ P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", peerhost))
 LINE:	while(-1 < stop && 
 	      -1 < (stop = (start = (mod) ? stop+LL : start_parse, 
 			    search(inbuf, LD, start)))) {
-	    // TODO: we could do start_parse = stop+LL here since
-	    // 	     all failures throw anyway..
-
-	    // check for an empty line.. start == stop
 	    mod = INBUF[start];
 	    P2(("MMP.Parse", "start: %d, stop: %d. mod: %c\n", start, stop, mod))
 	    P2(("MMP.Parse", "parsing line: '%s'\n", INBUF[start .. stop-1]))
+	    // check for an empty line.. start == stop
 	    if (stop > start) switch(mod) {
 	    case '.':
 		// empty packet. should be accepted in any case.. 
-		// this may become a PING-PONG strategy
 		//
 		// it may be wrong to make a difference between packets without
 		// newline as delimiter.. and those with and without data..
@@ -460,10 +538,10 @@ LINE:	while(-1 < stop &&
 		inbuf = INBUF[stop+LL .. ];
 		RETURN(0);
 		break;
-	    case '=':
-	    case '+':
 	    case '-':
+	    case '+':
 	    case '?':
+	    case '=':
 	    case ':':
 #ifdef LOVE_TELNET
 		num = sscanf(INBUF[start+1 .. stop-1], "%[A-Za-z_]%*[\t ]%s",
@@ -493,6 +571,8 @@ P2(("MMP.Parse", "mmp-parse: + %s\n", INBUF[start+1 .. stop-1]))
 		    lastval[-1] += "\n" +INBUF[start+1 .. stop-1];
 		else
 		    lastval += "\n" +INBUF[start+1 .. stop-1];
+
+		start_parse = stop+LL;
 		continue LINE;
 	    default:
 		THROW("unknown modifier "+String.int2char(mod));
@@ -540,7 +620,22 @@ P2(("MMP.Parse", "reached the data-part. finished.\n", ))
 	    }
 
 	    if (lastkey) {
-		inpacket[lastkey] = lastval;
+		int mod = lastkey[0];
+		lastkey = lastkey[1..];
+		switch (mod) {
+		case '=':
+		    in_state[lastkey] = lastval;
+		case ':':
+		    inpacket[lastkey] = lastval;
+		    break;
+		case '+':
+		    assign(in_state, lastkey, lastval);
+		    assign(inpacket->vars, lastkey, lastval);
+		    break;
+		case '-':
+		    diminish(in_state, lastkey, lastval);
+		    diminish(inpacket->vars, lastkey, lastval);
+		}
 	    }
 
 	    lastmod = mod;
