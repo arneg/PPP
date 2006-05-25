@@ -1,4 +1,4 @@
-
+#include <debug.h>
 
 // discussion: was hältst du eigentlich davon, wenn places auch mehrere 
 // "clients" haben. das könnte dann sowohl nen webexport als auch nen 
@@ -16,22 +16,30 @@ class Basic {
 
     inherit Group;
    
-    string uni;
     mapping user = ([ ]);
 
-    create(string s) {
-	uni = s;
-    }
-
-    int msg(Psyc.psyc_p m) {
+    int msg(MMP.mmp_p p) {
+	P2(("Place.Basic", "%O->msg(%O)\n", this, p))
+	string|PSYC.uniform source = p["_source"];
 	
+	PSYC.psyc_p m = p->data;
+	// mcs allowed without being a groupie
 	switch (m->mc) {
-	    
+
 	}
 
-	if (::msg(m))
-	    return 1;
+	if (psyc_msg(source, m)) return 1;
 
+	if (!isMember(source)) {
+	    sendmsg(source, "_error_membership_required", 
+		    "You need to enter the group first.");
+	}
+
+	switch(m->mc) {
+	case "_message":
+	case "_message_public":
+	    return castmsg(m);
+	}
 	
     }
 

@@ -5,35 +5,30 @@
  * vielleicht sollten wir eine person noch unterteilen in einen wirklich
  * existierenden user und einen newbie. der muss sich naemlich wirklich nur
  * linken lassen. auch das halte ich in unterschiedlichen klassen
- * besser gelöst als mit einem is_newby()
+ * besser gelöst als mit einem is_newbie()
  */
 
 class Uni {
     // a simple class inherited by everyone having an address..
     //
 
+    object server;
     string uni;
 
-    void create(string u) {
+    void create(string u, object s) {
 	uni = u;
+	server = s;
     }
 
     // mixed target for objects?? i dont like something about that. even though
     // we would have one more hashlookup
-    void sendmsg(string target, string mc, string|void data, mapping|void vars) {
-
-	if (!vars) vars = ([ "_target" : target ]);
-	else vars["_target"] = target;
-
-	// duality of mmp and psyc packets is a problem again. putting target into
-	// psyc-vars is of plain wronginess.
-	//send(PSYC.psyc_p(mc, data, vars));
-	write("%O\n", PSYC.psyc_p(mc, data, vars));
-	//write("%O\n", PSYC.Dummy(mc, data, vars));
+    void sendmsg(string target, string mc, string|void data, 
+		 mapping|void vars) {
+	send(target, PSYC.psyc_p(mc, data, vars));
     }
 
-    void send(PSYC.psyc_p p) {
-	
+    void send(string target, PSYC.psyc_p p) {
+	server->unicast(target, uni, p);	
     }
 }
 
@@ -76,11 +71,11 @@ class Person {
     }
 
     // vielleicht ist das nicht gut
-    void create(string nick, string uni) {
+    void create(string nick, string uni, object server) {
 	v = ([ ]); // doch hier, weil wir dann mit storage den nick brauchen
 	// soll die sich registern?
 	write("user: %O\n", nick);
-	::create(uni);
+	::create(uni, server);
     }
 
     void msg(PSYC.psyc_p m) {

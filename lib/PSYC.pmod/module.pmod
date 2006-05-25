@@ -29,6 +29,7 @@ class uniform {
 
 uniform parse_uniform(string s) {
     string t;
+    P2(("PSYC.parse_uniform", "parsing '%s'\n", s))
     uniform u = uniform();
 
     u->unl = s;
@@ -146,12 +147,12 @@ string|String.Buffer render(psyc_p o, void|String.Buffer to) {
 
 // returns a psyc_p or an error string
 #ifdef LOVE_TELNET
-psyc_p|string parse(string data, string|void linebreak) {
+psyc_p parse(string data, string|void linebreak) {
     if (linebreak == 0) linebreak = "\n";
 # define LL	linebreak
 # define LD	sizeof(linebreak)
 #else
-psyc_p|string parse(string data) {
+psyc_p parse(string data) {
 # define LL	"\n"
 # define LD	1
 #endif
@@ -178,7 +179,7 @@ LINE:while (-1 < stop &&
 	case '?': // not implemented yet.. 
 	case ':':
 	    num = sscanf(data[start+1 .. stop-1], "%[A-Za-z_]\t%s", key, val);
-	    write("psyc-parse: "+key+" => "+val+"\n");
+	    P2(("PSYC.parse", "parsed variable: %s => %s\n", key, val))
 	    if (num == 0) THROW("Blub");
 	    if (num == 1) val = 0;
 	    else if (key == "") { // list continuation
@@ -194,7 +195,8 @@ LINE:while (-1 < stop &&
 	    break;
 	case '\t': // variable continuation
 	    if (!lastmod) THROW("invalid variable continuation");
-	    write("psyc-parse:\t+ "+data[start+1 .. stop]);
+	    P2(("PSYC.parse", "parsed variable continuation: %s\n", 
+		data[start+1 .. stop]))
 	    if (arrayp(lastval))
 		lastval[-1] += "\n" + data[start+1 .. stop-1];
 	    else 
@@ -206,7 +208,7 @@ LINE:while (-1 < stop &&
 	    if (strlen(data) > stop+1)
 		data = data[stop+1 ..];
 	    else data = "";
-	    write("mc: "+ packet->mc + "\n");
+	    P2(("PSYC.parse", "parsed method: %s\n", packet->mc))
 	    stop = -1;
 	    break;
 	default:
@@ -256,26 +258,27 @@ class Server {
 	return UNDEFINED;
     }
 
-    void register_target(string t, object o) {
-	if (has_index(targets, t)) throw("murks");
-	targets[t] = o;
+    void register_target(string|PSYC.uniform t, object o) {
+	if (has_index(targets, (string)t)) throw("murks");
+	targets[(string)t] = o;
     }
 
-    void unregister_target(string t) {
-	m_delete(targets, t);
+    void unregister_target(string|PSYC.uniform t) {
+	m_delete(targets, (string)t);
     }
     
-    void register_context(string c, object o) {
-	if (has_index(contexts, c)) throw("murks");
-	contexts[c] = o;
+    void register_context(string|PSYC.uniform c, object o) {
+	if (has_index(contexts, (string)c)) throw("murks");
+	contexts[(string)c] = o;
     }
 
-    void unregister_context(string c) {
-	m_delete(contexts, c);
+    void unregister_context(string|PSYC.uniform c) {
+	m_delete(contexts, (string)c);
     }
     
     void create(mapping(string:mixed) config) {
 
+	// TODO: expecting ip:port ... is maybe a bit too much
 	// looks terribly ugly..
 	if (has_index(config, "localhosts")) { 
 	    localhosts = config["localhosts"];
@@ -287,14 +290,14 @@ class Server {
 			"127.0.0.1" : 1,
 		      ]);
 
-	if (has_index(config, "create_local")) {
-	    create_local = config["create_local"];
+	if (has_index(config, "create_local") 
+	    && functionp(create_local = config["create_local"])) {
 	} else {
 	    throw("urks");
 	}
 
-	if (has_index(config, "create_remote")) {
-	    create_local = config["create_remote"];
+	if (has_index(config, "create_remote")
+	    && functionp(create_remote = config["create_remote"])) {
 	} else {
 	    throw("urks");
 	}
@@ -373,6 +376,9 @@ class Server {
 
     // simply sends an mmp-packet to host:port
     void send_mmp(string host, string|int port, void|MMP.mmp_p packet) {
+	P2(("PSYC.Server", "send_mmp(%s, %O, %O)\n", host, port, packet))
+	
+	string peerhost = host + " " + port;
 	
 	void cb(string host, mixed ip, string|int port, void|MMP.mmp_p packet) {
 	    Stdio.File so;
@@ -395,8 +401,10 @@ class Server {
 	    if (packet) connecting[id]->push(packet);
 	};
 	
-	if (has_index(connections, host)) {
-	    connections[host]->send(packet);
+	P2(("PSYC.Server", "looking in %O for a connection to %s.\n", 
+	    connections, host))
+	if (has_index(connections, peerhost)) {
+	    connections[peerhost]->send(packet);
 	    return;
 	}
 
@@ -441,20 +449,21 @@ class Server {
 	}
     }
 
-    void unicast(string target, string source, PSYC.psyc_p packet) {
-	P2(("PSYC.Server", "%O->unicast(%s, %s, %O)\n", this, target, source, 
+    void unicast(string|PSYC.uniform target, string|PSYC.uniform source, 
+		 PSYC.psyc_p packet) {
+	P2(("PSYC.Server", "%O->unicast(%O, %O, %O)\n", this, target, source, 
 	    packet))
 	MMP.mmp_p mpacket = MMP.mmp_p(packet, 
 				      ([ "_source" : source,
 					 "_target" : target ]));
-	if (has_index(targets, target)) {
-	    targets[target]->msg(mpacket);
+	if (has_index(targets, (string)target)) {
+	    targets[(string)target]->msg(mpacket);
 	    return;
 	}
-
 	// throws.. 
-	PSYC.uniform u = PSYC.parse_uniform(target);
-	send_mmp(u->host, u->port, mpacket);
+	if (stringp(target))
+	    target = PSYC.parse_uniform(target);
+	send_mmp(target->host, target->port, mpacket);
     }
 
     void deliver_remote(MMP.mmp_p packet, string|PSYC.uniform target) {
@@ -470,16 +479,21 @@ class Server {
     void deliver_local(MMP.mmp_p packet, string|PSYC.uniform target) {
 	P2(("PSYC.Server", "%O->deliver_local(%O, %s)\n", this, packet, 
 	    target))
-	if (!has_index(targets, target)) {
+
+	P2(("PSYC.Server", "looking in %O for %O\n.", targets, target))
+	if (!has_index(targets, (string)target)) {
+
+	    if (stringp(target)) target = PSYC.parse_uniform(target);
+
 	    object o = create_local(target);
 	    if (!o) {
-		P0(("PSYC.Server", "Could not summon a local object for %s.\n",
+		P0(("PSYC.Server", "Could not summon a local object for %O.\n",
 		    target))
 		return;
 	    }
-	    targets[target] = o;
+	    targets[(string)target] = o;
 	}
-	targets[target]->msg(packet);
+	targets[(string)target]->msg(packet);
     }
 
     // actual routing...
@@ -494,19 +508,30 @@ class Server {
 	source = packet["_source"];
 
 	if (packet->data) {
+#ifdef LOVE_TELNET
+	    packet->data = PSYC.parse(packet->data, connection->dl);
+#else
 	    packet->data = PSYC.parse(packet->data);
+#endif
 	} else {
 	    P0(("PSYC.Server", "Nothing to deliver.\n"))
 	    return;
 	}
+
+	P2(("PSYC.Server", "delivering source: %O, target: %O, context: %O\n", 
+	    source, target, context))
 
 	switch ((target ? 1 : 0)|
 		(source ? 2 : 0)|
 		(context ? 4 : 0)) {
 	case 3:
 	case 1:
+	    P2(("PSYC.Server", "delivering %O via unicast to %s\n", packet, 
+		target))
+
+	    P2(("PSYC.Server", "looking in %O for %O\n.", targets, target))
 	    if (has_index(targets, (string)target)) {
-		targets[target]->msg(packet);
+		targets[(string)target]->msg(packet);
 		return;
 	    } 
 	    if (stringp(target)) target = PSYC.parse_uniform(target);

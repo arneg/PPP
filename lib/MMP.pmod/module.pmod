@@ -166,7 +166,11 @@ class mmp_p {
 		return "MMP.mmp_p(Empty)\n";
 	    }
 
-	    return sprintf("MMP.mmp_p(%O, '%.15s..' )\n", vars, (string)data);
+	    if (stringp(data)) {
+		return sprintf("MMP.mmp_p(%O, '%.15s..' )\n", vars, data);
+	    } else {
+		return sprintf("MMP.mmp_p(%O, %O)\n", vars, data);
+	    }
 	}
 
 	return UNDEFINED;
@@ -242,7 +246,7 @@ class Circuit {
 #endif
     MMP.Utils.Queue q_neg = MMP.Utils.Queue();
     mmp_p inpacket;
-    mapping(string:mixed) in_state;
+    mapping(string:mixed) in_state = ([ ]);
     string|array(string) lastval; // mappings are not supported in psyc right
 				  // now anyway..
     int lastmod, write_ready, write_okay; // sending may be forbidden during
@@ -307,7 +311,7 @@ class Circuit {
 
     void reset() {
 	lastval = lastkey = lastmod = 0;
-	inpacket = mmp_p(0, copy(in_state));
+	inpacket = mmp_p(0, copy_value(in_state));
     }	
 
     void activate() {
@@ -482,7 +486,7 @@ P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", peerhost))
 	    }
 	    if (ret > 0) m_bytes = ret;
 	}) {
-	    P0(("MMP.Circuit", "Catched an error: '%s' backtrace: %O\n", @exeption))
+P0(("MMP.Circuit", "Catched an error: '%s' backtrace: %O\n", @exeption))
 	    // TODO: error message
 	    close_cb(this);
 	    socket->close();
@@ -512,21 +516,21 @@ P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", peerhost))
 
 #define RETURN(x)	ret = (x); stop = -1
 #define INBUF	((string)inbuf)
-	string key, val;
-	int mod, start, stop, num, ret;
+    string key, val;
+    int mod, start, stop, num, ret;
 
-	ret = -1;
+    ret = -1;
 
-	// expects to be called only if inbuf is nonempty
-	
-	P2(("MMP.Parse", "parsing: %d from position %d\n", sizeof(inbuf), 
+    // expects to be called only if inbuf is nonempty
+    
+P2(("MMP.Parse", "parsing: %d from position %d\n", sizeof(inbuf), 
 		      start_parse))
 LINE:	while(-1 < stop && 
 	      -1 < (stop = (start = (mod) ? stop+LL : start_parse, 
 			    search(inbuf, LD, start)))) {
 	    mod = INBUF[start];
-	    P2(("MMP.Parse", "start: %d, stop: %d. mod: %c\n", start, stop, mod))
-	    P2(("MMP.Parse", "parsing line: '%s'\n", INBUF[start .. stop-1]))
+P2(("MMP.Parse", "start: %d, stop: %d. mod: %c\n", start, stop, mod))
+P2(("MMP.Parse", "parsing line: '%s'\n", INBUF[start .. stop-1]))
 	    // check for an empty line.. start == stop
 	    if (stop > start) switch(mod) {
 	    case '.':
@@ -538,9 +542,10 @@ LINE:	while(-1 < stop &&
 		inbuf = INBUF[stop+LL .. ];
 		RETURN(0);
 		break;
+	    case '?':
+		THROW("modifier '?' not supported, yet.");
 	    case '-':
 	    case '+':
-	    case '?':
 	    case '=':
 	    case ':':
 #ifdef LOVE_TELNET
@@ -620,21 +625,20 @@ P2(("MMP.Parse", "reached the data-part. finished.\n", ))
 	    }
 
 	    if (lastkey) {
-		int mod = lastkey[0];
-		lastkey = lastkey[1..];
-		switch (mod) {
+		switch (lastmod) {
 		case '=':
 		    in_state[lastkey] = lastval;
 		case ':':
 		    inpacket[lastkey] = lastval;
 		    break;
 		case '+':
-		    assign(in_state, lastkey, lastval);
-		    assign(inpacket->vars, lastkey, lastval);
+		    augment(in_state, lastkey, lastval);
+		    augment(inpacket->vars, lastkey, lastval);
 		    break;
 		case '-':
 		    diminish(in_state, lastkey, lastval);
 		    diminish(inpacket->vars, lastkey, lastval);
+		    break;
 		}
 	    }
 
@@ -646,11 +650,11 @@ P2(("MMP.Parse", "reached the data-part. finished.\n", ))
 
 	return ret;
     }
+}
 #undef INBUF
-#undef RETURN(x)
+#undef RETURN
 #undef LL
 #undef LD
-}
 
 class Active {
     inherit Circuit;
