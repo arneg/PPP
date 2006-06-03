@@ -1,12 +1,11 @@
 // vim:syntax=lpc
 //
 #include <debug.h>
-#define THROW(s)        throw(({ (s), backtrace() }))
+// generating a backtrace for a _normal_ throw is a bit too much...
 #if DEBUG
-void debug(string cl, string format, mixed ... args) {
-    // erstmal nix weiter
-    predef::werror("(%s)\t"+format, cl, @args);
-}
+# define THROW(s)        throw(({ (s), backtrace() }))
+#else
+# define THROW(s)        throw(({ (s), 0 }))
 #endif
 
 string|String.Buffer render_vars(mapping(string:mixed) vars, 
@@ -113,7 +112,8 @@ array(object) renderRequestChain(array(object) modules, string hook) {
 	    foreach (indices(cb), string dep) {
 		if (has_index(usedby, dep)) {
 		    if (usedby[dep] == current) {
-			throw(({ "found a loop (see backtrace for path).\n", backtrace() }));
+			throw(({ "found a loop (see backtrace for path).\n", 
+			       backtrace() }));
 		    }
 		} else if (has_index(s2o, dep)) {
 		    rec(dep, current);	
@@ -321,7 +321,7 @@ class Circuit {
     }
 
     void send_neg(mmp_p mmp) {
-P0(("MMP.Circuit", "%O->send_neg(%O)\n", this, mmp))
+	P0(("MMP.Circuit", "%O->send_neg(%O)\n", this, mmp))
 	q_neg->push(mmp);
 
 	if (write_ready) {
@@ -330,7 +330,7 @@ P0(("MMP.Circuit", "%O->send_neg(%O)\n", this, mmp))
     }
 
     void send(mmp_p mmp) {
-P0(("MMP.Circuit", "%O->send(%O)\n", this, mmp))
+	P0(("MMP.Circuit", "%O->send(%O)\n", this, mmp))
 	push(mmp);
 
 	if (write_ready) {
@@ -423,7 +423,8 @@ P0(("MMP.Circuit", "%O->send(%O)\n", this, mmp))
 	    close_cb(this);
 	    return 1;
 	}
-P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", peerhost))
+	P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", 
+	    peerhost))
 #ifdef LOVE_TELNET
 	if (sizeof(data) > ((dl) ? 3 : 2)) {
 	    read(0, data[((dl) ? 3 : 2) ..]);
@@ -469,10 +470,10 @@ P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", peerhost))
 	if (exeption = catch {
 	    while (inbuf && !(ret = 
 #ifdef LOVE_TELNET
-	(dl) ? parse(dl) :
+		    (dl) ? parse(dl) :
 #endif
-		     parse()
-		     )) {
+				     parse())) {
+
 		P2(("MMP.Circuit", "parsed %O.\n", inpacket))
 		if (inpacket->data) {
 		    // TODO: HOOK
@@ -486,7 +487,8 @@ P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", peerhost))
 	    }
 	    if (ret > 0) m_bytes = ret;
 	}) {
-P0(("MMP.Circuit", "Catched an error: '%s' backtrace: %O\n", @exeption))
+	    P0(("MMP.Circuit", "Catched an error: '%s' backtrace: %O\n", 
+		@exeption))
 	    // TODO: error message
 	    close_cb(this);
 	    socket->close();
@@ -503,10 +505,13 @@ P0(("MMP.Circuit", "Catched an error: '%s' backtrace: %O\n", @exeption))
 
     // works quite similar to the psyc-parser. we may think about sharing some
     // source-code. 
+#define RETURN(x)	ret = (x); stop = -1
+#define INBUF	((string)inbuf)
 #ifdef LOVE_TELNET
 # define LL	sizeof(linebreak)
 # define LD	linebreak
     int parse(void|string linebreak) {
+
 	if (!linebreak) linebreak = "\n";
 #else
     int parse() {
@@ -514,23 +519,21 @@ P0(("MMP.Circuit", "Catched an error: '%s' backtrace: %O\n", @exeption))
 # define LD	"\n"
 #endif
 
-#define RETURN(x)	ret = (x); stop = -1
-#define INBUF	((string)inbuf)
-    string key, val;
-    int mod, start, stop, num, ret;
+	string key, val;
+	int mod, start, stop, num, ret;
 
-    ret = -1;
+	ret = -1;
 
-    // expects to be called only if inbuf is nonempty
+	// expects to be called only if inbuf is nonempty
     
-P2(("MMP.Parse", "parsing: %d from position %d\n", sizeof(inbuf), 
-		      start_parse))
+	P2(("MMP.Parse", "parsing: %d from position %d\n", sizeof(inbuf), 
+	    start_parse))
 LINE:	while(-1 < stop && 
 	      -1 < (stop = (start = (mod) ? stop+LL : start_parse, 
 			    search(inbuf, LD, start)))) {
 	    mod = INBUF[start];
-P2(("MMP.Parse", "start: %d, stop: %d. mod: %c\n", start, stop, mod))
-P2(("MMP.Parse", "parsing line: '%s'\n", INBUF[start .. stop-1]))
+	    P2(("MMP.Parse", "start: %d, stop: %d. mod: %c\n", start,stop,mod))
+	    P2(("MMP.Parse", "parsing line: '%s'\n", INBUF[start .. stop-1]))
 	    // check for an empty line.. start == stop
 	    if (stop > start) switch(mod) {
 	    case '.':
@@ -571,7 +574,7 @@ P2(("MMP.Parse", "parsing line: '%s'\n", INBUF[start .. stop-1]))
 		break;
 	    case '\t':
 		if (!lastmod) THROW( "invalid variable continuation");
-P2(("MMP.Parse", "mmp-parse: + %s\n", INBUF[start+1 .. stop-1]))
+		P2(("MMP.Parse", "mmp-parse: + %s\n", INBUF[start+1 .. stop-1]))
 		if (arrayp(lastval))
 		    lastval[-1] += "\n" +INBUF[start+1 .. stop-1];
 		else
@@ -590,9 +593,9 @@ P2(("MMP.Parse", "mmp-parse: + %s\n", INBUF[start+1 .. stop-1]))
 		if (length) {
 		    if (stop+LL + length > sizeof(inbuf)) {
 			start_parse = start;
-P2(("MMP.Parse", 
-    "reached the data-part. %d bytes missing (_length specified)\n", 
-    stop+LL+length-sizeof(inbuf)))
+			P2(("MMP.Parse", 
+			    "reached the data-part. %d bytes missing (_length "
+			    "specified)\n", stop+LL+length-sizeof(inbuf)))
 			RETURN(stop+LL+length-sizeof(inbuf));
 		    } else {
 			// TODO: we have to check if the packet-delimiter
@@ -603,14 +606,16 @@ P2(("MMP.Parse",
 			else
 			    inbuf = INBUF[stop+length+3*LL+1 .. ];
 			start_parse = 0;
-P2(("MMP.Parse", "reached the data-part. finished. (_length specified)\n", ))
+			P2(("MMP.Parse", "reached the data-part. finished. "
+			    "(_length specified)\n"))
 			RETURN(0);
 		    }
 		    // TODO: we could cache the last sizeof(inbuf) for failed
 		    // searches.. 
 		} else if (-1 == (length = search(inbuf, LD+"."+LD, stop+LL))) {
 		    start_parse = start;
-P2(("MMP.Parse", "reached the data-part. i dont know how much is missing.\n", ))
+		    P2(("MMP.Parse", "reached the data-part. i dont know how "
+			"much is missing.\n"))
 		    RETURN(-1);
 		} else {
 		    inpacket->data = INBUF[stop+LL .. length];	
@@ -619,7 +624,7 @@ P2(("MMP.Parse", "reached the data-part. i dont know how much is missing.\n", ))
 		    else
 			inbuf = INBUF[length+2*LL+1 .. ];
 		    start_parse = 0;
-P2(("MMP.Parse", "reached the data-part. finished.\n", ))
+		    P2(("MMP.Parse", "reached the data-part. finished.\n"))
 		    RETURN(0);
 		}
 	    }

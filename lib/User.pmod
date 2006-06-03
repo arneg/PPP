@@ -38,7 +38,7 @@ class Person {
     // wie waren diese unterschiedlichen level? fippo hatte doch das alles
     // sich genau überlegt.
     // friends landet dann ja wohl im v..
-    mixed v;
+    mixed v = ([ "password" : "test" ]);
 
     // i don't know whether attach should check auth or if we want to live
     // in an enviroment where the attacher has to check auth (and we trust
@@ -54,8 +54,7 @@ class Person {
     void checkAuth(string type, mixed creds, function cb, 
 		   mixed ... extra) {
 	if (type != "password") {
-	    throw(({ "invalid auth method provided\n",
-		   backtrace() }));
+	    throw(({ "invalid auth method provided\n", 0 }));
 	}
 
 	if (!stringp(creds)) {
@@ -78,16 +77,18 @@ class Person {
 	::create(uni, server);
     }
 
-    void msg(PSYC.psyc_p m) {
-	string source = m["_source"];
+    void msg(MMP.mmp_p p) {
+	string source = p["_source"];
+	
+	PSYC.psyc_p m = p->data;
 	
 	switch(m->mc) {
 
 	case "_request_link":
 	    string pw = m["_password"];
-	    void temp(int bol, Person p, string location) {
+	    void temp(int bol, string location) {
 		if (bol) {
-		    p->attach(PsycUser(location, this));
+		    attach(PsycUser(location, this));
 		    sendmsg(location, "_notice_link");
 		} else if (pw) {
 		    sendmsg(location, "_error_user_schon_benutzt");
@@ -96,7 +97,7 @@ class Person {
 		    // maybe a newbie...
 		}
 	    };
-	    checkAuth("password", pw, temp); 
+	    checkAuth("password", pw, temp, source); 
 	    return;
 	case "_request_status":
 	case "_notice_friend_present":
@@ -170,7 +171,7 @@ class PsycUser {
 	
 	}
 	
-	person->sendmsg(location, m);
+	person->send(location, m);
     }
     
 }

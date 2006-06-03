@@ -38,7 +38,8 @@ class Basic {
 	switch(m->mc) {
 	case "_message":
 	case "_message_public":
-	    return castmsg(m);
+	    castmsg(m->mc, m->data, m->vars);
+	    return 1;
 	}
 	
     }

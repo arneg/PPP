@@ -205,8 +205,8 @@ LINE:while (-1 < stop &&
 	case '_':
 	    // TODO: check mc for sanity
 	    packet->mc = data[start .. stop-1];
-	    if (strlen(data) > stop+1)
-		data = data[stop+1 ..];
+	    if (strlen(data) > stop+LD)
+		data = data[stop+LD ..];
 	    else data = "";
 	    P2(("PSYC.parse", "parsed method: %s\n", packet->mc))
 	    stop = -1;
@@ -402,7 +402,7 @@ class Server {
 	};
 	
 	P2(("PSYC.Server", "looking in %O for a connection to %s.\n", 
-	    connections, host))
+	    connections, peerhost))
 	if (has_index(connections, peerhost)) {
 	    connections[peerhost]->send(packet);
 	    return;
@@ -570,12 +570,6 @@ class Server {
 	default:
 
 	}
-	// this is a hack.. (works like psyced)
-	if (target) {
-	    
-
-	}
-
     }
 
     void rootmsg(MMP.mmp_p packet, object connection) {
