@@ -71,6 +71,15 @@ uniform parse_uniform(string s) {
     return u;
 }
 
+psyc_p reply(psyc_p m, string|void mc, string|void data, mapping(string:mixed)|void vars) {
+    psyc_p t = psyc_p(mc, data, vars);
+
+    if (has_index(m->vars, "_tag"))
+	t->vars["_tag_reply"] = m->vars["_tag"];
+
+    return t;
+}
+
 class psyc_p {
     string mc, cache;
     mapping (string:mixed) vars;
@@ -110,7 +119,6 @@ class psyc_p {
 
     mixed `->=(string id, mixed val) {
 	cache = UNDEFINED;
-
 	return ::`->=(id, val);
     }
 
@@ -179,7 +187,7 @@ LINE:while (-1 < stop &&
 	case '?': // not implemented yet.. 
 	case ':':
 	    num = sscanf(data[start+1 .. stop-1], "%[A-Za-z_]\t%s", key, val);
-	    P2(("PSYC.parse", "parsed variable: %s => %s\n", key, val))
+	    P2(("PSYC.parse", "parsed variable: %s => %O\n", key, val))
 	    if (num == 0) THROW("Blub");
 	    if (num == 1) val = 0;
 	    else if (key == "") { // list continuation
@@ -505,7 +513,10 @@ class Server {
 	// this is maybe the most ... innovative piece of code on this planet
 	target = packet["_target"];
 	context = packet["_context"];
-	source = packet["_source"];
+	if (!has_index(packet, "_source")) {
+	    source = connection->peeraddr;
+	    packet["_source"] = source;
+	} else source = packet["_source"];
 
 	if (packet->data) {
 #ifdef LOVE_TELNET

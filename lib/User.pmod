@@ -1,3 +1,4 @@
+//vim:syntax=lpc
 /*
  * this is supposed to be a general "minimal" object for a user without
  * anyone being linked to it. 
@@ -8,37 +9,13 @@
  * besser gelöst als mit einem is_newbie()
  */
 
-class Uni {
-    // a simple class inherited by everyone having an address..
-    //
-
-    object server;
-    string uni;
-
-    void create(string u, object s) {
-	uni = u;
-	server = s;
-    }
-
-    // mixed target for objects?? i dont like something about that. even though
-    // we would have one more hashlookup
-    void sendmsg(string target, string mc, string|void data, 
-		 mapping|void vars) {
-	send(target, PSYC.psyc_p(mc, data, vars));
-    }
-
-    void send(string target, PSYC.psyc_p p) {
-	server->unicast(target, uni, p);	
-    }
-}
-
 class Person {
     inherit Uni;
     array(mixed) clients = ({ });
     // wie waren diese unterschiedlichen level? fippo hatte doch das alles
     // sich genau überlegt.
     // friends landet dann ja wohl im v..
-    mixed v = ([ "password" : "test" ]);
+    mixed v;
 
     // i don't know whether attach should check auth or if we want to live
     // in an enviroment where the attacher has to check auth (and we trust
@@ -71,33 +48,50 @@ class Person {
 
     // vielleicht ist das nicht gut
     void create(string nick, string uni, object server) {
-	v = ([ ]); // doch hier, weil wir dann mit storage den nick brauchen
+	v = ([ "password" : "test" ]); // doch hier, weil wir dann mit storage den nick brauchen
 	// soll die sich registern?
 	write("user: %O\n", nick);
 	::create(uni, server);
     }
 
     void msg(MMP.mmp_p p) {
+
+	// this looks ugly
+	if (!::msg(p))
+	    return;// let Uni check for auth.
+
 	string source = p["_source"];
 	
 	PSYC.psyc_p m = p->data;
 	
 	switch(m->mc) {
-
+	case "_request_authentication":
+	    {
+		// for now this works fine
+		if (has_index(m->vars, "_location")) foreach (clients, object o) {
+		    if (m->vars["_location"] == o->location) {
+			send(p["_source"], PSYC.reply(m, "_notice_authentication", "yeeees!")); 
+			return;
+		    }
+		}
+		send(p["_source"], PSYC.reply(m, "_error_authentication", "noooo!")); 
+		return;
+	    }
+	    return;
 	case "_request_link":
 	    string pw = m["_password"];
-	    void temp(int bol, string location) {
+	    void temp(int bol, MMP.mmp_p packet) {
 		if (bol) {
-		    attach(PsycUser(location, this));
-		    sendmsg(location, "_notice_link");
+		    attach(PsycUser(packet["_source"], this));
+		    send(packet["_source"], PSYC.reply(p->data, "_notice_link", "You have been linked."));
 		} else if (pw) {
-		    sendmsg(location, "_error_user_schon_benutzt");
+		    send(packet["_source"], PSYC.reply(p->data, "_error_user_in_use", "This user is in use ,)."));
 		} else {
-		    sendmsg(location, "_error_invalid_password");
+		    send(packet["_source"], PSYC.reply(p->data, "_error_invalid_password", "Forgot your password?"));
 		    // maybe a newbie...
 		}
 	    };
-	    checkAuth("password", pw, temp, source); 
+	    checkAuth("password", pw, temp, p); 
 	    return;
 	case "_request_status":
 	case "_notice_friend_present":
@@ -132,7 +126,9 @@ class PsycUser {
     }
 
     // we need an itsme check.. somewhere
-    void msg(PSYC.psyc_p m) { 
+    void msg(MMP.mmp_p p) { 
+
+	PSYC.psyc_p m = p->data;
 
 	switch (m->mc) {
 	case "_request_store":
@@ -164,11 +160,11 @@ class PsycUser {
 			m_delete(t, key);
 		}
 		
-		person->sendmsg(m["_source"], "_status_storage", 0, t);
+		person->sendmsg(p["_source"], "_status_storage", 0, t);
 	    }
 	    break;
 	case "_request_execute":
-	
+	    break;
 	}
 	
 	person->send(location, m);

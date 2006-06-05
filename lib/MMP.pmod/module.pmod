@@ -3,6 +3,10 @@
 #include <debug.h>
 // generating a backtrace for a _normal_ throw is a bit too much...
 #if DEBUG
+void debug(string cl, string format, mixed ... args) {
+    // erstmal nix weiter
+    predef::werror("(%s)\t"+format, cl, @args);
+}
 # define THROW(s)        throw(({ (s), backtrace() }))
 #else
 # define THROW(s)        throw(({ (s), 0 }))
@@ -252,6 +256,7 @@ class Circuit {
     int lastmod, write_ready, write_okay; // sending may be forbidden during
 					  // certain parts of neg
     string lastkey, peerhost;
+    string peeraddr;
     function msg_cb, close_cb;
 
     // bytes missing in buf to complete the packet inpacket. (means: inpacket 
@@ -272,6 +277,7 @@ class Circuit {
 	socket = so;
 	socket->set_nonblocking(start_read, write, close);
 	peerhost = so->query_address();
+	peeraddr = "psyc://"+((peerhost / " ") * ":");
 	msg_cb = cb;
 	close_cb = closecb;
 

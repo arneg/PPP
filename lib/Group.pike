@@ -1,5 +1,5 @@
 
-inherit User.Uni;
+inherit Uni;
 
 multiset groupies = (< >);
 int silent = 0;
