@@ -6,6 +6,7 @@
 
 class Dummy(mixed...params) { }
 
+// TODO: this is totally MMP. at least not limited to psyc
 class uniform {
     string scheme, transport, host, user, resource, slashes, query, body,
 	   userAtHost, pass, hostPort, circuit, root, unl;
@@ -249,7 +250,8 @@ class Server {
     mapping(string:object) targets = ([ ]), 
 			   contexts = ([ ]), 
 			   connecting = ([ ]),
-			   connections = ([ ]);
+			   connections = ([ ]),
+			   routes = ([ ]);
     PSYC.psyc_p circuit_established;
     string bind_to;
 
@@ -399,7 +401,7 @@ class Server {
 		return;
 	    }
 	    // like socket->query_address()
-	    id = ip+" "+(string)port;
+	    id = ip+" "+(string)(port || 4404);
 	    if (!has_index(connecting, id)) {
 		so = Stdio.File();
 		if (bind_to)
@@ -413,8 +415,12 @@ class Server {
 	
 	P2(("PSYC.Server", "looking in %O for a connection to %s.\n", 
 	    connections, peerhost))
+
 	if (has_index(connections, peerhost)) {
 	    connections[peerhost]->send(packet);
+	    return;
+	} else if (has_index(routes, peerhost)) {
+	    routes[peerhost]->send(packet);
 	    return;
 	}
 
@@ -594,6 +600,7 @@ class Server {
 
     void rootmsg(MMP.mmp_p packet, object connection) {
 	
+	P2(("PSYC.Server", "rootmsg(%O) from %O\n", packet, connection))
 	if (packet->data != 0) {
 	    // try to parse psyc here.
 	    PSYC.psyc_p message;
@@ -604,6 +611,13 @@ class Server {
 		// ich weiss nichtmehr so genau. in FORK wird das eh alles
 		// anders.. ,)
 	    case "_notice_circuit_established":
+		string|MMP.uniform source = packet["_source"];
+		
+		if (stringp(source)) {
+		    source = parse_uniform(source);
+		}
+
+		routes[source->host+" "+(string)(source->port||4404)] = connection;
 	    case "_status_circuit":
 		// auch hier nicht sicher
 		connection->activate();
