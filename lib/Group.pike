@@ -8,7 +8,13 @@ int(0..1) isMember(mixed kerl) {
     return groupies[kerl];
 }
 
-int psyc_msg(string|PSYC.uniform source, PSYC.psyc_p m) {
+int msg(MMP.mmp_p p) {
+
+    if (::msg(p)) return 1;
+    
+    string|PSYC.uniform source = p["_source"];
+    PSYC.psyc_p m = p->data;
+
     switch (m->mc) {
     case "_request_enter":
     case "_request_group_enter":
@@ -31,6 +37,7 @@ int psyc_msg(string|PSYC.uniform source, PSYC.psyc_p m) {
 	return 1;
     }
     
+    return 0;
 }
 
 void castmsg(string mc, string data, mapping(string:string) vars) {

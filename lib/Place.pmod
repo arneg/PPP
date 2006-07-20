@@ -23,15 +23,12 @@ class Basic {
 	if (::msg(p)) return 1;
 
 	string|PSYC.uniform source = p["_source"];
-
 	
 	PSYC.psyc_p m = p->data;
 	// mcs allowed without being a groupie
 	switch (m->mc) {
-
+	
 	}
-
-	if (psyc_msg(source, m)) return 1;
 
 	if (!isMember(source)) {
 	    sendmsg(source, "_error_membership_required", 

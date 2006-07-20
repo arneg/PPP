@@ -96,7 +96,7 @@ array(object) renderRequestChain(array(object) modules, string hook) {
 
     foreach (modules, object tmp) {
 	if (has_index(s2o, tmp->provides)) {
-	    THROW("only one object at a time can provide %O.\n", tmp->provides);
+	    THROW(sprintf("only one object at a time can provide %O.\n", tmp->provides));
 	}
 
 	s2o[tmp->provides] = tmp;
@@ -199,7 +199,7 @@ class mmp_p {
 	    return data[id] = val;
 	}
 
-	THROW("put psyc variable (%s) into mmp packet (%s).", id, this);
+	THROW(sprintf("put psyc variable (%s) into mmp packet (%s).", id, this));
     }
 }
 
