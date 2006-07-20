@@ -611,7 +611,7 @@ class Server {
 		// ich weiss nichtmehr so genau. in FORK wird das eh alles
 		// anders.. ,)
 	    case "_notice_circuit_established":
-		string|MMP.uniform source = packet["_source"];
+		string|uniform source = packet["_source"];
 		
 		if (stringp(source)) {
 		    source = parse_uniform(source);
