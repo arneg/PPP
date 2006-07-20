@@ -23,6 +23,10 @@ int psyc_msg(string|PSYC.uniform source, PSYC.psyc_p m) {
     case "_request_leave":
 	sendmsg(source, "_notice_leave");
     case "_notice_leave":
+	if (!silent && isMember((string)source)) {
+	    castmsg("_notice_group_leave", "[_nick] left.", 
+		    ([ "_nick" : source]));
+	}
 	groupies[(string)source] = 0;
 	return 1;
     }

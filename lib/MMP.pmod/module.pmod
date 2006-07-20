@@ -96,9 +96,7 @@ array(object) renderRequestChain(array(object) modules, string hook) {
 
     foreach (modules, object tmp) {
 	if (has_index(s2o, tmp->provides)) {
-	    throw(({ sprintf("only one object at a time can provide %O.\n",
-			     tmp->provides),
-		   backtrace() }));
+	    THROW("only one object at a time can provide %O.\n", tmp->provides);
 	}
 
 	s2o[tmp->provides] = tmp;
@@ -116,8 +114,7 @@ array(object) renderRequestChain(array(object) modules, string hook) {
 	    foreach (indices(cb), string dep) {
 		if (has_index(usedby, dep)) {
 		    if (usedby[dep] == current) {
-			throw(({ "found a loop (see backtrace for path).\n", 
-			       backtrace() }));
+			THROW("found a loop (see backtrace for path).\n");
 		    }
 		} else if (has_index(s2o, dep)) {
 		    rec(dep, current);	
@@ -202,8 +199,7 @@ class mmp_p {
 	    return data[id] = val;
 	}
 
-	throw(({ sprintf("cannot assign values to data, and %O is not am mmp "
-			 "variable.", id), backtrace() }));
+	THROW("put psyc variable (%s) into mmp packet (%s).", id, this);
     }
 }
 

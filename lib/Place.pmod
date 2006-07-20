@@ -20,7 +20,10 @@ class Basic {
 
     int msg(MMP.mmp_p p) {
 	P2(("Place.Basic", "%O->msg(%O)\n", this, p))
+	if (::msg(p)) return 1;
+
 	string|PSYC.uniform source = p["_source"];
+
 	
 	PSYC.psyc_p m = p->data;
 	// mcs allowed without being a groupie

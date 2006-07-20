@@ -275,6 +275,8 @@ class Server {
 	m_delete(targets, (string)t);
     }
     
+    // these contexts are local context slaves.. for remote rooms. and also 
+    // context slaves for local rooms. we should not make any difference really
     void register_context(string|PSYC.uniform c, object o) {
 	if (has_index(contexts, (string)c)) throw("murks");
 	contexts[(string)c] = o;
@@ -567,19 +569,26 @@ class Server {
 	    rootmsg(packet, connection);
 	    break;
 	case 4:
-	    // multicast
+	    P2(("PSYC.Server", "delivering multicast message %O to local %s\n", packet, context))
+	    if (has_index(contexts, (string)context)) {
+		contexts[(string)context]->msg(packet);
+	    }
 	    break;
 	case 5:
 	    // unicast in context-state..
+	    // TODO: we dont know how to handle different states right now..
+	    // maybe it can be done in Uni.pmod but then we would have to 
+	    // double check
+	    P0(("PSYC.Server", "unimplemented routing scheme (%d)\n", 5))
 	    break;
 	case 6:
+	    P0(("PSYC.Server", "unimplemented routing scheme (%d)\n", 6))
 	    // bullshit.. 
 	    break;
 	case 7:
+	    P0(("PSYC.Server", "unimplemented routing scheme (%d)\n", 7))
 	    // even more bullshit
 	    break;
-	default:
-
 	}
     }
 
