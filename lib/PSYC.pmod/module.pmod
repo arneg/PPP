@@ -515,7 +515,7 @@ class Server {
 	// this is maybe the most ... innovative piece of code on this planet
 	target = packet["_target"];
 	context = packet["_context"];
-	if (!has_index(packet, "_source")) {
+	if (!has_index(packet->vars, "_source")) {
 	    source = connection->peeraddr;
 	    packet["_source"] = source;
 	} else source = packet["_source"];

@@ -17,6 +17,7 @@ int msg(MMP.mmp_p p) {
 
     switch (m->mc) {
     case "_request_enter":
+    case "_request_enter_join":
     case "_request_group_enter":
 	groupies[(string)source] = 1;
 	if (silent) 
