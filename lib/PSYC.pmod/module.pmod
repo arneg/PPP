@@ -390,7 +390,7 @@ class Server {
     void send_mmp(string host, string|int port, void|MMP.mmp_p packet) {
 	P2(("PSYC.Server", "send_mmp(%s, %O, %O)\n", host, port, packet))
 	
-	string peerhost = host + " " + port;
+	string peerhost = host + " " + (string)(port || 4404);
 	
 	void cb(string host, mixed ip, string|int port, void|MMP.mmp_p packet) {
 	    Stdio.File so;
