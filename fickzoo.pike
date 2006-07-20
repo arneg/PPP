@@ -5,14 +5,13 @@ PSYC.Server dings;
 int main(int argc, array(string) argv) {
 
     dings = PSYC.Server(([
-				    "localhosts" : ([ "dings.l.tobij.de" : 1 ]),
-				    "ports" : ({ "62.75.216.40:4405" }),
-				    "create_local" : create_local,
-				    "create_remote" : lambda(mixed ... args) { },
-				    "module_factory" : create_module,
-				    "offer_modules" : ({ "_compress" }),
-				     ]));
-    
+	"localhosts" : ([ "dings.l.tobij.de" : 1 ]),
+	"ports" : ({ "62.75.216.40:4405" }),
+	"create_local" : create_local,
+	"create_remote" : lambda(mixed ... args) { },
+	"module_factory" : create_module,
+	"offer_modules" : ({ "_compress" }),
+	 ]));
     return -1;
 }
 
