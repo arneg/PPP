@@ -288,6 +288,13 @@ class Server {
 	m_delete(contexts, (string)c);
     }
     
+    void register_member(string|PSYC.uniform c, object o) {
+	if (!has_index(contexts, (string)c)) {
+	    contexts[(string)c] = Context(c, this);
+	}
+	contexts[(string)c]->insert(o);
+    }
+    
     void create(mapping(string:mixed) config) {
 
 	// TODO: expecting ip:port ... is maybe a bit too much
@@ -387,10 +394,14 @@ class Server {
     }
 
     // simply sends an mmp-packet to host:port
-    void send_mmp(string host, string|int port, void|MMP.mmp_p packet) {
+    void send_mmp(string|MMP.uniform target, void|MMP.mmp_p packet) {
 	P2(("PSYC.Server", "send_mmp(%s, %O, %O)\n", host, port, packet))
+
+	if (stringp(target)) {
+	    target = MMP.parse_uniform(target);
+	}
 	
-	string peerhost = host + " " + (string)(port || 4404);
+	string peerhost = target->host + " " + (string)(target->port || 4404);
 	
 	void cb(string host, mixed ip, string|int port, void|MMP.mmp_p packet) {
 	    Stdio.File so;
@@ -479,7 +490,7 @@ class Server {
 	// throws.. 
 	if (stringp(target))
 	    target = PSYC.parse_uniform(target);
-	send_mmp(target->host, target->port, mpacket);
+	send_mmp(target, mpacket);
     }
 
     void deliver_remote(MMP.mmp_p packet, string|PSYC.uniform target) {
@@ -489,7 +500,7 @@ class Server {
 	if (stringp(target))
 	    target = PSYC.parse_uniform(target);
 
-	send_mmp(target->host, target->port||4404, packet);
+	send_mmp(target, packet);
     }
 
     void deliver_local(MMP.mmp_p packet, string|PSYC.uniform target) {
@@ -624,6 +635,39 @@ class Server {
 	    }
 	} else { // hmm
 
+	}
+    }
+}
+
+// note: lets use MMP.uniform for all.. and for local targets it contains a
+// reference to the corresponding object (weak). that way we dont need a 
+// hash lookup in cases we dont want to store objects, i.e. make a difference
+// between locals and remotes
+
+// a context slave
+class Context {
+    
+    multiset members = (<>); 
+    object server;
+    string|MMP.uniform uni;
+
+    void create(string|MMP.uniform n, object s) {
+	uni = n;
+	server = s;
+    }
+    
+    void insert(string|MMP.uniform t) {
+	members[t] = 1;
+    }
+
+    void delete(object o) {
+	members[o] = 0;
+    }
+    
+    void msg(MMP.mmp_p packet) {
+
+	foreach (indices(members), string|MMP.uniform target) {
+	    server->send_mmp(target, packet);	
 	}
     }
 }

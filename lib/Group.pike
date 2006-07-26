@@ -2,6 +2,9 @@
 inherit Uni;
 
 multiset groupies = (< >);
+// uniform -> route
+multiset routes = (< >);
+// route -> num of members
 int silent = 0;
 
 int(0..1) isMember(mixed kerl) {

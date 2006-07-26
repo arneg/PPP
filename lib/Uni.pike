@@ -18,6 +18,14 @@ mapping(string:mapping(string:string)) pending = ([ ]);
 // _tag & _reply mechanism.. 
 /*private :)*/ mapping(string:array(mixed)) _tags = ([]);
 
+mixed cast(string type) {
+    if (type == "string") return sprintf("Uni(%s)", qName());
+}
+
+string qName() {
+    return uni;
+}
+
 // TODO: maybe we should use some proper random-string generation...
 // maybe collect entropy by the action of users, which should be 
 // pretty good in most applications. thats good for all the crypto
