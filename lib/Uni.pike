@@ -31,7 +31,7 @@ string qName() {
 // pretty good in most applications. thats good for all the crypto
 // stuff too
 //
-string send_tagged(string|MMP.uniform target, PSYC.psyc_p m, 
+string send_tagged(string|MMP.uniform target, PSYC.Packet m, 
 		   function|void callback, mixed ... args) {
     string tag = random_string(8); // have a define for the length? 
    // am i paranoid?
@@ -65,10 +65,10 @@ void create(string u, object s) {
 // we would have one more hashlookup
 void sendmsg(string|MMP.uniform target, string mc, string|void data, 
 	     mapping|void vars) {
-    send(target, PSYC.psyc_p(mc, data, vars));
+    send(target, PSYC.Packet(mc, data, vars));
 }
 
-void send(string|MMP.uniform target, PSYC.psyc_p p) {
+void send(string|MMP.uniform target, PSYC.Packet p) {
 
     P3(("Uni", "send(%O, %s)\n", target, p))
 
@@ -84,9 +84,9 @@ void send(string|MMP.uniform target, PSYC.psyc_p p) {
     server->unicast(target, uni, p);	
 }
 
-void _auth_msg(MMP.mmp_p reply, MMP.mmp_p ... packets) {
+void _auth_msg(MMP.Packet reply, MMP.Packet ... packets) {
 
-    PSYC.psyc_p m = reply->data;
+    PSYC.Packet m = reply->data;
 
     if (objectp(m)) switch(m->mc) {
     case "_notice_authentication":
@@ -106,7 +106,7 @@ void _auth_msg(MMP.mmp_p reply, MMP.mmp_p ... packets) {
 		uni2unl[source] = ({ uni2unl[source], m["_location"] });
 	} else uni2unl[source] = m["_location"];
 
-	foreach (packets, MMP.mmp_p p) {
+	foreach (packets, MMP.Packet p) {
 	    msg(p);
 	}
 	break;
@@ -114,9 +114,9 @@ void _auth_msg(MMP.mmp_p reply, MMP.mmp_p ... packets) {
     case "_error_invalid_authentication":
     {
 	P2(("Uni", "I was not able to get authentication for %s (claims to be %s).\n", m["_location"], m["_identification"]))
-	foreach (packets, MMP.mmp_p p) {
+	foreach (packets, MMP.Packet p) {
 	    send(p["_source"], 
-		 PSYC.psyc_p("_failure_authentication", 
+		 PSYC.Packet("_failure_authentication", 
 		   "I was not able to authenticate you as [_identification].", 
 		   ([ "_identification" : p["_source_identification"] ])));
 	}
@@ -129,7 +129,7 @@ void _auth_msg(MMP.mmp_p reply, MMP.mmp_p ... packets) {
     }
 }
 
-int msg(MMP.mmp_p p) {
+int msg(MMP.Packet p) {
     // check if _identification is valid
     string|MMP.uniform source = p["_source"];
 
@@ -150,7 +150,7 @@ int msg(MMP.mmp_p p) {
 		has_index(pending[s], (string)id)) {
 		append_arguments(pending[s][(string)id], p);
 	    } else {
-		PSYC.psyc_p request = PSYC.psyc_p("_request_authentication",
+		PSYC.Packet request = PSYC.Packet("_request_authentication",
 						  "nil", 
 						  ([ "_location" : source ]));
 		pending[s] 

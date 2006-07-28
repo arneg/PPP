@@ -6,8 +6,8 @@
 
 class Dummy(mixed...params) { }
 
-psyc_p reply(psyc_p m, string|void mc, string|void data, mapping(string:mixed)|void vars) {
-    psyc_p t = psyc_p(mc, data, vars);
+Packet reply(Packet m, string|void mc, string|void data, mapping(string:mixed)|void vars) {
+    Packet t = Packet(mc, data, vars);
 
     if (has_index(m->vars, "_tag"))
 	t->vars["_tag_reply"] = m->vars["_tag"];
@@ -15,7 +15,7 @@ psyc_p reply(psyc_p m, string|void mc, string|void data, mapping(string:mixed)|v
     return t;
 }
 
-class psyc_p {
+class Packet {
     string mc, cache;
     mapping (string:mixed) vars;
     mixed data;
@@ -41,7 +41,7 @@ class psyc_p {
     string _sprintf(int format) {
 	switch (format) {
 	    case 'O':
-		return sprintf("PSYC.psyc_p(%O)", mc);
+		return sprintf("PSYC.Packet(%O)", mc);
 	    case 's':
 		return (string)this;
 	}
@@ -64,7 +64,7 @@ class psyc_p {
     }
 }
 
-string|String.Buffer render(psyc_p o, void|String.Buffer to) {
+string|String.Buffer render(Packet o, void|String.Buffer to) {
     String.Buffer p;
 
     // this could be used to render several psyc-packets/mmp-packets at once
@@ -88,14 +88,14 @@ string|String.Buffer render(psyc_p o, void|String.Buffer to) {
     return p->get();
 }
 
-// returns a psyc_p or an error string
+// returns a Packet or an error string
 #ifdef LOVE_TELNET
-psyc_p parse(string data, string|void linebreak) {
+Packet parse(string data, string|void linebreak) {
     if (linebreak == 0) linebreak = "\n";
 # define LL	linebreak
 # define LD	sizeof(linebreak)
 #else
-psyc_p parse(string data) {
+Packet parse(string data) {
 # define LL	"\n"
 # define LD	1
 #endif
@@ -103,7 +103,7 @@ psyc_p parse(string data) {
     string key, lastkey; 
     mixed lastval, val;
 
-    psyc_p packet = psyc_p();
+    Packet packet = Packet();
     packet->vars = ([]);
 
 // may look kinda strange, but i use continue as a goto ,)
@@ -186,7 +186,7 @@ class Server {
 			   connecting = ([ ]),
 			   connections = ([ ]),
 			   routes = ([ ]);
-    PSYC.psyc_p circuit_established;
+    PSYC.Packet circuit_established;
     string bind_to;
 
     function create_local, create_remote;
@@ -222,7 +222,7 @@ class Server {
 	m_delete(contexts, (string)c);
     }
     
-    void register_member(string|PSYC.uniform c, object o) {
+    void register_member(string|MMP.uniform c, object o) {
 	if (!has_index(contexts, (string)c)) {
 	    contexts[(string)c] = Context(c, this);
 	}
@@ -273,7 +273,7 @@ class Server {
 	    }
 	} else throw("help!");
 
-	circuit_established = PSYC.psyc_p("_notice_circuit_established", 
+	circuit_established = PSYC.Packet("_notice_circuit_established", 
 					  "You got connected to %s.\n",
 			  ([ "_implementation" : "better than wurstbrote" ]));
     }
@@ -285,7 +285,7 @@ class Server {
 	peerhost = socket->query_address();
 
 	connections[peerhost] = MMP.Server(socket, deliver, close);
-	connections[peerhost]->send_neg(MMP.mmp_p(circuit_established));
+	connections[peerhost]->send_neg(MMP.Packet(circuit_established));
     }
 
     void close(MMP.Circuit c) {
@@ -316,7 +316,7 @@ class Server {
 	peerhost = so->query_address();
 
 	c = MMP.Circuit(so, deliver, close);
-	c->send_neg(MMP.mmp_p(circuit_established));
+	c->send_neg(MMP.Packet(circuit_established));
 	q = connecting[id];
 	
 	connections[peerhost] = c;
@@ -328,16 +328,19 @@ class Server {
     }
 
     // simply sends an mmp-packet to host:port
-    void send_mmp(string|MMP.uniform target, void|MMP.mmp_p packet) {
+    void send_mmp(string|MMP.uniform target, void|MMP.Packet packet) {
+	string host = target->host;
+	int port = target->port;
+
 	P2(("PSYC.Server", "send_mmp(%s, %O, %O)\n", host, port, packet))
 
 	if (stringp(target)) {
 	    target = MMP.parse_uniform(target);
 	}
 	
-	string peerhost = target->host + " " + (string)(target->port || 4404);
+	string peerhost = host + " " + (string)(port || 4404);
 	
-	void cb(string host, mixed ip, string|int port, void|MMP.mmp_p packet) {
+	void cb(string host, mixed ip, string|int port, void|MMP.Packet packet) {
 	    Stdio.File so;
 	    string id;
 
@@ -411,10 +414,10 @@ class Server {
     }
 
     void unicast(string|MMP.uniform target, string|MMP.uniform source, 
-		 PSYC.psyc_p packet) {
+		 PSYC.Packet packet) {
 	P2(("PSYC.Server", "%O->unicast(%O, %O, %O)\n", this, target, source, 
 	    packet))
-	MMP.mmp_p mpacket = MMP.mmp_p(packet, 
+	MMP.Packet mpacket = MMP.Packet(packet, 
 				      ([ "_source" : source,
 					 "_target" : target ]));
 	if (has_index(targets, (string)target)) {
@@ -423,11 +426,11 @@ class Server {
 	}
 	// throws.. 
 	if (stringp(target))
-	    target = PSYC.parse_uniform(target);
+	    target = MMP.parse_uniform(target);
 	send_mmp(target, mpacket);
     }
 
-    void deliver_remote(MMP.mmp_p packet, string|MMP.uniform target) {
+    void deliver_remote(MMP.Packet packet, string|MMP.uniform target) {
 	P2(("PSYC.Server", "%O->deliver_remote(%O, %s)\n", this, packet, 
 	    target))
 
@@ -437,7 +440,7 @@ class Server {
 	send_mmp(target, packet);
     }
 
-    void deliver_local(MMP.mmp_p packet, string|MMP.uniform target) {
+    void deliver_local(MMP.Packet packet, string|MMP.uniform target) {
 	P2(("PSYC.Server", "%O->deliver_local(%O, %s)\n", this, packet, 
 	    target))
 
@@ -458,7 +461,7 @@ class Server {
     }
 
     // actual routing...
-    void deliver(MMP.mmp_p packet, object connection) {
+    void deliver(MMP.Packet packet, object connection) {
 	
 	P2(("PSYC.Server", "%O->deliver(%O)\n", this, packet))
 	
@@ -505,7 +508,7 @@ class Server {
 			     packet, target);
 	    } else { // rootmsg
 #ifdef DEBUG
-		void dummy(MMP.mmp_p p, object c) {
+		void dummy(MMP.Packet p, object c) {
 		    P0(("PSYC.Server", "%O lives in crazytown.\n", c))
 		};
 #else
@@ -543,12 +546,12 @@ class Server {
 	}
     }
 
-    void rootmsg(MMP.mmp_p packet, object connection) {
+    void rootmsg(MMP.Packet packet, object connection) {
 	
 	P2(("PSYC.Server", "rootmsg(%O) from %O\n", packet, connection))
 	if (packet->data != 0) {
 	    // try to parse psyc here.
-	    PSYC.psyc_p message;
+	    PSYC.Packet message;
 
 	    message = packet->data;
 
@@ -598,7 +601,7 @@ class Context {
 	members[o] = 0;
     }
     
-    void msg(MMP.mmp_p packet) {
+    void msg(MMP.Packet packet) {
 
 	foreach (indices(members), string|MMP.uniform target) {
 	    server->send_mmp(target, packet);	

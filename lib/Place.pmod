@@ -18,14 +18,14 @@ class Basic {
    
     mapping user = ([ ]);
 
-    int msg(MMP.mmp_p p) {
+    int msg(MMP.Packet p) {
 	P2(("Place.Basic", "%O->msg(%O)\n", this, p))
 	
 	if (::msg(p)) return 1;
 
 	string|MMP.uniform source = p["_source"];
 	
-	PSYC.psyc_p m = p->data;
+	PSYC.Packet m = p->data;
 	// mcs allowed without being a groupie
 	switch (m->mc) {
 	

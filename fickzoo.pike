@@ -16,7 +16,7 @@ int main(int argc, array(string) argv) {
 }
 
 // does _not_ check whether the uni->host is local.
-object create_local(PSYC.uniform uni) {
+object create_local(MMP.uniform uni) {
     object o;
     if (sizeof(uni->resource) > 1) switch (uni->resource[0]) {
     case '~':

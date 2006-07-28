@@ -13,12 +13,12 @@ int(0..1) isMember(mixed kerl) {
     return groupies[kerl];
 }
 
-int msg(MMP.mmp_p p) {
+int msg(MMP.Packet p) {
 
     if (::msg(p)) return 1;
     
     string|MMP.uniform source = p["_source"];
-    PSYC.psyc_p m = p->data;
+    PSYC.Packet m = p->data;
 
     switch (m->mc) {
     case "_request_enter":
@@ -54,7 +54,7 @@ void sendmsg(string|MMP.uniform target, string mc, string|void data, mapping(str
 }
 
 void castmsg(string mc, string data, mapping(string:string) vars) {
-    PSYC.psyc_p packet = PSYC.psyc_p(mc, data, vars);
+    PSYC.Packet packet = PSYC.Packet(mc, data, vars);
 
     packet["_context"] = this->uni;
     vars["_nick_place"] = this->uni; 

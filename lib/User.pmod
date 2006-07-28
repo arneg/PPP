@@ -54,7 +54,7 @@ class Person {
 	::create(uni, server);
     }
 
-    void msg(MMP.mmp_p p) {
+    void msg(MMP.Packet p) {
 
 	// this looks ugly
 	if (!::msg(p))
@@ -62,7 +62,7 @@ class Person {
 
 	string source = p["_source"];
 	
-	PSYC.psyc_p m = p->data;
+	PSYC.Packet m = p->data;
 	
 	switch(m->mc) {
 	case "_request_authentication":
@@ -80,7 +80,7 @@ class Person {
 	    return;
 	case "_request_link":
 	    string pw = m["_password"];
-	    void temp(int bol, MMP.mmp_p packet) {
+	    void temp(int bol, MMP.Packet packet) {
 		if (bol) {
 		    attach(PsycUser(packet["_source"], this));
 		    send(packet["_source"], PSYC.reply(p->data, "_notice_link", "You have been linked."));
@@ -126,9 +126,9 @@ class PsycUser {
     }
 
     // we need an itsme check.. somewhere
-    void msg(MMP.mmp_p p) { 
+    void msg(MMP.Packet p) { 
 
-	PSYC.psyc_p m = p->data;
+	PSYC.Packet m = p->data;
 
 	switch (m->mc) {
 	case "_request_store":

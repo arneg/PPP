@@ -122,7 +122,7 @@ string|String.Buffer render_vars(mapping(string:mixed) vars,
     }
 }
 
-string|String.Buffer render(mmp_p packet, void|String.Buffer to) {
+string|String.Buffer render(Packet packet, void|String.Buffer to) {
     String.Buffer p;
 
     if (to)
@@ -199,7 +199,7 @@ array(object) renderRequestChain(array(object) modules, string hook) {
     return reverse(ret);
 }
 
-class mmp_p {
+class Packet {
     mapping(string:mixed) vars;
     string|object data;
     function parsed = 0, sent = 0; 
@@ -230,13 +230,13 @@ class mmp_p {
     string _sprintf(int type) {
 	if (type == 'O') {
 	    if (data == 0) {
-		return "MMP.mmp_p(Empty)\n";
+		return "MMP.Packet(Empty)\n";
 	    }
 
 	    if (stringp(data)) {
-		return sprintf("MMP.mmp_p(%O, '%.15s..' )\n", vars, data);
+		return sprintf("MMP.Packet(%O, '%.15s..' )\n", vars, data);
 	    } else {
-		return sprintf("MMP.mmp_p(%O, %O)\n", vars, data);
+		return sprintf("MMP.Packet(%O, %O)\n", vars, data);
 	    }
 	}
 
@@ -311,7 +311,7 @@ class Circuit {
     string dl;
 #endif
     MMP.Utils.Queue q_neg = MMP.Utils.Queue();
-    mmp_p inpacket;
+    Packet inpacket;
     mapping(string:mixed) in_state = ([ ]);
     string|array(string) lastval; // mappings are not supported in psyc right
 				  // now anyway..
@@ -379,7 +379,7 @@ class Circuit {
 
     void reset() {
 	lastval = lastkey = lastmod = 0;
-	inpacket = mmp_p(0, copy_value(in_state));
+	inpacket = Packet(0, copy_value(in_state));
     }	
 
     void activate() {
@@ -388,7 +388,7 @@ class Circuit {
 	    write();
     }
 
-    void send_neg(mmp_p mmp) {
+    void send_neg(Packet mmp) {
 	P0(("MMP.Circuit", "%O->send_neg(%O)\n", this, mmp))
 	q_neg->push(mmp);
 
@@ -397,7 +397,7 @@ class Circuit {
 	}
     }
 
-    void send(mmp_p mmp) {
+    void send(Packet mmp) {
 	P0(("MMP.Circuit", "%O->send(%O)\n", this, mmp))
 	push(mmp);
 
@@ -735,7 +735,7 @@ class Active {
     void start_read(mixed id, string data) {
 	::start_read(id, data);
 
-	send_neg(mmp_p());
+	send_neg(Packet());
     }
 }
 
@@ -745,7 +745,7 @@ class Server {
     void create(Stdio.File|Stdio.FILE so, function cb, function closecb) {
 	::create(so, cb, closecb);
 
-	q_neg->unshift(mmp_p());
+	q_neg->unshift(Packet());
 	activate();
     }
 
@@ -759,7 +759,7 @@ class Server {
 
 	if (ret == 0) {
 	    if (inpacket->data == 0 && !sizeof(inpacket->vars)) {
-		send_neg(mmp_p());
+		send_neg(Packet());
 	    }
 	}
 
