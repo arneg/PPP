@@ -6,72 +6,6 @@
 
 class Dummy(mixed...params) { }
 
-// TODO: this is totally MMP. at least not limited to psyc
-class uniform {
-    string scheme, transport, host, user, resource, slashes, query, body,
-	   userAtHost, pass, hostPort, circuit, root, unl;
-    int port;
-
-    mixed cast(string type) {
-	if (type == "string") return unl;
-    }
-
-    string _sprintf(int type) {
-	if (type == 's') {
-	    return sprintf("PSYC.uniform(%s)", unl);
-	} else if (type = 'O') {
-	    return sprintf("PSYC.uniform(%O)", 
-			   aggregate_mapping(@Array.splice(indices(this), values(this))));
-	}
-
-	return UNDEFINED;
-    }
-}
-
-uniform parse_uniform(string s) {
-    string t;
-    P2(("PSYC.parse_uniform", "parsing '%s'\n", s))
-    uniform u = uniform();
-
-    u->unl = s;
-    t = s;
-    if (!sscanf(t, "%s:%s", u->scheme, t)) THROW("this is not uniforminess");
-    u->slashes = "";
-    switch(u->scheme) {
-    case "sip":
-	    sscanf(t, "%s;%s", t, u->query);
-	    break;
-    case "xmpp":
-    case "mailto":
-	    sscanf(t, "%s?%s", t, u->query);
-    case "telnet":
-	    break;
-    default:
-	    if (t[0..1] == "//") {
-		    t = t[2..];
-		    u->slashes = "//";
-	    }
-    }
-    u->body = t;
-    sscanf(t, "%s/%s", t, u->resource);
-    u->userAtHost = t;
-    if (sscanf(t, "%s@%s", s, t)) {
-	    if (!sscanf(s, "%s:%s", u->user, u->pass))
-		u->user = s;
-    }
-    u->hostPort = t;
-    //if (complete) u->circuit = u->scheme+":"+u->hostPort;
-    u->root = u->scheme+":"+u->slashes+u->hostPort;
-    if (sscanf(t, "%s:%s", t, s)) {
-	    if (!sscanf(s, "%d%s", u->port, u->transport))
-		u->transport = s;
-    }
-    u->host = t;
-
-    P2(("PSYC.parse_uniform", " created %s\n", u))
-    return u;
-}
-
 psyc_p reply(psyc_p m, string|void mc, string|void data, mapping(string:mixed)|void vars) {
     psyc_p t = psyc_p(mc, data, vars);
 
@@ -268,23 +202,23 @@ class Server {
 	return UNDEFINED;
     }
 
-    void register_target(string|PSYC.uniform t, object o) {
+    void register_target(string|MMP.uniform t, object o) {
 	if (has_index(targets, (string)t)) throw("murks");
 	targets[(string)t] = o;
     }
 
-    void unregister_target(string|PSYC.uniform t) {
+    void unregister_target(string|MMP.uniform t) {
 	m_delete(targets, (string)t);
     }
     
     // these contexts are local context slaves.. for remote rooms. and also 
     // context slaves for local rooms. we should not make any difference really
-    void register_context(string|PSYC.uniform c, object o) {
+    void register_context(string|MMP.uniform c, object o) {
 	if (has_index(contexts, (string)c)) throw("murks");
 	contexts[(string)c] = o;
     }
 
-    void unregister_context(string|PSYC.uniform c) {
+    void unregister_context(string|MMP.uniform c) {
 	m_delete(contexts, (string)c);
     }
     
@@ -476,7 +410,7 @@ class Server {
 	}
     }
 
-    void unicast(string|PSYC.uniform target, string|PSYC.uniform source, 
+    void unicast(string|MMP.uniform target, string|MMP.uniform source, 
 		 PSYC.psyc_p packet) {
 	P2(("PSYC.Server", "%O->unicast(%O, %O, %O)\n", this, target, source, 
 	    packet))
@@ -493,24 +427,24 @@ class Server {
 	send_mmp(target, mpacket);
     }
 
-    void deliver_remote(MMP.mmp_p packet, string|PSYC.uniform target) {
+    void deliver_remote(MMP.mmp_p packet, string|MMP.uniform target) {
 	P2(("PSYC.Server", "%O->deliver_remote(%O, %s)\n", this, packet, 
 	    target))
 
 	if (stringp(target))
-	    target = PSYC.parse_uniform(target);
+	    target = MMP.parse_uniform(target);
 
 	send_mmp(target, packet);
     }
 
-    void deliver_local(MMP.mmp_p packet, string|PSYC.uniform target) {
+    void deliver_local(MMP.mmp_p packet, string|MMP.uniform target) {
 	P2(("PSYC.Server", "%O->deliver_local(%O, %s)\n", this, packet, 
 	    target))
 
-	P2(("PSYC.Server", "looking in %O for %O\n.", targets, target))
+	P2(("PSYC.Server", "looking in %O for %s\n.", targets, target))
 	if (!has_index(targets, (string)target)) {
 
-	    if (stringp(target)) target = PSYC.parse_uniform(target);
+	    if (stringp(target)) target = MMP.parse_uniform(target);
 
 	    object o = create_local(target);
 	    if (!o) {
@@ -528,7 +462,7 @@ class Server {
 	
 	P2(("PSYC.Server", "%O->deliver(%O)\n", this, packet))
 	
-	string|PSYC.uniform target, source, context;
+	string|MMP.uniform target, source, context;
 	// this is maybe the most ... innovative piece of code on this planet
 	target = packet["_target"];
 	context = packet["_context"];
@@ -559,12 +493,12 @@ class Server {
 	    P2(("PSYC.Server", "delivering %O via unicast to %s\n", packet, 
 		target))
 
-	    P2(("PSYC.Server", "looking in %O for %O\n.", targets, target))
+	    P2(("PSYC.Server", "looking in %O for %s\n.", targets, target))
 	    if (has_index(targets, (string)target)) {
 		targets[(string)target]->msg(packet);
 		return;
 	    } 
-	    if (stringp(target)) target = PSYC.parse_uniform(target);
+	    if (stringp(target)) target = MMP.parse_uniform(target);
 
 	    if (target->resource) {
 		if_localhost(target->host, deliver_local, deliver_remote, 
@@ -622,10 +556,10 @@ class Server {
 		// ich weiss nichtmehr so genau. in FORK wird das eh alles
 		// anders.. ,)
 	    case "_notice_circuit_established":
-		string|uniform source = packet["_source"];
+		string|MMP.uniform source = packet["_source"];
 		
 		if (stringp(source)) {
-		    source = parse_uniform(source);
+		    source = MMP.parse_uniform(source);
 		}
 
 		routes[source->host+" "+(string)(source->port||4404)] = connection;

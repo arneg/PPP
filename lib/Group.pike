@@ -1,6 +1,8 @@
 
 inherit Uni;
 
+// lets use a mapping and allow classes inheriting Group to store data to that
+// mapping(string:mapping(mixed:mixed))
 multiset groupies = (< >);
 // uniform -> route
 multiset routes = (< >);
@@ -15,7 +17,7 @@ int msg(MMP.mmp_p p) {
 
     if (::msg(p)) return 1;
     
-    string|PSYC.uniform source = p["_source"];
+    string|MMP.uniform source = p["_source"];
     PSYC.psyc_p m = p->data;
 
     switch (m->mc) {
@@ -24,9 +26,9 @@ int msg(MMP.mmp_p p) {
     case "_request_group_enter":
 	groupies[(string)source] = 1;
 	if (silent) 
-	    sendmsg(source, "_echo_group_enter");
+	    sendmsg(source, "_echo_place_enter");
 	else
-	    castmsg("_notice_group_enter", "", ([ ]));
+	    castmsg("_notice_place_enter", "congratulations, you entered the group", ([ ]));
 	    // castmsg means sendmsg with _context only??? makes much sense to
 	    // me ..
 	return 1;
@@ -34,7 +36,7 @@ int msg(MMP.mmp_p p) {
 	sendmsg(source, "_notice_leave");
     case "_notice_leave":
 	if (!silent && isMember((string)source)) {
-	    castmsg("_notice_group_leave", "[_nick] left.", 
+	    castmsg("_notice_place_leave", "[_nick] left.", 
 		    ([ "_nick" : source]));
 	}
 	groupies[(string)source] = 0;
@@ -44,11 +46,29 @@ int msg(MMP.mmp_p p) {
     return 0;
 }
 
+void sendmsg(string|MMP.uniform target, string mc, string|void data, mapping(string:mixed)|void vars) {
+    if (!vars) 
+	vars = ([ ]);
+    vars["_nick_place"] = this->uni; 
+    ::sendmsg(target, mc, data, vars);
+}
+
 void castmsg(string mc, string data, mapping(string:string) vars) {
     PSYC.psyc_p packet = PSYC.psyc_p(mc, data, vars);
 
+    packet["_context"] = this->uni;
+    vars["_nick_place"] = this->uni; 
     foreach (indices(groupies), string kerl) {
 	// good thing: caching is done inside p
+	// this is totally borked.. all of it.
+	// this is totally borked.. all of it.
+	// this is totally borked.. all of it.
+	// this is totally borked.. all of it.
+	// this is totally borked.. all of it.
+	// this is totally borked.. all of it.
+	// this is totally borked.. all of it.
+	// this is totally borked.. all of it.
+	// this is totally borked.. all of it.
 	send(kerl, packet);
     }
 }

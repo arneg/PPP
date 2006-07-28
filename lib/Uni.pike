@@ -31,7 +31,7 @@ string qName() {
 // pretty good in most applications. thats good for all the crypto
 // stuff too
 //
-string send_tagged(string|PSYC.uniform target, PSYC.psyc_p m, 
+string send_tagged(string|MMP.uniform target, PSYC.psyc_p m, 
 		   function|void callback, mixed ... args) {
     string tag = random_string(8); // have a define for the length? 
    // am i paranoid?
@@ -63,12 +63,12 @@ void create(string u, object s) {
 
 // mixed target for objects?? i dont like something about that. even though
 // we would have one more hashlookup
-void sendmsg(string|PSYC.uniform target, string mc, string|void data, 
+void sendmsg(string|MMP.uniform target, string mc, string|void data, 
 	     mapping|void vars) {
     send(target, PSYC.psyc_p(mc, data, vars));
 }
 
-void send(string|PSYC.uniform target, PSYC.psyc_p p) {
+void send(string|MMP.uniform target, PSYC.psyc_p p) {
 
     P3(("Uni", "send(%O, %s)\n", target, p))
 
@@ -131,7 +131,7 @@ void _auth_msg(MMP.mmp_p reply, MMP.mmp_p ... packets) {
 
 int msg(MMP.mmp_p p) {
     // check if _identification is valid
-    string|PSYC.uniform source = p["_source"];
+    string|MMP.uniform source = p["_source"];
 
     // maybe its generally not a good idea to replace _source with
     // _source_identification ..
@@ -142,7 +142,7 @@ int msg(MMP.mmp_p p) {
     // not happen.
 
     if (has_index(p, "_source_identification")) {
-	string|PSYC.uniform id = p["_source_identification"];	
+	string|MMP.uniform id = p["_source_identification"];	
 	string s = (string)source;
 
 	if (!has_index(unl2uni, s)) {

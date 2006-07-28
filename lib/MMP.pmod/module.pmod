@@ -12,6 +12,72 @@ void debug(string cl, string format, mixed ... args) {
 # define THROW(s)        throw(({ (s), 0 }))
 #endif
 
+// TODO: this is totally MMP. at least not limited to psyc
+class uniform {
+    string scheme, transport, host, user, resource, slashes, query, body,
+	   userAtHost, pass, hostPort, circuit, root, unl;
+    int port;
+
+    mixed cast(string type) {
+	if (type == "string") return unl;
+    }
+
+    string _sprintf(int type) {
+	if (type == 's') {
+	    return sprintf("MMP.uniform(%s)", unl);
+	} else if (type = 'O') {
+	    return sprintf("MMP.uniform(%O)", 
+			   aggregate_mapping(@Array.splice(indices(this), values(this))));
+	}
+
+	return UNDEFINED;
+    }
+}
+
+uniform parse_uniform(string s) {
+    string t;
+    P2(("MMP.parse_uniform", "parsing '%s'\n", s))
+    uniform u = uniform();
+
+    u->unl = s;
+    t = s;
+    if (!sscanf(t, "%s:%s", u->scheme, t)) THROW("this is not uniforminess");
+    u->slashes = "";
+    switch(u->scheme) {
+    case "sip":
+	    sscanf(t, "%s;%s", t, u->query);
+	    break;
+    case "xmpp":
+    case "mailto":
+	    sscanf(t, "%s?%s", t, u->query);
+    case "telnet":
+	    break;
+    default:
+	    if (t[0..1] == "//") {
+		    t = t[2..];
+		    u->slashes = "//";
+	    }
+    }
+    u->body = t;
+    sscanf(t, "%s/%s", t, u->resource);
+    u->userAtHost = t;
+    if (sscanf(t, "%s@%s", s, t)) {
+	    if (!sscanf(s, "%s:%s", u->user, u->pass))
+		u->user = s;
+    }
+    u->hostPort = t;
+    //if (complete) u->circuit = u->scheme+":"+u->hostPort;
+    u->root = u->scheme+":"+u->slashes+u->hostPort;
+    if (sscanf(t, "%s:%s", t, s)) {
+	    if (!sscanf(s, "%d%s", u->port, u->transport))
+		u->transport = s;
+    }
+    u->host = t;
+
+    P2(("MMP.parse_uniform", " created %s\n", u))
+    return u;
+}
+
 string|String.Buffer render_vars(mapping(string:mixed) vars, 
 				 void|String.Buffer to) {
     String.Buffer p;

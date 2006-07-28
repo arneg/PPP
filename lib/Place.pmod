@@ -23,7 +23,7 @@ class Basic {
 	
 	if (::msg(p)) return 1;
 
-	string|PSYC.uniform source = p["_source"];
+	string|MMP.uniform source = p["_source"];
 	
 	PSYC.psyc_p m = p->data;
 	// mcs allowed without being a groupie
