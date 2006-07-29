@@ -8,6 +8,7 @@
  * linken lassen. auch das halte ich in unterschiedlichen klassen
  * besser gelöst als mit einem is_newbie()
  */
+#include "debug.h"
 
 class Person {
     inherit Uni;
@@ -47,7 +48,7 @@ class Person {
     }
 
     // vielleicht ist das nicht gut
-    void create(string nick, string uni, object server) {
+    void create(string nick, MMP.Uniform uni, object server) {
 	v = ([ "password" : "test" ]); // doch hier, weil wir dann mit storage den nick brauchen
 	// soll die sich registern?
 	write("user: %O\n", nick);
@@ -55,12 +56,15 @@ class Person {
     }
 
     void msg(MMP.Packet p) {
+	P2(("User", "%O->msg(%O)\n", this, p->data))
 
 	// this looks ugly
-	if (!::msg(p))
+	if (::msg(p)) {
+	    P2(("User", "returning here, sir (%d)\n", __LINE__))
 	    return;// let Uni check for auth.
+	}
 
-	string source = p["_source"];
+	MMP.Uniform source = p["_source"];
 	
 	PSYC.Packet m = p->data;
 	
@@ -70,24 +74,25 @@ class Person {
 		// for now this works fine
 		if (has_index(m->vars, "_location")) foreach (clients, object o) {
 		    if (m->vars["_location"] == o->location) {
-			send(p["_source"], PSYC.reply(m, "_notice_authentication", "yeeees!")); 
+			send(p["_source"], m->reply("_notice_authentication", "yeeees!")); 
 			return;
 		    }
 		}
-		send(p["_source"], PSYC.reply(m, "_error_authentication", "noooo!")); 
+		send(p["_source"], m->reply("_error_authentication", "noooo!"));
 		return;
 	    }
 	    return;
 	case "_request_link":
 	    string pw = m["_password"];
 	    void temp(int bol, MMP.Packet packet) {
+		P2(("User", "temp here, sir (%d\n", __LINE__))
 		if (bol) {
 		    attach(PsycUser(packet["_source"], this));
-		    send(packet["_source"], PSYC.reply(p->data, "_notice_link", "You have been linked."));
+		    send(packet["_source"], m->reply("_notice_link", "You have been linked."));
 		} else if (pw) {
-		    send(packet["_source"], PSYC.reply(p->data, "_error_user_in_use", "This user is in use ,)."));
+		    send(packet["_source"], m->reply("_error_user_in_use", "This user is in use ,)."));
 		} else {
-		    send(packet["_source"], PSYC.reply(p->data, "_error_invalid_password", "Forgot your password?"));
+		    send(packet["_source"], m->reply("_error_invalid_password", "Forgot your password?"));
 		    // maybe a newbie...
 		}
 	    };
@@ -96,9 +101,9 @@ class Person {
 	case "_request_status":
 	case "_notice_friend_present":
 	    if (sizeof(clients))
-		sendmsg(source, "_notice_friend_absent");
+		send(source, m->reply("_notice_friend_absent"));
 	    else 
-		sendmsg(source, "_status_friend_present");
+		send(source, m->reply("_status_friend_present"));
 	    break;
 	case "_notice_friend_present_quiet":
 	    break;
@@ -117,10 +122,10 @@ class Person {
 class PsycUser {
 
     // could be the connection-object.
-    string location;
+    MMP.Uniform location;
     object person;
 
-    void create(string loc, object p) {
+    void create(MMP.Uniform loc, object p) {
 	location = loc;
 	person = p;
     }

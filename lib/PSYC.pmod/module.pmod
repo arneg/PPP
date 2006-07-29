@@ -41,10 +41,25 @@ class Packet {
     string _sprintf(int format) {
 	switch (format) {
 	    case 'O':
+#if defined(DEBUG) && DEBUG < 3
+		return sprintf("PSYC.Packet(%O, %O)", mc, vars);
+#else
 		return sprintf("PSYC.Packet(%O)", mc);
+#endif
 	    case 's':
 		return (string)this;
 	}
+    }
+
+    PSYC.Packet reply(string|void mc, string|void d, 
+		mapping(string:mixed)|void v) {
+	PSYC.Packet m = PSYC.Packet(mc, d, v);
+
+	if (has_index(vars, "_tag") && sizeof(vars["_tag"])) {
+	    m["_tag_reply"] = vars["_tag"]; 
+	}
+
+	return m;
     }
 
     mixed `[]=(mixed id, mixed val) {
@@ -58,9 +73,7 @@ class Packet {
     }
 
     mixed `[](mixed id) {
-	if (has_index(vars, id)) return vars[id];
-
-	return UNDEFINED;
+	return vars[id];
     }
 }
 
@@ -105,6 +118,7 @@ Packet parse(string data) {
 
     Packet packet = Packet();
     packet->vars = ([]);
+    packet->cache = data;
 
 // may look kinda strange, but i use continue as a goto ,)
 // .. also a < is not expensive at all. this could be an != actually...
@@ -121,7 +135,13 @@ LINE:while (-1 < stop &&
 	case '-':
 	case '?': // not implemented yet.. 
 	case ':':
-	    num = sscanf(data[start+1 .. stop-1], "%[A-Za-z_]\t%s", key, val);
+	    num = sscanf(data[start+1 .. stop-1], "%[A-Za-z_]"
+#ifdef LOVE_TELNET
+			 "%*[ \t]"
+#else
+			 "\t"
+#endif
+			 "%s", key, val);
 	    P2(("PSYC.parse", "parsed variable: %s => %O\n", key, val))
 	    if (num == 0) THROW("Blub");
 	    if (num == 1) val = 0;
@@ -186,6 +206,7 @@ class Server {
 			   connecting = ([ ]),
 			   connections = ([ ]),
 			   routes = ([ ]);
+    mapping(string:MMP.Uniform) unlcache = ([ ]);
     PSYC.Packet circuit_established;
     string bind_to;
 
@@ -202,27 +223,27 @@ class Server {
 	return UNDEFINED;
     }
 
-    void register_target(string|MMP.uniform t, object o) {
+    void register_target(string|MMP.Uniform t, object o) {
 	if (has_index(targets, (string)t)) throw("murks");
 	targets[(string)t] = o;
     }
 
-    void unregister_target(string|MMP.uniform t) {
+    void unregister_target(string|MMP.Uniform t) {
 	m_delete(targets, (string)t);
     }
     
     // these contexts are local context slaves.. for remote rooms. and also 
     // context slaves for local rooms. we should not make any difference really
-    void register_context(string|MMP.uniform c, object o) {
+    void register_context(string|MMP.Uniform c, object o) {
 	if (has_index(contexts, (string)c)) throw("murks");
 	contexts[(string)c] = o;
     }
 
-    void unregister_context(string|MMP.uniform c) {
+    void unregister_context(string|MMP.Uniform c) {
 	m_delete(contexts, (string)c);
     }
     
-    void register_member(string|MMP.uniform c, object o) {
+    void register_member(string|MMP.Uniform c, object o) {
 	if (!has_index(contexts, (string)c)) {
 	    contexts[(string)c] = Context(c, this);
 	}
@@ -273,6 +294,8 @@ class Server {
 	    }
 	} else throw("help!");
 
+	//set_weak_flag(unlcache, Pike.WEAK_VALUES);
+
 	circuit_established = PSYC.Packet("_notice_circuit_established", 
 					  "You got connected to %s.\n",
 			  ([ "_implementation" : "better than wurstbrote" ]));
@@ -284,7 +307,7 @@ class Server {
 	socket = lsocket->accept();
 	peerhost = socket->query_address();
 
-	connections[peerhost] = MMP.Server(socket, deliver, close);
+	connections[peerhost] = MMP.Server(socket, deliver, close, get_uniform);
 	connections[peerhost]->send_neg(MMP.Packet(circuit_established));
     }
 
@@ -302,10 +325,22 @@ class Server {
 	}
     }
 
-    void connect(int success, Stdio.File so, string id) {
+    MMP.Uniform get_uniform(string unl) {
+	unl = lower_case(unl);
+
+	if (has_index(unlcache, unl)) {
+	    P2(("PSYC.Server", "returning cached %O\n", unlcache[unl]))
+	    return unlcache[unl];
+	} else {
+	    P2(("PSYC.Server", "returning newly created %O\n", unl))
+	    return unlcache[unl] = MMP.Uniform(unl);
+	}
+    }
+
+    void connect(int success, Stdio.File so, MMP.Utils.Queue q, 
+		 MMP.Uniform target, string id) {
 	string peerhost;
 	MMP.Circuit c;
-	MMP.Utils.Queue q;
 
 	if (!success) {
 	    // TODO: send _failures back for every packet in the queue
@@ -315,33 +350,35 @@ class Server {
 	
 	peerhost = so->query_address();
 
-	c = MMP.Circuit(so, deliver, close);
+	P2(("PSYC.Server", "get_uniform: %O\n", get_uniform))
+	c = MMP.Active(so, deliver, close, get_uniform);
+	target->handler = c;
 	c->send_neg(MMP.Packet(circuit_established));
-	q = connecting[id];
 	
 	connections[peerhost] = c;
 
 	while (!q->is_empty()) {
-	    c->send(q->shift());
+	    c->msg(q->shift());
 	}
 	m_delete(connecting, id);
     }
 
     // simply sends an mmp-packet to host:port
-    void send_mmp(string|MMP.uniform target, void|MMP.Packet packet) {
+    void send_mmp(MMP.Uniform target, MMP.Packet packet) {
+	P2(("PSYC.Server", "send_mmp(%O, %O)\n", target, packet))
+
+	if (target->handler) {
+	    target->handler->msg(packet);
+	    return;
+	}
+
 	string host = target->host;
 	int port = target->port;
-
-	P2(("PSYC.Server", "send_mmp(%s, %O, %O)\n", host, port, packet))
-
-	if (stringp(target)) {
-	    target = MMP.parse_uniform(target);
-	}
-	
 	string peerhost = host + " " + (string)(port || 4404);
 	
 	void cb(string host, mixed ip, string|int port, void|MMP.Packet packet) {
 	    Stdio.File so;
+	    MMP.Utils.Queue q;
 	    string id;
 
 	    if (ip == 0) {
@@ -352,10 +389,10 @@ class Server {
 	    id = ip+" "+(string)(port || 4404);
 	    if (!has_index(connecting, id)) {
 		so = Stdio.File();
+		connecting[id] = q = MMP.Utils.Queue();
 		if (bind_to)
 		    so->open_socket(UNDEFINED, bind_to);
-		so->async_connect(ip, port, connect, so, id);
-		connecting[id] = MMP.Utils.Queue();
+		so->async_connect(ip, port, connect, so, q, target, id);
 	    }
 	    
 	    if (packet) connecting[id]->push(packet);
@@ -365,15 +402,18 @@ class Server {
 	    connections, peerhost))
 
 	if (has_index(connections, peerhost)) {
-	    connections[peerhost]->send(packet);
+	    (target->handler = connections[peerhost])->msg(packet);
+
 	    return;
 	} else if (has_index(routes, peerhost)) {
-	    routes[peerhost]->send(packet);
+	    (target->handler = routes[peerhost])->msg(packet);
+
 	    return;
 	}
 
 	if (sscanf("%*d.%*d.%*d.%*d", host) != 4) {
 	    Protocols.DNS.async_host_to_ip(host, cb, port, packet);
+
 	    return;
 	}
 
@@ -413,51 +453,39 @@ class Server {
 	}
     }
 
-    void unicast(string|MMP.uniform target, string|MMP.uniform source, 
+    void unicast(MMP.Uniform target,MMP.Uniform source, 
 		 PSYC.Packet packet) {
 	P2(("PSYC.Server", "%O->unicast(%O, %O, %O)\n", this, target, source, 
 	    packet))
 	MMP.Packet mpacket = MMP.Packet(packet, 
 				      ([ "_source" : source,
 					 "_target" : target ]));
-	if (has_index(targets, (string)target)) {
-	    targets[(string)target]->msg(mpacket);
-	    return;
-	}
-	// throws.. 
-	if (stringp(target))
-	    target = MMP.parse_uniform(target);
 	send_mmp(target, mpacket);
     }
 
-    void deliver_remote(MMP.Packet packet, string|MMP.uniform target) {
-	P2(("PSYC.Server", "%O->deliver_remote(%O, %s)\n", this, packet, 
+    void deliver_remote(MMP.Packet packet, MMP.Uniform target) {
+	P2(("PSYC.Server", "%O->deliver_remote(%s, %s)\n", this, packet, 
 	    target))
-
-	if (stringp(target))
-	    target = MMP.parse_uniform(target);
 
 	send_mmp(target, packet);
     }
 
-    void deliver_local(MMP.Packet packet, string|MMP.uniform target) {
-	P2(("PSYC.Server", "%O->deliver_local(%O, %s)\n", this, packet, 
+    void deliver_local(MMP.Packet packet, MMP.Uniform target) {
+	P2(("PSYC.Server", "%O->deliver_local(%O, %O)\n", this, packet, 
 	    target))
 
-	P2(("PSYC.Server", "looking in %O for %s\n.", targets, target))
-	if (!has_index(targets, (string)target)) {
-
-	    if (stringp(target)) target = MMP.parse_uniform(target);
-
+	if (!target->handler) {
 	    object o = create_local(target);
+
 	    if (!o) {
 		P0(("PSYC.Server", "Could not summon a local object for %O.\n",
 		    target))
 		return;
 	    }
-	    targets[(string)target] = o;
+
+	    target->handler = o;
 	}
-	targets[(string)target]->msg(packet);
+	target->handler->msg(packet);
     }
 
     // actual routing...
@@ -465,12 +493,13 @@ class Server {
 	
 	P2(("PSYC.Server", "%O->deliver(%O)\n", this, packet))
 	
-	string|MMP.uniform target, source, context;
+	MMP.Uniform target, source, context;
 	// this is maybe the most ... innovative piece of code on this planet
 	target = packet["_target"];
 	context = packet["_context"];
 	if (!has_index(packet->vars, "_source")) {
 	    source = connection->peeraddr;
+	    // THIS IS REMOTE
 	    packet["_source"] = source;
 	} else source = packet["_source"];
 
@@ -497,11 +526,10 @@ class Server {
 		target))
 
 	    P2(("PSYC.Server", "looking in %O for %s\n.", targets, target))
-	    if (has_index(targets, (string)target)) {
-		targets[(string)target]->msg(packet);
+	    if (target->handler) {
+		target->handler->msg(packet);
 		return;
 	    } 
-	    if (stringp(target)) target = MMP.parse_uniform(target);
 
 	    if (target->resource) {
 		if_localhost(target->host, deliver_local, deliver_remote, 
@@ -514,13 +542,13 @@ class Server {
 #else
 		function dummy;
 #endif
-		if_localhost(target->host, rootmsg, dummy, 
+		if_localhost(target->host, msg, dummy, 
 			     packet, connection);
 	    }
 	    break;
 	case 2:
 	case 0:
-	    rootmsg(packet, connection);
+	    msg(packet);
 	    break;
 	case 4:
 	    P2(("PSYC.Server", "delivering multicast message %O to local %s\n", packet, context))
@@ -546,29 +574,27 @@ class Server {
 	}
     }
 
-    void rootmsg(MMP.Packet packet, object connection) {
+    void msg(MMP.Packet packet, void|object connection) {
+
+	MMP.Uniform source = packet["_source"];
+	if (!connection) {
+	    connection = source->handler;
+	}
 	
 	P2(("PSYC.Server", "rootmsg(%O) from %O\n", packet, connection))
 	if (packet->data != 0) {
-	    // try to parse psyc here.
-	    PSYC.Packet message;
-
-	    message = packet->data;
+	    PSYC.Packet message = packet->data;
 
 	    switch (message->mc) {
 		// ich weiss nichtmehr so genau. in FORK wird das eh alles
 		// anders.. ,)
 	    case "_notice_circuit_established":
-		string|MMP.uniform source = packet["_source"];
-		
-		if (stringp(source)) {
-		    source = MMP.parse_uniform(source);
-		}
-
 		routes[source->host+" "+(string)(source->port||4404)] = connection;
 	    case "_status_circuit":
+		source->handler = connection;
 		// auch hier nicht sicher
 		connection->activate();
+		break;
 	    }
 	} else { // hmm
 
@@ -576,7 +602,7 @@ class Server {
     }
 }
 
-// note: lets use MMP.uniform for all.. and for local targets it contains a
+// note: lets use MMP.Uniform for all.. and for local targets it contains a
 // reference to the corresponding object (weak). that way we dont need a 
 // hash lookup in cases we dont want to store objects, i.e. make a difference
 // between locals and remotes
@@ -586,14 +612,14 @@ class Context {
     
     multiset members = (<>); 
     object server;
-    string|MMP.uniform uni;
+    string|MMP.Uniform uni;
 
-    void create(string|MMP.uniform n, object s) {
+    void create(string|MMP.Uniform n, object s) {
 	uni = n;
 	server = s;
     }
     
-    void insert(string|MMP.uniform t) {
+    void insert(string|MMP.Uniform t) {
 	members[t] = 1;
     }
 
@@ -603,7 +629,7 @@ class Context {
     
     void msg(MMP.Packet packet) {
 
-	foreach (indices(members), string|MMP.uniform target) {
+	foreach (indices(members), string|MMP.Uniform target) {
 	    server->send_mmp(target, packet);	
 	}
     }

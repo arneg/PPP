@@ -13,10 +13,18 @@ void debug(string cl, string format, mixed ... args) {
 #endif
 
 // TODO: this is totally MMP. at least not limited to psyc
-class uniform {
+class Uniform {
     string scheme, transport, host, user, resource, slashes, query, body,
 	   userAtHost, pass, hostPort, circuit, root, unl;
-    int port;
+    int port, parsed;
+    object handler;
+
+    void create(string u, object|void o) {
+	unl = u;
+	if (o) {
+	    handler = o;
+	}
+    }
 
     mixed cast(string type) {
 	if (type == "string") return unl;
@@ -24,58 +32,85 @@ class uniform {
 
     string _sprintf(int type) {
 	if (type == 's') {
-	    return sprintf("MMP.uniform(%s)", unl);
+	    return sprintf("MMP.Uniform(%s)", unl);
 	} else if (type = 'O') {
-	    return sprintf("MMP.uniform(%O)", 
+#if defined(DEBUG) && DEBUG < 3
+	    return sprintf("MMP.Uniform(%s)", unl);
+#else 
+	    return sprintf("MMP.Uniform(%O)", 
 			   aggregate_mapping(@Array.splice(indices(this), values(this))));
+#endif
 	}
 
 	return UNDEFINED;
     }
+
+    mixed `->(string dings) {
+	if (!parsed) {
+	    switch (dings) {
+		case "scheme":
+		case "transport":
+		case "host":
+		case "user":
+		case "resource":
+		case "slashes":
+		case "query":
+		case "body":
+		case "userAtHost":
+		case "pass":
+		case "hostPort":
+		case "circuit":
+		case "root":
+		case "port":
+		    parse();
+	    }
+	}
+
+	return ::`->(dings);
+    }
+
+
+    void parse() {
+	string s, t = unl;
+	if (!sscanf(t, "%s:%s", scheme, t)) THROW("this is not uniforminess");
+	slashes = "";
+	switch(scheme) {
+	case "sip":
+		sscanf(t, "%s;%s", t, query);
+		break;
+	case "xmpp":
+	case "mailto":
+		sscanf(t, "%s?%s", t, query);
+	case "telnet":
+		break;
+	default:
+		if (t[0..1] == "//") {
+			t = t[2..];
+			slashes = "//";
+		}
+	}
+	body = t;
+	sscanf(t, "%s/%s", t, resource);
+	userAtHost = t;
+	if (sscanf(t, "%s@%s", s, t)) {
+		if (!sscanf(s, "%s:%s", user, pass))
+		    user = s;
+	}
+	hostPort = t;
+	//if (complete) circuit = scheme+":"+hostPort;
+	root = scheme+":"+slashes+hostPort;
+	if (sscanf(t, "%s:%s", t, s)) {
+		if (!sscanf(s, "%d%s", port, transport))
+		    transport = s;
+	}
+	host = t;
+
+	parsed = 1;
+    }
 }
 
-uniform parse_uniform(string s) {
-    string t;
-    P2(("MMP.parse_uniform", "parsing '%s'\n", s))
-    uniform u = uniform();
-
-    u->unl = s;
-    t = s;
-    if (!sscanf(t, "%s:%s", u->scheme, t)) THROW("this is not uniforminess");
-    u->slashes = "";
-    switch(u->scheme) {
-    case "sip":
-	    sscanf(t, "%s;%s", t, u->query);
-	    break;
-    case "xmpp":
-    case "mailto":
-	    sscanf(t, "%s?%s", t, u->query);
-    case "telnet":
-	    break;
-    default:
-	    if (t[0..1] == "//") {
-		    t = t[2..];
-		    u->slashes = "//";
-	    }
-    }
-    u->body = t;
-    sscanf(t, "%s/%s", t, u->resource);
-    u->userAtHost = t;
-    if (sscanf(t, "%s@%s", s, t)) {
-	    if (!sscanf(s, "%s:%s", u->user, u->pass))
-		u->user = s;
-    }
-    u->hostPort = t;
-    //if (complete) u->circuit = u->scheme+":"+u->hostPort;
-    u->root = u->scheme+":"+u->slashes+u->hostPort;
-    if (sscanf(t, "%s:%s", t, s)) {
-	    if (!sscanf(s, "%d%s", u->port, u->transport))
-		u->transport = s;
-    }
-    u->host = t;
-
-    P2(("MMP.parse_uniform", " created %s\n", u))
-    return u;
+Uniform parse_uniform(string s) {
+    return Uniform(s);
 }
 
 string|String.Buffer render_vars(mapping(string:mixed) vars, 
@@ -109,7 +144,7 @@ string|String.Buffer render_vars(mapping(string:mixed) vars,
 		add(map(val, replace, "\n", "\n\t") * ("\n"+mod+"\t"));
 	    else if (mappingp(val))
 		add("dummy");
-	    else if (intp(val))
+	    else if (intp(val) || (objectp(val) && Program.inherits(object_program(val), Uniform)))
 		add((string)val);
 	    
 	    putchar('\n');
@@ -236,8 +271,14 @@ class Packet {
 	    if (stringp(data)) {
 		return sprintf("MMP.Packet(%O, '%.15s..' )\n", vars, data);
 	    } else {
+#if defined(DEBUG) && DEBUG > 2
+		return sprintf("MMP.Packet(\n\t_target: %s\n\t_source: %s\n\t_context: %s)\n", vars["_target"]||"0", vars["_source"]||"0", vars["_context"]||"0");
+#else
 		return sprintf("MMP.Packet(%O, %O)\n", vars, data);
+#endif
 	    }
+	} else if (type == 's') {
+	    // TODO: rendern
 	}
 
 	return UNDEFINED;
@@ -266,6 +307,29 @@ class Packet {
 	}
 
 	THROW(sprintf("put psyc variable (%s) into mmp packet (%s).", id, this));
+    }
+
+    mixed `->(mixed id) {
+	switch(id) {
+	    case "lsource":
+		if (has_index(vars, "_source_relay")) {
+		    mixed s = vars["_source_relay"];
+
+		    if (arrayp(s)) {
+			s = s[-1];
+		    }
+
+		    return s;
+		}
+	    case "source":
+		if (has_index(vars, "_source_identification")) {
+		    return vars["_source_identification"];
+		}
+
+		return vars["_source"];
+	}
+
+	return ::`->(id);
     }
 }
 
@@ -318,8 +382,8 @@ class Circuit {
     int lastmod, write_ready, write_okay; // sending may be forbidden during
 					  // certain parts of neg
     string lastkey, peerhost;
-    string peeraddr;
-    function msg_cb, close_cb;
+    MMP.Uniform peeraddr;
+    function msg_cb, close_cb, get_uniform;
 
     // bytes missing in buf to complete the packet inpacket. (means: inpacket 
     // has _length )
@@ -333,15 +397,16 @@ class Circuit {
     // closecb(0); if connections gets closed,
     // 	 --> DISCUSS: closecb(string logmessage); on error? <--
     // 	 maybe: closecb(object dings, void|string error)
-    void create(Stdio.File|Stdio.FILE so, function cb, function closecb
-		) {
+    void create(Stdio.File|Stdio.FILE so, function cb, function closecb,
+		void|function parse_uni) {
 	P2(("MMP.Circuit", "create(%O, %O, %O)\n", so, cb, closecb))
 	socket = so;
 	socket->set_nonblocking(start_read, write, close);
 	peerhost = so->query_address();
-	peeraddr = "psyc://"+((peerhost / " ") * ":");
+	peeraddr = Uniform("psyc://"+((peerhost / " ") * ":"), this);
 	msg_cb = cb;
 	close_cb = closecb;
+	get_uniform = parse_uni||MMP.parse_uniform;
 
 	reset();
 	//::create();
@@ -397,8 +462,8 @@ class Circuit {
 	}
     }
 
-    void send(Packet mmp) {
-	P0(("MMP.Circuit", "%O->send(%O)\n", this, mmp))
+    void msg(Packet mmp) {
+	P0(("MMP.Circuit", "%O->msg(%O)\n", this, mmp))
 	push(mmp);
 
 	if (write_ready) {
@@ -534,8 +599,7 @@ class Circuit {
 	    inbuf = inbuf->get();
 	}
 
-	array(mixed) exeption;
-	if (exeption = catch {
+	array(mixed) exception = catch {
 	    while (inbuf && !(ret = 
 #ifdef LOVE_TELNET
 		    (dl) ? parse(dl) :
@@ -554,9 +618,16 @@ class Circuit {
 		}
 	    }
 	    if (ret > 0) m_bytes = ret;
-	}) {
-	    P0(("MMP.Circuit", "Catched an error: '%s' backtrace: %O\n", 
-		@exeption))
+	};
+
+	if (exception) {
+	    if (objectp(exception)
+		&& Program.inherits(object_program(exception), Error.Generic)) {
+		P0(("MMP.Circuit", "Catched an error: %O, %O\n", exception,
+		    exception->backtrace()))
+	    } else {
+		P0(("MMP.Circuit", "Catched an error: %O\n", exception))
+	    }
 	    // TODO: error message
 	    close_cb(this);
 	    socket->close();
@@ -621,23 +692,46 @@ LINE:	while(-1 < stop &&
 	    case ':':
 #ifdef LOVE_TELNET
 		num = sscanf(INBUF[start+1 .. stop-1], "%[A-Za-z_]%*[\t ]%s",
+			     key, val);
 #else
 		num = sscanf(INBUF[start+1 .. stop-1], "%[A-Za-z_]\t%s",
-#endif
 			     key, val);
+#endif
 		if (num == 0) THROW("parsing error");
 		// this is either an empty string or a delete. we have to decide
 		// on that.
+		
 		start_parse = stop+LL;
 		P2(("MMP.Parse", "%s => %O \n", key, val))
-		if (num == 1) val = 0;
-		else if (key == "") {
-		   if (mod != lastmod) THROW("improper list continuation");
-		   if (mod == '-') THROW( "diminishing lists is not supported");
-		   if (!arrayp(lastval)) 
-			lastval = ({ lastval, val });
-		   else lastval += ({ val });
-		   continue LINE;
+
+		if (num == 1) {
+		    val = 0;
+		} else {
+		    string k = (key == "") ? lastkey : key;		    
+
+		    if (k != "") {
+			int n = search(k, '_', 1);
+
+			switch (n == -1 ? k : k[0..n]) {
+			case "_source":
+			case "_target":
+			case "_context":
+			    P2(("MMP.Circuit", "cb: %O\n", get_uniform))
+			    val = get_uniform(val); 
+			}
+    
+		    }
+		    if (key == "") {
+			if (mod != lastmod) THROW("improper list continuation");
+			if (mod == '-') 
+			    THROW( "diminishing lists is not supported");
+			if (!arrayp(lastval)) {
+			    lastval = ({ lastval, val });
+			} else {
+			    lastval += ({ val });
+			}
+			continue LINE;
+		    }
 		}
 		break;
 	    case '\t':
@@ -742,8 +836,8 @@ class Active {
 class Server {
     inherit Circuit;
 
-    void create(Stdio.File|Stdio.FILE so, function cb, function closecb) {
-	::create(so, cb, closecb);
+    void create(Stdio.File|Stdio.FILE so, function cb, function closecb, void|function get_uniform) {
+	::create(so, cb, closecb, get_uniform);
 
 	q_neg->unshift(Packet());
 	activate();

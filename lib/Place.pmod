@@ -6,24 +6,19 @@
 //
 // die frage ist im wesentlichen, ob das konzeptionell was vollkommen anderes
 // ist als im User oder eher nicht. .. 
-// 	pro: die sache mit dem _request_link könnte universell sein.. fraglich 
-// 	allerdings, ob man sich damit nicht eher einen abbricht..
-//
-// ausserdem: wollen wir eventuell den gruppen-krams in ein abstrakes modul
-// packen, das wir nur inheriten?.. 
 
 class Basic {
+    inherit Master;
 
-    inherit Group;
-   
-    mapping user = ([ ]);
-
-    int msg(MMP.Packet p) {
-	P2(("Place.Basic", "%O->msg(%O)\n", this, p))
+    void create(mixed ... bla) {
+	P2(("Place.Basic", "create\n"))
 	
+	::create(@bla);
+    }
+    
+    int msg(MMP.Packet p) {
 	if (::msg(p)) return 1;
-
-	string|MMP.uniform source = p["_source"];
+	P2(("Place.Basic", "%O->msg(%O)\n", this, p))
 	
 	PSYC.Packet m = p->data;
 	// mcs allowed without being a groupie
@@ -31,18 +26,23 @@ class Basic {
 	
 	}
 
-	if (!isMember(source)) {
-	    sendmsg(source, "_error_membership_required", 
+	if (!isMember(p->lsource)) {
+	    sendmsg(p["_source"], "_error_membership_required", 
 		    "You need to enter the group first.");
 	}
 
 	switch(m->mc) {
 	case "_message":
 	case "_message_public":
-	    castmsg(m->mc, m->data, m->vars);
+	    // this->castmsg() because we want to call the castmsg() of the
+	    // inheriting class(es)
+	    //
+	    // TODO: check for nicks..
+	    castmsg(m, p->lsource);
 	    return 1;
 	}
 	
+	return 0;
     }
 
 }

@@ -7,13 +7,13 @@
 #include <debug.h>
 
 object server;
-string uni;
+MMP.Uniform uni;
 
-mapping(string:mixed) unl2uni = ([ ]);
+mapping(MMP.Uniform:MMP.Uniform) unl2uni = ([ ]);
 // we may have several people representing the same .. guy. they all want some
 // piece of the cake
-mapping(string:string|array(string)) uni2unl = ([]);
-mapping(string:mapping(string:string)) pending = ([ ]);
+mapping(MMP.Uniform:MMP.Uniform|array(MMP.Uniform)) uni2unl = ([]);
+mapping(MMP.Uniform:mapping(MMP.Uniform:string)) pending = ([ ]);
 
 // _tag & _reply mechanism.. 
 /*private :)*/ mapping(string:array(mixed)) _tags = ([]);
@@ -22,7 +22,7 @@ mixed cast(string type) {
     if (type == "string") return sprintf("Uni(%s)", qName());
 }
 
-string qName() {
+MMP.Uniform qName() {
     return uni;
 }
 
@@ -31,7 +31,7 @@ string qName() {
 // pretty good in most applications. thats good for all the crypto
 // stuff too
 //
-string send_tagged(string|MMP.uniform target, PSYC.Packet m, 
+string send_tagged(MMP.Uniform target, PSYC.Packet m, 
 		   function|void callback, mixed ... args) {
     string tag = random_string(8); // have a define for the length? 
    // am i paranoid?
@@ -56,31 +56,21 @@ void append_arguments(string tag, mixed ... args) {
     _tags[tag][1] += args;
 }
 
-void create(string u, object s) {
+void create(MMP.Uniform u, object s) {
     uni = u;
     server = s;
 }
 
 // mixed target for objects?? i dont like something about that. even though
 // we would have one more hashlookup
-void sendmsg(string|MMP.uniform target, string mc, string|void data, 
+void sendmsg(MMP.Uniform target, string mc, string|void data, 
 	     mapping|void vars) {
     send(target, PSYC.Packet(mc, data, vars));
 }
 
-void send(string|MMP.uniform target, PSYC.Packet p) {
+void send(MMP.Uniform target, PSYC.Packet p) {
 
     P3(("Uni", "send(%O, %s)\n", target, p))
-
-    if (has_index(uni2unl, (string)target)) {
-	if (arrayp(uni2unl[(string)target])) {
-	    foreach (uni2unl[(string)target], string t) {
-		// we even need a _target_identification
-		server->unicast(t, uni, p);
-	    }
-	    return;
-	} else target = uni2unl[(string)target];
-    }
     server->unicast(target, uni, p);	
 }
 
@@ -93,7 +83,7 @@ void _auth_msg(MMP.Packet reply, MMP.Packet ... packets) {
     case "_notice_authenticate":
     {
 	int level = (int)m["_authentication_level"];
-	string source = (string)reply["_source"];
+	MMP.Uniform source = reply["_source"];
 	// we dont use that yet
 	P2(("Uni", "Successfully authenticated %s as %s.\n", m["_location"], 
 	    reply["_source"]))
@@ -131,7 +121,7 @@ void _auth_msg(MMP.Packet reply, MMP.Packet ... packets) {
 
 int msg(MMP.Packet p) {
     // check if _identification is valid
-    string|MMP.uniform source = p["_source"];
+    MMP.Uniform source = p["_source"];
 
     // maybe its generally not a good idea to replace _source with
     // _source_identification ..
@@ -142,19 +132,19 @@ int msg(MMP.Packet p) {
     // not happen.
 
     if (has_index(p, "_source_identification")) {
-	string|MMP.uniform id = p["_source_identification"];	
-	string s = (string)source;
+	MMP.Uniform id = p["_source_identification"];	
+	MMP.Uniform s = source;
 
 	if (!has_index(unl2uni, s)) {
 	    if (has_index(pending, s) && 
-		has_index(pending[s], (string)id)) {
-		append_arguments(pending[s][(string)id], p);
+		has_index(pending[s], id)) {
+		append_arguments(pending[s][id], p);
 	    } else {
 		PSYC.Packet request = PSYC.Packet("_request_authentication",
 						  "nil", 
 						  ([ "_location" : source ]));
 		pending[s] 
-		    = ([ (string)id : send_tagged(id, request, 
+		    = ([ id : send_tagged(id, request, 
 						  _auth_msg, p) ]);
 	    }
 	    return 0;
@@ -165,12 +155,9 @@ int msg(MMP.Packet p) {
 	    // also the unl may want to identify as some other uni.. 
 	    // TODO
 #endif 
-	} else if (unl2uni[s] != (string)id) {
+	} else if (unl2uni[s] != id) {
 	    m_delete(unl2uni, s);
 	    return msg(p);
-	} else { // everything is okay
-	    p["_source"] = id;
-	    p["_source_technical"] = source;
 	}
     }
 
