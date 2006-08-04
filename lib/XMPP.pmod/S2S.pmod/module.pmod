@@ -76,5 +76,12 @@ class Client {
     void create(mapping(string:mixed) config) {
 	//so->async_connect(ip, port, connect, so, q, target, id);
 	//Protocols.DNS.async_host_to_ip(host, cb, port, packet);
+	// async srv hint: 
+#if 0
+    void callback(string query, mapping result, mixed cba) { }
+    ...
+    Protocols.DNS.async_client a = async_client();
+    a->do_query("_xmpp-server._tcp.blah.hancke.name", C_IN, T_SRV, callback);
+#endif
     }
 }
