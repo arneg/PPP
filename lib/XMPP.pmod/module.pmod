@@ -24,7 +24,7 @@ class XMLNode {
 	children += ({ node });
     }
 
-    void data(string content) {
+    void appendData(string content) {
 	data += ({ content });
     }
     string getName() { return tag; }
@@ -47,7 +47,6 @@ class XMPPSocket {
 	xmlParser->_set_tag_callback(onTag);
 	xmlParser->_set_data_callback(onData);
 	stack = ({ });
-	streamstatus = 0;
     }
 
     int onTag(Parser.HTML p, string tag) {
@@ -68,7 +67,7 @@ class XMPPSocket {
 	    }
 	}
 
-	if (streamstatus == 0) {
+	if (streamattributes == 0) {
 	    if (name == "stream:stream")
 		open_stream(attr);
 	    else if (name == "/stream:stream") 
@@ -107,15 +106,17 @@ class XMPPSocket {
     }
 
     int onData(Parser.HTML p, string data) {
-	//werror("onData(%O)\n", data);
+	if (node) node->appendData(data);
     }
+
     void handle() {
 	werror("handling %O\n", node);
+	node = 0;
     }
 
     void open_stream(mapping attr) {
 	werror("openStream\n");
-	streamstatus = 1;
+	streamattributes = attr;
     }
     void close_stream() {
 
