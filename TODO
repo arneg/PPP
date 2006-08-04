@@ -1,0 +1,2 @@
+- repair the multicast stuff in Group.Master
+- fix MMP.Circuits to do negotiation of modules..
