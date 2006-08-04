@@ -34,19 +34,21 @@ class XMLNode {
 }
 
 class XMPPSocket {
+    mapping(string : mixed) _config;
     Stdio.File|Stdio.FILE socket;
+    SSL.sslfile sslsocket;
     Parser.HTML xmlParser;
 
     mapping streamattributes;
     string innerxml;
-    array(mixed) stack;
     XMLNode node;
 
     void create(mapping(string:mixed) config) {
 	xmlParser = Parser.get_xml_parser();
 	xmlParser->_set_tag_callback(onTag);
 	xmlParser->_set_data_callback(onData);
-	stack = ({ });
+
+	_config = config;
     }
 
     int onTag(Parser.HTML p, string tag) {
