@@ -52,7 +52,6 @@ class Server {
 	string peerhost;
 
 	werror("accepted\n");
-	Stdio.File socket;
 	socket = lsocket->accept();
 	peerhost = socket->query_address();
 	socket->set_nonblocking(read, write, close);
@@ -65,23 +64,81 @@ class Server {
     int write(void|mixed id) {
 	werror("write called\n");
     }
+    int rawp(string what) {
+	socket->write(what);
+    }
 
     int close(mixed id) {
 	werror("closed\n");
     }
 
+    void handle() {
+	if (node->getName() == "starttls") {
+	    rawp("<proceed xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
+	    starttls();
+	}
+	::handle();
+    }
+
+    void starttls() {
+	SSL.context ctx = SSL.context();
+	ctx->rsa = Standards.PKCS.RSA.parse_private_key(_config["key"]["localhost"]);
+	ctx->random = Crypto.Random.random_string;
+	ctx->certificates = ({ _config["certificates"]["localhost"]});
+	sslsocket = SSL.sslfile(socket, ctx);
+	sslsocket->set_read_callback(read);
+	sslsocket->set_write_callback(write);
+	sslsocket->set_close_callback(close);
+    }
+    void open_stream(mapping attr) {
+	if (attr->version == "1.0") {
+	    werror("1.0\n");
+	    rawp("<stream:features>");
+	    rawp("<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
+	    rawp("</stream:features>");
+	}
+	::open_stream(attr);
+    }
 }
 
 class Client {
     void create(mapping(string:mixed) config) {
+    }
 	//so->async_connect(ip, port, connect, so, q, target, id);
 	//Protocols.DNS.async_host_to_ip(host, cb, port, packet);
-	// async srv hint: 
+// async srv hint: 
 #if 0
-    void callback(string query, mapping result, mixed cba) { }
-    ...
-    Protocols.DNS.async_client a = async_client();
-    a->do_query("_xmpp-server._tcp.blah.hancke.name", C_IN, T_SRV, callback);
-#endif
+// hints: wie loest man async srv auf
+void callback(string query, mapping result, mixed cb, mixed ... cba) {
+    werror("callback? %O(%O)\n", cb, cba);
+    array res=({});
+
+    if (result) {
+
+        foreach(result->an, mapping x)
+        {
+           res += ({({x->priority, x->weight, x->port, x->target})});
+        }
+
+        // now we sort the array by priority as a convenience
+        array y=({});
+        foreach(res, array t)
+          y+=({t[0]});
+        sort(y, res);
+        cb(res, cba);
+    } else {
+        cb(-1, cba);
+        werror("dns client: no result\n");
     }
+}
+
+void async_srv(string service, string protocol, string name,
+               function cb, mixed ... cba) {
+    Protocols.DNS.async_client client = Protocols.DNS.async_client();
+    client->do_query("_" + service +"._"+ protocol + "." + name,
+                     Protocols.DNS.C_IN,
+                     Protocols.DNS.T_SRV, callback, cb, cba);
+
+}
+#endif
 }
