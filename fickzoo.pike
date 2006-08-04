@@ -16,16 +16,16 @@ int main(int argc, array(string) argv) {
 }
 
 // does _not_ check whether the uni->host is local.
-object create_local(MMP.uniform uni) {
+object create_local(MMP.Uniform uni) {
     object o;
     if (sizeof(uni->resource) > 1) switch (uni->resource[0]) {
     case '~':
 	// TODO check for the path...
-	o = User.Person(uni->resource[1..], uni->unl, dings);
+	o = User.Person(uni->resource[1..], uni, dings);
 	return o;
 	break;
     case '@':
-	return Place.Basic(uni->unl, dings);
+	return Place.Basic(uni, dings);
 	break;
     case '$':
     }
