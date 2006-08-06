@@ -48,69 +48,55 @@ class Server {
 	::create(config);
     }
 
-    void accept(Stdio.Port lsocket) {
-	string peerhost;
-
-	werror("accepted\n");
-	socket = lsocket->accept();
-	peerhost = socket->query_address();
-	socket->set_nonblocking(read, write, close);
-    }
-
-    int read(mixed id, string data) {
-	xmlParser->feed(data);
-    }
-
-    int write(void|mixed id) {
-	werror("write called\n");
-    }
     int rawp(string what) {
 	socket->write(what);
-    }
-
-    int close(mixed id) {
-	werror("closed\n");
     }
 
     void handle() {
 	if (node->getName() == "starttls") {
 	    rawp("<proceed xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
-	    starttls();
+	    starttls(0);
 	}
-	::handle();
     }
 
-    void starttls() {
-	SSL.context ctx = SSL.context();
-	ctx->rsa = Standards.PKCS.RSA.parse_private_key(_config["key"]["localhost"]);
-	ctx->random = Crypto.Random.random_string;
-	ctx->certificates = ({ _config["certificates"]["localhost"]});
-	sslsocket = SSL.sslfile(socket, ctx);
-	sslsocket->set_read_callback(read);
-	sslsocket->set_write_callback(write);
-	sslsocket->set_close_callback(close);
-    }
     void open_stream(mapping attr) {
+	::open_stream(attr);
+	rawp("<?xml version='1.0' encoding='UTF-8' ?>"
+	     "<stream:stream "
+	     "xmlns='jabber:server' "
+	     "xmlns:db='jabber:server:dialback' "
+	     "xmlns:stream='http://etherx.jabber.org/streams' "
+	     "xml:lang='en' id='MAKEMERANDOM' ");
+	if (attr->to) {
+	    rawp("from='" + attr->to + "' ");
+	} else {
+	    rawp("from='" + _config["defaulthost"] + "' ");
+	}
+
 	if (attr->version == "1.0") {
-	    werror("1.0\n");
+	    rawp("version='1.0'>");
 	    rawp("<stream:features>");
-	    rawp("<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
+	    if (!Program.inherits(object_program(socket), SSL.sslfile)) {
+		rawp("<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
+	    } else {
+		werror("already done starttls\n");
+	    }
 	    rawp("</stream:features>");
 	}
-	::open_stream(attr);
     }
 }
 
-class Client {
-    void create(mapping(string:mixed) config) {
-    }
-	//so->async_connect(ip, port, connect, so, q, target, id);
-	//Protocols.DNS.async_host_to_ip(host, cb, port, packet);
-// async srv hint: 
-#if 0
-// hints: wie loest man async srv auf
-void callback(string query, mapping result, mixed cb, mixed ... cba) {
-    werror("callback? %O(%O)\n", cb, cba);
+
+Protocols.DNS.async_client _resolver = Protocols.DNS.async_client();
+
+void async_srv(string service, string protocol, string name,
+               function cb, mixed ... cba) {
+    _resolver->do_query("_" + service +"._"+ protocol + "." + name,
+			Protocols.DNS.C_IN,
+			Protocols.DNS.T_SRV, sort_srv, cb, cba);
+}
+
+void sort_srv(string query, mapping result, mixed cb, mixed cba) {
     array res=({});
 
     if (result) {
@@ -125,20 +111,83 @@ void callback(string query, mapping result, mixed cb, mixed ... cba) {
         foreach(res, array t)
           y+=({t[0]});
         sort(y, res);
-        cb(res, cba);
+        cb(query, res, cba);
     } else {
         cb(-1, cba);
         werror("dns client: no result\n");
     }
 }
 
-void async_srv(string service, string protocol, string name,
-               function cb, mixed ... cba) {
-    Protocols.DNS.async_client client = Protocols.DNS.async_client();
-    client->do_query("_" + service +"._"+ protocol + "." + name,
-                     Protocols.DNS.C_IN,
-                     Protocols.DNS.T_SRV, callback, cb, cba);
 
-}
-#endif
+class Client {
+    inherit XMPP.XMPPSocket;
+    void create(mapping(string:mixed) config) {
+	::create(config);
+	async_srv("xmpp-server", "tcp", config["domain"], srv_resolved);
+    }
+    void srv_resolved(string query, array result, mixed args) {
+	// TODO: we should resolve both _xmpp-server and _jabber and then
+	// 	prefer _xmpp-server if both are available
+	if (sizeof(result)) {
+	    mixed entry = result[0];
+	    Protocols.DNS.async_host_to_ip(entry[3], resolved, entry[2]);
+	} else {
+	    Protocols.DNS.async_host_to_ip(_config["domain"], resolved, 5269);
+	}
+    }
+
+    void resolved(string host, string ip, int port) {
+	socket = Stdio.File();
+	socket->async_connect(ip, port, logon);
+    }
+
+    void logon(int success) {
+	werror("logon(%O)\n", success);
+	if (success) {
+	    socket->set_nonblocking(read, write, close);
+	    rawp("<stream:stream "
+		 "xmlns:stream='http://etherx.jabber.org/streams' "
+		 "xmlns='jabber:server' xmlns:db='jabber:server:dialback' "
+		 "to='" + _config["domain"] + "' "
+		 "from='" + _config["localdomain"] + "' "
+		 "xml:lang='en' "
+		 "version='1.0'>");
+	}
+    }
+
+    void tls_logon(mixed ... args) {
+	rawp("<stream:stream "
+	     "xmlns:stream='http://etherx.jabber.org/streams' "
+	     "xmlns='jabber:server' xmlns:db='jabber:server:dialback' "
+	     "to='" + _config["domain"] + "' "
+	     "from='" + _config["localdomain"] + "' "
+	     "xml:lang='en' "
+	     "version='1.0'>");
+    }
+
+    int rawp(string what) {
+	socket->write(what);
+    }
+    void handle() {
+	switch(node->getName()) {
+	case "stream:features":
+	    foreach(node->getChildren(), XMPP.XMLNode x) {
+		string name = x->getName();
+		if (name == "starttls") {
+		    rawp("<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
+		    return;
+		}
+	    }
+	    werror("%O could now do dialback\n", this_object());
+	    break;
+	case "proceed":
+	    starttls(1);
+	    break;
+	case "stream:stream": 
+	    werror("should have reset stream\n");
+	    break;
+	}
+
+    }
+
 }
