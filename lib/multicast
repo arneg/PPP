@@ -1,0 +1,14 @@
+one may enter a context-slave manually by sending a _request_enter to the context manager. in case of the context slaves currently implemented in psyced the master would be the server root. for friendcasts it could be one of your friends who casts messages from a "remote" friend to you. 
+during multicast mmp packet remain "untouched". that means
+- there is no change in state
+- variables must not be changed
+- the mmp packet may be send "as-is" to everyone in the context 
+
+by beeing able to adress the context manager, context slaves itself dont need a adress on their own; also they dont need one. 
+
+
+what we need:
+a context manager class (would be inherited by PSYC.Server for room context slaves, by all users for friendcast) thats able to handle:
+- requests for entering the context (may be redirected to the context master in case we have standard conference control)
+- leave
+- subscribe/unsubscribe 
