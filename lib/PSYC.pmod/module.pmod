@@ -77,6 +77,77 @@ class Packet {
     }
 }
 
+#if 0
+// evil parser
+string psyctext(PSYC.Packet m) {
+    String.Buffer buf = String.Buffer(); 
+
+    string data = m->data;
+    
+    int opened;
+    int start, stop;
+
+    while (stop < sizeof(data)-1) {
+	start = stop;
+	if (opened) {
+	    stop = search(data, "]", start);
+	} else {
+	    stop = search(data, "[", start);
+	}
+
+	if (stop == -1 || sizeof(data)-1 <= stop+1) {
+	    buf->add(data[start..]);
+	    break;
+	}
+
+	if (opened && data[start+1] == '_' 
+	&& has_index(m->vars, data[start+1..stop-1])) {
+	    buf->add(m->vars[data[start+1..stop-1]]);
+	} else {
+	    buf->add(data[start..stop]);
+	}
+
+	opened ^= 1;
+    }
+
+    return buf->get();
+}
+#endif
+
+string psyctext(MMP.Packet p) {
+    mapping v;
+    string tmp;
+
+    if (p->vars) {
+	if (!v) v = ([]);
+	v += p->vars;
+    }
+
+    if (p->data && p->data->vars) {
+	if (!v) v = ([]);
+	v += p->data->vars;
+    }
+
+    if (p->data && search(p->data->mc, "_message") == 0) {
+
+	tmp = "[_source_relay] says: [_data]";
+	if (!v) {
+	    v = ([ "_data" : p->data->data ]);
+	} else {
+	    v["_data"] = p->data->data;
+	}
+    } else {
+	tmp =  p->data ? p->data->data : "--> no text <--";
+    }
+
+
+    if (v) {
+	return PSYC.Text.psyctext(tmp, v);
+    }
+
+    return tmp;
+}
+
 string|String.Buffer render(Packet o, void|String.Buffer to) {
     String.Buffer p;
 
@@ -201,16 +272,20 @@ LINE:while (-1 < stop &&
 
 class Server {
     mapping(string:mixed) localhosts;
-    mapping(string:object) targets = ([ ]), 
-			   contexts = ([ ]), 
-			   connecting = ([ ]),
-			   connections = ([ ]),
-			   routes = ([ ]);
+    mapping(string:object) contexts = ([ ]), 
+			   connecting = ([ ]), // pending, unusable connections
+			   connections = ([ ]),// up and running connections
+			   routes = ([ ]);     // connections routing for for
+					       // somebody else
     mapping(string:MMP.Uniform) unlcache = ([ ]);
     PSYC.Packet circuit_established;
     string bind_to;
+    string def_localhost;
 
     function create_local, create_remote;
+    object server; // hack for contextMaster
+
+    inherit ContextManager;
 
     // we could make the verbosity of this putput debug-level dependent
     string _sprintf(int type) {
@@ -223,15 +298,6 @@ class Server {
 	return UNDEFINED;
     }
 
-    void register_target(string|MMP.Uniform t, object o) {
-	if (has_index(targets, (string)t)) throw("murks");
-	targets[(string)t] = o;
-    }
-
-    void unregister_target(string|MMP.Uniform t) {
-	m_delete(targets, (string)t);
-    }
-    
     // these contexts are local context slaves.. for remote rooms. and also 
     // context slaves for local rooms. we should not make any difference really
     void register_context(string|MMP.Uniform c, object o) {
@@ -242,14 +308,7 @@ class Server {
     void unregister_context(string|MMP.Uniform c) {
 	m_delete(contexts, (string)c);
     }
-    
-    void register_member(string|MMP.Uniform c, object o) {
-	if (!has_index(contexts, (string)c)) {
-	    contexts[(string)c] = Context(c, this);
-	}
-	contexts[(string)c]->insert(o);
-    }
-    
+
     void create(mapping(string:mixed) config) {
 
 	// TODO: expecting ip:port ... is maybe a bit too much
@@ -270,11 +329,17 @@ class Server {
 	    throw("urks");
 	}
 
+	if (has_index(config, "default_localhost")) {
+	    def_localhost = config["default_localhost"];  
+	}
+
+#if 0
 	if (has_index(config, "create_remote")
 	    && functionp(create_remote = config["create_remote"])) {
 	} else {
 	    throw("urks");
 	}
+#endif
 
 	if (has_index(config, "ports")) {
 	    // more error-checking would be a good idea.
@@ -299,42 +364,18 @@ class Server {
 	circuit_established = PSYC.Packet("_notice_circuit_established", 
 					  "You got connected to %s.\n",
 			  ([ "_implementation" : "better than wurstbrote" ]));
+	server = this;
     }
 
+    // CALLBACKS
     void accept(Stdio.Port lsocket) {
 	string peerhost;
 	Stdio.File socket;
 	socket = lsocket->accept();
 	peerhost = socket->query_address();
 
-	connections[peerhost] = MMP.Server(socket, deliver, close, get_uniform);
+	connections[peerhost] = MMP.Server(socket, route, close, get_uniform);
 	connections[peerhost]->send_neg(MMP.Packet(circuit_established));
-    }
-
-    void close(MMP.Circuit c) {
-	m_delete(connections, c->socket->peerhost);
-	
-	while (!c->isEmpty()) {
-	    mixed p;
-
-	    p = c->shift();
-	    if (arrayp(p)) {
-		p = p[1];
-	    }
-	    deliver(p, this);
-	}
-    }
-
-    MMP.Uniform get_uniform(string unl) {
-	unl = lower_case(unl);
-
-	if (has_index(unlcache, unl)) {
-	    P2(("PSYC.Server", "returning cached %O\n", unlcache[unl]))
-	    return unlcache[unl];
-	} else {
-	    P2(("PSYC.Server", "returning newly created %O\n", unl))
-	    return unlcache[unl] = MMP.Uniform(unl);
-	}
     }
 
     void connect(int success, Stdio.File so, MMP.Utils.Queue q, 
@@ -351,7 +392,7 @@ class Server {
 	peerhost = so->query_address();
 
 	P2(("PSYC.Server", "get_uniform: %O\n", get_uniform))
-	c = MMP.Active(so, deliver, close, get_uniform);
+	c = MMP.Active(so, route, close, get_uniform);
 	target->handler = c;
 	c->send_neg(MMP.Packet(circuit_established));
 	
@@ -363,14 +404,44 @@ class Server {
 	m_delete(connecting, id);
     }
 
+    void close(MMP.Circuit c) {
+	m_delete(connections, c->socket->peerhost);
+	
+	while (!c->isEmpty()) {
+	    mixed p;
+
+	    p = c->shift();
+	    if (arrayp(p)) {
+		p = p[1];
+	    }
+	    route(p, this);
+	}
+    }
+
+    // returns the handler for a uniform
+    object get_local(string uni) {
+
+	MMP.Uniform u = get_uniform(uni);
+
+	if (u->handler) return u->handler;
+	return u->handler = create_local(u);
+    }
+
+    MMP.Uniform get_uniform(string unl) {
+	unl = lower_case(unl);
+
+	if (has_index(unlcache, unl)) {
+	    P2(("PSYC.Server", "returning cached %O\n", unlcache[unl]))
+	    return unlcache[unl];
+	} else {
+	    P2(("PSYC.Server", "returning newly created %O\n", unl))
+	    return unlcache[unl] = MMP.Uniform(unl);
+	}
+    }
+
     // simply sends an mmp-packet to host:port
     void send_mmp(MMP.Uniform target, MMP.Packet packet) {
 	P2(("PSYC.Server", "send_mmp(%O, %O)\n", target, packet))
-
-	if (target->handler) {
-	    target->handler->msg(packet);
-	    return;
-	}
 
 	string host = target->host;
 	int port = target->port;
@@ -453,6 +524,7 @@ class Server {
 	}
     }
 
+    // obsolete
     void unicast(MMP.Uniform target,MMP.Uniform source, 
 		 PSYC.Packet packet) {
 	P2(("PSYC.Server", "%O->unicast(%O, %O, %O)\n", this, target, source, 
@@ -460,7 +532,20 @@ class Server {
 	MMP.Packet mpacket = MMP.Packet(packet, 
 				      ([ "_source" : source,
 					 "_target" : target ]));
-	send_mmp(target, mpacket);
+	deliver(target, mpacket);
+    }
+
+    void deliver(MMP.Uniform target, MMP.Packet packet) {
+	P2(("PSYC.Server", "%O->deliver(%O, %O)\n", this, target, packet))
+
+	if (target->handler) {
+	    target->handler->msg(packet);
+	    return;
+	}
+	
+	if_localhost(target->host, deliver_local, deliver_remote, 
+		     packet, target);
+	
     }
 
     void deliver_remote(MMP.Packet packet, MMP.Uniform target) {
@@ -473,25 +558,22 @@ class Server {
     void deliver_local(MMP.Packet packet, MMP.Uniform target) {
 	P2(("PSYC.Server", "%O->deliver_local(%O, %O)\n", this, packet, 
 	    target))
+	object o = create_local(target);
 
-	if (!target->handler) {
-	    object o = create_local(target);
-
-	    if (!o) {
-		P0(("PSYC.Server", "Could not summon a local object for %O.\n",
-		    target))
-		return;
-	    }
-
-	    target->handler = o;
+	if (!o) {
+	    P0(("PSYC.Server", "Could not summon a local object for %O.\n",
+		target))
+	    return;
 	}
+
+	target->handler = o;
 	target->handler->msg(packet);
     }
 
     // actual routing...
-    void deliver(MMP.Packet packet, object connection) {
+    void route(MMP.Packet packet, object connection) {
 	
-	P2(("PSYC.Server", "%O->deliver(%O)\n", this, packet))
+	P2(("PSYC.Server", "%O->route(%O)\n", this, packet))
 	
 	MMP.Uniform target, source, context;
 	// this is maybe the most ... innovative piece of code on this planet
@@ -510,11 +592,11 @@ class Server {
 	    packet->data = PSYC.parse(packet->data);
 #endif
 	} else {
-	    P0(("PSYC.Server", "Nothing to deliver.\n"))
+	    P0(("PSYC.Server", "Nothing to route.\n"))
 	    return;
 	}
 
-	P2(("PSYC.Server", "delivering source: %O, target: %O, context: %O\n", 
+	P2(("PSYC.Server", "routing source: %O, target: %O, context: %O\n", 
 	    source, target, context))
 
 	switch ((target ? 1 : 0)|
@@ -522,18 +604,16 @@ class Server {
 		(context ? 4 : 0)) {
 	case 3:
 	case 1:
-	    P2(("PSYC.Server", "delivering %O via unicast to %s\n", packet, 
+	    P2(("PSYC.Server", "routing %O via unicast to %s\n", packet, 
 		target))
 
-	    P2(("PSYC.Server", "looking in %O for %s\n.", targets, target))
 	    if (target->handler) {
 		target->handler->msg(packet);
 		return;
 	    } 
 
 	    if (target->resource) {
-		if_localhost(target->host, deliver_local, deliver_remote, 
-			     packet, target);
+		deliver(target, packet);
 	    } else { // rootmsg
 #ifdef DEBUG
 		void dummy(MMP.Packet p, object c) {
@@ -551,7 +631,7 @@ class Server {
 	    msg(packet);
 	    break;
 	case 4:
-	    P2(("PSYC.Server", "delivering multicast message %O to local %s\n", packet, context))
+	    P2(("PSYC.Server", "routing multicast message %O to local %s\n", packet, context))
 	    if (has_index(contexts, (string)context)) {
 		contexts[(string)context]->msg(packet);
 	    }
@@ -576,6 +656,8 @@ class Server {
 
     void msg(MMP.Packet packet, void|object connection) {
 
+	::msg(packet);
+
 	MMP.Uniform source = packet["_source"];
 	if (!connection) {
 	    connection = source->handler;
@@ -598,39 +680,6 @@ class Server {
 	    }
 	} else { // hmm
 
-	}
-    }
-}
-
-// note: lets use MMP.Uniform for all.. and for local targets it contains a
-// reference to the corresponding object (weak). that way we dont need a 
-// hash lookup in cases we dont want to store objects, i.e. make a difference
-// between locals and remotes
-
-// a context slave
-class Context {
-    
-    multiset members = (<>); 
-    object server;
-    string|MMP.Uniform uni;
-
-    void create(string|MMP.Uniform n, object s) {
-	uni = n;
-	server = s;
-    }
-    
-    void insert(string|MMP.Uniform t) {
-	members[t] = 1;
-    }
-
-    void delete(object o) {
-	members[o] = 0;
-    }
-    
-    void msg(MMP.Packet packet) {
-
-	foreach (indices(members), string|MMP.Uniform target) {
-	    server->send_mmp(target, packet);	
 	}
     }
 }

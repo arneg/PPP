@@ -34,12 +34,17 @@ class Basic {
 	switch(m->mc) {
 	case "_message":
 	case "_message_public":
-	    // this->castmsg() because we want to call the castmsg() of the
-	    // inheriting class(es)
-	    //
-	    // TODO: check for nicks..
-	    castmsg(m, p->lsource);
-	    return 1;
+	    {
+		PSYC.Packet cm = copy_value(m);
+		// this->castmsg() because we want to call the castmsg() of the
+		// inheriting class(es)
+		//
+		// TODO: check for nicks..
+		m["_nick"] = p->lsource;
+
+		kast(m, p->lsource);
+		return 1;
+	    }
 	}
 	
 	return 0;

@@ -33,11 +33,9 @@ MMP.Uniform qName() {
 //
 string send_tagged(MMP.Uniform target, PSYC.Packet m, 
 		   function|void callback, mixed ... args) {
-    string tag = random_string(8); // have a define for the length? 
-   // am i paranoid?
-   // I will not check here for has_index(_tags, tag).. those deterministic
-   // random generators have periods of more than 2^32.. or something.
-   //
+    string tag;
+    // have a define for the length? 
+    while (has_index(_tags, tag = random_string(8))); 
     m["_tag"] = tag;
 
     if (callback)

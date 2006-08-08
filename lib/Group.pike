@@ -8,7 +8,8 @@ int unlink(MMP.Packet);
 int isMember(MMP.Uniform);
 
 void send(MMP.Uniform, PSYC.Packet);
-void castmsg(PSYC.Packet, void|MMP.Uniform);
+void kast(MMP.Packet, void|MMP.Uniform);
+void castmsg(MMP.Packet);
 
 int msg(MMP.Packet p) {
     MMP.Uniform source = p["_source"];
@@ -20,9 +21,9 @@ int msg(MMP.Packet p) {
     case "_request_group_enter":
 	{
 	    void _true() {
-		send(p->source, m->reply("_echo_enter"));
+		send(p->source, m->reply("_echo_enter", "You entered [_source]."));
 		if (!silent) {
-		    castmsg(PSYC.Packet("_notice_enter", "congratulations, you entered the froup", ([ ])), p->lsource);
+		    kast(PSYC.Packet("_notice_enter", "congratulations, [_nick] entered the froup", ([ "_nick" : p->lsource ])));
 		}
 	    };
 
@@ -40,8 +41,9 @@ int msg(MMP.Packet p) {
 	    send(source, m->reply("_notice_leave"));
 
 	    if (!silent) {
-		castmsg(PSYC.Packet("_notice_place_leave", "[_nick] left.", 
-			([ "_nick" : source])));
+		kast(PSYC.Packet("_notice_place_leave", 
+			         "[_nick] left.",
+			         ([ "_nick" : source])));
 	    }
 	} else {
 	    send(source, m->reply("_notice_leave", "the froup doesn't know you anyway."));

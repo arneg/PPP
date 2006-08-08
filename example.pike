@@ -2,6 +2,7 @@
 //
 PSYC.Server dings;
 XMPP.S2S.Server bumms;
+TELNET.Server da;
 
 string my_certificate = MIME.decode_base64(
   "MIIBxDCCAW4CAQAwDQYJKoZIhvcNAQEEBQAwbTELMAkGA1UEBhMCREUxEzARBgNV\n"
@@ -28,22 +29,28 @@ int main(int argc, array(string) argv) {
 
     dings = PSYC.Server(([
 	"localhosts" : ([ "localhost" : 1 ]),
-	"ports" : ({ "localhost:4404" }),
-	"create_local" : create_local,
-	"create_remote" : lambda(mixed ... args) { },
-	"module_factory" : create_module,
-	"offer_modules" : ({ "_compress" }),
+	     "ports" : ({ "localhost:4404" }),
+      "create_local" : create_local,
+    "module_factory" : create_module,
+     "offer_modules" : ({ "_compress" }),
+ "default_localhost" : "localhost",
 	 ]));
+#if 0
     bumms = XMPP.S2S.Server(([
 	"localhosts" : ([ "localhost" : 1 ]),
-	"ports" : ({ "localhost:5222" }),
-	"key" : ([ "localhost" : my_key ]),
-	"certificates" : ([ "localhost" : my_certificate ]),
-	"create_local" : create_local,
-	"create_remote" : lambda(mixed ... args) { },
-	"module_factory" : create_module,
-	"offer_modules" : ({ "_compress" }),
+	     "ports" : ({ "localhost:5222" }),
+	       "key" : ([ "localhost" : my_key ]),
+      "certificates" : ([ "localhost" : my_certificate ]),
+      "create_local" : dings->get_local,
+     "offer_modules" : ({ "_compress" }),
 	 ]));
+#endif
+    da = TELNET.Server(([
+	 "psyc_server" : dings,
+	     "ports" : ({ 2000 }),
+			]));
+
+    write("220 ppp ESMTP Sendmail 8.13.7/8.13.7;\n");
     return -1;
 }
 

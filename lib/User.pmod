@@ -29,6 +29,30 @@ class Person {
 	clients -= ({ o });
     }
 
+    int isNewbie() {
+	return 0;
+    }
+
+    MMP.Uniform user_to_uniform(string l) {
+	MMP.Uniform address;
+	if (search(l, ":") == -1) {
+	    l = "psyc://" + server->def_localhost + "/~" + l;
+	}
+	address = server->get_uniform(l); 
+
+	return address;
+    }
+
+    MMP.Uniform room_to_uniform(string l) {
+	MMP.Uniform address;
+	if (search(l, ":") == -1) {
+	    l = "psyc://" + server->def_localhost + "/@" + l;
+	}
+	address = server->get_uniform(l); 
+
+	return address;
+    }
+
     void checkAuth(string type, mixed creds, function cb, 
 		   mixed ... extra) {
 	if (type != "password") {
@@ -56,7 +80,7 @@ class Person {
     }
 
     void msg(MMP.Packet p) {
-	P2(("User", "%O->msg(%O)\n", this, p->data))
+	P2(("User", "%O->msg(%O)\n", this, p))
 
 	// this looks ugly
 	if (::msg(p)) {
@@ -114,7 +138,7 @@ class Person {
 	case "_request_exit":
 	}
 
-	clients->msg(m);
+	clients->msg(p);
     }
 
 }

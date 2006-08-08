@@ -85,8 +85,8 @@ int unlink(MMP.Packet p) {
 	   sendmsg(s, "_error_unlink_illegal", "Kick out your Members first, you ignorant swine!");
 	   multiset temp = m_delete(routes, s);
 	   foreach (temp; MMP.Uniform uniform;) {
-	       castmsg(PSYC.Packet("_notice_leave"), uniform);
 	       m_delete(member, uniform);
+	       kast(PSYC.Packet("_notice_leave"), uniform);
 	   }
 
 	   return 0;
@@ -136,17 +136,16 @@ int msg(MMP.Packet p) {
     }
 }
 
-void castmsg(PSYC.Packet m, MMP.Uniform|void oldsource) {
-    MMP.Packet p;
-
-    if (oldsource) {
-	p = MMP.Packet(m, ([ "_context": uni, "_source_relay" : oldsource ]));
-    } else {
-	p = MMP.Packet(m, ([ "_context": uni ]));
-    }
+void castmsg(MMP.Packet p) {
 
     foreach (routes;MMP.Uniform uniform;) {
-	server->send_mmp(uniform, p);
+	server->deliver(uniform, p);
     }
 }
 
+void kast(PSYC.Packet m, void|MMP.Uniform source_relay) {
+    MMP.Packet p = MMP.Packet(m, ([ "_context" : uni ]));
+    if (source_relay) p["_source_relay"] = source_relay;
+
+    castmsg(p);
+}
