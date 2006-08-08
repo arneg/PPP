@@ -1,5 +1,8 @@
 #define MOTD "hey hey, this is the magical telnet interface\r\n"
 #define CMDCHAR '/'
+#define LINEUP(n)	("\e[" + (string)(n) + "A")
+#define LINEDOWN(n)	("\e[" + (string)(n) + "B")
+#define KILLLINE "\e[K"
 #include <debug.h>
 
 // one TELNET session. which attaches to a user and then.. sends psyc
@@ -9,20 +12,32 @@ class Session {
     User.Person user;
     string username;
     int attached, writeok;
+    multiset(MMP.Uniform) places = (< >);
     MMP.Uniform place;
 
+    void clear_line() {
+	socket->write_raw(KILLLINE);
+    }
  
     void create(object so, object se, function close) {
 	socket = Protocols.TELNET.Readline(so, read, 0, close, ([]));
 	server = se;
     }
-
+    
     void write(string t) {
 	socket->write(t);
     }
 
     void writeln(string t) {
+	string old_prompt = socket->readline->set_prompt("");
+	int old_pos = socket->readline->getcursorpos();
+
+	socket->write_raw(LINEUP(1));
+	clear_line();
 	write(t+"\r\n");
+	socket->readline->set_prompt(old_prompt);
+	socket->readline->redisplay(0);
+	socket->readline->setcursorpos(old_pos);
     }
     
     void logon() {
@@ -34,6 +49,8 @@ class Session {
 	P0(("PSYC.Session", "%O->read(%O, %O)\n", this, id, data))
 
 	data = data[0..sizeof(data) - 2];
+
+	socket->readline->setcursorpos(0);
 
 	if (!username) {
 	    string unl;
@@ -56,6 +73,7 @@ class Session {
 	    user->checkAuth("password", data, _auth);
 	    return;
 	}
+
 
 	if (data[0] == CMDCHAR) {
 	    cmd(data[1..] / " "); 
@@ -95,6 +113,16 @@ class Session {
 		user->send(target, PSYC.Packet("_request_enter"));
 		return;
 	    }
+	    return;
+	case "change":
+	    {
+		MMP.Uniform target = user->room_to_uniform(arg[1]);
+
+		if (has_index(places, target)) {
+		    place = target;
+		    socket->set_prompt(target->unl + "> ");
+		}
+	    }
 	}
     }
 
@@ -104,8 +132,22 @@ class Session {
 	PSYC.Packet m = p->data;
 	
 	switch(m->mc) {
+	case "_notice_leave":
+	    {
+		MMP.Uniform tmp = p["_source"];
+
+		if (place == tmp) {
+		    place = UNDEFINED;
+		}
+
+		places[tmp] = 0;
+	    }
+
+	    break;
 	case "_echo_enter":
 	    place = p["_source"];
+	    places[place] = 1;
+	    socket->set_prompt(place->unl + "> ");
 	}
 
 	writeln(PSYC.psyctext(p));
