@@ -32,10 +32,10 @@ class Queue {
 
         data = head[DATA];
         head = head[NEXT];
+	size--;
 
         if (isEmpty()) tail = 0;
 
-	size--;
 
         return data;
     }

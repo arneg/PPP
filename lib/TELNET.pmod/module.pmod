@@ -31,6 +31,17 @@ class Session {
     void writeln(string t) {
 	string old_prompt = socket->readline->set_prompt("");
 	int old_pos = socket->readline->getcursorpos();
+	array(string) workon = t / "\n";
+
+	if (sizeof(workon) > 1) {
+	    for (int i = 0; i < sizeof(workon) - 2; i++) {
+		if (workon[i][-1] != '\r') {
+		    workon[i] += "\r";
+		}
+	    }
+
+	    t = workon * "\n";
+	}
 
 	socket->write_raw(LINEUP(1));
 	clear_line();
@@ -46,11 +57,16 @@ class Session {
 
     void read(mixed id, string data) {
 
+	socket->readline->setcursorpos(0);
 	P0(("PSYC.Session", "%O->read(%O, %O)\n", this, id, data))
+
+	if (sizeof(data) < 2) {
+	    //
+	    return;
+	}
 
 	data = data[0..sizeof(data) - 2];
 
-	socket->readline->setcursorpos(0);
 
 	if (!username) {
 	    string unl;
@@ -62,9 +78,9 @@ class Session {
 		user->attach(this);
 
 		attached = 1;
-		//socket->readline->set_echo(0);
 	    } else {
-		socket->set_prompt("Password: ");
+		socket->readline->set_echo(0);
+		socket->readline->set_prompt("Password: ");
 	    }
 	    return;
 	}
@@ -93,7 +109,8 @@ class Session {
 	    user->attach(this);
 
 	    attached = 1;
-	    //socket->readline->set_echo(0);
+	    socket->readline->set_prompt("");
+	    socket->readline->set_echo(1);
 	} else {
 	    write("wrong password...\r\n");
 	    socket->close();
@@ -110,7 +127,8 @@ class Session {
 	case "join":
 	    {
 		MMP.Uniform target = user->room_to_uniform(arg[1]);
-		user->send(target, PSYC.Packet("_request_enter"));
+		user->send(target, PSYC.Packet("_request_enter", 0, 
+			       ([ "_nick" : user->uni->resource[1..] ])));
 		return;
 	    }
 	    return;
@@ -120,7 +138,7 @@ class Session {
 
 		if (has_index(places, target)) {
 		    place = target;
-		    socket->set_prompt(target->unl + "> ");
+		    socket->readline->set_prompt(target->unl + "> ");
 		}
 	    }
 	}
@@ -132,22 +150,31 @@ class Session {
 	PSYC.Packet m = p->data;
 	
 	switch(m->mc) {
+#ifdef STILLE_DULDUNG
+	case "_notice_place_leave":
+#endif
 	case "_notice_leave":
-	    {
+
+	if (p->source == user->uni) {
 		MMP.Uniform tmp = p["_source"];
 
 		if (place == tmp) {
 		    place = UNDEFINED;
+		    socket->readline->set_prompt("> ");
 		}
 
 		places[tmp] = 0;
 	    }
 
 	    break;
+#ifdef STILLE_DULDUNG
+	case "_echo_place_enter":
+#endif
 	case "_echo_enter":
 	    place = p["_source"];
 	    places[place] = 1;
-	    socket->set_prompt(place->unl + "> ");
+	    socket->readline->set_prompt(place->unl + "> ");
+	    break;
 	}
 
 	writeln(PSYC.psyctext(p));

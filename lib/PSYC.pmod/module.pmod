@@ -384,6 +384,8 @@ class Server {
 	MMP.Circuit c;
 
 	if (!success) {
+	    P0(("PSYC.Server", "Connection to %O failed (%d).\n", id,
+		so->errno()))
 	    // TODO: send _failures back for every packet in the queue
 	    // .. or retry. dont know
 	    return;
@@ -398,23 +400,30 @@ class Server {
 	
 	connections[peerhost] = c;
 
-	while (!q->is_empty()) {
+	while (!q->isEmpty()) {
 	    c->msg(q->shift());
 	}
 	m_delete(connecting, id);
     }
 
     void close(MMP.Circuit c) {
+	P0(("PSYC.Server", "%O->close(%O)\n", this, c))
 	m_delete(connections, c->socket->peerhost);
+	m_delete(routes, c->socket->peerhost);
+	c->peeraddr->handler = UNDEFINED;
+	
 	
 	while (!c->isEmpty()) {
-	    mixed p;
+	    mixed p = c->shift();
 
-	    p = c->shift();
 	    if (arrayp(p)) {
 		p = p[1];
 	    }
-	    route(p, this);
+	    // TODO: this is maybe crap, but routing is worse. the target
+	    // this packets has once been send() to may be different
+	    // from the peeraddr
+	    deliver_remote(p, c->peeraddr);
+	    sleep(2);
 	}
     }
 
@@ -437,58 +446,6 @@ class Server {
 	    P2(("PSYC.Server", "returning newly created %O\n", unl))
 	    return unlcache[unl] = MMP.Uniform(unl);
 	}
-    }
-
-    // simply sends an mmp-packet to host:port
-    void send_mmp(MMP.Uniform target, MMP.Packet packet) {
-	P2(("PSYC.Server", "send_mmp(%O, %O)\n", target, packet))
-
-	string host = target->host;
-	int port = target->port;
-	string peerhost = host + " " + (string)(port || 4404);
-	
-	void cb(string host, mixed ip, string|int port, void|MMP.Packet packet) {
-	    Stdio.File so;
-	    MMP.Utils.Queue q;
-	    string id;
-
-	    if (ip == 0) {
-		// send a packet back to packet["_source"]... 
-		return;
-	    }
-	    // like socket->query_address()
-	    id = ip+" "+(string)(port || 4404);
-	    if (!has_index(connecting, id)) {
-		so = Stdio.File();
-		connecting[id] = q = MMP.Utils.Queue();
-		if (bind_to)
-		    so->open_socket(UNDEFINED, bind_to);
-		so->async_connect(ip, port, connect, so, q, target, id);
-	    }
-	    
-	    if (packet) connecting[id]->push(packet);
-	};
-	
-	P2(("PSYC.Server", "looking in %O for a connection to %s.\n", 
-	    connections, peerhost))
-
-	if (has_index(connections, peerhost)) {
-	    (target->handler = connections[peerhost])->msg(packet);
-
-	    return;
-	} else if (has_index(routes, peerhost)) {
-	    (target->handler = routes[peerhost])->msg(packet);
-
-	    return;
-	}
-
-	if (sscanf("%*d.%*d.%*d.%*d", host) != 4) {
-	    Protocols.DNS.async_host_to_ip(host, cb, port, packet);
-
-	    return;
-	}
-
-	cb(host, host, port, packet);
     }
 
     void if_localhost(string host, function if_cb, function else_cb, 
@@ -549,10 +506,56 @@ class Server {
     }
 
     void deliver_remote(MMP.Packet packet, MMP.Uniform target) {
-	P2(("PSYC.Server", "%O->deliver_remote(%s, %s)\n", this, packet, 
-	    target))
+	P2(("PSYC.Server", "%O->deliver_remote(%O, %O)\n", this, packet, target))
+	string host = target->host;
+	int port = target->port || 4404;
+	string peerhost = host + " " + (string)port;
+	
+	void cb(string host, mixed ip, string|int port, void|MMP.Packet packet) {
+	    Stdio.File so;
+	    MMP.Utils.Queue q;
+	    string id;
 
-	send_mmp(target, packet);
+	    if (ip == 0) {
+		P0(("PSYC.Server", "Could not resolve %O.\n", packet))
+		// send a packet back to packet["_source"]... 
+		return;
+	    }
+	    // like socket->query_address()
+	    id = ip+" "+(string)port;
+	    if (!has_index(connecting, id)) {
+		P2(("PSYC.Server", "Opening a connection to %O.\n", id))
+		so = Stdio.File();
+		connecting[id] = q = MMP.Utils.Queue();
+		if (bind_to)
+		    so->open_socket(UNDEFINED, bind_to);
+		P2(("PSYC.Server", "so->async_connect(%O, %O, %O, %O, %O, %O, %O);\n", ip, port, connect, so, q, target, id))
+		so->async_connect(ip, port, connect, so, q, target, id);
+	    }
+	    
+	    if (packet) connecting[id]->push(packet);
+	};
+	
+	P2(("PSYC.Server", "looking in %O for a connection to %s.\n", 
+	    connections, peerhost))
+
+	if (has_index(connections, peerhost)) {
+	    (target->handler = connections[peerhost])->msg(packet);
+
+	    return;
+	} else if (has_index(routes, peerhost)) {
+	    (target->handler = routes[peerhost])->msg(packet);
+
+	    return;
+	}
+
+	if (sscanf("%*d.%*d.%*d.%*d", host) != 4) {
+	    Protocols.DNS.async_host_to_ip(host, cb, port, packet);
+
+	    return;
+	}
+
+	cb(host, host, port, packet);
     }
 
     void deliver_local(MMP.Packet packet, MMP.Uniform target) {
@@ -585,7 +588,9 @@ class Server {
 	    packet["_source"] = source;
 	} else source = packet["_source"];
 
-	if (packet->data) {
+	// may be objects already if these are packets coming from a socket that
+	// has been closed.
+	if (packet->data) { 
 #ifdef LOVE_TELNET
 	    packet->data = PSYC.parse(packet->data, connection->dl);
 #else

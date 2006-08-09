@@ -408,6 +408,7 @@ class Circuit {
 	close_cb = closecb;
 	get_uniform = parse_uni||MMP.parse_uniform;
 
+	q_neg->push(Packet());
 	reset();
 	//::create();
     }
@@ -521,7 +522,7 @@ class Circuit {
 	    //s = trigger("encode", s);
 	    written = socket->write(s);
 
-	    P2(("MMP.Circuit", "%O wrote %d (of %d) bytes.\n", this, written, 
+	    P2(("MMP.Circuit", "%O wrote (%O) %d (of %d) bytes.\n", this, s, written, 
 		sizeof(s)))
 
 	    if (written != sizeof(s)) {
@@ -828,8 +829,6 @@ class Active {
 
     void start_read(mixed id, string data) {
 	::start_read(id, data);
-
-	send_neg(Packet());
     }
 }
 
@@ -839,7 +838,6 @@ class Server {
     void create(Stdio.File|Stdio.FILE so, function cb, function closecb, void|function get_uniform) {
 	::create(so, cb, closecb, get_uniform);
 
-	q_neg->unshift(Packet());
 	activate();
     }
 
