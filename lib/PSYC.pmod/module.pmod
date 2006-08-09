@@ -18,7 +18,7 @@ Packet reply(Packet m, string|void mc, string|void data, mapping(string:mixed)|v
 class Packet {
     string mc, cache;
     mapping (string:mixed) vars;
-    mixed data;
+    string data;
 
     void create(string|void m, string|void d, 
 		mapping(string:mixed)|void v ) {

@@ -136,6 +136,10 @@ class Person {
 	    return;
 	case "_request_friendship":
 	case "_request_exit":
+	    return;
+	case "_message_private":
+		send(source, m->reply("_message_echo_private", m->data));
+		break;
 	}
 
 	clients->msg(p);

@@ -137,9 +137,19 @@ class Session {
 	    writeln("goodbye");
 	    socket->close();
 	    return;
+	case "tell":
+	    {
+		MMP.Uniform target = user->user_to_uniform(arg[1]);
+
+		user->send(target, PSYC.Packet("_message_private",
+					       arg[2..] * " ",
+					       ([ "_nick" : user->uni->resource[1..] ])));
+	    }
+
+	    return;
 	case "join":
 	    {
-		MMP.Uniform target = user->room_to_uniform(arg[1]);
+		MMP.Uniform target = user->user(arg[1]);
 		user->send(target, PSYC.Packet("_request_enter", 0, 
 			       ([ "_nick" : user->uni->resource[1..] ])));
 		return;
