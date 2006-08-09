@@ -43,12 +43,11 @@ class Session {
 	    t = workon * "\n";
 	}
 
-	socket->write_raw(LINEUP(1));
-	clear_line();
+	//clear_line();
 	write(t+"\r\n");
 	socket->readline->set_prompt(old_prompt);
-	socket->readline->redisplay(0);
 	socket->readline->setcursorpos(old_pos);
+	socket->readline->redisplay(0);
     }
     
     void logon() {
@@ -56,8 +55,22 @@ class Session {
     }
 
     void read(mixed id, string data) {
+	int lines;
 
-	socket->readline->setcursorpos(0);
+	socket->write_raw(LINEUP(lines = (
+				  sizeof(socket->readline->get_prompt())
+				  + sizeof(data))
+				  / socket->readline->get_output_controller()->get_number_of_columns()
+				 + 1));
+	if (sizeof(data) < 2) {
+	    clear_line();
+	    socket->write_raw(LINEDOWN(lines));
+	}
+
+	socket->readline->redisplay();
+
+	//socket->readline->setcursorpos(0);
+
 	P0(("PSYC.Session", "%O->read(%O, %O)\n", this, id, data))
 
 	if (sizeof(data) < 2) {

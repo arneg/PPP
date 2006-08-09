@@ -582,7 +582,7 @@ class Server {
 	// this is maybe the most ... innovative piece of code on this planet
 	target = packet["_target"];
 	context = packet["_context"];
-	if (!has_index(packet->vars, "_source")) {
+	if (!has_index(packet->vars, "_source") && !context) {
 	    source = connection->peeraddr;
 	    // THIS IS REMOTE
 	    packet["_source"] = source;
