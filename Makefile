@@ -1,8 +1,11 @@
 .PHONY: ppp
+ifndef S
+    S = fickzoo
+endif
 
 ppp:
 ifndef D
-	pike -Ilib -Mlib fickzoo.pike
+	pike -DSTILLE_DULDUNG -Ilib -Mlib $(S).pike
 else
-	pike -Ilib -Mlib -DDEBUG=$(D) fickzoo.pike
+	pike -DSTILLE_DULDUNG -Ilib -Mlib -DDEBUG=$(D) $(S).pike
 endif
