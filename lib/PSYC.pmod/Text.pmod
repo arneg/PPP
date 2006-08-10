@@ -27,10 +27,17 @@ string psyctext(string fmt, mapping|void vars) {
 	}
 
 	foreach(indices(vars), string m) {
+	    mixed val = vars[m];
+
+	    if (arrayp(val)) {
+		val = val * ", ";
+	    }
+#ifdef HTML
 	    va["[(" + m + ")]"] = replace((string)vars[m],
 					    ({ "\n", "\r" }),
 					    ({ "<br />", "" }));
-	    va["[" + m + "]"] = (string)vars[m];
+#endif
+	    va["[" + m + "]"] = (string)val;
 	}
 
 	fmt = replace(fmt, va);

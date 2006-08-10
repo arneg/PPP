@@ -10,7 +10,7 @@
 class Session {
 
     object socket, server;
-    User.Person user;
+    PSYC.Person user;
     string username;
     int attached, writeok;
     multiset(MMP.Uniform) places = (< >);

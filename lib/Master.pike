@@ -10,7 +10,7 @@
 
 #include "debug.h"
 
-inherit Uni : unii;
+inherit PSYC.Uni : unii;
 inherit Group : group;
 
 mapping(MMP.Uniform:multiset(MMP.Uniform)|int) routes = ([]);
@@ -30,22 +30,15 @@ int isMember(MMP.Uniform typ) {
 void enter(MMP.Packet p, function _true, function _false) {
     P2(("Master", "Enter by %O, member: %O\n", p, member))
     MMP.Uniform ts = p["_source"];
-    // the slave never linked
-
-    if (has_index(p, "_source_relay") && !has_index(routes, ts)) {
-	_false();
-
-	return;
-    }
 
     _true();
 
     member[p->lsource] = ts;
 
-    if (multisetp(routes[ts])) {
-	routes[ts][p->lsource] = 1;
+    if (!has_index(routes, ts)) {
+	routes[ts] = (< p->lsource >);
     } else {
-	routes[ts] = 1;
+	routes[ts][p->lsource] = 1;
     }
 }
 
@@ -103,22 +96,37 @@ int msg(MMP.Packet p) {
     P2(("Place.Master", "%O->msg(%O)\n", this, p))
 
     if (unii::msg(p)) return 1;
+    // maybe this is a bad idea.. we only need that for _request link
     if (!has_index(p, "_source_relay") && group::msg(p)) return 1;
 
     PSYC.Packet m = p->data;
 
     switch(m->mc) {
     case "_request_enter":
-	    // slave fragt, ob er leute joinen darf.. hier beantworten
-	    //
-    case "_request_link":
 	{
 	    void _true() {
-		send(p["_source"], m->reply("_notice_link"));
+		sendmmp(p["_source"], MMP.Packet(m->reply("_notice_enter"), ([ "_source_relay" : p->lsource ]))); 
 	    };
 
 	    void _false() {
-		send(p["_source"], m->reply("_failure_link", "keep on tryin', buddy"));
+		sendmmp(p["_source"], MMP.Packet(m->reply("_failure"), ([ "_source_relay" : p->lsource ]))); 
+
+	    };
+
+	    enter(p, _true, _false);
+	}
+	break;
+    case "_request_leave":
+	break;
+#if 0
+    case "_request_link":
+	{
+	    void _true() {
+		sendmsg(p["_source"], m->reply("_notice_link"));
+	    };
+
+	    void _false() {
+		sendmsg(p["_source"], m->reply("_failure_link", "keep on tryin', buddy"));
 	    };
 
 	    link(p, _true, _false);
@@ -127,13 +135,14 @@ int msg(MMP.Packet p) {
 	}
     case "_request_unlink":
 	{
-	    send(p["_source"], m->reply("_notice_unlink"));
+	    sendmsg(p["_source"], m->reply("_notice_unlink"));
 	}
     case "_notice_unlink":
 	// we can leave it like this!
 	unlink(p);
 	return 1;
     }
+#endif
 }
 
 void castmsg(MMP.Packet p) {

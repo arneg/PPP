@@ -713,7 +713,7 @@ LINE:	while(-1 < stop &&
 		    if (k != "") {
 			int n = search(k, '_', 1);
 
-			switch (n == -1 ? k : k[0..n]) {
+			switch (n == -1 ? k : k[0..n-1]) {
 			case "_source":
 			case "_target":
 			case "_context":

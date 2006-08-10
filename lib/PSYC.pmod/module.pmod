@@ -282,7 +282,7 @@ class Server {
     string bind_to;
     string def_localhost;
 
-    function create_local, create_remote;
+    function create_local, create_remote, external_deliver_remote, external_deliver_local;
     object server; // hack for contextMaster
 
     inherit ContextManager;
@@ -333,13 +333,17 @@ class Server {
 	    def_localhost = config["default_localhost"];  
 	}
 
-#if 0
-	if (has_index(config, "create_remote")
-	    && functionp(create_remote = config["create_remote"])) {
+	if (has_index(config, "deliver_remote")) {
+	    external_deliver_remote = config["deliver_remote"];
 	} else {
-	    throw("urks");
+	    external_deliver_remote = deliver_remote; 
 	}
-#endif
+
+	if (has_index(config, "deliver_local")) {
+	    external_deliver_local = config["deliver_local"];
+	} else {
+	    external_deliver_local = deliver_local; 
+	}
 
 	if (has_index(config, "ports")) {
 	    // more error-checking would be a good idea.
@@ -481,17 +485,6 @@ class Server {
 	}
     }
 
-    // obsolete
-    void unicast(MMP.Uniform target,MMP.Uniform source, 
-		 PSYC.Packet packet) {
-	P2(("PSYC.Server", "%O->unicast(%O, %O, %O)\n", this, target, source, 
-	    packet))
-	MMP.Packet mpacket = MMP.Packet(packet, 
-				      ([ "_source" : source,
-					 "_target" : target ]));
-	deliver(target, mpacket);
-    }
-
     void deliver(MMP.Uniform target, MMP.Packet packet) {
 	P2(("PSYC.Server", "%O->deliver(%O, %O)\n", this, target, packet))
 
@@ -500,7 +493,7 @@ class Server {
 	    return;
 	}
 	
-	if_localhost(target->host, deliver_local, deliver_remote, 
+	if_localhost(target->host, external_deliver_local, external_deliver_remote, 
 		     packet, target);
 	
     }
@@ -688,3 +681,4 @@ class Server {
 	}
     }
 }
+
