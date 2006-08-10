@@ -3,6 +3,7 @@
 #define LINEUP(n)	("\e[" + (string)(n) + "A")
 #define LINEDOWN(n)	("\e[" + (string)(n) + "B")
 #define KILLLINE "\e[K"
+#define KILLDOWN "\e[J"
 #include <debug.h>
 
 // one TELNET session. which attaches to a user and then.. sends psyc
@@ -34,6 +35,7 @@ class Session {
 	array(string) workon = t / "\n";
 
 	socket->readline->setcursorpos(0);
+	socket->write_raw(KILLDOWN);
 
 	if (sizeof(workon) > 1) {
 	    for (int i = 0; i < sizeof(workon) - 2; i++) {
