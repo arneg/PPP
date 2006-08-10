@@ -27,8 +27,8 @@ class Basic {
 	}
 
 	if (!isMember(p->lsource)) {
-	    sendmsg(p["_source"], "_error_membership_required", 
-		    "You need to enter the group first.");
+	    sendmsg(p["_source"], PSYC.Packet("_error_membership_required", 
+		    "You need to enter the group first."));
 	}
 
 	switch(m->mc) {

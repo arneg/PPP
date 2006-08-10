@@ -50,7 +50,7 @@ int leave(MMP.Packet p) {
 
 	if (multisetp(routes[r])) {
 	    if (!sizeof(routes[r])) {
-		sendmsg(r, "_notice_unlink", "Your dont have any users anymore, me friend!");
+		sendmsg(r, PSYC.Packet("_notice_unlink", "Your dont have any users anymore, me friend!"));
 		m_delete(routes, r);
 	    }
 
@@ -75,7 +75,7 @@ int unlink(MMP.Packet p) {
 
     if (has_index(routes, s)) {
        if (multisetp(routes[s]) && sizeof(routes[s])) {
-	   sendmsg(s, "_error_unlink_illegal", "Kick out your Members first, you ignorant swine!");
+	   sendmsg(s, PSYC.Packet("_error_unlink_illegal", "Kick out your Members first, you ignorant swine!"));
 	   multiset temp = m_delete(routes, s);
 	   foreach (temp; MMP.Uniform uniform;) {
 	       m_delete(member, uniform);
@@ -141,8 +141,8 @@ int msg(MMP.Packet p) {
 	// we can leave it like this!
 	unlink(p);
 	return 1;
-    }
 #endif
+    }
 }
 
 void castmsg(MMP.Packet p) {

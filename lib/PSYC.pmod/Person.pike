@@ -97,11 +97,11 @@ void msg(MMP.Packet p) {
 	    // for now this works fine
 	    if (has_index(m->vars, "_location")) foreach (clients, object o) {
 		if (m->vars["_location"] == o->location) {
-		    send(p["_source"], m->reply("_notice_authentication", "yeeees!")); 
+		    sendmsg(p["_source"], m->reply("_notice_authentication", "yeeees!")); 
 		    return;
 		}
 	    }
-	    send(p["_source"], m->reply("_error_authentication", "noooo!"));
+	    sendmsg(p["_source"], m->reply("_error_authentication", "noooo!"));
 	    return;
 	}
 	return;
@@ -111,11 +111,11 @@ void msg(MMP.Packet p) {
 	    P2(("User", "temp here, sir (%d\n", __LINE__))
 	    if (bol) {
 		attach(PsycUser(packet["_source"], this));
-		send(packet["_source"], m->reply("_notice_link", "You have been linked."));
+		sendmsg(packet["_source"], m->reply("_notice_link", "You have been linked."));
 	    } else if (pw) {
-		send(packet["_source"], m->reply("_error_user_in_use", "This user is in use ,)."));
+		sendmsg(packet["_source"], m->reply("_error_user_in_use", "This user is in use ,)."));
 	    } else {
-		send(packet["_source"], m->reply("_error_invalid_password", "Forgot your password?"));
+		sendmsg(packet["_source"], m->reply("_error_invalid_password", "Forgot your password?"));
 		// maybe a newbie...
 	    }
 	};
@@ -124,9 +124,9 @@ void msg(MMP.Packet p) {
     case "_request_status":
     case "_notice_friend_present":
 	if (sizeof(clients))
-	    send(source, m->reply("_notice_friend_absent"));
+	    sendmsg(source, m->reply("_notice_friend_absent"));
 	else 
-	    send(source, m->reply("_status_friend_present"));
+	    sendmsg(source, m->reply("_status_friend_present"));
 	break;
     case "_notice_friend_present_quiet":
 	break;
