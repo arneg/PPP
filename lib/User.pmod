@@ -138,8 +138,9 @@ class Person {
 	case "_request_exit":
 	    return;
 	case "_message_private":
-		send(source, m->reply("_message_echo_private", m->data));
-		break;
+	    // TODO: build something else than send for _source_relay 
+	    send(source, m->reply("_message_echo_private", m->data));
+	    break;
 	}
 
 	clients->msg(p);

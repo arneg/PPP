@@ -13,7 +13,7 @@ class Session {
     string username;
     int attached, writeok;
     multiset(MMP.Uniform) places = (< >);
-    MMP.Uniform place;
+    MMP.Uniform place, query;
 
     void clear_line() {
 	socket->write_raw(KILLLINE);
@@ -109,8 +109,15 @@ class Session {
 	    return;
 	}
 
+	if (query) {
+	    user->send(query, PSYC.Packet("_message_private", data));
+
+	    return;
+	}
+
 	if (place) {
 	    user->send(place, PSYC.Packet("_message_public", data)); 
+
 	    return;
 	}
 
@@ -122,7 +129,7 @@ class Session {
 	    user->attach(this);
 
 	    attached = 1;
-	    socket->readline->set_prompt("");
+	    socket->readline->set_prompt("> ");
 	    socket->readline->set_echo(1);
 	} else {
 	    write("wrong password...\r\n");
@@ -138,7 +145,28 @@ class Session {
 	    socket->close();
 	    return;
 	case "tell":
-	    {
+	    int args = sizeof(arg);
+
+	    if (args == 1) {
+		if (query) {
+		    query = UNDEFINED;
+
+		    if (place) {
+			socket->readline->set_prompt(place->unl + "> ");
+			socket->readline->redisplay();
+		    } else {
+			socket->readline->set_prompt("> ");
+			socket->readline->redisplay();
+		    }
+		} else {
+		    writeln("Usage: /tell <nick> [<text>]");
+		}
+	    } else if (args == 2) {
+		query = user->user_to_uniform(arg[1]);
+
+		socket->readline->set_prompt(query->unl + "> ");
+		socket->readline->redisplay();
+	    }  else {
 		MMP.Uniform target = user->user_to_uniform(arg[1]);
 
 		user->send(target, PSYC.Packet("_message_private",
@@ -149,7 +177,7 @@ class Session {
 	    return;
 	case "join":
 	    {
-		MMP.Uniform target = user->user(arg[1]);
+		MMP.Uniform target = user->room_to_uniform(arg[1]);
 		user->send(target, PSYC.Packet("_request_enter", 0, 
 			       ([ "_nick" : user->uni->resource[1..] ])));
 		return;
@@ -161,7 +189,10 @@ class Session {
 
 		if (has_index(places, target)) {
 		    place = target;
-		    socket->readline->set_prompt(target->unl + "> ");
+
+		    if (!query) {
+			socket->readline->set_prompt(target->unl + "> ");
+		    }
 		}
 	    }
 	}
@@ -183,7 +214,10 @@ class Session {
 
 		if (place == tmp) {
 		    place = UNDEFINED;
-		    socket->readline->set_prompt("> ");
+
+		    if (!query) {
+			socket->readline->set_prompt("> ");
+		    }
 		}
 
 		places[tmp] = 0;
@@ -196,7 +230,11 @@ class Session {
 	case "_echo_enter":
 	    place = p["_source"];
 	    places[place] = 1;
-	    socket->readline->set_prompt(place->unl + "> ");
+
+	    if (!query) {
+		socket->readline->set_prompt(place->unl + "> ");
+	    }
+
 	    break;
 	}
 
