@@ -86,7 +86,7 @@ object create_local(MMP.Uniform uni) {
     if (sizeof(uni->resource) > 1) switch (uni->resource[0]) {
     case '~':
 	// TODO check for the path...
-	o = User.Person(uni->resource[1..], uni, dings);
+	o = PSYC.Person(uni->resource[1..], uni, dings);
 	return o;
 	break;
     case '@':
