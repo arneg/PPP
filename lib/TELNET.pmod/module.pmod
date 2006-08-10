@@ -33,6 +33,8 @@ class Session {
 	int old_pos = socket->readline->getcursorpos();
 	array(string) workon = t / "\n";
 
+	socket->readline->setcursorpos(0);
+
 	if (sizeof(workon) > 1) {
 	    for (int i = 0; i < sizeof(workon) - 2; i++) {
 		if (workon[i][-1] != '\r') {
