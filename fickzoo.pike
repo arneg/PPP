@@ -3,6 +3,9 @@
 PSYC.Server dings;
 XMPP.S2S.Server bumms;
 TELNET.Server da;
+#ifndef LOCALHOST
+# define LOCALHOST "localhost"
+#endif
 
 string my_certificate = MIME.decode_base64(
   "MIIBxDCCAW4CAQAwDQYJKoZIhvcNAQEEBQAwbTELMAkGA1UEBhMCREUxEzARBgNV\n"
@@ -25,43 +28,19 @@ string my_key = MIME.decode_base64(
   "eygz2yL3hCH8pwIhAKE6vEHuodmoYCMWorT5tGWM0hLpHCN/z3Btm38BGQSxAiAz\n"
   "jwsOclu4b+H8zopfzpAaoB8xMcbs0heN+GNNI0h/dQ==\n");
 
-void deliver_remote(MMP.Uniform target, MMP.Packet p) {
-    switch(target->scheme) {
-    case "psyc":
-	dings->deliver_remote(target, p);	
-    
-	return;
-    default:
-	write("Unimplemented protocol scheme: %s in deliver_remote\n", 
-	      target->scheme);
-    }
-}
-
-void deliver_local(MMP.Uniform target, MMP.Packet p) {
-    switch(target->scheme) {
-    case "psyc":
-	dings->deliver_local(target, p);	
-    
-	return;
-    default:
-	write("Unimplemented protocol scheme: %s in deliver_local\n", 
-	      target->scheme);
-    }
-}
-
 int main(int argc, array(string) argv) {
 
     dings = PSYC.Server(([
-	"localhosts" : ([ "localhost" : 1 ]),
-	     "ports" : ({ "localhost:4404" }),
+	"localhosts" : ([ LOCALHOST : 1 ]),
+	     "ports" : ({ LOCALHOST + ":4404" }),
       "create_local" : create_local,
     "module_factory" : create_module,
-    "deliver_remote" : deliver_remote, 
-    "deliver_local" : deliver_local, 
      "offer_modules" : ({ "_compress" }),
- "default_localhost" : "localhost",
+ "default_localhost" : LOCALHOST,
 	 ]));
-#if 0
+// maybe this is better for you, fippo
+// just remove the ifdef whenever you think XMPP could be used
+#ifdef XMPP
     bumms = XMPP.S2S.Server(([
 	"localhosts" : ([ "localhost" : 1 ]),
 	     "ports" : ({ "localhost:5222" }),
@@ -73,7 +52,7 @@ int main(int argc, array(string) argv) {
 #endif
     da = TELNET.Server(([
 	 "psyc_server" : dings,
-	     "ports" : ({ 2000 }),
+	     "ports" : ({ LOCALHOST + ":2000" }),
 			]));
 
     write("220 ppp ESMTP Sendmail 8.13.7/8.13.7;\n");

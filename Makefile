@@ -3,9 +3,13 @@ ifndef S
     S = fickzoo
 endif
 
-ppp:
-ifndef D
-	pike -DSTILLE_DULDUNG -Ilib -Mlib $(S).pike
-else
-	pike -DSTILLE_DULDUNG -Ilib -Mlib -DDEBUG=$(D) $(S).pike
+ifdef D
+    DEBUG = -DDEBUG=$(D)
 endif
+
+ifdef L
+    LOCALHOST = -DLOCALHOST="\"$(L)\""
+endif
+
+ppp:
+	pike -DSTILLE_DULDUNG -Ilib -Mlib $(DEBUG) $(LOCALHOST) $(S).pike

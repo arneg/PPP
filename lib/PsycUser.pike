@@ -1,6 +1,6 @@
 #include <debug.h>
 
-// could be the connection-object.
+// contains the connection-object.
 MMP.Uniform location;
 object person;
 
@@ -36,9 +36,6 @@ void msg(MMP.Packet p) {
 	    //TODO: we should decide whether the library may corrupt vars or not
 	    //.. maybe its worth allowing that.. maybe not.
 	    //
-	    // maybe pike even optimizes calls for copy_vars like:
-	    // return sendmsg(bla, copy_value(vars));
-	    // if the reference count of vars is 1.
 	    foreach (indices(t), key) {
 		if (key[0] != '_')
 		    m_delete(t, key);

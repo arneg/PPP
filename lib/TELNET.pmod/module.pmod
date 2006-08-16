@@ -114,13 +114,13 @@ class Session {
 	}
 
 	if (query) {
-	    user->send(query, PSYC.Packet("_message_private", data));
+	    user->sendmsg(query, PSYC.Packet("_message_private", data));
 
 	    return;
 	}
 
 	if (place) {
-	    user->send(place, PSYC.Packet("_message_public", data)); 
+	    user->sendmsg(place, PSYC.Packet("_message_public", data)); 
 
 	    return;
 	}
@@ -173,7 +173,7 @@ class Session {
 	    }  else {
 		MMP.Uniform target = user->user_to_uniform(arg[1]);
 
-		user->send(target, PSYC.Packet("_message_private",
+		user->sendmsg(target, PSYC.Packet("_message_private",
 					       arg[2..] * " ",
 					       ([ "_nick" : user->uni->resource[1..] ])));
 	    }
@@ -182,8 +182,12 @@ class Session {
 	case "join":
 	    {
 		MMP.Uniform target = user->room_to_uniform(arg[1]);
-		user->send(target, PSYC.Packet("_request_enter", 0, 
-			       ([ "_nick" : user->uni->resource[1..] ])));
+		user->sendmmp(user->server->uni,
+			      MMP.Packet(PSYC.Packet("_request_enter", 0,
+			       ([ "_nick" : user->uni->resource[1..] ])), 
+					 ([ "_target_relay" : target,
+					     "_source" : user->uni,
+					     "_target" : user->server->uni ])));
 		return;
 	    }
 	    return;
@@ -232,7 +236,7 @@ class Session {
 	case "_echo_place_enter":
 #endif
 	case "_echo_enter":
-	    place = p["_source"];
+	    place = p->lsource;
 	    places[place] = 1;
 
 	    if (!query) {

@@ -97,7 +97,7 @@ int msg(MMP.Packet p) {
 
     if (unii::msg(p)) return 1;
     // maybe this is a bad idea.. we only need that for _request link
-    if (!has_index(p, "_source_relay") && group::msg(p)) return 1;
+    if (!has_index(p->vars, "_source_relay") && group::msg(p)) return 1;
 
     PSYC.Packet m = p->data;
 
@@ -105,15 +105,23 @@ int msg(MMP.Packet p) {
     case "_request_enter":
 	{
 	    void _true() {
-		sendmmp(p["_source"], MMP.Packet(m->reply("_notice_enter"), ([ "_source_relay" : p->lsource ]))); 
+		sendmmp(p["_source"], MMP.Packet(m->reply("_notice_enter"), 
+						 ([ 
+				    "_target_relay" : p->lsource,
+						]))); 
+
 	    };
 
 	    void _false() {
-		sendmmp(p["_source"], MMP.Packet(m->reply("_failure"), ([ "_source_relay" : p->lsource ]))); 
+		sendmmp(p["_source"], MMP.Packet(m->reply("_failure"), 
+						 ([ 
+				    "_target_relay" : p->lsource,
+						]))); 
 
 	    };
 
 	    enter(p, _true, _false);
+	    return 1;
 	}
 	break;
     case "_request_leave":

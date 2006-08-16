@@ -272,18 +272,18 @@ LINE:while (-1 < stop &&
 
 class Server {
     mapping(string:mixed) localhosts;
-    mapping(string:object) contexts = ([ ]), 
+    mapping(string:object)  
 			   connecting = ([ ]), // pending, unusable connections
 			   connections = ([ ]),// up and running connections
 			   routes = ([ ]);     // connections routing for for
 					       // somebody else
+    mapping(MMP.Uniform:object) contexts = ([ ]);
     mapping(string:MMP.Uniform) unlcache = ([ ]);
     PSYC.Packet circuit_established;
     string bind_to;
     string def_localhost;
 
     function create_local, create_remote, external_deliver_remote, external_deliver_local;
-    object server; // hack for contextMaster
 
     inherit ContextManager;
 
@@ -300,13 +300,13 @@ class Server {
 
     // these contexts are local context slaves.. for remote rooms. and also 
     // context slaves for local rooms. we should not make any difference really
-    void register_context(string|MMP.Uniform c, object o) {
-	if (has_index(contexts, (string)c)) throw("murks");
-	contexts[(string)c] = o;
+    void register_context(MMP.Uniform c, object o) {
+	if (has_index(contexts, c)) throw("murks");
+	contexts[c] = o;
     }
 
-    void unregister_context(string|MMP.Uniform c) {
-	m_delete(contexts, (string)c);
+    void unregister_context(MMP.Uniform c) {
+	m_delete(contexts, c);
     }
 
     void create(mapping(string:mixed) config) {
@@ -331,6 +331,8 @@ class Server {
 
 	if (has_index(config, "default_localhost")) {
 	    def_localhost = config["default_localhost"];  
+	} else {
+	    throw("aaahahha");
 	}
 
 	if (has_index(config, "deliver_remote")) {
@@ -368,7 +370,10 @@ class Server {
 	circuit_established = PSYC.Packet("_notice_circuit_established", 
 					  "You got connected to %s.\n",
 			  ([ "_implementation" : "better than wurstbrote" ]));
-	server = this;
+	MMP.Uniform t = get_uniform("psyc://" + def_localhost + "/");
+	t->handler = this;
+	// not good for nonstandard port?
+	::create(t, this);
     }
 
     // CALLBACKS
@@ -584,11 +589,13 @@ class Server {
 	// may be objects already if these are packets coming from a socket that
 	// has been closed.
 	if (packet->data) { 
+	    if (stringp(packet->data)) {
 #ifdef LOVE_TELNET
-	    packet->data = PSYC.parse(packet->data, connection->dl);
+		packet->data = PSYC.parse(packet->data, connection->dl);
 #else
-	    packet->data = PSYC.parse(packet->data);
+		packet->data = PSYC.parse(packet->data);
 #endif
+	    }
 	} else {
 	    P0(("PSYC.Server", "Nothing to route.\n"))
 	    return;
@@ -629,9 +636,13 @@ class Server {
 	    msg(packet);
 	    break;
 	case 4:
-	    P2(("PSYC.Server", "routing multicast message %O to local %s\n", packet, context))
-	    if (has_index(contexts, (string)context)) {
-		contexts[(string)context]->msg(packet);
+	    P2(("PSYC.Server", "routing multicast message %O to local %s\n", 
+		packet, context))
+	    if (has_index(contexts, context)) {
+		contexts[context]->msg(packet);
+	    } else {
+		P0(("PSYC.Server", "noone distributing messages in %O\n", 
+		    context))
 	    }
 	    break;
 	case 5:
@@ -654,7 +665,7 @@ class Server {
 
     void msg(MMP.Packet packet, void|object connection) {
 
-	::msg(packet);
+	if (::msg(packet)) return;
 
 	MMP.Uniform source = packet["_source"];
 	if (!connection) {
@@ -675,6 +686,8 @@ class Server {
 		// auch hier nicht sicher
 		connection->activate();
 		break;
+	    default:
+		return;
 	    }
 	} else { // hmm
 

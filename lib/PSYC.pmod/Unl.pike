@@ -6,7 +6,6 @@
 //
 #include <debug.h>
 
-function sendmmp;
 object server;
 MMP.Uniform uni;
 
@@ -27,13 +26,7 @@ MMP.Uniform qName() {
     return uni;
 }
 
-// TODO: maybe we should use some proper random-string generation...
-// maybe collect entropy by the action of users, which should be 
-// pretty good in most applications. thats good for all the crypto
-// stuff too
-//
-string send_tagged(MMP.Uniform target, PSYC.Packet m, 
-		   function|void callback, mixed ... args) {
+PSYC.Packet tag(PSYC.Packet m, function|void callback, mixed ... args) {
     string tag;
     // have a define for the length? 
     while (has_index(_tags, tag = random_string(8))); 
@@ -44,8 +37,14 @@ string send_tagged(MMP.Uniform target, PSYC.Packet m,
     else 
 	_tags[tag] = 0;
     
-    sendmmp(target, m);
-    return tag;
+    return m;
+}
+
+string send_tagged(MMP.Uniform target, PSYC.Packet m, 
+		   function|void callback, mixed ... args) {
+    tag(m); 
+    call_out(sendmsg, 0, target, m);
+    return m["_tag"];
 }
 
 void append_arguments(string tag, mixed ... args) {
@@ -58,15 +57,29 @@ void append_arguments(string tag, mixed ... args) {
 void create(MMP.Uniform u, object s) {
     uni = u;
     server = s;
-    sendmmp = server->deliver;
 }
 
 void sendmsg(MMP.Uniform target, PSYC.Packet m) {
-    P3(("Uni", "sendmsg(%O, %O)\n", target, p))
+    P3(("PSYC.Uni", "sendmsg(%O, %O)\n", target, p))
     MMP.Packet p = MMP.Packet(m, 
 			  ([ "_source" : uni,
 			     "_target" : target ]));
     sendmmp(target, p);    
+}
+
+void sendmmp(MMP.Uniform t, MMP.Packet p) {
+    P0(("PSYC.Uni", "%O->sendmmp(%O, %O)\n", this, t, p))
+    
+    if (!has_index(p->vars, "_context")) {
+	if (!has_index(p->vars, "_target")) {
+	    p["_target"] = t;
+	}
+	if (!has_index(p->vars, "_source")) {
+	    p["_source"] = uni;
+	}
+    }
+
+    server->deliver(t, p);
 }
 
 void _auth_msg(MMP.Packet reply, MMP.Packet ... packets) {

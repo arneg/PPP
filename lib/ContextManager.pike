@@ -1,3 +1,4 @@
+#include <debug.h>
 // we need some information for each context about the conference control in 
 // that context. for some we are allowed to add anyone as a listener to that 
 // context or even as a sender. examples:
@@ -9,9 +10,22 @@
 //   to add him to a context slave somewhere else)
 // - unmanaged room: similar to the friendcast. context manager may add senders 
 //   too and cast messages.
+inherit PSYC.Uni;
+
 mapping(MMP.Uniform:ContextSlave) contexts = ([]);
 
 int msg(MMP.Packet p) {
+    P2(("ContextManager", "%O->msg(%O)\n", this, p))
+
+    if (has_index(p->vars, "_context")) {
+	MMP.Uniform c = p->vars["_context"];
+	if (has_index(contexts, c)) {
+	    contexts[c]->msg(p); 
+	} else {
+	    P0(("ContextManager", "%O->Got a message (%O) for %O although I do not have a Slave distributing on that context.", this, p, c))
+	}
+	return 1;
+    }
    
     PSYC.Packet m = p->data;
 
@@ -19,13 +33,49 @@ int msg(MMP.Packet p) {
     case "_request_enter":
 	{
 	    // the variable naming is somehow beta
-	    MMP.Uniform context = m["_identification"];
+	    if (!has_index(p->vars, "_target_relay")) {
+		sendmsg(p["_source"], m->reply("_failure_request_enter", "enter what???")); 
+
+		return 1;
+	    }
+	    MMP.Uniform context = p["_target_relay"];
 	    // is there a case where a context master inherits the context manager
 	    // class? if yes, we need to think about making the difference clear 
 	    // inside the protocol
-	    if (has_index(contexts, context)) {
-		contexts[context]->insert(p["_source"]); 	
+	    sendmmp(context, MMP.Packet(tag(PSYC.Packet("_request_enter")),
+				     ([ "_source_relay" : p["_source"] ])));
+	    return 1;
+	}
+    case "_notice_enter":
+	{
+	    if (!has_index(m->vars, "_tag_reply")) {
+		// evil, wrong tag.. or none. 
+		return 1;
 	    }
+
+	    // we have to check if the user actually asked us
+	    if (!has_index(p->vars, "_target_relay")) {
+		// complain here
+		P2(("ContextManager", "Got a _notice_enter from %O without a _target_relay.\n", p["_source"]))
+
+		return 1;
+	    }
+	    MMP.Uniform source = p["_source"];
+
+	    if (!has_index(contexts, source)) {
+		ContextSlave o = ContextSlave(server);
+		server->register_context(source, o);
+		o->insert(p["_target_relay"]);
+		contexts[source] = o;
+	    } else {
+		contexts[source]->insert(p["_target_relay"]);
+	    }
+
+	    sendmmp(p["_target_relay"], MMP.Packet(PSYC.Packet("_echo_enter"), 
+						   ([
+					"_source_relay" : source,
+						    ])));
+	    return 1;
 	}
     case "_request_leave":
 	{
@@ -34,6 +84,7 @@ int msg(MMP.Packet p) {
 	    if (has_index(contexts, context)) {
 		contexts[context]->remove(p["_source"]); 	
 	    }
+	    return 1;
 	}
     }
     
