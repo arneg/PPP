@@ -6,6 +6,10 @@
 //
 #include <debug.h>
 
+#ifndef RANDOM_TAG_LENGTH
+# define RANDOM_TAG_LENGTH 8
+#endif
+
 object server;
 MMP.Uniform uni;
 
@@ -28,8 +32,8 @@ MMP.Uniform qName() {
 
 PSYC.Packet tag(PSYC.Packet m, function|void callback, mixed ... args) {
     string tag;
-    // have a define for the length? 
-    while (has_index(_tags, tag = random_string(8))); 
+    // we want the stuff to be human readable
+    while (has_index(_tags, tag = MIME.encode_base64(random_string(RANDOM_TAG_LENGTH), 1))); 
     m["_tag"] = tag;
 
     if (callback)
@@ -128,9 +132,8 @@ void _auth_msg(MMP.Packet reply, MMP.Packet ... packets) {
 }
 
 int msg(MMP.Packet p) {
+    P2(("PSYC.Uni", "%O->msg(%O)\n", this, p))
     // check if _identification is valid
-    MMP.Uniform source = p["_source"];
-
     // maybe its generally not a good idea to replace _source with
     // _source_identification ..
     //
@@ -141,7 +144,7 @@ int msg(MMP.Packet p) {
 
     if (has_index(p, "_source_identification")) {
 	MMP.Uniform id = p["_source_identification"];	
-	MMP.Uniform s = source;
+	MMP.Uniform s = p["_source"];
 
 	if (!has_index(unl2uni, s)) {
 	    if (has_index(pending, s) && 
@@ -150,7 +153,7 @@ int msg(MMP.Packet p) {
 	    } else {
 		PSYC.Packet request = PSYC.Packet("_request_authentication",
 						  "nil", 
-						  ([ "_location" : source ]));
+						  ([ "_location" : s ]));
 		pending[s] 
 		    = ([ id : send_tagged(id, request, 
 						  _auth_msg, p) ]);
@@ -169,21 +172,24 @@ int msg(MMP.Packet p) {
 	}
     }
 
-    if (objectp(p->data) && has_index(p->data, "_tag_reply")) {
+    if (objectp(p->data) && has_index(p->data->vars, "_tag_reply")) {
 	string reply = p->data["_tag_reply"];
+
+	P0(("PSYC.Uni", "REPLY: %s in %O\n", reply, _tags))
 
 	if (has_index(_tags, reply)) {
 	    if (_tags[reply]) {
 		function f = _tags[reply][0];
 		mixed arg = _tags[reply][1];
 
-		f(p, @arg);
+		m_delete(_tags, reply);
+		call_out(f, 0, p, @arg);
 		return 1;
 	    }
 
 	    m_delete(_tags, reply);
 	} else {
-	    P0(("Uni", "Received a fake (at least wrong) tag in a reply from %s.\n", source))
+	    P0(("Uni", "Received a fake (at least wrong) tag in a reply from %s.\n", p["_source"]))
 	}
     }
 

@@ -15,6 +15,8 @@ inherit PSYC.Uni;
 mapping(MMP.Uniform:ContextSlave) contexts = ([]);
 
 int msg(MMP.Packet p) {
+    if (::msg(p)) return 1;
+
     P2(("ContextManager", "%O->msg(%O)\n", this, p))
 
     if (has_index(p->vars, "_context")) {
@@ -78,12 +80,40 @@ int msg(MMP.Packet p) {
 	    return 1;
 	}
     case "_request_leave":
-	{
-	    MMP.Uniform context = m["_identification"];
+	{ 
+	    if (!has_index(p->vars, "_target_relay")) {
+		sendmsg(p["_source"], m->reply("_failure_request_leave", "You need to specify the context you like to be removed from."));
 
-	    if (has_index(contexts, context)) {
-		contexts[context]->remove(p["_source"]); 	
+		return 1;
 	    }
+	    if (!has_index(contexts, p["_target_relay"])) {
+		sendmsg(p["_source"], m->reply("_failure_request_leave", "I do not manage [_nick_place] right now.", ([ "_nick_place" : p["_target_relay"] ])));
+
+		return 1;
+	    }
+
+	    PSYC.Packet req = PSYC.Packet("_request_leave");
+	    void cb(MMP.Packet reply, MMP.Packet orig) {
+		P0(("ContextMaster", "The reply %O to\n %O.\n", reply, orig))
+		P0(("ContextMaster", "contexts: %O\n", contexts))
+		if (reply->data->mc == "_echo_leave") {
+		    if (has_index(contexts, orig["_target_relay"])) {
+			MMP.Uniform room = orig["_target_relay"];
+			//TODO we may check here if all variables fit to each other
+			// e.g. _target_relay == _source
+			//      _source == _source_relay
+			
+			contexts[room]->remove(orig["_source"]); 	
+			sendmmp(orig["_source"], MMP.Packet(orig->data->reply("_echo_leave", "You left [_source_relay]."), ([ "_source_relay" : room ])));
+			return;
+		    }
+		}
+		P0(("ContextManager", "Something went wrong with the _echo_leave (%O)\n", reply))
+	    };
+
+	    tag(req, cb, p);
+	    sendmmp(p["_target_relay"], MMP.Packet(req, ([ "_source_relay" : p["_source"] ])));
+
 	    return 1;
 	}
     }

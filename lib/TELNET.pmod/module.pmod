@@ -179,15 +179,35 @@ class Session {
 	    }
 
 	    return;
+	case "leave":
+	    {
+		int args = sizeof(arg);
+		MMP.Uniform target;
+		if (args == 1) {
+		    if (place) {
+			target = place;
+		    } else {
+			writeln("You have to join a room before you can leave one.");
+			return;
+		    }
+		} else if (args == 2) {
+		    MMP.Uniform target = user->room_to_uniform(arg[1]);
+		}
+		user->sendmmp(user->server->uni, 
+			      MMP.Packet(user->tag(PSYC.Packet("_request_leave")),
+					 ([
+				    "_target_relay" : target,
+					  ])));
+	    }
+	    return;
 	case "join":
 	    {
 		MMP.Uniform target = user->room_to_uniform(arg[1]);
 		user->sendmmp(user->server->uni,
-			      MMP.Packet(PSYC.Packet("_request_enter", 0,
-			       ([ "_nick" : user->uni->resource[1..] ])), 
+			      MMP.Packet(user->tag(PSYC.Packet("_request_enter", 0,
+			       ([ "_nick" : user->uni->resource[1..] ]))), 
 					 ([ "_target_relay" : target,
-					     "_source" : user->uni,
-					     "_target" : user->server->uni ])));
+					     "_source" : user->uni ])));
 		return;
 	    }
 	    return;
@@ -212,15 +232,11 @@ class Session {
 	PSYC.Packet m = p->data;
 	
 	switch(m->mc) {
-#ifdef STILLE_DULDUNG
-	case "_notice_place_leave":
-#endif
-	case "_notice_leave":
+	case "_echo_leave":
+	    if (has_index(m->vars, "_tag_reply")) {
+		MMP.Uniform room = p["_source_relay"];
 
-	if (p->source == user->uni) {
-		MMP.Uniform tmp = p["_source"];
-
-		if (place == tmp) {
+		if (place == room) {
 		    place = UNDEFINED;
 
 		    if (!query) {
@@ -228,7 +244,27 @@ class Session {
 		    }
 		}
 
-		places[tmp] = 0;
+		places[room] = 0;
+	    } else {
+		P0(("TELNET.Session", "%O ignored an _echo_reply (%O) without a proper _tag_reply.\n", this, p))
+	    }
+	    break;
+#ifdef STILLE_DULDUNG
+	case "_notice_place_leave":
+#endif
+	case "_notice_leave":
+	    if (p->lsource == user->uni) {
+		MMP.Uniform room = p["_context"];
+
+		if (place == room) {
+		    place = UNDEFINED;
+
+		    if (!query) {
+			socket->readline->set_prompt("> ");
+		    }
+		}
+
+		places[room] = 0;
 	    }
 
 	    break;

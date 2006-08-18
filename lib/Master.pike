@@ -48,16 +48,18 @@ int leave(MMP.Packet p) {
     if (has_index(member, ls)) {
 	MMP.Uniform r = member[ls];
 
-	if (multisetp(routes[r])) {
-	    if (!sizeof(routes[r])) {
-		sendmsg(r, PSYC.Packet("_notice_unlink", "Your dont have any users anymore, me friend!"));
-		m_delete(routes, r);
-	    }
-
+	P0(("Master", "leaveing in %O\n", routes))
+	if (sizeof(routes[r]) > 1 && has_index(routes[r], ls)) {
 	    routes[r][ls] = 0;
 	} else {
+// this is the transparent _link and _unlink stuff we are not using right now
+#if 0
+	    sendmsg(r, PSYC.Packet("_notice_unlink", "Your dont have any users anymore, me friend!"));
+#endif
 	    m_delete(routes, r);
 	}
+
+	m_delete(member, ls);
 	
 	return 1;
     }
@@ -105,10 +107,11 @@ int msg(MMP.Packet p) {
     case "_request_enter":
 	{
 	    void _true() {
-		sendmmp(p["_source"], MMP.Packet(m->reply("_notice_enter"), 
+		sendmmp(p["_source"], MMP.Packet(m->reply("_notice_enter", "[_nick] enters [_nick_place].", ([ "_nick" : p->lsource, "_nick_place" : uni ])), 
 						 ([ 
 				    "_target_relay" : p->lsource,
 						]))); 
+		kast(PSYC.Packet("_notice_enter", "[_nick] enters [_nick_place].", ([ "_nick" : p->lsource, "_nick_place" : uni ])), p->lsource);
 
 	    };
 
@@ -125,7 +128,12 @@ int msg(MMP.Packet p) {
 	}
 	break;
     case "_request_leave":
-	break;
+	if (leave(p)) {
+	    sendmmp(p["_source"], MMP.Packet(m->reply("_echo_leave"), ([ "_target_relay" : p->lsource ])));
+	    kast(PSYC.Packet("_notice_leave", "[_nick] leaves [_nick_place].", ([ "_nick" : p->lsource, "_nick_place" : uni ])), p->lsource);
+	}
+
+	return 1;
 #if 0
     case "_request_link":
 	{

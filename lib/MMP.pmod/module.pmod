@@ -290,6 +290,7 @@ class Packet {
 	}
 
 	if (!is_mmpvar(id) && objectp(data)) {
+	    P0(("MMP.Packet", "Accessing non-mmp variable (%s) in an mmp-packet.\n", id))
 	    return data[id];
 	}
 
