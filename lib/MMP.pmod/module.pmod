@@ -262,6 +262,13 @@ class Packet {
 	return 0;
     }
 
+    string id() {
+	if (has_index(vars, "_context")) {
+	    return (string)vars["_context"] + (string)vars["_counter"];
+	}
+	return (string)vars["_source"] + (string)vars["_target"] + (string)vars["_counter"];
+    }
+
     string _sprintf(int type) {
 	if (type == 'O') {
 	    if (data == 0) {
