@@ -481,7 +481,7 @@ class Server {
 
 	if (has_index(localhosts, host)) {
 	    if_cb(@args);
-	} else if (sscanf(host, "%*d:%*d:%*d:%*d") == 4) {
+	} else if (sscanf(host, "%*d.%*d.%*d.%*d") == 4) {
 	    Protocols.DNS.async_ip_to_host(host, callback, if_cb, else_cb, 
 					   @args);
 	} else {
@@ -547,7 +547,8 @@ class Server {
 	    return;
 	}
 
-	if (sscanf("%*d.%*d.%*d.%*d", host) != 4) {
+	if (sscanf(host, "%*d.%*d.%*d.%*d") != 4) {
+	    P0(("PSYC.Server", "uarg, %O\n", host))
 	    Protocols.DNS.async_host_to_ip(host, cb, port, packet);
 
 	    return;

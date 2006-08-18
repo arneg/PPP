@@ -306,7 +306,7 @@ class Packet {
 	    return data[id] = val;
 	}
 
-	THROW(sprintf("put psyc variable (%s) into mmp packet (%s).", id, this));
+	THROW(sprintf("put psyc variable (%s) into mmp packet (%O).", id, this));
     }
 
     mixed `->(mixed id) {
@@ -340,6 +340,7 @@ class Packet {
 int(0..2) is_mmpvar(string var) {
     switch (var) {
     case "_target":
+    case "_target_relay":
     case "_source":
     case "_source_relay":
     case "_source_location":
@@ -781,7 +782,8 @@ LINE:	while(-1 < stop &&
 			"much is missing.\n"))
 		    RETURN(-1);
 		} else {
-		    inpacket->data = INBUF[stop+LL .. length];	
+		    inpacket->data = INBUF[stop+LL .. length-1];	
+		    P0(("MMP.Server", "data: %O\n", inpacket->data))
 		    if (sizeof(inbuf) == length+2*LL+1)
 			inbuf = 0;
 		    else
