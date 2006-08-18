@@ -13,6 +13,7 @@
 inherit PSYC.Uni : unii;
 inherit Group : group;
 
+int counter = 0;
 mapping(MMP.Uniform:multiset(MMP.Uniform)|int) routes = ([]);
 mapping(MMP.Uniform:MMP.Uniform) member = ([]);
 
@@ -162,6 +163,11 @@ int msg(MMP.Packet p) {
 }
 
 void castmsg(MMP.Packet p) {
+    // does this clash??
+
+    if (!has_index(p->vars, "_counter")) {
+	p["_counter"] = counter++;
+    }
 
     foreach (routes;MMP.Uniform uniform;) {
 	server->deliver(uniform, p);

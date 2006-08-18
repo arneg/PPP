@@ -12,6 +12,7 @@
 
 object server;
 MMP.Uniform uni;
+int counter = 0;
 
 mapping(MMP.Uniform:MMP.Uniform) unl2uni = ([ ]);
 // we may have several people representing the same .. guy. they all want some
@@ -81,6 +82,10 @@ void sendmmp(MMP.Uniform t, MMP.Packet p) {
 	if (!has_index(p->vars, "_source")) {
 	    p["_source"] = uni;
 	}
+    }
+
+    if (!has_index(p->vars, "_counter")) {
+	p["_counter"] = counter++;
     }
 
     server->deliver(t, p);
