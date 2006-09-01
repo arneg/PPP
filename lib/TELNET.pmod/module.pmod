@@ -202,6 +202,7 @@ class Session {
 	    return;
 	case "join":
 	    {
+		if (sizeof(arg) < 2) return;
 		MMP.Uniform target = user->room_to_uniform(arg[1]);
 		user->sendmmp(user->server->uni,
 			      MMP.Packet(user->tag(PSYC.Packet("_request_enter", 0,
@@ -213,6 +214,7 @@ class Session {
 	    return;
 	case "change":
 	    {
+		if (sizeof(arg) < 2) return;
 		MMP.Uniform target = user->room_to_uniform(arg[1]);
 
 		if (has_index(places, target)) {
