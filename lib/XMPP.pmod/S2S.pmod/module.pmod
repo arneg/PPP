@@ -326,7 +326,9 @@ class DialbackClient{
 
     void open_stream(mapping attr) {
 	::open_stream(attr);
-	rawp("<db:verify to='" + config->localdomain + "' from='" 
+	// TODO: we should politely wait for stream:features before
+	// sending this if version >= 1.0
+	rawp("<db:verify to='" + config->domain + "' from='" 
 	     + config->localdomain + "' id='" + config->id + "'>" 
 	     + config->key + "</db:verify>");
     }
