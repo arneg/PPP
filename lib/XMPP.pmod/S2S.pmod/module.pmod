@@ -55,6 +55,7 @@ class Server {
     inherit XMPP.XMPPSocket;
 
     mapping(string:mixed) localhosts;
+    mapping(string:int) allowed_peers = ([ ]);
     string streamid;
 
     void msg(MMP.Packet packet, void|object connection) {
@@ -65,7 +66,7 @@ class Server {
     }
 
     void handle() {
-#if 1 //def SSL_WORKS
+#ifdef SSL_WORKS
 	if (node->getName() == "starttls") {
 	    rawp("<proceed xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
 	    starttls(0);
@@ -75,15 +76,25 @@ class Server {
 	if (node->getName() == "db:result") {
 	    /* clone a new s2s active connection that will ONLY do dialback */
 	    if (has_index(config["localhosts"], node->to)) {
-		Dialback_Verifyer c = Dialback_Verifyer(([
-					    "domain" : node->from,
-					    "localdomain" : node->to, 
-					    ]));
-		c->do_verify(node->from, node->to, streamattributes->id,
-			     node->getData());
+		DialbackClient c = DialbackClient(([
+					"domain" : node->from,
+					"localdomain" : node->to, 
+				    ]));
+		c->do_verify(node->from, node->to, streamid,
+			     node->getData(), this_object());
 	    }
 	    return;
 	}
+	werror("%O not handling %O\n", this_object(), node->getName());
+    }
+
+    void verify_result(string we, string peer, int result) {
+	if (!result) {
+	} else {
+	    allowed_peers[we + " " + peer] = 1;
+	}
+	rawp("<db:result from='" + we + "' to='" + peer + "' type='"
+	     + (result ? "" : "in") + "valid'/>");
     }
 
     void open_stream(mapping attr) {
@@ -104,7 +115,7 @@ class Server {
 	if (attr->version == "1.0") {
 	    rawp("version='1.0'>");
 	    rawp("<stream:features>");
-#if 1 // def SSL_WORKS
+#ifdef SSL_WORKS
 	    if (!Program.inherits(object_program(socket), SSL.sslfile)) {
 		rawp("<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
 	    } else {
@@ -220,7 +231,7 @@ class Client {
 		 "version='1.0'>");
 	}
     }
-#if 1 //def SSL_WORKS
+#ifdef SSL_WORKS
     void tls_logon(mixed ... args) {
 	rawp("<stream:stream "
 	     "xmlns:stream='http://etherx.jabber.org/streams' "
@@ -242,7 +253,7 @@ class Client {
 	case "stream:features":
 	    foreach(node->getChildren(), XMPP.XMLNode x) {
 		string name = x->getName();
-#if 1 // def SSL_WORKS
+#ifdef SSL_WORKS
 		if (name == "starttls") {
 		    rawp("<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
 		    return;
@@ -256,7 +267,7 @@ class Client {
 				config["domain"], config["localdomain"]) +
 		 "</db:result>");
 	    break;
-#if 1 //def SSL_WORKS
+#ifdef SSL_WORKS
 	case "proceed":
 	    starttls(1);
 	    break;
@@ -265,16 +276,43 @@ class Client {
     }
 }
 
-class Dialback_Verifyer {
+class DialbackClient{
     inherit Client;
 
+    mapping(string : object) callbacks = ([ ]);
     string db_verify;
-    void handle() {
-	werror("%O (not) handling %O\n", this_object(), node->getName());
+
+    string _sprintf(int type) {
+	if (type == 's' || type == 'O') {
+	    return sprintf("XMPP.S2S.DialbackClient(%s -> %s)", 
+			   config["localdomain"], config["domain"]);
+	}
+	return "XMPP.S2S.DialbackClient()";
     }
-    void do_verify(string from, string to, string id, string key) {
+    void handle() {
+	switch(node->getName()) {
+	case "db:verify":
+	    werror("db:verify id %O result %O\n", node->id, node->type);
+	    if (node->id) {
+		object caller;
+		if ((caller = callbacks[node->id])) {
+		    caller->verify_result(node->to, node->from, 
+					  (node->type == "valid"));
+		} else {
+		    // invalid-id error?
+		}
+	    } else {
+		// hm...?
+	    }
+	    break;
+	default:
+	    werror("%O (not) handling %O\n", this_object(), node->getName());
+	}
+    }
+    void do_verify(string from, string to, string id, string key, object caller) {
 	db_verify = "<db:verify to='" + from + "' "
 		    "from='" + to + "' id='" + id + "'>" + key + "</db:verify>";
+	callbacks[id] = caller;
     }
 
     void open_stream(mapping attr) {
