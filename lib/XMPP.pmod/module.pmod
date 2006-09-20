@@ -43,19 +43,30 @@ class XMLNode {
     }
 }
 
+class Packet {
+    void create(XMLNode|void val) {
+    }
+}
+
+/* request response packet which installs a callback */
+class Query {
+    inherit Packet;
+}
 
 class MySocket {
     mapping(string:mixed) config;
 
-    Stdio.File|Stdio.FILE socket;
+    IRC.Utils.BufferedStream socket;
 
     void create(mapping(string : mixed) _config) {
 	config = _config;
     }
 
     string accept(Stdio.Port _socket) {
-	socket = _socket->accept();
-	socket->set_nonblocking(read, write, close);
+	socket = IRC.Utils.BufferedStream();
+	socket->assign(_socket->accept());
+	socket->set_buffered(read, close);
+	socket->___read_callback = socket->query_read_callback();
 	return socket->query_address();
     }
 
