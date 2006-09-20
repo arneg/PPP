@@ -59,7 +59,7 @@ class MySocket {
 	return socket->query_address();
     }
 
-#if 1 //def SSL_WORKS
+#ifdef SSL_WORKS
     void starttls(int isclient) {
 	werror("%O starttls isclient %d\n", this_object(), isclient);
 	SSL.context ctx = SSL.context();
@@ -125,7 +125,7 @@ class XMPPSocket {
 
 	::create(config);
     }
-#if 1 //def SSL_WORKS
+#if def SSL_WORKS
     void starttls(int isclient) {
 	::starttls(isclient);
 	xmlParser = xmlParser->clone();
@@ -168,7 +168,10 @@ class XMPPSocket {
 	    return 0;
 	}
 	if (name[0] == '/') {
-	    if (node->getName() == name[1..]) {
+	    if (name[1..] == "stream:stream") {
+		close_stream();
+	    }
+	    else if (node->getName() == name[1..]) {
 		if (node->getParent()) 
 		    node = node->getParent();
 		else {
