@@ -79,9 +79,10 @@ class Server {
 		DialbackClient c = DialbackClient(([
 					"domain" : node->from,
 					"localdomain" : node->to, 
+					"id" : streamid,
+					"key" : node->getData(),
+					"callback" : this_object()
 				    ]));
-		c->do_verify(node->from, node->to, streamid,
-			     node->getData(), this_object());
 	    }
 	    return;
 	}
@@ -283,7 +284,7 @@ class Client {
 #endif
 	case "db:result":
 	    if (node->type == "valid") {
-		werror("%O dialback success\n");
+		werror("%O dialback success\n", this_object());
 		// go ahead and send for originating domain
 	    } else {
 		// prepare to close the stream
@@ -299,9 +300,6 @@ class Client {
 class DialbackClient{
     inherit Client;
 
-    mapping(string : object) callbacks = ([ ]);
-    string db_verify;
-
     string _sprintf(int type) {
 	if (type == 's' || type == 'O') {
 	    return sprintf("XMPP.S2S.DialbackClient(%s -> %s)", 
@@ -312,31 +310,24 @@ class DialbackClient{
     void handle() {
 	switch(node->getName()) {
 	case "db:verify":
-	    werror("db:verify id %O result %O\n", node->id, node->type);
 	    if (node->id) {
-		object caller;
-		if ((caller = callbacks[node->id])) {
-		    caller->verify_result(node->to, node->from, 
-					  (node->type == "valid"));
-		} else {
+		if (node->id == config->id) 
+		    config->callback->verify_result(node->to, node->from, 
+					    (node->type == "valid"));
+		else {
 		    // invalid-id error?
 		}
-	    } else {
-		// hm...?
 	    }
 	    break;
 	default:
 	    werror("%O (not) handling %O\n", this_object(), node->getName());
 	}
     }
-    void do_verify(string from, string to, string id, string key, object caller) {
-	db_verify = "<db:verify to='" + from + "' "
-		    "from='" + to + "' id='" + id + "'>" + key + "</db:verify>";
-	callbacks[id] = caller;
-    }
 
     void open_stream(mapping attr) {
 	::open_stream(attr);
-	rawp(db_verify);
+	rawp("<db:verify to='" + config->localdomain + "' from='" 
+	     + config->localdomain + "' id='" + config->id + "'>" 
+	     + config->key + "</db:verify>");
     }
 }
