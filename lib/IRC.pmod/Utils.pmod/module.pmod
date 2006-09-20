@@ -221,7 +221,7 @@ class BufferedStream {
 	if (Program.inherits(object_program(f), this_program)) {
 	    _error_cb = [function(void | mixed, void | int : void | mixed)]f->_error_cb;
 
-	    if (is_buffered = [int]f->is_buffered) {
+	    if (f->is_buffered) {
 		set_buffered_keep_callbacks();
 	    }
 	}
