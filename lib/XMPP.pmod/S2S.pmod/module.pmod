@@ -85,6 +85,15 @@ class Server {
 	    }
 	    return;
 	}
+	if (node->getName() == "db:verify") {
+	    int valid;
+	    valid = dialback_key(config["secret"], node->id, node->from, 
+				 node->to) == node->getData();
+	    rawp("<db:verify from='" + node->to + "' to='" + node->from + "' "
+		 + "id='" + node->id + "' type='" + (valid ? "" : "in") 
+		 + "valid'/>");
+	    return;
+	}
 	werror("%O not handling %O\n", this_object(), node->getName());
     }
 
@@ -272,6 +281,17 @@ class Client {
 	    starttls(1);
 	    break;
 #endif
+	case "db:result":
+	    if (node->type == "valid") {
+		werror("%O dialback success\n");
+		// go ahead and send for originating domain
+	    } else {
+		// prepare to close the stream
+	    }
+	    break;
+	default:
+	    werror("%O not handling %O\n", this_object(), node->getName());
+	    break;
 	}
     }
 }
