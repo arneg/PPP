@@ -16,9 +16,9 @@ class XMLNode {
 	depth = _depth ? _depth : 0;
 
 	name = _name;
+	attributes = _attributes;
 	children = ({ });
 	data = ({ });
-	attributes = _attributes;
     }
     void append(XMLNode node) {
 	children += ({ node });
@@ -27,50 +27,72 @@ class XMLNode {
     void appendData(string content) {
 	data += ({ content });
     }
+    mixed `->(string dings) {
+	if (attributes[dings]) {
+	    return attributes[dings];
+	}
+	return ::`->(dings);
+    }
+
     string getName() { return name; }
     int getDepth() { return depth; }
     XMLNode getParent() { return parent; }
     array(XMLNode) getChildren() { return children; }
-    string|array(string) getData() { return sizeof(data) == 1 ? data[0] : data; }
+    string|array(string) getData() { 
+	return sizeof(data) == 1 ? data[0] : data; 
+    }
 }
 
 
 class MySocket {
-    mapping(string:mixed) _config;
+    mapping(string:mixed) config;
 
     Stdio.File|Stdio.FILE socket;
 
-    void create(mapping(string : mixed) config) {
-	_config = config;
+    void create(mapping(string : mixed) _config) {
+	config = _config;
     }
 
-    void accept(Stdio.Port lsocket) {
-	string peerhost;
-
-	werror("accepted\n");
-	socket = lsocket->accept();
-	peerhost = socket->query_address();
+    string accept(Stdio.Port _socket) {
+	socket = _socket->accept();
 	socket->set_nonblocking(read, write, close);
+	return socket->query_address();
     }
 
-    void logon(int success) { }
-
+#if 1 //def SSL_WORKS
     void starttls(int isclient) {
+	werror("%O starttls isclient %d\n", this_object(), isclient);
 	SSL.context ctx = SSL.context();
-	if (_config["tls"] && !isclient) {
-	    ctx->rsa = Standards.PKCS.RSA.parse_private_key(_config["tls"]["key"]["localhost"]);
-	    ctx->certificates = ({ _config["tls"]["certificates"]["localhost"]});
+	if (config["tls"]) {
+	    ctx->rsa = Standards.PKCS.RSA.parse_private_key(config["tls"]["key"]["localhost"]);
+	    ctx->certificates = ({ config["tls"]["certificates"]["localhost"]});
 	}
 	ctx->random = Crypto.Random.random_string;
+	//Strong ciphersuites.
+	ctx->preferred_suites = ({
+				 SSL.Constants.SSL_rsa_with_idea_cbc_sha,
+				 SSL.Constants.SSL_rsa_with_rc4_128_sha,
+				 SSL.Constants.SSL_rsa_with_rc4_128_md5,
+				 SSL.Constants.SSL_rsa_with_3des_ede_cbc_sha,
+				 });
+//	ctx->auth_level = SSL.Constants.AUTHLEVEL_require;
 	socket = SSL.sslfile(socket, ctx, isclient);
-	socket->set_nonblocking(read, write, close);
-	socket->set_accept_callback(tls_logon);
-	werror("starttls on %O done\n", this_object());
+	socket->set_nonblocking(0, tls_connected, tls_failed);
     }
 
+    void tls_connected(mixed ... args) {
+	werror("tls_connected(%O)\n", args);
+	socket->set_nonblocking(read, write, close);
+    }
+
+    void tls_failed(mixed ... args) {
+	werror("tls_failed(%O)\n", args);
+    }
     void tls_logon(mixed ... args) {
 	werror("tls_logon(%O)\n", args);
+	werror("cert info: %O\n", socket->get_peer_certificate_info());
     }
+#endif
 
     int read(mixed id, string data) {
 	werror("read called\n");
@@ -103,13 +125,16 @@ class XMPPSocket {
 
 	::create(config);
     }
-
+#if 1 //def SSL_WORKS
     void starttls(int isclient) {
 	::starttls(isclient);
 	xmlParser = xmlParser->clone();
 	streamattributes = 0;
     }
+#endif
+
     int read(mixed id, string data) {
+//	werror("%O << %O\n", this_object(), data);
 	xmlParser->feed(data);
     }
 
@@ -182,10 +207,10 @@ class XMPPSocket {
     }
 
     void open_stream(mapping attr) {
-	werror("openStream\n");
+	werror("%O open_stream\n", this_object());
 	streamattributes = attr;
     }
     void close_stream() {
-
+	werror("%O close stream\n", this_object());
     }
 }

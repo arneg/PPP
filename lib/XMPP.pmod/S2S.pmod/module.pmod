@@ -2,50 +2,62 @@
 // 
 #include <debug.h>
 
-class Server {
-    inherit XMPP.XMPPSocket;
+#define RANDHEXSTRING sprintf("%x", random(65536))
 
-    mapping(string:mixed) localhosts;
-    string bind_to;
-    function create_local, create_remote;
+string dialback_key(string secret, string streamid, 
+		      string receiving, string originating) {
+    werror("dialback_key(%O, %O, %O, %O)\n",
+	   secret, streamid,receiving, originating);
+    mixed h = Crypto.HMAC(Crypto.SHA256)(secret);
+    string t = h(streamid + receiving + originating);
+    string t16 = "";
+    for (int i = 0; i < sizeof(t); i++) {
+	t16 += sprintf("%x", t[i]);
+    }
+    return t16;
+}
 
-    void create(mapping(string:mixed) config) {
-	// TODO: expecting ip:port ... is maybe a bit too much
-	// looks terribly ugly..
-	if (has_index(config, "localhosts")) { 
-	    localhosts = config["localhosts"];
-	} else {
-	    localhosts = ([ ]);
-	}
-	localhosts += ([ 
-			"localhost" : 1,
-			"127.0.0.1" : 1,
-		      ]);
+class ServerManager {
+    mapping config;
+    mapping connections;
+    void create(mapping(string:mixed) _config) {
+	connections = ([ ]);
+	config = _config;
 
-	if (has_index(config, "create_local") 
-	    && functionp(create_local = config["create_local"])) {
-	} else {
-	    throw("urks");
-	}
-
-	if (has_index(config, "ports")) {
+	if (has_index(_config, "ports")) {
 	    // more error-checking would be a good idea.
 	    int|string port;
 	    string ip;
 	    Stdio.Port p;
-	    foreach (config["ports"], port) {
+	    foreach (_config["ports"], port) {
 		if (intp(port)) {
 		    p = Stdio.Port(port, accept);
 		} else { // is a string
 		    [ip, port] = (port / ":");
 		    p = Stdio.Port(port, accept, ip);
-		    localhosts[ip] = 1;
-		    bind_to = ip;
 		}
 		p->set_id(p);
 	    }
 	} else throw("help!");
-	::create(config);
+    }
+
+    void accept(Stdio.Port _socket) {
+	string peerhost;
+	Server t;
+
+	t = Server(config);
+	peerhost = t->accept(_socket);
+	connections[peerhost] = t;
+    }
+}
+
+class Server {
+    inherit XMPP.XMPPSocket;
+
+    mapping(string:mixed) localhosts;
+    string streamid;
+
+    void msg(MMP.Packet packet, void|object connection) {
     }
 
     int rawp(string what) {
@@ -53,36 +65,55 @@ class Server {
     }
 
     void handle() {
+#if 1 //def SSL_WORKS
 	if (node->getName() == "starttls") {
 	    rawp("<proceed xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
 	    starttls(0);
+	    return;
+	}
+#endif
+	if (node->getName() == "db:result") {
+	    /* clone a new s2s active connection that will ONLY do dialback */
+	    if (has_index(config["localhosts"], node->to)) {
+		Dialback_Verifyer c = Dialback_Verifyer(([
+					    "domain" : node->from,
+					    "localdomain" : node->to, 
+					    ]));
+		c->do_verify(node->from, node->to, streamattributes->id,
+			     node->getData());
+	    }
+	    return;
 	}
     }
 
     void open_stream(mapping attr) {
 	::open_stream(attr);
+	streamid = RANDHEXSTRING;
 	rawp("<?xml version='1.0' encoding='UTF-8' ?>"
 	     "<stream:stream "
 	     "xmlns='jabber:server' "
 	     "xmlns:db='jabber:server:dialback' "
 	     "xmlns:stream='http://etherx.jabber.org/streams' "
-	     "xml:lang='en' id='MAKEMERANDOM' ");
+	     "xml:lang='en' id='" + streamid + "' ");
 	if (attr->to) {
 	    rawp("from='" + attr->to + "' ");
 	} else {
-	    rawp("from='" + _config["defaulthost"] + "' ");
+	    rawp("from='" + config["default_localhost"] + "' ");
 	}
 
 	if (attr->version == "1.0") {
 	    rawp("version='1.0'>");
 	    rawp("<stream:features>");
+#if 1 // def SSL_WORKS
 	    if (!Program.inherits(object_program(socket), SSL.sslfile)) {
 		rawp("<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
 	    } else {
 		werror("already done starttls\n");
 	    }
-	    rawp("</stream:features>");
-	}
+#endif
+	    rawp("</stream:features");
+	} 
+	rawp(">");
     }
 }
 
@@ -118,13 +149,32 @@ void sort_srv(string query, mapping result, mixed cb, mixed cba) {
     }
 }
 
-
-class Client {
+class Connector {
     inherit XMPP.XMPPSocket;
-    void create(mapping(string:mixed) config) {
-	::create(config);
-	async_srv("xmpp-server", "tcp", config["domain"], srv_resolved);
+    void resolved(string host, string ip, int port) {
+	werror("resolved %O to %O\n", host, ip);
+	socket = Stdio.File();
+	socket->async_connect(ip, port, logon);
     }
+    void logon(int success) {
+	werror("%O logon(%O)\n", this_object(), success);
+	if (success) {
+	    socket->set_nonblocking(read, write, close);
+	}
+    }
+}
+
+class SRVConnector {
+    inherit Connector;
+    void create(mapping _config, 
+		string _domain, string _service, string _protocol) {
+	::create(_config);
+	if (_domain != "localhost")
+	    async_srv(_service, _protocol, _domain, srv_resolved);
+	else
+	    resolved("localhost", "127.0.0.1", 5269);
+    }
+
     void srv_resolved(string query, array result, mixed args) {
 	// TODO: we should resolve both _xmpp-server and _jabber and then
 	// 	prefer _xmpp-server if both are available
@@ -132,62 +182,103 @@ class Client {
 	    mixed entry = result[0];
 	    Protocols.DNS.async_host_to_ip(entry[3], resolved, entry[2]);
 	} else {
-	    Protocols.DNS.async_host_to_ip(_config["domain"], resolved, 5269);
+	    Protocols.DNS.async_host_to_ip(config["domain"], resolved, 5269);
 	}
     }
+}
 
-    void resolved(string host, string ip, int port) {
-	socket = Stdio.File();
-	socket->async_connect(ip, port, logon);
+
+class Client {
+    inherit SRVConnector;
+
+    int dialback_started;
+
+    void create(mapping(string:mixed) _config) {
+	SRVConnector::create(_config, _config["domain"], "xmpp-server", "tcp");
+    }
+
+    string _sprintf(int type) {
+	if (type == 's' || type == 'O') {
+	    return sprintf("XMPP.S2S.Client(%s -> %s)", 
+			   config["localdomain"], config["domain"]);
+	}
+	return "XMPP.S2S.Client()";
+    }
+
+    void msg(MMP.Packet packet, void|object connection) {
     }
 
     void logon(int success) {
-	werror("logon(%O)\n", success);
+	::logon(success);
 	if (success) {
-	    socket->set_nonblocking(read, write, close);
 	    rawp("<stream:stream "
 		 "xmlns:stream='http://etherx.jabber.org/streams' "
 		 "xmlns='jabber:server' xmlns:db='jabber:server:dialback' "
-		 "to='" + _config["domain"] + "' "
-		 "from='" + _config["localdomain"] + "' "
-		 "xml:lang='en' "
+		 "to='" + config["domain"] + "' "
+		 "from='" + config["localdomain"] + "' "
+		 "xml:lang='" + (config["language"] || "en") + "' "
 		 "version='1.0'>");
 	}
     }
-
+#if 1 //def SSL_WORKS
     void tls_logon(mixed ... args) {
 	rawp("<stream:stream "
 	     "xmlns:stream='http://etherx.jabber.org/streams' "
 	     "xmlns='jabber:server' xmlns:db='jabber:server:dialback' "
-	     "to='" + _config["domain"] + "' "
-	     "from='" + _config["localdomain"] + "' "
+	     "to='" + config["domain"] + "' "
+	     "from='" + config["localdomain"] + "' "
 	     "xml:lang='en' "
 	     "version='1.0'>");
     }
+#endif
 
     int rawp(string what) {
+//	werror("%O >> %O\n", this_object(), what);
 	socket->write(what);
     }
+
     void handle() {
 	switch(node->getName()) {
 	case "stream:features":
 	    foreach(node->getChildren(), XMPP.XMLNode x) {
 		string name = x->getName();
+#if 1 // def SSL_WORKS
 		if (name == "starttls") {
 		    rawp("<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
 		    return;
 		}
+#endif
 	    }
 	    werror("%O could now do dialback\n", this_object());
+	    rawp("<db:result to='" + config["domain"] + "' "
+		 "from='" + config["localdomain"] + "'>"
+		 + dialback_key(config["secret"], streamattributes["id"],
+				config["domain"], config["localdomain"]) +
+		 "</db:result>");
 	    break;
+#if 1 //def SSL_WORKS
 	case "proceed":
 	    starttls(1);
 	    break;
-	case "stream:stream": 
-	    werror("should have reset stream\n");
-	    break;
+#endif
 	}
+    }
+}
 
+class Dialback_Verifyer {
+    inherit Client;
+
+    string db_verify;
+    void handle() {
+	werror("%O (not) handling %O\n", this_object(), node->getName());
+    }
+    void do_verify(string from, string to, string id, string key) {
+	db_verify = "<db:verify to='" + from + "' "
+		    "from='" + to + "' id='" + id + "'>" + key + "</db:verify>";
     }
 
+    void open_stream(mapping attr) {
+	::open_stream(attr);
+	rawp(db_verify);
+    }
 }
