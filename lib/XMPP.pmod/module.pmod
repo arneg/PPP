@@ -7,7 +7,7 @@ class XMLNode {
     string name;
     mapping attributes;
     array(string) data;
-    array(XMLNode) children;
+    array(string|XMLNode) children;
     int depth;
 
     void create(string _name, mapping _attributes, XMLNode|void _parent, 
@@ -18,15 +18,11 @@ class XMLNode {
 	name = _name;
 	attributes = _attributes;
 	children = ({ });
-	data = ({ });
     }
-    void append(XMLNode node) {
+    void append(string|XMLNode node) {
 	children += ({ node });
     }
 
-    void appendData(string content) {
-	data += ({ content });
-    }
     mixed `->(string dings) {
 	if (attributes[dings]) {
 	    return attributes[dings];
@@ -37,9 +33,30 @@ class XMLNode {
     string getName() { return name; }
     int getDepth() { return depth; }
     XMLNode getParent() { return parent; }
-    array(XMLNode) getChildren() { return children; }
-    string|array(string) getData() { 
-	return sizeof(data) == 1 ? data[0] : data; 
+    array(XMLNode) getChildren() { 
+	return filter(children, objectp); 
+    }
+    string|array(string) getData() {
+	array (string) d = filter(children, stringp);
+	return sizeof(d) == 1 ? d[0] : d; 
+    }
+
+    string renderXML() {
+	string s = "<" + name + " ";
+	foreach(attributes; string key; string val) {
+	    s += key + "='" + val + "' "; 
+	}
+	if (!sizeof(children)) 
+	    return s + "/>";
+	s += ">";
+
+	foreach(children;; mixed item) {
+	    if (objectp(item))
+		s += item->renderXML();
+	    else
+		s += item;
+	}
+	return s + "</" + name + ">";
     }
 }
 
@@ -213,7 +230,7 @@ class XMPPSocket {
     }
 
     int onData(Parser.HTML p, string data) {
-	if (node) node->appendData(data);
+	if (node) node->append(data);
     }
 
     void handle() {
@@ -226,5 +243,9 @@ class XMPPSocket {
     }
     void close_stream() {
 	werror("%O close stream\n", this_object());
+    }
+
+    void disconnect(void|mixed reason) {
+	// </stream:stream>
     }
 }
