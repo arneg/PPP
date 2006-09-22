@@ -211,14 +211,15 @@ class SRVConnector {
 
 
 class Client {
+    // TODO: this conects too early
     inherit SRVConnector;
 
     MMP.Utils.Queue outQ;
     int dialback_started;
 
     void create(mapping(string:mixed) _config) {
-	SRVConnector::create(_config, _config["domain"], "xmpp-server", "tcp");
 	outQ = MMP.Utils.Queue();
+	SRVConnector::create(_config, _config["domain"], "xmpp-server", "tcp");
     }
 
     string _sprintf(int type) {
@@ -300,7 +301,7 @@ class Client {
     }
 }
 
-class DialbackClient{
+class DialbackClient {
     inherit Client;
 
     string _sprintf(int type) {
@@ -334,5 +335,16 @@ class DialbackClient{
 	rawp("<db:verify to='" + config->domain + "' from='" 
 	     + config->localdomain + "' id='" + config->id + "'>" 
 	     + config->key + "</db:verify>");
+    }
+}
+
+
+class ClientManager { 
+    mapping config;
+    void create(mapping _config) {
+	config = _config;
+    }
+    Client createRemote(string domain) {
+	return Client(config + ([ "domain" : domain ]));
     }
 }
