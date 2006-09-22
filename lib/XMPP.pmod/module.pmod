@@ -42,10 +42,11 @@ class XMLNode {
     }
 
     string renderXML() {
-	string s = "<" + name + " ";
+	string s = "<" + name;
 	foreach(attributes; string key; string val) {
-	    s += key + "='" + val + "' "; 
+	    s += " " + key + "='" + val + "'"; 
 	}
+
 	if (!sizeof(children)) 
 	    return s + "/>";
 	s += ">";
