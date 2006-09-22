@@ -95,7 +95,8 @@ class Server {
 		 + "valid'/>");
 	    return;
 	}
-	werror("%O not handling %O\n", this_object(), node->getName());
+	werror("%O not handling %O\n%O", this_object(), node->getName(),
+	       node->renderXML());
     }
 
     void verify_result(string we, string peer, int result) {
@@ -212,10 +213,12 @@ class SRVConnector {
 class Client {
     inherit SRVConnector;
 
+    MMP.Utils.Queue outQ;
     int dialback_started;
 
     void create(mapping(string:mixed) _config) {
 	SRVConnector::create(_config, _config["domain"], "xmpp-server", "tcp");
+	outQ = MMP.Utils.Queue();
     }
 
     string _sprintf(int type) {
