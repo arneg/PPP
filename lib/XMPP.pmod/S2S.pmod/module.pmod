@@ -95,7 +95,7 @@ class Server {
 		 + "valid'/>");
 	    return;
 	}
-	werror("%O not handling %O\n%O", this_object(), node->getName(),
+	werror("%O not handling %O\nXML: %O\n", this_object(), node->getName(),
 	       node->renderXML());
     }
 
