@@ -104,6 +104,7 @@ class Server {
 
 	// at this point, packet MUST HAVE to and from 
 	if (!(node->to && node->from)) {
+	    werror("no to && from for %O\n", node->getName());
 	    return;
 	}
 	// and from must be an allowed peer
@@ -120,8 +121,8 @@ class Server {
 	    if (!to->user && to->resource == "Echo") {
 		werror("send echo\n");
 	    }
-#endif
 	    break;
+#endif
 	default:
 	    werror("%O not handling %O\nXML: %O\n", 
 		   this_object(), node->getName(), node->renderXML());
@@ -204,6 +205,7 @@ void sort_srv(string query, mapping result, mixed cb, mixed cba) {
 
 class Connector {
     inherit XMPP.XMPPSocket;
+    int connecting;
     void resolved(string host, string ip, int port) {
 	werror("resolved %O to %O\n", host, ip);
 	socket = Stdio.File();
@@ -229,6 +231,8 @@ class SRVConnector {
 	protocol = _protocol;
     }
     void connect() {
+	if (connecting) return;
+	    connecting = 1;
 	if (domain != "localhost")
 	    async_srv(service, protocol, domain, srv_resolved);
 	else
@@ -274,6 +278,7 @@ class Client {
 
     // dirty hack
     void xmlmsg(string msg) {
+	werror("xmlmsg ready %d\n", ready);
 	if (ready) {
 	    rawp(msg);
 	} else {
@@ -350,6 +355,7 @@ class Client {
 		    rawp(what);
 		}
 	    } else {
+		werror("dialback invalid?\n");
 		// prepare to close the stream
 	    }
 	    break;
