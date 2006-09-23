@@ -66,14 +66,14 @@ class Server {
     }
 
     void handle() {
+	switch(node->getName()) {
 #ifdef SSL_WORKS
-	if (node->getName() == "starttls") {
+	case "starttls":
 	    rawp("<proceed xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
 	    starttls(0);
-	    return;
-	}
+	    break;
 #endif
-	if (node->getName() == "db:result") {
+	case "db:result":
 	    /* clone a new s2s active connection that will ONLY do dialback */
 	    if (has_index(config["localhosts"], node->to)) {
 		DialbackClient c = DialbackClient(([
@@ -83,26 +83,31 @@ class Server {
 					"key" : node->getData(),
 					"callback" : this_object()
 				    ]));
+	    } else {
+		// host-unknown error
 	    }
-	    return;
-	}
-	if (node->getName() == "db:verify") {
+	    break;
+	case "db:verify":
+	    {
 	    int valid;
 	    valid = dialback_key(config["secret"], node->id, node->from, 
 				 node->to) == node->getData();
 	    rawp("<db:verify from='" + node->to + "' to='" + node->from + "' "
 		 + "id='" + node->id + "' type='" + (valid ? "" : "in") 
 		 + "valid'/>");
-	    return;
+	    }
+	    break;
+	default:
+	    werror("%O not handling %O\nXML: %O\n", 
+		   this_object(), node->getName(), node->renderXML());
+	    break;
 	}
-	werror("%O not handling %O\nXML: %O\n", this_object(), node->getName(),
-	       node->renderXML());
     }
 
     void verify_result(string we, string peer, int result) {
 	if (!result) {
 	} else {
-	    allowed_peers[we + " " + peer] = 1;
+	    allowed_peers[({ we, peer })] = 1;
 	}
 	rawp("<db:result from='" + we + "' to='" + peer + "' type='"
 	     + (result ? "" : "in") + "valid'/>");
@@ -188,11 +193,18 @@ class Connector {
 
 class SRVConnector {
     inherit Connector;
+
+    string service, protocol, domain;
     void create(mapping _config, 
 		string _domain, string _service, string _protocol) {
 	::create(_config);
-	if (_domain != "localhost")
-	    async_srv(_service, _protocol, _domain, srv_resolved);
+	domain = _domain;
+	service = _service;
+	protocol = _protocol;
+    }
+    void connect() {
+	if (domain != "localhost")
+	    async_srv(service, protocol, domain, srv_resolved);
 	else
 	    resolved("localhost", "127.0.0.1", 5269);
     }
@@ -211,11 +223,11 @@ class SRVConnector {
 
 
 class Client {
-    // TODO: this conects too early
     inherit SRVConnector;
 
     MMP.Utils.Queue outQ;
     int dialback_started;
+    int ready;
 
     void create(mapping(string:mixed) _config) {
 	outQ = MMP.Utils.Queue();
@@ -231,6 +243,17 @@ class Client {
     }
 
     void msg(MMP.Packet packet, void|object connection) {
+    }
+
+    // dirty hack
+    void xmlmsg(string msg) {
+	if (ready) {
+	    rawp(msg);
+	} else {
+	    outQ->push(msg);
+	    connect();
+	}
+
     }
 
     void logon(int success) {
@@ -288,8 +311,13 @@ class Client {
 #endif
 	case "db:result":
 	    if (node->type == "valid") {
+		mixed what;
 		werror("%O dialback success\n", this_object());
+		ready = 1;
 		// go ahead and send for originating domain
+		while((what = outQ->shift())) {
+		    rawp(what);
+		}
 	    } else {
 		// prepare to close the stream
 	    }
@@ -304,6 +332,10 @@ class Client {
 class DialbackClient {
     inherit Client;
 
+    void create(mapping(string:mixed) _config) {
+	::create(_config);
+	connect();
+    }
     string _sprintf(int type) {
 	if (type == 's' || type == 'O') {
 	    return sprintf("XMPP.S2S.DialbackClient(%s -> %s)", 
