@@ -285,6 +285,14 @@ class Client {
 	socket->write(what);
     }
 
+    void do_dialback() {
+	rawp("<db:result to='" + config["domain"] + "' "
+	     "from='" + config["localdomain"] + "'>"
+	     + dialback_key(config["secret"], streamattributes["id"],
+			    config["domain"], config["localdomain"]) +
+	     "</db:result>");
+    }
+
     void handle() {
 	switch(node->getName()) {
 	case "stream:features":
@@ -298,11 +306,7 @@ class Client {
 #endif
 	    }
 	    werror("%O could now do dialback\n", this_object());
-	    rawp("<db:result to='" + config["domain"] + "' "
-		 "from='" + config["localdomain"] + "'>"
-		 + dialback_key(config["secret"], streamattributes["id"],
-				config["domain"], config["localdomain"]) +
-		 "</db:result>");
+	    do_dialback();
 	    break;
 #ifdef SSL_WORKS
 	case "proceed":
@@ -327,6 +331,15 @@ class Client {
 	    break;
 	}
     }
+    void open_stream(mapping attr) {
+	::open_stream(attr);
+	if (attr->version && attr->version == "1.0") { 
+	    // wait for stream:features
+	} else {
+	    do_dialback();
+	}
+    }
+
 }
 
 class DialbackClient {
@@ -345,6 +358,10 @@ class DialbackClient {
     }
     void handle() {
 	switch(node->getName()) {
+	case "stream:features":
+	    // we're not interested in doing tls, etc
+	    do_dialback();
+	    break;
 	case "db:verify":
 	    if (node->id) {
 		if (node->id == config->id) 
@@ -364,6 +381,8 @@ class DialbackClient {
 	::open_stream(attr);
 	// TODO: we should politely wait for stream:features before
 	// sending this if version >= 1.0
+    }
+    void do_dialback() {
 	rawp("<db:verify to='" + config->domain + "' from='" 
 	     + config->localdomain + "' id='" + config->id + "'>" 
 	     + config->key + "</db:verify>");
