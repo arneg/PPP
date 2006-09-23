@@ -55,7 +55,7 @@ class Server {
     inherit XMPP.XMPPSocket;
 
     mapping(string:mixed) localhosts;
-    mapping(string:int) allowed_peers = ([ ]);
+    mapping(string:mapping) allowed_peers = ([ ]);
     string streamid;
 
     void msg(MMP.Packet packet, void|object connection) {
@@ -71,7 +71,7 @@ class Server {
 	case "starttls":
 	    rawp("<proceed xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
 	    starttls(0);
-	    break;
+	    return;
 #endif
 	case "db:result":
 	    /* clone a new s2s active connection that will ONLY do dialback */
@@ -86,16 +86,41 @@ class Server {
 	    } else {
 		// host-unknown error
 	    }
-	    break;
+	    return;
 	case "db:verify":
-	    {
-	    int valid;
-	    valid = dialback_key(config["secret"], node->id, node->from, 
-				 node->to) == node->getData();
-	    rawp("<db:verify from='" + node->to + "' to='" + node->from + "' "
-		 + "id='" + node->id + "' type='" + (valid ? "" : "in") 
-		 + "valid'/>");
+	    if (has_index(config["localhosts"], node->to)) {
+		int valid;
+		valid = dialback_key(config["secret"], node->id, node->from, 
+				     node->to) == node->getData();
+		rawp("<db:verify from='" + node->to + "' to='" + node->from 
+		     + "' "+ "id='" + node->id + "' type='" 
+		     + (valid ? "" : "in") 
+		     + "valid'/>");
+	    } else {
+		// host-unknown error
 	    }
+	    return;
+	}
+
+	// at this point, packet MUST HAVE to and from 
+	if (!(node->to && node->from)) {
+	    return;
+	}
+	// and from must be an allowed peer
+	MMP.Uniform from = MMP.Uniform("xmpp:" + node->from);
+	MMP.Uniform to = MMP.Uniform("xmpp:" + node->to);
+	if (!(allowed_peers[to->host] && allowed_peers[to->host][from->host])) {
+	    werror("not allowed: %s,%s not in %O\n", to->host, from->host,
+		   allowed_peers);
+	    return;
+	}
+	switch(node->getName()) {
+#if 0
+	case "message":
+	    if (!to->user && to->resource == "Echo") {
+		werror("send echo\n");
+	    }
+#endif
 	    break;
 	default:
 	    werror("%O not handling %O\nXML: %O\n", 
@@ -107,7 +132,8 @@ class Server {
     void verify_result(string we, string peer, int result) {
 	if (!result) {
 	} else {
-	    allowed_peers[({ we, peer })] = 1;
+	    if (!allowed_peers[we]) allowed_peers[we] = ([ ]);
+	    allowed_peers[we][peer] = 1;
 	}
 	rawp("<db:result from='" + we + "' to='" + peer + "' type='"
 	     + (result ? "" : "in") + "valid'/>");
@@ -243,6 +269,7 @@ class Client {
     }
 
     void msg(MMP.Packet packet, void|object connection) {
+	werror("%O msg() called\n", this_object());
     }
 
     // dirty hack
@@ -392,10 +419,23 @@ class DialbackClient {
 
 class ClientManager { 
     mapping config;
+    mapping remotes;
     void create(mapping _config) {
 	config = _config;
+	remotes = ([ ]);
     }
-    Client createRemote(string domain) {
-	return Client(config + ([ "domain" : domain ]));
+    void deliver_remote(MMP.Packet packet, MMP.Uniform target) {
+	mixed handler;
+	string domain = target->host;
+	string localdomain = packet["_source"]->host;
+	if (!has_index(remotes, localdomain))
+	    remotes[localdomain] = ([ ]);
+	if (!has_index(remotes[localdomain], domain))
+	    remotes[localdomain][domain] = Client(config + 
+					([ "domain" : domain,
+					"localdomain" : localdomain]));
+	handler = remotes[localdomain][domain];
+	target->handler = handler;
+	handler->msg(packet);
     }
 }
