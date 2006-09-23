@@ -34,6 +34,7 @@ int main(int argc, array(string) argv) {
 	"localhosts" : ([ LOCALHOST : 1 ]),
 	     "ports" : ({ LOCALHOST + ":4404" }),
       "create_local" : create_local,
+    "deliver_remote" : deliver_remote,
     "module_factory" : create_module,
      "offer_modules" : ({ "_compress" }),
  "default_localhost" : LOCALHOST,
@@ -57,6 +58,17 @@ int main(int argc, array(string) argv) {
 
     write("220 ppp ESMTP Sendmail 8.13.7/8.13.7;\n");
     return -1;
+}
+
+void deliver_remote(MMP.Packet p, MMP.Uniform target) {
+    
+    switch (target->scheme) { 
+    case "psyc":
+	dings->deliver_remote(p, target);	
+	break;
+    case "xmpp":
+	// your code here.
+    }
 }
 
 // does _not_ check whether the uni->host is local.
