@@ -1,10 +1,18 @@
 // vim:syntax=lpc
 //
 PSYC.Server dings;
-XMPP.S2S.Server bumms;
 TELNET.Server da;
+
+#ifdef HAS_XMPP
+XMPP.S2S.ClientManager rumms;
+XMPP.S2S.ServerManager bumms;
+#endif
+
 #ifndef LOCALHOST
 # define LOCALHOST "localhost"
+#endif
+#ifndef REMOTEHOST
+# define REMOTEHOST "localhost"
 #endif
 
 string my_certificate = MIME.decode_base64(
@@ -39,17 +47,38 @@ int main(int argc, array(string) argv) {
      "offer_modules" : ({ "_compress" }),
  "default_localhost" : LOCALHOST,
 	 ]));
-// maybe this is better for you, fippo
-// just remove the ifdef whenever you think XMPP could be used
-#ifdef XMPP
-    bumms = XMPP.S2S.Server(([
-	"localhosts" : ([ "localhost" : 1 ]),
-	     "ports" : ({ "localhost:5222" }),
-	       "key" : ([ "localhost" : my_key ]),
-      "certificates" : ([ "localhost" : my_certificate ]),
-      "create_local" : dings->get_local,
-     "offer_modules" : ({ "_compress" }),
+#ifdef HAS_XMPP
+    XMPP.S2S.Client flumms;
+
+    bumms = XMPP.S2S.ServerManager(([
+	"localhosts" : ([ LOCALHOST : 1 ]),
+	     "ports" : ({ 5269 }),
+	"tls" : ([ "key" : ([ LOCALHOST : my_key ]),
+		 "certificates" : ([ LOCALHOST : my_certificate ]) ]),
+     "secret" : "thesecret"
 	 ]));
+    rumms = XMPP.S2S.ClientManager(([
+	"localhosts" : ([ LOCALHOST : 1 ]),
+	"tls" : ([ "key" : ([ LOCALHOST : my_key ]),
+		 "certificates" : ([ LOCALHOST : my_certificate ]) ]),
+     "secret" : "thesecret"
+	 ]));
+#if 0
+    flumms = XMPP.S2S.Client(([
+	"domain" : REMOTEHOST,
+	"localdomain" : LOCALHOST,
+	"tls" : ([ "key" : ([ LOCALHOST : my_key ]),
+		 "certificates" : ([ LOCALHOST : my_certificate ]) ]),
+	"secret" : "thesecret",
+	]));
+    flumms->connect();
+#endif
+    MMP.Uniform test = MMP.Uniform("xmpp:" REMOTEHOST);
+    MMP.Packet p = MMP.Packet(0, 
+			      ([ "_target" : test, 
+			         "_source" : MMP.Uniform("xmpp:" LOCALHOST) 
+			]));
+    dings->deliver(test, p);
 #endif
     da = TELNET.Server(([
 	 "psyc_server" : dings,
@@ -66,8 +95,11 @@ void deliver_remote(MMP.Packet p, MMP.Uniform target) {
     case "psyc":
 	dings->deliver_remote(p, target);	
 	break;
+#ifdef HAS_XMPP
     case "xmpp":
-	// your code here.
+	rumms->deliver_remote(p, target);
+	break;
+#endif
     }
 }
 
