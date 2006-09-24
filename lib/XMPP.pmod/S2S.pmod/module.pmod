@@ -278,7 +278,6 @@ class Client {
 
     // dirty hack
     void xmlmsg(string msg) {
-	werror("xmlmsg ready %d\n", ready);
 	if (ready) {
 	    rawp(msg);
 	} else {
@@ -302,6 +301,7 @@ class Client {
     }
 #ifdef SSL_WORKS
     void tls_logon(mixed ... args) {
+	::tls_logon(args);
 	rawp("<stream:stream "
 	     "xmlns:stream='http://etherx.jabber.org/streams' "
 	     "xmlns='jabber:server' xmlns:db='jabber:server:dialback' "
