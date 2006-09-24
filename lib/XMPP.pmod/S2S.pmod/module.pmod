@@ -69,8 +69,12 @@ class Server {
 	switch(node->getName()) {
 #ifdef SSL_WORKS
 	case "starttls":
-	    rawp("<proceed xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
-	    starttls(0);
+	    if (config["tls"]) {
+		rawp("<proceed xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
+		starttls(0);
+	    } else {
+		// ...
+	    }
 	    return;
 #endif
 	case "db:result":
@@ -161,8 +165,6 @@ class Server {
 #ifdef SSL_WORKS
 	    if (!Program.inherits(object_program(socket), SSL.sslfile)) {
 		rawp("<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
-	    } else {
-		werror("already done starttls\n");
 	    }
 #endif
 	    rawp("</stream:features");
@@ -331,7 +333,7 @@ class Client {
 	    foreach(node->getChildren(), XMPP.XMLNode x) {
 		string name = x->getName();
 #ifdef SSL_WORKS
-		if (name == "starttls") {
+		if (name == "starttls" && config["tls"]) {
 		    rawp("<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
 		    return;
 		}
@@ -342,7 +344,11 @@ class Client {
 	    break;
 #ifdef SSL_WORKS
 	case "proceed":
-	    starttls(1);
+	    if (config["tls"])
+		starttls(1);
+	    else {
+		// this is bad
+	    }
 	    break;
 #endif
 	case "db:result":

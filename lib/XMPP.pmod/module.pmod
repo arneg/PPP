@@ -74,28 +74,39 @@ class Query {
 class MySocket {
     mapping(string:mixed) config;
 
-    IRC.Utils.BufferedStream socket;
+    Stdio.File socket;
 
     void create(mapping(string : mixed) _config) {
 	config = _config;
     }
 
     string accept(Stdio.Port _socket) {
+#ifdef SSL_WORKS
+	socket = _socket->accept();
+	socket->set_nonblocking(read, write, close);
+#else
 	socket = IRC.Utils.BufferedStream();
 	socket->assign(_socket->accept());
 	socket->set_buffered(read, close);
 	socket->___read_callback = socket->query_read_callback();
+#endif
 	return socket->query_address();
     }
 
 #ifdef SSL_WORKS
     void starttls(int isclient) {
 	werror("%O starttls isclient %d\n", this_object(), isclient);
+	// TODO: unless config["tls"] this is bad
 	SSL.context ctx = SSL.context();
-	if (config["tls"]) {
-	    ctx->rsa = Standards.PKCS.RSA.parse_private_key(config["tls"]["key"]["localhost"]);
-	    ctx->certificates = ({ config["tls"]["certificates"]["localhost"]});
+	if (!isclient) { // TODO: fix ssl for client mode, e.g. remove isclient check here
+	    ctx->rsa = Standards.PKCS.RSA.parse_private_key(config["tls"]["key"][LOCALHOST]);
+	    ctx->certificates = ({ config["tls"]["certificates"][LOCALHOST]});
 	}
+	if (!isclient) {
+	    ctx->set_authorities(config["tls"]["list_of_cas"]);
+	    ctx->auth_level = SSL.Constants.AUTHLEVEL_ask;
+	}
+	// ctx->verify_certificates = 1;
 	ctx->random = Crypto.Random.random_string;
 	//Strong ciphersuites.
 	ctx->preferred_suites = ({
@@ -104,14 +115,8 @@ class MySocket {
 				 SSL.Constants.SSL_rsa_with_rc4_128_md5,
 				 SSL.Constants.SSL_rsa_with_3des_ede_cbc_sha,
 				 });
-//	ctx->auth_level = SSL.Constants.AUTHLEVEL_require;
 	socket = SSL.sslfile(socket, ctx, isclient);
-	socket->set_nonblocking(0, tls_connected, tls_failed);
-    }
-
-    void tls_connected(mixed ... args) {
-	werror("tls_connected(%O)\n", args);
-	socket->set_nonblocking(read, write, close);
+	socket->set_nonblocking(0, tls_logon, tls_failed);
     }
 
     void tls_failed(mixed ... args) {
@@ -119,7 +124,7 @@ class MySocket {
     }
     void tls_logon(mixed ... args) {
 	werror("tls_logon(%O)\n", args);
-	werror("cert info: %O\n", socket->get_peer_certificate_info());
+	socket->set_nonblocking(read, write, close);
     }
 #endif
 
@@ -154,11 +159,31 @@ class XMPPSocket {
 
 	::create(config);
     }
-#if def SSL_WORKS
-    void starttls(int isclient) {
-	::starttls(isclient);
-	xmlParser = xmlParser->clone();
+#ifdef SSL_WORKS
+    void tls_logon(mixed ... args) {
+	mixed t;
+	string commonName;
+
+	::tls_logon(args);
+
+	werror("cert info: %O\n", socket->get_peer_certificate_info());
+	// TODO: this should be in a more generic library
+	if ((t = socket->get_peer_certificates())) {
+	    Standards.ASN1.Types.Identifier oid_cn = Standards.ASN1.Types.Identifier(2, 5, 4, 3 );
+	    mixed peercert = Tools.X509.decode_certificate(t[0]);
+	    mixed peersubject = peercert->subject;
+	    mixed foo = peersubject->elements[0]->elements[0];
+	    mixed expected = config["domain"] || streamattributes["from"];
+
+	    if (foo->elements[0] == oid_cn)
+		commonName = foo->elements[1]->value;
+		
+	    if (expected && commonName != expected) {
+		werror("commonName mismatch %O vs %O\n", commonName, config["domain"]);
+	    }
+	}
 	streamattributes = 0;
+	xmlParser = xmlParser->clone();
     }
 #endif
 
