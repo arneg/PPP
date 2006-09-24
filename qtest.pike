@@ -1,13 +1,40 @@
 // vim:syntax=lpc
 
-#if Q == 1
-# define QUEUE		MMP.Utils.Queue
+#if Q == 1 || Q == 2
+# if Q == 2
+class Queue {
+    array _ = ({ });
+
+    void push(mixed x) {
+	_ += ({ x });
+    }
+
+    mixed shift() {
+	mixed x;
+
+	x = _[0];
+	_ = _[1..];
+    }
+
+    int isEmpty() {
+	return sizeof(_) == 0;
+    }
+
+    int _sizeof() {
+	return sizeof(_);
+    }
+}
+
+#  define QUEUE		Queue
+# else
+#  define QUEUE		MMP.Utils.Queue
+# endif
 # define ENQUEUE(x,y)	(x)->push(y)
 # define SHIFT(x)	(x)->shift()
 # define ISEMPTY(x)	(x)->isEmpty()
 # define SIZEOF(x)	sizeof(x)
 # define INIT()		QUEUE()
-#elif Q == 2
+#elif Q == 3
 mixed t;
 # define QUEUE		array
 # define ENQUEUE(x,y)	((x) += ({ (y) }))
@@ -15,7 +42,7 @@ mixed t;
 # define ISEMPTY(x)	(sizeof(x) == 0)
 # define SIZEOF(x)	sizeof(x)
 # define INIT()		allocate(0)
-#elif Q == 3
+#elif Q == 4
 # define QUEUE ADT.Queue
 # define ENQUEUE(x,y)	(x)->put(y)
 # define SHIFT(x)	(x)->get()
