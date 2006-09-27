@@ -275,18 +275,27 @@ class Client {
     }
 
     void msg(MMP.Packet packet, void|object connection) {
-	werror("%O msg() called\n", this_object());
+	werror("%O called with %O\n", this_object(), packet->data);
+	switch(object_program(packet->data)) {
+	case XMPP.XMLNode:
+	    packet->data->to = packet["_target"]->userAtHost;
+	    packet->data->from = packet["_source"]->userAtHost;
+	    push(packet->data->renderXML());
+	    break;
+	default:
+	    werror("unknown type\n");
+	    werror("%O\n", object_program(packet->data));
+	    break;
+	}
     }
 
-    // dirty hack
-    void xmlmsg(string msg) {
+    void push(string msg) {
 	if (ready) {
 	    rawp(msg);
 	} else {
 	    outQ->push(msg);
 	    connect();
 	}
-
     }
 
     void logon(int success) {
@@ -437,6 +446,8 @@ class ClientManager {
 	remotes = ([ ]);
     }
     void deliver_remote(MMP.Packet packet, MMP.Uniform target) {
+	// TODO: we should catch packet not originating from a configured
+	// 	localhost
 	mixed handler;
 	string domain = target->host;
 	string localdomain = packet["_source"]->host;
