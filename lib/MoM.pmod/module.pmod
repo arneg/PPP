@@ -3,7 +3,7 @@ class Mapping { // by embee, i'll ask for permission although i think this
 		// copyright laws.
     mapping data;
 
-    void create(mapping _data, mapping|void options)
+    void create(mapping _data)
     {
       data = _data;
 
@@ -163,15 +163,13 @@ class MoM {
     mapping(MoM:int) parents;
     mapping(mixed:MoM) emptychilds;
     mapping(MoM:multiset(mixed)) child2name;
-    mixed name;
 
-    void create(mixed|void name_) {
-	name = name_;
+    void create(mapping|void data) {
 	emptychilds = set_weak_flag(([ ]), Pike.WEAK_VALUES);
 	child2name = set_weak_flag(([ ]), Pike.WEAK_INDICES);
 	parents = set_weak_flag(([ ]), Pike.WEAK_INDICES);
 
-	::create(([ ]));
+	::create(data || ([ ]));
     }
 
     mixed `[](mixed index) {
@@ -181,7 +179,7 @@ class MoM {
 
 	if (zero_type(res = ::`[](index))) {
 	    if (!(res = emptychilds[index])) {
-		res = emptychilds[index] = MoM(index);
+		res = emptychilds[index] = MoM();
 		__add_child_name(res, index);
 		res("_add_parent")(this);
 	    }
