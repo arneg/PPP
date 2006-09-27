@@ -3,18 +3,12 @@
 #include <debug.h>
 
 class XMLNode {
-    XMLNode parent;
     string name;
     mapping attributes;
     array(string) data;
     array(string|XMLNode) children;
-    int depth;
 
-    void create(string _name, mapping _attributes, XMLNode|void _parent, 
-		int|void _depth) {	
-	parent = _parent ? _parent : 0;
-	depth = _depth ? _depth : 0;
-
+    void create(string _name, mapping _attributes) {
 	name = _name;
 	attributes = _attributes;
 	children = ({ });
@@ -31,8 +25,6 @@ class XMLNode {
     }
 
     string getName() { return name; }
-    int getDepth() { return depth; }
-    XMLNode getParent() { return parent; }
     array(XMLNode) getChildren() { 
 	return filter(children, objectp); 
     }
@@ -151,8 +143,10 @@ class XMPPSocket {
     mapping streamattributes;
     string innerxml;
     XMLNode node;
+    array(XMLNode) stack;
 
     void create(mapping(string:mixed) config) {
+	stack = ({ });
 	xmlParser = Parser.get_xml_parser();
 	xmlParser->_set_tag_callback(onTag);
 	xmlParser->_set_data_callback(onData);
@@ -226,31 +220,33 @@ class XMPPSocket {
 		close_stream();
 	    }
 	    else if (node->getName() == name[1..]) {
-		if (node->getParent()) 
-		    node = node->getParent();
-		else {
+		if (sizeof(stack) == 0) {
 		    handle();
 		    node = 0;
+		} else {
+		    node = stack[-1];
+		    stack = stack[..sizeof(stack) - 2];
 		}
 	    } else {
 		throw("unbalanced xml\n");
 	    }
 
 	} else if (attr["/"] == "/") {
+	    XMLNode t = XMLNode(name, attr);
 	    m_delete(attr, "/");
-	    if (node) node->append(XMLNode(name, attr));
-	    else {
-		node = XMLNode(name, attr);
+
+	    if (!node) {
+		node = t;
 		handle();
 		node = 0;
-	    }
-	} else {
-	    XMLNode t;
-	    if (node) {
-		t = XMLNode(name, attr, node, node->getDepth() + 1);
+	    } else 
 		node->append(t);
-	    } else
-		t = XMLNode(name, attr);
+	} else {
+	    XMLNode t = XMLNode(name, attr);
+	    if (node) {
+		node->append(t);
+		stack += ({ node });
+	    }
 	    node = t;
 	}
     }
