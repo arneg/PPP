@@ -5,13 +5,16 @@
 class XMLNode {
     string name;
     mapping attributes;
-    array(string) data;
     array(string|XMLNode) children;
 
-    void create(string _name, mapping _attributes) {
+    void create(string _name, mapping _attributes, 
+		array(string|XMLNode)|void _children) {
 	name = _name;
 	attributes = _attributes;
-	children = ({ });
+	if (_children)
+	    children = _children;
+	else 
+	    children = ({ });
     }
     void append(string|XMLNode node) {
 	children += ({ node });
