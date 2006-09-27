@@ -251,8 +251,6 @@ class MoM {
 		return _add_parent;
 	    case "_remove_parent":
 		return _remove_parent;
-	    case "parents":
-		return parents;
 	}
 
 	return UNDEFINED;
@@ -277,7 +275,9 @@ class MoM {
     }
 
     void _remove_parent(MoM parent) {
-	parents[parent]--;
+	if (!--parents[parent]) {
+	    m_delete(parents, parent);
+	}
     }
 
     void __add_child_name(MoM child, mixed name) {
