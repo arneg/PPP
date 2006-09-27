@@ -7,10 +7,13 @@ class XMLNode {
     mapping attributes;
     array(string|XMLNode) children;
 
-    void create(string _name, mapping _attributes, 
+    void create(string _name, mapping|void _attributes, 
 		array(string|XMLNode)|void _children) {
 	name = _name;
-	attributes = _attributes;
+	if (_attributes)
+	    attributes = _attributes;
+	else 
+	    attributes = ([ ]);
 	if (_children)
 	    children = _children;
 	else 
@@ -25,6 +28,9 @@ class XMLNode {
 	    return attributes[dings];
 	}
 	return ::`->(dings);
+    }
+    mixed `->=(string key, mixed val) {
+	attributes[key] = val;
     }
 
     string getName() { return name; }
@@ -57,7 +63,8 @@ class XMLNode {
 }
 
 class Packet {
-    void create(XMLNode|void val) {
+    XMLNode node;
+    void create(MMP.Uniform from, MMP.Uniform to, XMLNode|void val) {
     }
 }
 
