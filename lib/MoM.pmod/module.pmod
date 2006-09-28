@@ -185,7 +185,7 @@ class MoM {
 
 	if (zero_type(res = ::`[](index))) {
 	    if (!(res = emptychilds[index])) {
-		res = emptychilds[index] = MoM();
+		res = emptychilds[index] = this_program();
 		__add_child_name(res, index);
 		res->_add_parent(this);
 	    }
