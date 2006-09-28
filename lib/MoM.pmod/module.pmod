@@ -198,9 +198,7 @@ class MoM {
 	mixed t;
 
 	if ((t = m_delete(emptychilds, index))
-	    || ((t = ::`[](index))
-		&& objectp(t)
-		&& Program.inherits(object_program(t), MoM))) {
+	    || (t = ::`[](index)) && MoMp(t)) {
 	    __remove_child_name(t, index);
 
 	    if (!child2name[index]) {
@@ -208,7 +206,7 @@ class MoM {
 	    }
 	}
 
-	if (objectp(value) && Program.inherits(object_program(value), MoM)) {
+	if (MoMp(value)) {
 	    if (!sizeof(value)) {
 		t = emptychilds[index] = value;
 		__add_child_name(value, index);
@@ -297,10 +295,20 @@ class MoM {
     mixed _m_delete(mixed index) {
 	mixed res = _m_delete_(index);
 
-	if (objectp(res) && Program.inherits(object_program(res), MoM)) {
+	if (MoMp(res)) {
 	    res->_remove_parent(this);
 	}
 
 	return res;
+    }
+}
+
+int MoMp(mixed m) {
+    mixed t;
+
+    if (programp(t = object_program(m)) && Program.inherits(t, MoM)) {
+	return 1;
+    } else {
+	return 0;
     }
 }
