@@ -167,6 +167,7 @@ class MoM {
     inherit Mapping;
 
     mapping(MoM:int) parents;
+    mapping(mixed : MoM) explicit;
     mapping(mixed:MoM) emptychilds;
     mapping(MoM:multiset(mixed)) child2name;
 
@@ -174,6 +175,11 @@ class MoM {
 	emptychilds = set_weak_flag(([ ]), Pike.WEAK_VALUES);
 	child2name = set_weak_flag(([ ]), Pike.WEAK_INDICES);
 	parents = set_weak_flag(([ ]), Pike.WEAK_INDICES);
+	explicit = ([ ]); // none weak, because that's the only thing we need
+			  // it for.
+			  // (if somedone does a[x] = b[y], than b[y] better
+			  // doesn't get garbage collected away if empty,
+			  // otherwise they won't correlate.)
 
 	::create(data || ([ ]));
     }
@@ -223,6 +229,7 @@ class MoM {
 	    }
 
 	    value->_add_parent(this);
+	    explicit[index] = value;
 	} else {
 	    int gf = !sizeof(this);
 	    
@@ -297,6 +304,7 @@ class MoM {
 
 	if (MoMp(res)) {
 	    res->_remove_parent(this);
+	    m_delete(explicit, index);
 	}
 
 	return res;
