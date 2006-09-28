@@ -161,6 +161,10 @@ class Mapping { // by embee, i'll ask for permission although i think this
     {
       return search(data, needle, start);
     }
+
+    int _has_index(mixed index) { // not official part of the api yet
+	return has_index(data, index);
+    }
 }
 
 class MoM {
@@ -287,7 +291,13 @@ class MoM {
     }
 
     mixed _m_delete_(mixed index) {
-	mixed res = ::_m_delete(index);
+	mixed res;
+
+	if (_has_index(index)) {
+	    res = ::_m_delete(index);
+	} else {
+	    res = m_delete(emptychilds, index);
+	}
 
 	if (!sizeof(this)) {
 	    foreach (parents; MoM parent;) {
