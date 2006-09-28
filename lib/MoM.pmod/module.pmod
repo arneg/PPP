@@ -206,10 +206,9 @@ class MoM {
 	if ((t = m_delete(emptychilds, index))
 	    || (t = ::`[](index)) && MoMp(t)) {
 	    __remove_child_name(t, index);
-
-	    if (!child2name[index]) {
-		t->_remove_parent(this);
-	    }
+	    t->_remove_parent(this);
+	    m_delete(explicit, index); // need to m_delete here in case a MoM
+				       // gets replaced by a !MoM
 	}
 
 	if (MoMp(value)) {
