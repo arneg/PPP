@@ -318,6 +318,35 @@ class MoM {
 
 	return res;
     }
+
+    mixed get(mixed ... keys) {
+	mixed res = this;
+
+	if (!sizeof(keys)) {
+	    throw(({ "no arguments supplied to get()\n", backtrace() }));
+	}
+
+	for (keys;; mixed key) {
+	    res = res[key];
+	}
+
+	return res;
+    }
+
+    mixed set(mixed ... args) {
+	mixed t = this;
+
+	if (sizeof(args) <= 1) {
+	    throw(({ "not enough arguments supplied to set()\n",
+		     backtrace() }));
+	}
+
+	for (int i = 0; i < sizeof(args) - 2; i++) {
+	    t = t[args[i]];
+	}
+
+	return t[args[-2]] = args[-1];
+    }
 }
 
 int MoMp(mixed m) {
