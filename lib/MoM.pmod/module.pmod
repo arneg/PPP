@@ -121,6 +121,11 @@ class Mapping { // by embee, i'll ask for permission although i think this
       return this;
     }
 
+    // embee wisely added these operators for total mapping-like functioning,
+    // but unfortunately we're planning so far advanced mappings that we
+    // just need the operator to allow us access to the object's internals
+    // (using `()() for that really sucks noodles.
+#if 0
     mixed `->(string index)
     { 
       return `[](index); 
@@ -130,6 +135,7 @@ class Mapping { // by embee, i'll ask for permission although i think this
     { 
       return `[]=(index, value); 
     }
+#endif
 
     int _is_type(string basic_type)
     {
@@ -181,7 +187,7 @@ class MoM {
 	    if (!(res = emptychilds[index])) {
 		res = emptychilds[index] = MoM();
 		__add_child_name(res, index);
-		res("_add_parent")(this);
+		res->_add_parent(this);
 	    }
 	}
 
@@ -198,7 +204,7 @@ class MoM {
 	    __remove_child_name(t, index);
 
 	    if (!child2name[index]) {
-		t("_remove_parent")(this);
+		t->_remove_parent(this);
 	    }
 	}
 
@@ -213,12 +219,12 @@ class MoM {
 
 		if (gf) {
 		    foreach (parents; MoM parent;) {
-			parent("_got_filled")(this);
+			parent->_got_filled(this);
 		    }
 		}
 	    }
 
-	    value("_add_parent")(this);
+	    value->_add_parent(this);
 	} else {
 	    int gf = !sizeof(this);
 	    
@@ -226,32 +232,12 @@ class MoM {
 
 	    if (gf) {
 		foreach (parents; MoM parent;) {
-		    parent("_got_filled")(this);
+		    parent->_got_filled(this);
 		}
 	    }
 	}
 
 	return t;
-    }
-
-    mixed `()(string index) { // believe me, i hate using this operator for
-			      // that purpose more than you, but there's no
-			      // other way other than pike-level function
-			      // tables ("mappings") or deleting `->, `->=
-			      // from MoM.Mapping, and that would be an
-			      // atavistic endeavour.
-	switch (index) {
-	    case "_got_filled":
-		return _got_filled;
-	    case "_got_emptied":
-		return _got_emptied;
-	    case "_add_parent":
-		return _add_parent;
-	    case "_remove_parent":
-		return _remove_parent;
-	}
-
-	return UNDEFINED;
     }
 
     void _got_filled(MoM child) {
@@ -301,7 +287,7 @@ class MoM {
 
 	if (!sizeof(this)) {
 	    foreach (parents; MoM parent;) {
-		parent("_got_emptied")(this);
+		parent->_got_emptied(this);
 	    }
 	}
 
@@ -312,7 +298,7 @@ class MoM {
 	mixed res = _m_delete_(index);
 
 	if (objectp(res) && Program.inherits(object_program(res), MoM)) {
-	    res("_remove_parent")(this);
+	    res->_remove_parent(this);
 	}
 
 	return res;
