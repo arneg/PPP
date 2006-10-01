@@ -100,6 +100,9 @@ class Mapping { // by embee, i'll ask for permission although i think this
       return equal(data, arg);
     }
 
+// kept making problems in combination with multisets.. don't know what to do.
+// could use a mapping instead... (multiset explicit of MoM the troublemaker is)
+#if 0
     int `<(mixed arg)
     {
       return data < arg;
@@ -109,6 +112,7 @@ class Mapping { // by embee, i'll ask for permission although i think this
     {
       return data > arg;
     }
+#endif
 
     mixed `[](mixed index)
     {
@@ -167,11 +171,19 @@ class Mapping { // by embee, i'll ask for permission although i think this
     }
 }
 
+#ifdef MOMDEBUG
+int foo;
+#endif
+
 class MoM {
     inherit Mapping;
 
+#ifdef MOMDEBUG
+    mixed id; // can be set via o->id = ...; for identifying in destroy-debug
+#endif
+
     mapping(MoM:int) parents;
-    mapping(mixed : MoM) explicit;
+    multiset(MoM) explicit;
     mapping(mixed:MoM) emptychilds;
     mapping(MoM:multiset(mixed)) child2name;
 
@@ -179,13 +191,31 @@ class MoM {
 	emptychilds = set_weak_flag(([ ]), Pike.WEAK_VALUES);
 	child2name = set_weak_flag(([ ]), Pike.WEAK_INDICES);
 	parents = set_weak_flag(([ ]), Pike.WEAK_INDICES);
-	explicit = ([ ]); // none weak, because that's the only thing we need
+	explicit = (< >); // none weak, because that's the only thing we need
 			  // it for.
 			  // (if somedone does a[x] = b[y], than b[y] better
 			  // doesn't get garbage collected away if empty,
 			  // otherwise they won't correlate.)
 
+#ifdef MOMDEBUG
+	id = ++foo;
+#endif
+
 	::create(data || ([ ]));
+    }
+
+    void destroy() {
+	// unfortunately we can't find out here whether we were not exlicit.
+	// in case of sizeof(explicit), of course we were. but we can't be sure
+	// we were not explicit, as some parents might have been destroyed
+	// first, so we tell anyone left, just in case.
+	foreach (parents; MoM parent;) {
+	    parent->_unset_explicit(this);
+	}
+
+#ifdef MOMDEBUG
+	werror("MoM(id: %O) destroyed.\n", id);
+#endif
     }
 
     mixed `[](mixed index) {
@@ -209,16 +239,20 @@ class MoM {
 
 	if ((t = m_delete(emptychilds, index))
 	    || (t = ::`[](index)) && MoMp(t)) {
-	    __remove_child_name(t, index);
-	    t->_remove_parent(this);
-	    m_delete(explicit, index); // need to m_delete here in case a MoM
-				       // gets replaced by a !MoM
+	    if (t != value) {
+		__remove_child_name(t, index);
+		t->_remove_parent(this);
+	    }
 	}
 
 	if (MoMp(value)) {
+	    if (t != value) {
+		__add_child_name(value, index);
+		value->_add_parent(this);
+	    }
+
 	    if (!sizeof(value)) {
 		t = emptychilds[index] = value;
-		__add_child_name(value, index);
 	    } else {
 		int gf = !sizeof(this);
 
@@ -230,9 +264,6 @@ class MoM {
 		    }
 		}
 	    }
-
-	    value->_add_parent(this);
-	    explicit[index] = value;
 	} else {
 	    int gf = !sizeof(this);
 	    
@@ -250,8 +281,9 @@ class MoM {
 
     void _got_filled(MoM child) {
 	foreach (child2name[child]; mixed name;) {
-	    m_delete(emptychilds, name);
+	    //m_delete(emptychilds, name);
 	    this[name] = child;
+	    //::`[]=(name, child);
 	}
     }
 
@@ -263,12 +295,67 @@ class MoM {
     }
 
     void _add_parent(MoM parent) {
+#ifdef MOMDEBUG
+	werror("MoM(id: %O) _add_parent: %O\n", id, backtrace());
+#endif
+
 	parents[parent]++;
+
+	if (!sizeof(explicit)
+		&& (sizeof(parents) > 1 
+		    || sizeof(parents) == 2
+		    && parents[indices(parents)[0]] > 1)) {
+	    foreach (parents; MoM parent;) {
+		parent->_set_explicit(this);
+	    }
+	}
     }
 
     void _remove_parent(MoM parent) {
-	if (!--parents[parent]) {
-	    m_delete(parents, parent);
+	MoM former_parent;
+
+	if (--parents[parent] <= 0) {
+	    former_parent = m_delete(parents, parent);
+	}
+
+	if (!sizeof(explicit)
+		&& sizeof(parents) == 1
+		&& parents[indices(parents)[0]] == 1) {
+	    foreach (parents; MoM p;) {
+		p->_unset_explicit(this);
+	    }
+
+	    parent->_unset_explicit(this);
+	}
+    }
+
+    void _set_explicit(MoM child) {
+#ifdef MOMDEBUG
+	werror("MoM(id: %O): _set_explicit()\n", id);
+#endif
+	int s = sizeof(explicit);
+
+	explicit[child] = 1;
+
+	if (!s && sizeof(parents) == 1 && parents[indices(parents)[0]] == 1) {
+	    foreach (parents; MoM parent;) {
+		parent->_set_explicit(this);
+	    }
+	}
+    }
+
+    void _unset_explicit(MoM child) {
+#ifdef MOMDEBUG
+	werror("MoM(id: %O)_unset_explicit(), %O\n", id, backtrace());
+#endif
+	explicit -= (< child >);
+
+	if (!sizeof(explicit)
+		&& sizeof(parents) == 1
+		&& parents[indices(parents)[0]] == 1) {
+	    foreach (parents; MoM parent;) {
+		parent->_unset_explicit(this);
+	    }
 	}
     }
 
@@ -313,7 +400,7 @@ class MoM {
 
 	if (MoMp(res)) {
 	    res->_remove_parent(this);
-	    m_delete(explicit, index);
+	    __remove_child_name(index, res);
 	}
 
 	return res;
@@ -326,7 +413,7 @@ class MoM {
 	    throw(({ "no arguments supplied to get()\n", backtrace() }));
 	}
 
-	for (keys;; mixed key) {
+	foreach (keys;; mixed key) {
 	    res = res[key];
 	}
 
