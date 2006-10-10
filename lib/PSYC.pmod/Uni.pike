@@ -65,7 +65,7 @@ void create(MMP.Uniform u, object s) {
 }
 
 void sendmsg(MMP.Uniform target, PSYC.Packet m) {
-    P3(("PSYC.Uni", "sendmsg(%O, %O)\n", target, p))
+    P3(("PSYC.Uni", "sendmsg(%O, %O)\n", target, m))
     MMP.Packet p = MMP.Packet(m, 
 			  ([ "_source" : uni,
 			     "_target" : target ]));

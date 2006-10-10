@@ -1,20 +1,21 @@
 // vim:syntax=lpc
+#include <debug.h>
 
 PSYC.StageHandler prefilter, filter, postfilter;
 
 void stop(MMP.Packet p) {
-    P(("stopped %O.\n", p))
+    P0(("MethodMultiplexer", "stopped %O.\n", p))
 }
 
 void finish(MMP.Packet p) {
-    P(("finished %O.\n", p))
+    P0(("MethodMultiplexer", "finished %O.\n", p))
 }
 
 void create(PSYC.Storage storage) {
-    postfilter = PSYC.StageHandler("postfilter", finish, finish, throw);
-    filter = PSYC.StageHandler("filter", postfilter->handle, stop, throw);
+    postfilter = PSYC.StageHandler("postfilter", finish, finish, throw, storage);
+    filter = PSYC.StageHandler("filter", postfilter->handle, stop, throw, storage);
     prefilter = PSYC.StageHandler("prefilter", filter->handle, filter->handle, 
-				  throw);
+				  throw, storage);
 }
 
 void add_handlers(PSYC.Handler ... handlers) { 
