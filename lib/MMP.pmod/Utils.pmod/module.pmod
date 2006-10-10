@@ -5,6 +5,16 @@ class Queue {
     constant DATA = 0;
     constant NEXT = 1;
 
+#if 0
+    void create(array|void source) {
+	if (source) {
+	    foreach (source;; mixed data) {
+		push(data);
+	    }
+	}
+    }
+#endif
+
     int _sizeof() {
 	return size;
     }
@@ -38,6 +48,12 @@ class Queue {
 
 
         return data;
+    }
+
+    mixed shift_() {
+	if (isEmpty()) return UNDEFINED;
+
+	return head[DATA];
     }
 
     void unshift(mixed data) {
