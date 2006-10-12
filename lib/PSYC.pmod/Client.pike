@@ -130,7 +130,7 @@ void unroll() {
 MMP.Uniform user_to_uniform(string l) {
     MMP.Uniform address;
     if (search(l, ":") == -1) {
-	l = "psyc://" + uni->host + "/~" + l;
+	l = "psyc://" + link_to->host + "/~" + l;
     }
     address = server->get_uniform(l); 
 
@@ -140,7 +140,7 @@ MMP.Uniform user_to_uniform(string l) {
 MMP.Uniform room_to_uniform(string l) {
     MMP.Uniform address;
     if (search(l, ":") == -1) {
-	l = "psyc://" + uni->host + "/@" + l;
+	l = "psyc://" + link_to->host + "/@" + l;
     }
     address = server->get_uniform(l); 
 

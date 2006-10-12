@@ -142,6 +142,7 @@ class Session {
     void read(mixed id, string data) {
 	P0(("PSYC.Session", "%O->read(%O, %O)\n", this, id, data))
 	fix_prompt(data);
+	data = data[0..sizeof(data) - 2];
 
 	if (data[0] == CMDCHAR) {
 	    cmd(data[1..] / " "); 
@@ -149,13 +150,15 @@ class Session {
 	}
 
 	if (query) {
-	    client->sendmsg(query, PSYC.Packet("_message_private", data));
+	    client->client_sendmsg(query, PSYC.Packet("_message_private", 
+						      data));
 
 	    return;
 	}
 
 	if (place) {
-	    client->sendmsg(place, PSYC.Packet("_message_public", data)); 
+	    client->client_sendmsg(place, PSYC.Packet("_message_public", 
+						      data)); 
 
 	    return;
 	}
