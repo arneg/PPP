@@ -125,7 +125,12 @@ class Session {
 
 	data = data[0..sizeof(data) - 2];
 	username = data;
-	user = server->get_uniform("psyc://" + server->def_localhost + "/~" + data);
+
+	if (search(data, ":") == -1) {
+	    user = server->get_uniform("psyc://" + server->def_localhost + "/~" + data);
+	} else {
+	    user = server->get_uniform(data);
+	}
 	MMP.Uniform unl = server->random_uniform("telnet");
 	client = PSYC.Client(user, server, unl, query_password, query_password);
 
