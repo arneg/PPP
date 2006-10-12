@@ -1,3 +1,4 @@
+// vim:syntax=lpc
 #define MOTD "hey hey, this is the magical telnet interface\r\n"
 #define CMDCHAR '/'
 #define LINEUP(n)	("\e[" + (string)(n) + "A")
@@ -10,18 +11,36 @@
 class Session {
 
     object socket, server;
-    PSYC.Person user;
+    MMP.Uniform user;
+    PSYC.Client client;
     string username;
     int attached, writeok;
     multiset(MMP.Uniform) places = (< >);
     MMP.Uniform place, query;
+    function set_password;
+    function SKINNER;
+
+    void input_to(function|void _input_) {
+	SKINNER = _input_;
+    }
+
+    int superintendent_read(mixed id, string data) {
+	if (SKINNER) {
+	    return SKINNER(id, data);
+	}
+
+	return 0;
+    }
 
     void clear_line() {
 	socket->write_raw(KILLLINE);
     }
  
     void create(object so, object se, function close) {
-	socket = Protocols.TELNET.Readline(so, read, 0, close, ([]));
+	input_to(read_username);
+
+	socket = Protocols.TELNET.Readline(so, superintendent_read, 0,
+					   close, ([]));
 	server = se;
     }
     
@@ -58,7 +77,7 @@ class Session {
 	socket->set_prompt("Username: ");
     }
 
-    void read(mixed id, string data) {
+    void fix_prompt(string data) {
 	int lines;
 
 	socket->write_raw(LINEUP(lines = (
@@ -72,10 +91,19 @@ class Session {
 	}
 
 	socket->readline->redisplay();
-
 	//socket->readline->setcursorpos(0);
+    }
 
-	P0(("PSYC.Session", "%O->read(%O, %O)\n", this, id, data))
+    void query_password(MMP.Packet p, function cb) {
+	socket->readline->set_echo(0);
+	socket->readline->set_prompt("Password: ");
+	input_to(read_password);
+	set_password = cb;
+    }
+
+    void read_password(mixed id, string data) {
+	fix_prompt(data);
+	P0(("PSYC.Session", "%O->read_password(%O, %O)\n", this, id, data))
 
 	if (sizeof(data) < 2) {
 	    //
@@ -83,30 +111,32 @@ class Session {
 	}
 
 	data = data[0..sizeof(data) - 2];
+	input_to();
+	call_out(set_password, 0, data);
+    }
 
+    void read_username(mixed id, string data) {
+	fix_prompt(data);
 
-	if (!username) {
-	    string unl;
-	    unl = "psyc://" + server->def_localhost + "/~" + data;
-	    username = data;
-	    user = server->get_local(unl);
-
-	    if (user->isNewbie()) {
-		user->attach(this);
-
-		attached = 1;
-	    } else {
-		socket->readline->set_echo(0);
-		socket->readline->set_prompt("Password: ");
-	    }
+	if (sizeof(data) < 2) {
+	    //
 	    return;
 	}
 
-	if (!attached) {
-	    user->checkAuth("password", data, _auth);
-	    return;
-	}
+	data = data[0..sizeof(data) - 2];
+	username = data;
+	user = server->get_uniform("psyc://" + server->def_localhost + "/~" + data);
+	MMP.Uniform unl = server->random_uniform("telnet");
+	client = PSYC.Client(user, server, unl, query_password, query_password);
 
+	unl->handler = client;
+	client->attach(this);
+	input_to();
+    }
+
+    void read(mixed id, string data) {
+	P0(("PSYC.Session", "%O->read(%O, %O)\n", this, id, data))
+	fix_prompt(data);
 
 	if (data[0] == CMDCHAR) {
 	    cmd(data[1..] / " "); 
@@ -114,13 +144,13 @@ class Session {
 	}
 
 	if (query) {
-	    user->sendmsg(query, PSYC.Packet("_message_private", data));
+	    client->sendmsg(query, PSYC.Packet("_message_private", data));
 
 	    return;
 	}
 
 	if (place) {
-	    user->sendmsg(place, PSYC.Packet("_message_public", data)); 
+	    client->sendmsg(place, PSYC.Packet("_message_public", data)); 
 
 	    return;
 	}
@@ -128,23 +158,10 @@ class Session {
 	writeln("join a room, you kinky bastard!");
     }
 
-    void _auth(int bol) {
-	if (bol) {
-	    user->attach(this);
-
-	    attached = 1;
-	    socket->readline->set_prompt("> ");
-	    socket->readline->set_echo(1);
-	} else {
-	    write("wrong password...\r\n");
-	    socket->close();
-	}
-    }
-
     void cmd(array(string) arg) {
 	switch(arg[0]) {
 	case "quit":
-	    user->detach(this); 
+	    client->detach(); 
 	    writeln("goodbye");
 	    socket->close();
 	    return;
@@ -166,19 +183,20 @@ class Session {
 		    writeln("Usage: /tell <nick> [<text>]");
 		}
 	    } else if (args == 2) {
-		query = user->user_to_uniform(arg[1]);
+		query = client->user_to_uniform(arg[1]);
 
 		socket->readline->set_prompt(query->unl + "> ");
 		socket->readline->redisplay();
 	    }  else {
-		MMP.Uniform target = user->user_to_uniform(arg[1]);
+		MMP.Uniform target = client->user_to_uniform(arg[1]);
 
-		user->sendmsg(target, PSYC.Packet("_message_private",
+		client->client_sendmsg(target, PSYC.Packet("_message_private",
 					       arg[2..] * " ",
-					       ([ "_nick" : user->uni->resource[1..] ])));
+					       ([ "_nick" : user->resource[1..] ])));
 	    }
 
 	    return;
+#if 0
 	case "leave":
 	    {
 		int args = sizeof(arg);
@@ -191,10 +209,10 @@ class Session {
 			return;
 		    }
 		} else if (args == 2) {
-		    MMP.Uniform target = user->room_to_uniform(arg[1]);
+		    MMP.Uniform target = client->room_to_uniform(arg[1]);
 		}
-		user->sendmmp(user->server->uni, 
-			      MMP.Packet(user->tag(PSYC.Packet("_request_leave")),
+		client->sendmmp(user->server->uni, 
+			  MMP.Packet(user->tag(PSYC.Packet("_request_leave")),
 					 ([
 				    "_target_relay" : target,
 					  ])));
@@ -225,6 +243,7 @@ class Session {
 		    }
 		}
 	    }
+#endif
 	}
     }
 
@@ -234,6 +253,13 @@ class Session {
 	PSYC.Packet m = p->data;
 	
 	switch(m->mc) {
+	case "_notice_link":
+	    socket->readline->set_prompt("> ");
+	    socket->readline->redisplay();
+	    socket->readline->set_echo(1);
+	    input_to(read);
+	    break;
+#if 0
 	case "_echo_leave":
 	    if (has_index(m->vars, "_tag_reply")) {
 		MMP.Uniform room = p["_source_relay"];
@@ -282,6 +308,7 @@ class Session {
 	    }
 
 	    break;
+#endif
 	}
 
 	writeln(PSYC.psyctext(p));

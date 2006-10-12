@@ -1,4 +1,6 @@
 #ifdef DEBUG
+# define THROW(s)	throw(({ (s), backtrace() }))
+# define PT(ding)	MMP.debug ding;
 # define P0(ding)	MMP.debug ding;
 # if DEBUG > 0
 #  define P1(ding)	MMP.debug ding;
@@ -21,6 +23,8 @@
 #  define P4(ding)
 # endif
 #else
+# define THROW(s)	throw(s)
+# define PT(ding)
 # define P0(ding)
 # define P1(ding)
 # define P2(ding)

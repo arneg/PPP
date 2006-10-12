@@ -10,12 +10,12 @@
 //   to add him to a context slave somewhere else)
 // - unmanaged room: similar to the friendcast. context manager may add senders 
 //   too and cast messages.
-inherit PSYC.Uni;
+inherit PSYC.Unl;
 
 mapping(MMP.Uniform:ContextSlave) contexts = ([]);
 
 int msg(MMP.Packet p) {
-    if (::msg(p)) return 1;
+    ::msg(p);
 
     P2(("ContextManager", "%O->msg(%O)\n", this, p))
 

@@ -1,7 +1,6 @@
 // vim:syntax=lpc
 // put that somewhere else.. maybe
 //
-#define THROW(s)	throw(({ (s), backtrace() }))
 #include <debug.h>
 
 class Dummy(mixed...params) { }
@@ -373,7 +372,7 @@ class Server {
 	MMP.Uniform t = get_uniform("psyc://" + def_localhost + "/");
 	t->handler = this;
 	// not good for nonstandard port?
-	::create(t, this);
+	::create(t, this, PSYC.DummyStorage());
     }
 
     // CALLBACKS
@@ -443,6 +442,14 @@ class Server {
 
 	if (u->handler) return u->handler;
 	return u->handler = create_local(u);
+    }
+
+    MMP.Uniform random_uniform(string type) {
+	string unl;
+
+	while (has_index(unlcache, unl = (string)uni + "$" + type + String.string2hex(random_string(10))));
+	
+	return get_uniform(unl);
     }
 
     MMP.Uniform get_uniform(string unl) {

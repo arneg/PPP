@@ -1,3 +1,4 @@
+// vim:syntax=lpc
 #include <debug.h>
 
 PSYC.Storage storage;
@@ -16,19 +17,52 @@ void create(string foo, function go_on_, function stop_, function error_, PSYC.S
     storage = s;
 }
 
-class AR(function handler, array(string) wvars) {}
+class AR(function handler, array(string) wvars, int async) {
+    
+    string _sprintf(int type) {
+	if (type == 'O') {
+	    return sprintf("AR(%O)", handler);
+	}
+    
+	return UNDEFINED;
+    }
+}
 
-void add(string mc, object handler, array(string) wvars) {
+
+void add(string mc, object handler, void|mapping|array(string) d) {
+    int async = 0;
+    array(string) wvars;
+
+    P2(("PSYC.StageHandler", "add(%O)\n", handler))
 
     if (!has_index(table, mc)) table[mc] = ({ }); 
-    table[mc] += ({ AR(`->(handler, prefix + mc), wvars) });
+
+    if (mappingp(d)) {
+	if (has_index(d, "async")) {
+	    async = d["async"];
+	} 
+	
+	if (has_index(d, "wvars")) {
+	    wvars = d["wvars"];
+	}
+
+    } else {
+	wvars = d;
+    }
+
+    function cb = `->(handler, prefix + mc);
+    if (!functionp(cb)) {
+	THROW(sprintf("No method %s defined in %O.\n", prefix+mc, handler));
+    }
+
+    table[mc] += ({ AR(cb, wvars, async) });
 
     P0(("StageHandler", "table: %O\n", table))
 }
 
 void handle(MMP.Packet p) {
 
-    P2(("StageHandler", "%s:handle(%O)\n", prefix, p))
+    P2(("StageHandler", "%s:handle(%s)\n", prefix, p->data->mc))
 
     array(string) l = p->data->mc / "_";
     MMP.Utils.Queue liste = MMP.Utils.Queue(); 
@@ -42,7 +76,7 @@ void handle(MMP.Packet p) {
 	}
     }
 
-    P0(("StageHandler", "stack for %O is %O\n", p, (array)liste))
+    P0(("StageHandler", "stack for %s is %O\n", p->data->mc, (array)liste))
     progress(liste, p);
 }
 
@@ -57,30 +91,58 @@ void fetched(string key, string value, MMP.Utils.Queue stack, MMP.Packet p,
     if (wvars[key]) while(--wvars[key]);
 
     if (!sizeof(wvars)) {
-	mapping tmp = m_delete(requested, p);
-
-	if (stack->shift()->handler(p, tmp)) {
-	    progress(stack, p);
-	} else {
-	    stop(p);
-	}
+	call_handler(stack, p, m_delete(requested, p));
     }
 }
 
 void progress(MMP.Utils.Queue stack, MMP.Packet p) {
-
     if (stack->isEmpty()) {
 	call_out(go_on, 0, p);
 
 	return;
     }
 
-    multiset wvars = (multiset)stack->shift_()->wvars;
+    if (stack->shift_()->wvars) {
+	multiset wvars = (multiset)stack->shift_()->wvars;
 
-    requested[p] = ([ ]);
-    foreach(stack->shift_()->wvars;; string key) {
-	storage->get(key, fetched, stack, p, wvars);
+	requested[p] = ([ ]);
+	foreach(stack->shift_()->wvars;; string key) {
+	    storage->get(key, fetched, stack, p, wvars);
+	}
+    } else {
+	call_out(call_handler, 0, stack, p, ([]));	
     }
 
 }
 
+void call_handler(MMP.Utils.Queue stack, MMP.Packet p, mapping _v) {
+    int in_progress = 1;
+
+    AR o = stack->shift();
+    if (o->async) {
+	void callback(int i) {
+	    if (in_progress) {
+		throw(({ "callback called, but handler didn't yet return. "
+			 "use call_out, stupid!", backtrace() }));
+	    }
+
+	    if (i == PSYC.Handler.GOON) {
+		progress(stack, p);
+	    } else {
+		stop(p);
+	    }
+	};
+
+	P0(("PSYC.StageHandler", "attempting to call %O.\n", o->handler))
+
+	o->handler(p, _v, callback);
+	in_progress = 0;
+    } else {
+	if (o->handler(p, _v) == PSYC.Handler.GOON) {
+	    progress(stack, p);
+	} else {
+	    stop(p);
+	}
+    }
+
+}

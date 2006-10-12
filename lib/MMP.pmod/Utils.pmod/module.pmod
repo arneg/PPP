@@ -72,6 +72,14 @@ class Queue {
 	size++;
     }
 
+    string _sprintf(int t) {
+	if (t == 'O') {
+	    return sprintf("MMP.Utils.Queue: %O", (array)this);
+	}
+
+	return UNDEFINED;
+    }
+
     mixed cast(string type) {
 	if (type == "array") {
 	    array out = allocate(sizeof(this));

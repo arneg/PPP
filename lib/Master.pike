@@ -10,7 +10,7 @@
 
 #include "debug.h"
 
-inherit PSYC.Uni : unii;
+inherit PSYC.Unl : unii;
 inherit Group : group;
 
 int counter = 0;
@@ -98,7 +98,7 @@ int unlink(MMP.Packet p) {
 int msg(MMP.Packet p) {
     P2(("Place.Master", "%O->msg(%O)\n", this, p))
 
-    if (unii::msg(p)) return 1;
+    unii::msg(p);
     // maybe this is a bad idea.. we only need that for _request link
     if (!has_index(p->vars, "_source_relay") && group::msg(p)) return 1;
 

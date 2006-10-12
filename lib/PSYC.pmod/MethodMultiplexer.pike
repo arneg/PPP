@@ -18,17 +18,21 @@ void create(PSYC.Storage storage) {
 				  throw, storage);
 }
 
-void add_handlers(PSYC.Handler ... handlers) { 
-    foreach (handlers;; PSYC.Handler handler) {
-	foreach (handler->prefilter; string mc; array(string) wvars) {
+void add_handlers(PSYC.Handler.Base ... handlers) { 
+    foreach (handlers;; PSYC.Handler.Base handler) {
+	mapping temp = handler->_;
+	if (has_index(temp, "prefilter")) 
+	foreach (temp["prefilter"]; string mc; mapping|array(string) wvars) {
 	    prefilter->add(mc, handler, wvars);
 	}
 
-	foreach (handler->filter; string mc; array(string) wvars) {
+	if (has_index(temp, "filter")) 
+	foreach (temp["filter"]; string mc; mapping|array(string) wvars) {
 	    filter->add(mc, handler, wvars);
 	}
 
-	foreach (handler->postfilter; string mc; array(string) wvars) {
+	if (has_index(temp, "postfilter")) 
+	foreach (temp["postfilter"]; string mc; mapping|array(string) wvars) {
 	    postfilter->add(mc, handler, wvars);
 	}
     }

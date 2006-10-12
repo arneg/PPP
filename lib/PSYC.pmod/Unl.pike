@@ -11,15 +11,15 @@ MMP.Uniform uni;
 int counter = 0;
 
 mixed cast(string type) {
-    if (type == "string") return sprintf("Uni(%s)", qName());
+    if (type == "string") return sprintf("Unl(%s)", qName());
 }
 
 MMP.Uniform qName() {
     return uni;
 }
 
-void check_authentication(MMP.Uniform t, function cb) {
-    call_out(cb, 0, uni == t);
+void check_authentication(MMP.Uniform t, function cb, mixed ... args) {
+    call_out(cb, 0, uni == t, @args);
 }
 
 PSYC.Packet tag(PSYC.Packet m, function|void callback, mixed ... args) {
@@ -35,16 +35,16 @@ string send_tagged(MMP.Uniform target, PSYC.Packet m,
     return m["_tag"];
 }
 
-void create(MMP.Uniform u, object s) {
+void create(MMP.Uniform u, object s, object storage) {
     uni = u;
     server = s;
-    ::create(PSYC.DummyStorage());
+    ::create(storage);
     add_handlers(auth = PSYC.Handler.Auth(this),
 		 reply = PSYC.Handler.Reply(this));
 }
 
 void sendmsg(MMP.Uniform target, PSYC.Packet m) {
-    P3(("PSYC.Uni", "sendmsg(%O, %O)\n", target, m))
+    P3(("PSYC.Unl", "sendmsg(%O, %O)\n", target, m))
     MMP.Packet p = MMP.Packet(m, 
 			  ([ "_source" : uni,
 			     "_target" : target ]));
@@ -52,7 +52,7 @@ void sendmsg(MMP.Uniform target, PSYC.Packet m) {
 }
 
 void sendmmp(MMP.Uniform t, MMP.Packet p) {
-    P0(("PSYC.Uni", "%O->sendmmp(%O, %O)\n", this, t, p))
+    P0(("PSYC.Unl", "%O->sendmmp(%O, %O)\n", this, t, p))
     
     if (!has_index(p->vars, "_context")) {
 	if (!has_index(p->vars, "_target")) {
@@ -70,9 +70,3 @@ void sendmmp(MMP.Uniform t, MMP.Packet p) {
     server->deliver(t, p);
 }
 
-int msg(MMP.Packet p) {
-    P2(("PSYC.Uni", "%O->msg(%O)\n", this, p))
-
-    ::msg(p);
-    return 0;
-}

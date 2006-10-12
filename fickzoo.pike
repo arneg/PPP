@@ -115,8 +115,6 @@ object create_local(MMP.Uniform uni) {
     case '@':
 	return Place.Basic(uni, dings);
 	break;
-    case '$':
-	return PSYC.Demo(uni);
     }
 }
 

@@ -1,18 +1,22 @@
 #include <debug.h>
 
 constant prefilter = 	([ 
-    "_message_public" : ({ "_logsize" }),
+	"_message_public" : ([ "mvars" : ({ "_logsize" }),
+			       "async" : 1 ]),
 ]);
-constant filter 	= 	([ 
-    "_message_public" : ({ "_null", "_password" }),
+
+constant filter	= 	([ 
+	"_message_public" : ({ "_null", "_password" }),
 ]);
+
 constant postfilter = 	([ 
-    "_message_public" : ({ "_foo", "_bar", "_flu" }),
+	"_message_public" : ({ "_foo", "_bar", "_flu" }),
 ]);
 
 
-int prefilter_message_public(MMP.Packet p, mapping _v) {
-    return 1;
+void prefilter_message_public(MMP.Packet p, mapping _v, function cb) {
+    call_out(cb, 4, 1);
+    //return 1;
 }
 
 int filter_message_public(MMP.Packet p, mapping _v) {
