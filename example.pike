@@ -40,6 +40,7 @@ string my_key = MIME.decode_base64(
 
 int main(int argc, array(string) argv) {
 
+    function textdb = PSYC.Text.FileTextDBFactoryFactory("../default/");
     dings = PSYC.Server(([
 	"localhosts" : ([ LOCALHOST : 1 
 #if defined(BIND) && BIND != LOCALHOST 
@@ -101,6 +102,7 @@ int main(int argc, array(string) argv) {
 			LOCALHOST 
 #endif
 			+ ":2000" }),
+	     "textdb" : textdb,
 			]));
 
     write("220 ppp ESMTP Sendmail 8.13.7/8.13.7;\n");
