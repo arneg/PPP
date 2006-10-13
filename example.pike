@@ -15,6 +15,7 @@ XMPP.S2S.ServerManager bumms;
 # define REMOTEHOST "localhost"
 #endif
 
+#if XMPP
 string my_certificate = MIME.decode_base64(
   "MIIBxDCCAW4CAQAwDQYJKoZIhvcNAQEEBQAwbTELMAkGA1UEBhMCREUxEzARBgNV\n"
   "BAgTClRodWVyaW5nZW4xEDAOBgNVBAcTB0lsbWVuYXUxEzARBgNVBAoTClRVIEls\n"
@@ -35,12 +36,23 @@ string my_key = MIME.decode_base64(
   "VJA0y6nxLeB9pyoGWNZrAB4636jTOigRAiBhLQlAqhJnT6N+H7LfnkSVFDCwVFz3\n"
   "eygz2yL3hCH8pwIhAKE6vEHuodmoYCMWorT5tGWM0hLpHCN/z3Btm38BGQSxAiAz\n"
   "jwsOclu4b+H8zopfzpAaoB8xMcbs0heN+GNNI0h/dQ==\n");
+#endif
 
 int main(int argc, array(string) argv) {
 
     dings = PSYC.Server(([
-	"localhosts" : ([ LOCALHOST : 1 ]),
-	     "ports" : ({ LOCALHOST + ":4404" }),
+	"localhosts" : ([ LOCALHOST : 1 
+#if defined(BIND) && BIND != LOCALHOST 
+			 , BIND : 1
+#endif
+			]),
+	     "ports" : ({ 
+#ifdef BIND
+			BIND
+#else
+			LOCALHOST 
+#endif
+			+ ":4404" }),
       "create_local" : create_local,
     "deliver_remote" : deliver_remote,
     "module_factory" : create_module,
@@ -82,7 +94,13 @@ int main(int argc, array(string) argv) {
 #endif
     da = TELNET.Server(([
 	 "psyc_server" : dings,
-	     "ports" : ({ LOCALHOST + ":2000" }),
+	     "ports" : ({ 
+#ifdef BIND
+			BIND
+#else
+			LOCALHOST 
+#endif
+			+ ":2000" }),
 			]));
 
     write("220 ppp ESMTP Sendmail 8.13.7/8.13.7;\n");

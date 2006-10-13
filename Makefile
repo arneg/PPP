@@ -15,5 +15,9 @@ ifdef L
     LOCALHOST = -DLOCALHOST="\"$(L)\""
 endif
 
+ifdef B
+    BIND = -DBIND="\"$(B)\""
+endif
+
 ppp:
-	pike -DSTILLE_DULDUNG $(TN) -Ilib -Mlib $(DEBUG) $(LOCALHOST) $(S).pike
+	pike -DSTILLE_DULDUNG $(TN) -Ilib -Mlib $(BIND) $(DEBUG) $(LOCALHOST) $(S).pike
