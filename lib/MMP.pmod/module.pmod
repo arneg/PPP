@@ -317,6 +317,7 @@ class Packet {
 	THROW(sprintf("put psyc variable (%s) into mmp packet (%O).", id, this));
     }
 
+#if 0
     mixed `->(mixed id) {
 	switch(id) {
 	    case "lsource":
@@ -338,6 +339,29 @@ class Packet {
 	}
 
 	return ::`->(id);
+    }
+#endif
+
+    MMP.Uniform source() {
+	if (has_index(vars, "_source_identification")) {
+	    return vars["_source_identification"];
+	}
+
+	return vars["_source"];
+    }
+
+    MMP.Uniform lsource() {
+	if (has_index(vars, "_source_relay")) {
+	    mixed s = vars["_source_relay"];
+
+	    if (arrayp(s)) {
+		s = s[-1];
+	    }
+
+	    return s;
+	}
+
+	return source();
     }
 }
 

@@ -21,9 +21,9 @@ int msg(MMP.Packet p) {
     case "_request_group_enter":
 	{
 	    void _true() {
-		sendmsg(p->source, m->reply("_echo_enter", "You entered [_source]."));
+		sendmsg(p->source(), m->reply("_echo_enter", "You entered [_source]."));
 		if (!silent) {
-		    kast(PSYC.Packet("_notice_enter", "congratulations, [_nick] entered the froup", ([ "_nick" : p->lsource ])));
+		    kast(PSYC.Packet("_notice_enter", "congratulations, [_nick] entered the froup", ([ "_nick" : p->lsource() ])));
 		}
 	    };
 

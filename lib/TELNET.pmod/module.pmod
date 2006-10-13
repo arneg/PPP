@@ -10,22 +10,28 @@
 // one TELNET session. which attaches to a user and then.. sends psyc
 class Session {
 
+    inherit PSYC.CommandSingleplexer;
+
+    object textdb;
     object socket, server;
     MMP.Uniform user;
     PSYC.Client client;
     string username;
     int attached, writeok;
-    multiset(MMP.Uniform) places = (< >);
-    MMP.Uniform place, query;
     function set_password;
     function SKINNER;
+    function textdbfac;
 
     void input_to(function|void _input_) {
 	SKINNER = _input_;
     }
 
     int superintendent_read(mixed id, string data) {
-	if (SKINNER) {
+	fix_prompt(data);
+
+	data = data[0..sizeof(data)-2];
+
+	if (SKINNER && sizeof(data)) {
 	    return SKINNER(id, data);
 	}
 
@@ -36,12 +42,13 @@ class Session {
 	socket->write_raw(KILLLINE);
     }
  
-    void create(object so, object se, function close) {
+    void create(object so, object se, function close, function textdbfac_) {
 	input_to(read_username);
 
 	socket = Protocols.TELNET.Readline(so, superintendent_read, 0,
 					   close, ([]));
 	server = se;
+	textdb = (textdbfac = textdbfac_)("plain", "de");
     }
     
     void write(string t) {
@@ -94,6 +101,25 @@ class Session {
 	//socket->readline->setcursorpos(0);
     }
 
+    void read_username(mixed id, string data) {
+	username = data;
+
+	if (search(data, ":") == -1) {
+	    user = server->get_uniform("psyc://" + server->def_localhost + "/~" + data);
+	} else {
+	    user = server->get_uniform(data);
+	}
+
+	MMP.Uniform unl = server->random_uniform("telnet");
+	client = PSYC.Client(user, server, unl, query_password, query_password);
+	unl->handler = client;
+	client->attach(this);
+
+	add_commands(PSYC.Commands.Tell(this));
+
+	input_to();
+    }
+
     void query_password(MMP.Packet p, function cb) {
 	socket->readline->set_echo(0);
 	socket->readline->set_prompt("Password: ");
@@ -105,154 +131,19 @@ class Session {
 	fix_prompt(data);
 	P0(("PSYC.Session", "%O->read_password(%O, %O)\n", this, id, data))
 
-	if (sizeof(data) < 2) {
-	    //
-	    return;
-	}
-
-	data = data[0..sizeof(data) - 2];
 	input_to();
 	call_out(set_password, 0, data);
     }
 
-    void read_username(mixed id, string data) {
-	fix_prompt(data);
-
-	if (sizeof(data) < 2) {
-	    //
-	    return;
-	}
-
-	data = data[0..sizeof(data) - 2];
-	username = data;
-
-	if (search(data, ":") == -1) {
-	    user = server->get_uniform("psyc://" + server->def_localhost + "/~" + data);
-	} else {
-	    user = server->get_uniform(data);
-	}
-	MMP.Uniform unl = server->random_uniform("telnet");
-	client = PSYC.Client(user, server, unl, query_password, query_password);
-
-	unl->handler = client;
-	client->attach(this);
-	input_to();
-    }
-
     void read(mixed id, string data) {
 	P0(("PSYC.Session", "%O->read(%O, %O)\n", this, id, data))
-	fix_prompt(data);
-	data = data[0..sizeof(data) - 2];
 
 	if (data[0] == CMDCHAR) {
-	    cmd(data[1..] / " "); 
-	    return;
-	}
-
-	if (query) {
-	    client->client_sendmsg(query, PSYC.Packet("_message_private", 
-						      data));
-
-	    return;
-	}
-
-	if (place) {
-	    client->client_sendmsg(place, PSYC.Packet("_message_public", 
-						      data)); 
-
+	    cmd(data[1..]); 
 	    return;
 	}
 
 	writeln("join a room, you kinky bastard!");
-    }
-
-    void cmd(array(string) arg) {
-	switch(arg[0]) {
-	case "quit":
-	    client->detach(); 
-	    writeln("goodbye");
-	    socket->close();
-	    return;
-	case "tell":
-	    int args = sizeof(arg);
-
-	    if (args == 1) {
-		if (query) {
-		    query = UNDEFINED;
-
-		    if (place) {
-			socket->readline->set_prompt(place->unl + "> ");
-			socket->readline->redisplay();
-		    } else {
-			socket->readline->set_prompt("> ");
-			socket->readline->redisplay();
-		    }
-		} else {
-		    writeln("Usage: /tell <nick> [<text>]");
-		}
-	    } else if (args == 2) {
-		query = client->user_to_uniform(arg[1]);
-
-		socket->readline->set_prompt(query->unl + "> ");
-		socket->readline->redisplay();
-	    }  else {
-		MMP.Uniform target = client->user_to_uniform(arg[1]);
-
-		client->client_sendmsg(target, PSYC.Packet("_message_private",
-					       arg[2..] * " ",
-					       ([ "_nick" : user->resource[1..] ])));
-	    }
-
-	    return;
-#if 0
-	case "leave":
-	    {
-		int args = sizeof(arg);
-		MMP.Uniform target;
-		if (args == 1) {
-		    if (place) {
-			target = place;
-		    } else {
-			writeln("You have to join a room before you can leave one.");
-			return;
-		    }
-		} else if (args == 2) {
-		    MMP.Uniform target = client->room_to_uniform(arg[1]);
-		}
-		client->sendmmp(user->server->uni, 
-			  MMP.Packet(user->tag(PSYC.Packet("_request_leave")),
-					 ([
-				    "_target_relay" : target,
-					  ])));
-	    }
-	    return;
-	case "join":
-	    {
-		if (sizeof(arg) < 2) return;
-		MMP.Uniform target = user->room_to_uniform(arg[1]);
-		user->sendmmp(user->server->uni,
-			      MMP.Packet(user->tag(PSYC.Packet("_request_enter", 0,
-			       ([ "_nick" : user->uni->resource[1..] ]))), 
-					 ([ "_target_relay" : target,
-					     "_source" : user->uni ])));
-		return;
-	    }
-	    return;
-	case "change":
-	    {
-		if (sizeof(arg) < 2) return;
-		MMP.Uniform target = user->room_to_uniform(arg[1]);
-
-		if (has_index(places, target)) {
-		    place = target;
-
-		    if (!query) {
-			socket->readline->set_prompt(target->unl + "> ");
-		    }
-		}
-	    }
-#endif
-	}
     }
 
     void msg(MMP.Packet p) {
@@ -289,7 +180,7 @@ class Session {
 	case "_notice_place_leave":
 #endif
 	case "_notice_leave":
-	    if (p->lsource == user->uni) {
+	    if (p->lsource() == user->uni) {
 		MMP.Uniform room = p["_context"];
 
 		if (place == room) {
@@ -308,7 +199,7 @@ class Session {
 	case "_echo_place_enter":
 #endif
 	case "_echo_enter":
-	    place = p->lsource;
+	    place = p->lsource();
 	    places[place] = 1;
 
 	    if (!query) {
@@ -319,7 +210,7 @@ class Session {
 #endif
 	}
 
-	writeln(PSYC.psyctext(p));
+	writeln(PSYC.psyctext(p, textdb));
     }
 }
 
@@ -328,6 +219,7 @@ class Server {
 
     mapping(string:TELNET.Session) sessions = ([]);
     object psyc_server;
+    function textdb;
 
     void close(TELNET.Session tn) {
 	P0(("TELNET.Server", "closing %s.\n", tn->socket->query_address()))
@@ -342,7 +234,7 @@ class Server {
 
 	P0(("TELNET.Server", "accepted connection from %s in %O\n", peerhost, sessions))
 
-        sessions[peerhost] = TELNET.Session(socket, psyc_server, close);
+        sessions[peerhost] = TELNET.Session(socket, psyc_server, close, textdb);
 	sessions[peerhost]->write(MOTD);
 	sessions[peerhost]->logon();
 	P0(("TELNET.Server", "blub\n"))
@@ -353,6 +245,10 @@ class Server {
 	if (has_index(config, "psyc_server")) {
 	    psyc_server = config["psyc_server"];
 	}
+
+	if (has_index(config, "textdb")) {
+	    textdb = config["textdb"];
+	} else throw("no");
 
 	if (has_index(config, "ports")) {
             // more error-checking would be a good idea.

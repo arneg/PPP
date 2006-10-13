@@ -34,17 +34,17 @@ void enter(MMP.Packet p, function _true, function _false) {
 
     _true();
 
-    member[p->lsource] = ts;
+    member[p->lsource()] = ts;
 
     if (!has_index(routes, ts)) {
-	routes[ts] = (< p->lsource >);
+	routes[ts] = (< p->lsource() >);
     } else {
-	routes[ts][p->lsource] = 1;
+	routes[ts][p->lsource()] = 1;
     }
 }
 
 int leave(MMP.Packet p) {
-    MMP.Uniform ls = p->lsource;
+    MMP.Uniform ls = p->lsource();
     
     if (has_index(member, ls)) {
 	MMP.Uniform r = member[ls];
@@ -108,18 +108,18 @@ int msg(MMP.Packet p) {
     case "_request_enter":
 	{
 	    void _true() {
-		sendmmp(p["_source"], MMP.Packet(m->reply("_notice_enter", "[_nick] enters [_nick_place].", ([ "_nick" : p->lsource, "_nick_place" : uni ])), 
+		sendmmp(p["_source"], MMP.Packet(m->reply("_notice_enter", "[_nick] enters [_nick_place].", ([ "_nick" : p->lsource(), "_nick_place" : uni ])), 
 						 ([ 
-				    "_target_relay" : p->lsource,
+				    "_target_relay" : p->lsource(),
 						]))); 
-		kast(PSYC.Packet("_notice_enter", "[_nick] enters [_nick_place].", ([ "_nick" : p->lsource, "_nick_place" : uni ])), p->lsource);
+		kast(PSYC.Packet("_notice_enter", "[_nick] enters [_nick_place].", ([ "_nick" : p->lsource(), "_nick_place" : uni ])), p->lsource());
 
 	    };
 
 	    void _false() {
 		sendmmp(p["_source"], MMP.Packet(m->reply("_failure"), 
 						 ([ 
-				    "_target_relay" : p->lsource,
+				    "_target_relay" : p->lsource(),
 						]))); 
 
 	    };
@@ -130,8 +130,8 @@ int msg(MMP.Packet p) {
 	break;
     case "_request_leave":
 	if (leave(p)) {
-	    sendmmp(p["_source"], MMP.Packet(m->reply("_echo_leave"), ([ "_target_relay" : p->lsource ])));
-	    kast(PSYC.Packet("_notice_leave", "[_nick] leaves [_nick_place].", ([ "_nick" : p->lsource, "_nick_place" : uni ])), p->lsource);
+	    sendmmp(p["_source"], MMP.Packet(m->reply("_echo_leave"), ([ "_target_relay" : p->lsource() ])));
+	    kast(PSYC.Packet("_notice_leave", "[_nick] leaves [_nick_place].", ([ "_nick" : p->lsource(), "_nick_place" : uni ])), p->lsource());
 	}
 
 	return 1;
