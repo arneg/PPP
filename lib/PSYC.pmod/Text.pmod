@@ -1,5 +1,5 @@
 // vim:syntax=lpc
-
+#include <debug.h>
 #define unless(x)	if(!(x))
 #define member	has_index
 
@@ -50,4 +50,85 @@ string psyctext(string fmt, mapping|void vars) {
     }
 
     return fmt;
+}
+//#define NO_CACHE
+
+#define unless(x)	if(!(x))
+#define member	has_index
+
+class TextDB {
+    mapping fmts = ([ ]);
+
+    string `[](string mc) {
+	return fmts[mc];
+    }
+
+    void fetch(string mc, function cb, mixed ... extra);
+}
+
+class FileTextDB {
+    inherit TextDB;
+
+    string tdbpath;
+
+    void create(string path) {
+	PT(("FileTextDB", "create(%O)\n", path))
+	tdbpath = path;
+
+	if (path[-1] != '/') {
+	    path += "/";
+	}
+    }
+
+    void fetch(string mc, function cb, mixed ... extra) {
+	PT(("text", "fetch(%O, %O, %O)\n", mc, cb, extra))
+	string filename, fmt, before, match, after;
+	Stdio.File file;
+
+	if (member(fmts, mc)) {
+	    call_out(cb, 0, 1, @extra);
+
+	    return;
+	}
+
+	filename = tdbpath + Stdio.simplify_path(replace(mc, "_", "/")) + ".fmt";
+
+	PT(("Text", "opening %O\n", filename))
+	if (Stdio.is_file(filename)) {
+	    PT(("Text", "is_file\n"))
+	    file = Stdio.File(filename, "r");
+	    fmt = file->read();
+	    file->close();
+	} else {
+	    PT(("Text", "else\n"))
+	    array(string) l = mc / "_";
+
+	    if (sizeof(l) > 2) {
+		call_out(fetch, 0, l[0.. sizeof(l) - 2] * "_", cb, @extra);
+
+		return;
+	    }
+	    call_out(cb, 0, 0, @extra);
+
+	    return;
+	}
+
+#if 0 // TODO:: add to "unfeatured" document
+	while (sscanf(fmt, "%s{_%s}%s", before, match, after) == 3) {
+	    fmt = before + `[]("_" + match) + after;
+	}
+#endif
+
+	fmts[mc] = fmt;
+	PT(("Text", "calling_out really soon\n"))
+	call_out(cb, 0, 1, @extra);
+    }
+}
+
+function(string, string : FileTextDB) FileTextDBFactoryFactory(string basepath) {
+    FileTextDB _fun(string scheme, string lang) {
+	return FileTextDB(basepath + "/" + Stdio.simplify_path(lang) + "/" + Stdio.simplify_path(scheme));
+    };
+
+    return _fun;
 }

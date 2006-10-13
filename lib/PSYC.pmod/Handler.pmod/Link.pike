@@ -20,7 +20,7 @@ int postfilter_request_link(MMP.Packet p, mapping _v) {
 	return 0;
     }
 
-    PT(("PSYC.Handler.Link", "comparing %O and %O.\n", _v["_password"], m->vars["_password"]))
+    P3(("PSYC.Handler.Link", "comparing %O and %O.\n", _v["_password"], m->vars["_password"]))
 
     if (_v["_password"] == m->vars["_password"]) {
 	uni->attach(p["_source"]);

@@ -33,7 +33,7 @@ void add(string mc, object handler, void|mapping|array(string) d) {
     int async = 0;
     array(string) wvars;
 
-    P2(("PSYC.StageHandler", "add(%O)\n", handler))
+    P3(("PSYC.StageHandler", "add(%O)\n", handler))
 
     if (!has_index(table, mc)) table[mc] = ({ }); 
 
@@ -57,12 +57,12 @@ void add(string mc, object handler, void|mapping|array(string) d) {
 
     table[mc] += ({ AR(cb, wvars, async) });
 
-    P0(("StageHandler", "table: %O\n", table))
+    P3(("StageHandler", "table: %O\n", table))
 }
 
 void handle(MMP.Packet p) {
 
-    P2(("StageHandler", "%s:handle(%s)\n", prefix, p->data->mc))
+    P3(("StageHandler", "%s:handle(%s)\n", prefix, p->data->mc))
 
     array(string) l = p->data->mc / "_";
     MMP.Utils.Queue liste = MMP.Utils.Queue(); 
@@ -76,14 +76,14 @@ void handle(MMP.Packet p) {
 	}
     }
 
-    P0(("StageHandler", "stack for %s is %O\n", p->data->mc, (array)liste))
+    P3(("StageHandler", "stack for %s is %O\n", p->data->mc, (array)liste))
     progress(liste, p);
 }
 
 
 void fetched(string key, string value, MMP.Utils.Queue stack, MMP.Packet p,
 	     multiset(string) wvars) {
-    P2(("StageHandler", "fetched(%O, %O, %O, %O, %O)\n", key, value, stack,
+    P3(("StageHandler", "fetched(%O, %O, %O, %O, %O)\n", key, value, stack,
 	p, wvars))
 
     requested[p][key] = value;
@@ -133,7 +133,7 @@ void call_handler(MMP.Utils.Queue stack, MMP.Packet p, mapping _v) {
 	    }
 	};
 
-	P0(("PSYC.StageHandler", "attempting to call %O.\n", o->handler))
+	P3(("PSYC.StageHandler", "attempting to call %O.\n", o->handler))
 
 	o->handler(p, _v, callback);
 	in_progress = 0;

@@ -4,11 +4,11 @@
 PSYC.StageHandler prefilter, filter, postfilter;
 
 void stop(MMP.Packet p) {
-    P0(("MethodMultiplexer", "stopped %O.\n", p))
+    P3(("MethodMultiplexer", "stopped %O.\n", p))
 }
 
 void finish(MMP.Packet p) {
-    P0(("MethodMultiplexer", "finished %O.\n", p))
+    P3(("MethodMultiplexer", "finished %O.\n", p))
 }
 
 void create(PSYC.Storage storage) {

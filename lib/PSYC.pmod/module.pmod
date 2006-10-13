@@ -113,12 +113,17 @@ string psyctext(PSYC.Packet m) {
 }
 #endif
 
-string psyctext(MMP.Packet p) {
+string psyctext(MMP.Packet p, PSYC.Text.TextDB db) {
     mapping v;
     string tmp;
+    int is_message;
+
+    if (equal(p->data->mc / "_", ({ "", "message" }))) {
+	is_message = 1;
+    }
 
     if (p->vars) {
-	if (!v) v = ([]);
+	v = ([]);
 	v += p->vars;
     }
 
@@ -127,24 +132,18 @@ string psyctext(MMP.Packet p) {
 	v += p->data->vars;
     }
 
-    if (p->data && search(p->data->mc, "_message") == 0) {
-
-	tmp = "[_source_relay] says: [_data]";
-	if (!v) {
-	    v = ([ "_data" : p->data->data ]);
-	} else {
-	    v["_data"] = p->data->data;
-	}
-    } else {
-	tmp =  p->data ? p->data->data : "--> no text <--";
+    if (is_message && p->data->data) {
+	if (!v) v = ([]);
+	v["_data"] = p->data->data;
     }
 
+    tmp = db[p->data->mc] || (is_message ? "[_data]" : p->data->data);
 
-    if (v) {
+    if (v && tmp) {
 	return PSYC.Text.psyctext(tmp, v);
     }
 
-    return tmp;
+    return tmp || p->data->mc;
 }
 
 string|String.Buffer render(Packet o, void|String.Buffer to) {

@@ -7,6 +7,7 @@ object user; // euqivalent to the _idea_ of "user.c" in psycmuve
 PSYC.Handler.Base relay;
 PSYC.Handler.Base link;
 PSYC.Handler.Base forward;
+PSYC.Handler.Base echo;
 
 // wie waren diese unterschiedlichen level? fippo hatte doch das alles
 // sich genau überlegt.
@@ -44,7 +45,7 @@ void distribute(MMP.Packet p) {
 
     foreach(clients; MMP.Uniform target;) {
 	sendmmp(target, MMP.Packet(m, ([
-			    "_source_relay" : p->lsource,
+			    "_source_relay" : p->lsource(),
 			    "_source" : uni,
 				       ])));
     }
@@ -57,6 +58,7 @@ void create(string nick, MMP.Uniform uni, object server) {
     forward = PSYC.Handler.Forward(this);
     relay = PSYC.Handler.Relay(this);
     link = PSYC.Handler.Link(this);
-    add_handlers(relay, link, forward);
+    echo = PSYC.Handler.Echo(this);
+    add_handlers(relay, link, forward, echo);
 }
 

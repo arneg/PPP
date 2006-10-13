@@ -33,7 +33,7 @@ class Linker {
 
     int postfilter_query_password(MMP.Packet p, mapping _v) {
 	call_out(query_password, 0, p, set_password);
-	return PSYC.Handler.STOP;
+	return PSYC.Handler.GOON;
     }
 
     int postfilter_error_invalid_password(MMP.Packet p, mapping _v) {
@@ -71,7 +71,8 @@ void create(MMP.Uniform uni_, object server, MMP.Uniform unl,
     //PSYC.Handler.Base linker = Linker(this, error, query_password);
     //add_handlers(linker, Forwarder(this));
     add_handlers(Linker(this, error, query_password, link_to), 
-		 PSYC.Handler.Forward(this));
+		 PSYC.Handler.Forward(this), 
+		 PSYC.Handler.Textdb(this));
 
     if (password) {
 	request["_password"] = password;
