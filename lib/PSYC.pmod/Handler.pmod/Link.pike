@@ -28,16 +28,16 @@ int postfilter_request_link(MMP.Packet p, mapping _v) {
     } else {
 	uni->sendmsg(p["_source"], m->reply("_error_invalid_password"));
     }
-    return 0;
+    return PSYC.Handler.STOP;
 }
 
 int postfilter_set_password(MMP.Packet p, mapping _v) {
-    postfilter_request_link(p, _v); 
+    return postfilter_request_link(p, _v); 
 }
 
 int postfilter_request_unlink(MMP.Packet p, mapping _v) {
 
     uni->detach(p["_source"]);
     uni->sendmsg(p["_source"], p->data->reply("_notice_unlink"));
-    return 0;
+    return PSYC.Handler.STOP;
 }
