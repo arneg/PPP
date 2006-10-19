@@ -186,6 +186,7 @@ class MoM {
     multiset(MoM) explicit;
     mapping(mixed:MoM) emptychilds;
     mapping(MoM:multiset(mixed)) child2name;
+    int in_destroy;
 
     void create(mapping|void data) {
 	emptychilds = set_weak_flag(([ ]), Pike.WEAK_VALUES);
@@ -205,12 +206,21 @@ class MoM {
     }
 
     void destroy() {
+	in_destroy = 1; // so we do not care of incoming _unset_explicit()s
+
 	// unfortunately we can't find out here whether we were not exlicit.
 	// in case of sizeof(explicit), of course we were. but we can't be sure
 	// we were not explicit, as some parents might have been destroyed
 	// first, so we tell anyone left, just in case.
 	foreach (parents; MoM parent;) {
 	    parent->_unset_explicit(this);
+	}
+
+	// additionally, tell any explicit child that we are not it's parent
+	// any longer, as that might relieve them from their major burden of
+	// explicitness.
+	foreach (explicit; MoM e;) {
+	    if (e) e->_totally_remove_parent(this);
 	}
 
 #ifdef MOMDEBUG
@@ -226,8 +236,8 @@ class MoM {
 	if (zero_type(res = ::`[](index))) {
 	    if (!(res = emptychilds[index])) {
 		res = emptychilds[index] = this_program();
-		__add_child_name(res, index);
-		res->_add_parent(this);
+		__add_child_name([object(MoM)]res, index);
+		([object(MoM)]res)->_add_parent(this);
 	    }
 	}
 
@@ -240,19 +250,19 @@ class MoM {
 	if ((t = m_delete(emptychilds, index))
 	    || (t = ::`[](index)) && MoMp(t)) {
 	    if (t != value) {
-		__remove_child_name(t, index);
-		t->_remove_parent(this);
+		__remove_child_name([object(MoM)]t, index);
+		([object(MoM)]t)->_remove_parent(this);
 	    }
 	}
 
 	if (MoMp(value)) {
 	    if (t != value) {
-		__add_child_name(value, index);
-		value->_add_parent(this);
+		__add_child_name([object(MoM)]value, index);
+		([object(MoM)]value)->_add_parent(this);
 	    }
 
-	    if (!sizeof(value)) {
-		t = emptychilds[index] = value;
+	    if (!sizeof([object]value)) {
+		t = emptychilds[index] = [object(MoM)]value;
 	    } else {
 		int gf = !sizeof(this);
 
@@ -294,6 +304,16 @@ class MoM {
 	}
     }
 
+    void __eventually_unset_explicit() {
+	if (!sizeof(explicit)
+		&& sizeof(parents) == 1
+		&& parents[indices(parents)[0]] == 1) {
+	    foreach (parents; MoM p;) {
+		p->_unset_explicit(this);
+	    }
+	}
+    }
+
     void _add_parent(MoM parent) {
 #ifdef MOMDEBUG
 	werror("MoM(id: %O) _add_parent: %O\n", id, backtrace());
@@ -312,21 +332,17 @@ class MoM {
     }
 
     void _remove_parent(MoM parent) {
-	MoM former_parent;
-
 	if (--parents[parent] <= 0) {
-	    former_parent = m_delete(parents, parent);
+	    m_delete(parents, parent);
 	}
 
-	if (!sizeof(explicit)
-		&& sizeof(parents) == 1
-		&& parents[indices(parents)[0]] == 1) {
-	    foreach (parents; MoM p;) {
-		p->_unset_explicit(this);
-	    }
+	parent->_unset_explicit(this);
+	__eventually_unset_explicit();
+    }
 
-	    parent->_unset_explicit(this);
-	}
+    void _totally_remove_parent(MoM parent) {
+	m_delete(parents, parent);
+	__eventually_unset_explicit();
     }
 
     void _set_explicit(MoM child) {
@@ -348,13 +364,18 @@ class MoM {
 #ifdef MOMDEBUG
 	werror("MoM(id: %O)_unset_explicit(), %O\n", id, backtrace());
 #endif
-	explicit -= (< child >);
 
-	if (!sizeof(explicit)
-		&& sizeof(parents) == 1
-		&& parents[indices(parents)[0]] == 1) {
-	    foreach (parents; MoM parent;) {
-		parent->_unset_explicit(this);
+	if (in_destroy) return;
+
+	if (explicit[child]) {
+	    explicit -= (< child >);
+
+	    if (!sizeof(explicit)
+		    && sizeof(parents) == 1
+		    && parents[indices(parents)[0]] == 1) {
+		foreach (parents; MoM parent;) {
+		    parent->_unset_explicit(this);
+		}
 	    }
 	}
     }
@@ -399,8 +420,9 @@ class MoM {
 	mixed res = _m_delete_(index);
 
 	if (MoMp(res)) {
-	    res->_remove_parent(this);
-	    __remove_child_name(index, res);
+	    // strict typing sucks..
+	    ([object(MoM)]res)->_remove_parent(this);
+	    __remove_child_name([object(MoM)]res, index);
 	}
 
 	return res;
@@ -439,7 +461,7 @@ class MoM {
 int MoMp(mixed m) {
     mixed t;
 
-    if (programp(t = object_program(m)) && Program.inherits(t, MoM)) {
+    if (programp(t = object_program(m)) && Program.inherits([program]t, MoM)) {
 	return 1;
     } else {
 	return 0;
