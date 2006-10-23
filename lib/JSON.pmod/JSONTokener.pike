@@ -441,7 +441,7 @@ public mixed nextObject() {
 	   else return a;
 	}
 	if (s == "") {
-		throw (Error.Generic("Missing value"));
+		THROW("Missing value\n");
 	}
 	return s;
 }
