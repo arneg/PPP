@@ -1,5 +1,5 @@
 // vim:syntax=lpc
-// $Id: module.pmod,v 1.7 2006/10/25 17:15:37 tobij Exp $
+// $Id: module.pmod,v 1.8 2006/10/25 17:20:37 tobij Exp $
 
 mixed parse(string json, program|void objectb, program|void arrayb) {
 #if constant(Public)
@@ -15,12 +15,8 @@ mixed parse(string json, program|void objectb, program|void arrayb) {
     return parse_pike(json, objectb, arrayb);
 }
 
-.JSONTokener tok = .JSONTokener(0);
-
 mixed parse_pike(string json, program|void objectb, program|void arrayb) {
-    tok->setup(json, objectb, arrayb);
-    return tok->nextObject();
-    //return .JSONTokener(json, objectb, arrayb)->nextObject();
+    return .JSONTokener(json, objectb, arrayb)->nextObject();
 }
 
 mixed serialize(object|mapping|array|string|int|float thing) {
