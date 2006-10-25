@@ -1,5 +1,5 @@
 // vim:syntax=lpc
-// $Id: JSONTokener.pike,v 1.6 2006/10/25 17:45:47 tobij Exp $
+// $Id: JSONTokener.pike,v 1.7 2006/10/25 17:47:38 tobij Exp $
 // 
 // I really hate those comments.
 //
@@ -82,12 +82,13 @@ PROTECTED string _int2char(int c) {
 /// </summary>
 /// <param name="s">A source string.</param>
 #ifdef __PIKE__
-static void create(string s, program|void objectb, program|void arrayb)
+void create(string s, program|void objectb, program|void arrayb)
 #else
 mixed parse_json(string s)
 #endif
 {
 	mySource = s;
+	myIndex = 0;
 #ifdef __PIKE__
 	objectbuilder = objectb;
 	arraybuilder = arrayb;
