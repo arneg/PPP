@@ -1,5 +1,5 @@
 // vim:syntax=lpc
-// $Id: JSONTokener.pike,v 1.4 2006/10/25 17:01:22 tobij Exp $
+// $Id: JSONTokener.pike,v 1.5 2006/10/25 17:15:37 tobij Exp $
 // 
 // I really hate those comments.
 //
@@ -76,7 +76,7 @@ string _int2char(int c) {
 /// </summary>
 /// <param name="s">A source string.</param>
 #ifdef __PIKE__
-static void create(string s, program|void objectb, program|void arrayb)
+void create(string s, program|void objectb, program|void arrayb)
 #else
 varargs void setup(string s)
 #endif
@@ -107,7 +107,7 @@ public void back() {
 /// between 'a' and 'f'.
 /// </param>
 /// <returns>An int between 0 and 15, or -1 if c was not a hex digit.</returns>
-public static int dehexchar(int c) {
+public int dehexchar(int c) {
 	if (c >= '0' && c <= '9') 
 	{
 		return c - '0';
