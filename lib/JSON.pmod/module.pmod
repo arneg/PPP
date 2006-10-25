@@ -1,4 +1,4 @@
-// $Id: module.pmod,v 1.3 2006/10/24 17:06:37 tobij Exp $
+// $Id: module.pmod,v 1.4 2006/10/25 12:43:05 tobij Exp $
 
 mixed parse(string json, program|void objectb, program|void arrayb) {
 #if constant(Public)
@@ -11,10 +11,10 @@ mixed parse(string json, program|void objectb, program|void arrayb) {
 # endif
 #endif
 
-    return parse_pike_only(json, objectb, arrayb);
+    return parse_pike(json, objectb, arrayb);
 }
 
-mixed parse_pike_only(string json, program|void objectb, program|void arrayb) {
+mixed parse_pike(string json, program|void objectb, program|void arrayb) {
     return .JSONTokener(json, objectb, arrayb)->nextObject();
 }
 
@@ -27,10 +27,10 @@ mixed serialize(object|mapping|array|string|int|float thing) {
 # endif
 #endif
 
-    return serialize_pike_only(thing);
+    return serialize_pike(thing);
 }
 
-mixed serialize_pike_only(object|mapping|array|string|int|float thing) {
+mixed serialize_pike(object|mapping|array|string|int|float thing) {
     int type;
 
     if (stringp(thing)) {
@@ -103,7 +103,7 @@ string _array2json(array|object a) {
     foreach (a; int pos; mixed v) {
 	if (pos) add(",");
 
-	add(serialize_pike_only(v));
+	add(serialize_pike(v));
     }
 
     add("]");
@@ -132,7 +132,7 @@ string _mapping2json(mapping|object m) {
 
 	add(_string2json(k));
 	add(":");
-	add(serialize_pike_only(v));
+	add(serialize_pike(v));
     }
 
     add("}");
