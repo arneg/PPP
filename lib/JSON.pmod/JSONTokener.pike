@@ -1,4 +1,5 @@
 // vim:syntax=lpc
+// $Id: JSONTokener.pike,v 1.3 2006/10/25 16:50:50 tobij Exp $
 // 
 // I really hate those comments.
 //
@@ -9,7 +10,8 @@
 //    "Last night, I downloaded the JSON-C# code, and converted it to pike
 //    (with relatively little effort, it was mostly a tedious reformatting
 //    job)."
-// 4. Adopted by Tobias 'tobij' Josefowitz, now uses Pike datastructures
+// 4. Adopted by Tobias 'tobij' Josefowitz, now uses Pike datastructures,
+//    and can only be run in LDMud.
 //
 // As far as I am concerned, this still is Public Domain.
 // I will probably once find out whether Are and Bill think the same wwy
@@ -43,10 +45,30 @@ string mySource;
 
 #ifdef __PIKE__
 # define THROW(x)	throw(Error.Generic(x))
+# define SBGET(x)	(x)->get()
+
+# define int2char(x)	String.int2char(x)
+# define trim_whites(x)	String.trim_whites(x)
+
 program objectbuilder, arraybuilder;
 #else
 # define arrayp(x)	pointerp(x)
 # define THROW(x)	raise_error(x)
+# define UNDEFINED	0
+# define SBGET(x)	(x)
+
+# define int2char(x)	_int2char(x)
+# define trim_whites(x)	trim(x)
+# define search	strstr
+
+public mixed nextObject();
+
+string _int2char(int c) {
+    string s = " ";
+
+    s[0] = c;
+    return s;
+}
 #endif
 
 /// <summary>
@@ -56,10 +78,9 @@ program objectbuilder, arraybuilder;
 #ifdef __PIKE__
 static void create(string s, program|void objectb, program|void arrayb)
 #else
-varargs void create(string s)
+varargs void setup(string s)
 #endif
 {
-	myIndex = 0;
 	mySource = s;
 #ifdef __PIKE__
 	objectbuilder = objectb;
@@ -194,6 +215,10 @@ public int nextClean() {
 			return c;
 		}
 	}
+
+#ifndef __PIKE__
+	return 0; // will never be reached, stupid LDMud!
+#endif
 }
 
 /// <summary>
@@ -206,89 +231,120 @@ public int nextClean() {
 /// <returns>A String.</returns>
 public string nextString(int quote) {
 	int c;
+#ifdef __PIKE__
 	String.Buffer sb = String.Buffer();
+#else
+	string sb = "";
+#endif
+
 	while (1) {
 		c = next();
 		if ((c == 0x00) || (c == 0x0A) || (c == 0x0D)) {
-			throw (Error.Generic("Unterminated string"));
+			THROW("Unterminated string.\n");
 		}
 		// CTRL chars
 		if (c == '\\') {
 			c = next();
 			switch (c) {
 				case 'b': //Backspace
-					sb+=("\b");
+					sb+="\b";
 					break;
 				case 't': //Horizontal tab
-					sb+=("\t");
+					sb+="\t";
 					break;
 				case 'n':  //newline
-					sb+=("\n");
+					sb+="\n";
 					break;
 				case 'f':  //Form feed
-					sb+=("\f");
+					sb+="\f";
 					break;
 				case 'r':  // Carriage return
-					sb+=("\r");
+					sb+="\r";
 					break;
 				case 'u':
+#ifdef __PIKE__
 					int iascii;
 					sscanf(nextn(4), "%4x", iascii);
-					sb+=String.int2char(iascii);
+					sb+=int2char(iascii);
+#else
+					sb+=int2char(hex2int(nextn(2)));
+					sb+=int2char(hex2int(nextn(2)));
+#endif
 					break;
 				default:
-					sb+=String.int2char(c);
+					sb+=int2char(c);
 					break;
 			}
 		} else {
 			if (c == quote) {
-				return sb->get();
+#ifdef __PIKE__
+				return SBGET(sb);
+#else
+				return sb;
+#endif
 			}
-			sb+=String.int2char(c);
+			sb+=int2char(c);
 		}
 	}//END-while
+
+#ifndef __PIKE__
+	return ""; // will never be reached. stupid LDMud
+#endif
 }
 
 /// <summary>
-/// Get the text up but not including the specified character or the
-/// end of line, whichever comes first.
+/// Unescape the source text. Convert %hh sequences to single characters,
+/// and convert plus to space. There are Web transport systems that insist on
+/// doing unnecessary URL encoding. This provides a way to undo it.
 /// </summary>
-/// <param name="d">A delimiter character.</param>
-/// <returns>A string.</returns>
-public string nextTo(int|string d) {
- 
-     if(intp(d)) {
-	String.Buffer sb = String.Buffer();
-	while (1) {
-		int c = next();
-		if (c == d || c == 0 || c == '\n' || c == '\r') {
-			if (c != 0) {
-				back();
-			}
-			return String.trim_whites(sb->get());
-		}
-		sb+=String.int2char(c);
-	}
-     }    
 
-     else if(stringp(d)) {
-	int c;
+/// <summary>
+/// Convert %hh sequences to single characters, and convert plus to space.
+/// </summary>
+/// <param name="s">A string that may contain plus and %hh sequences.</param>
+/// <returns>The unescaped string.</returns>
+#ifdef __PIKE__
+public string unescape(string|void s)
+#else
+public varargs string unescape(string s)
+#endif
+{
+	if(!s) s = mySource;
+	int len = sizeof(s);
+#ifdef __PIKE__
 	String.Buffer sb = String.Buffer();
-	while (1) {
-		c = next();
-		if ((d[c] >= 0) || (c == 0 ) || (c == '\n') || (c == '\r')) {
-			if (c != 0) {
-				back();
+#else
+	string sb = "";
+#endif
+
+	for (int i=0; i < len; i++) {
+		int c = s[i];
+		if (c == '+') {
+			c = ' ';
+		} else if (c == '%' && (i + 2 < len)) {
+			int d = dehexchar(s[i+1]);
+			int e = dehexchar(s[i+2]);
+			if (d >= 0 && e >= 0) {
+				c = (d*16 + e);
+				i += 2;
 			}
-			return String.trim_whites(sb->get());
 		}
-		sb+=String.int2char(c);
+		sb+=int2char(c);
 	}
-    }
+	return SBGET(sb);
 }
 
-mixed jsonObject() {
+#ifdef __PIKE__
+mapping|object jsonObject()
+#else
+mapping jsonObject()
+#endif
+{
+#ifdef __PIKE__
 	mixed addTo = objectbuilder ? objectbuilder() : ([ ]);
+#else
+	mapping addTo = ([ ]);
+#endif
 
 	if (next() == '%') {
 		unescape();
@@ -297,7 +353,7 @@ mixed jsonObject() {
 	back();
 
 	if (nextClean() != '{') {
-		throw(Error.Generic("A JSONObject must begin with '{'"));
+		THROW("A JSONObject must begin with '{'.\n");
 	}
 
 	while (1) {
@@ -308,60 +364,95 @@ mixed jsonObject() {
 		c = nextClean();
 		switch (c) {
 			case 0:
-				throw(Error.Generic("A JSONObject must end "
-						    "with '}'\n"));
+				THROW("A JSONObject must end "
+						    "with '}'.\n");
 			case '}':
-				return mappingp(addTo) ? addTo : ([object]addTo)->finish();
+#ifdef __PIKE__
+				return mappingp(addTo)
+					? addTo
+					: ([object]addTo)->finish();
+#else
+				return addTo;
+#endif
 			case '"':
 				back();
 				// TODO:: error on != " || '
-				key = (string)nextObject();
+				key = nextObject();
 				break;
 			default:
-				throw(Error.Generic("Non-String as "
+				THROW("Non-String as "
 						    "JSONObject-key. That "
-						    "is invalid!\n"));
+						    "is invalid!\n");
 		}
 
 		if (nextClean() != ':') {
-			throw(Error.Generic("Expected a ':' after a key\n"));
+			THROW("Expected a ':' after a key.\n");
 		}
 
 		obj = nextObject();
 
+#ifdef __PIKE__
 		if (mappingp(addTo)) {
 		    ([mapping]addTo)[key] = obj;
 		} else {
 		    ([object]addTo)->add(key, obj);
 		}
+#else
+		addTo[key] = obj;
+#endif
 
 		switch (nextClean()) {
 			case ',':
 				if (nextClean() == '}') {
+#ifdef __PIKE__
 					return mappingp(addTo) ? addTo : ([object]addTo)->finish();
+#else
+					return addTo;
+#endif
 				}
 
 				back();
 				break;
 			case '}':
-					return mappingp(addTo) ? addTo : ([object]addTo)->finish();
+#ifdef __PIKE__
+				return mappingp(addTo) ? addTo : ([object]addTo)->finish();
+#else
+				return addTo;
+#endif
 			default:
-				throw(Error.Generic("Expected a ',' or '}'"));
+				THROW("Expected a ',' or '}'");
 		}
 	}
 
+#ifdef __PIKE__
 	return mappingp(addTo) ? addTo : ([object]addTo)->finish();
+#else
+	return addTo;
+#endif
 }
 
-mixed jsonArray() {
+#ifdef __PIKE__
+array|object jsonArray()
+#else
+mixed *jsonArray()
+#endif
+{
+#ifdef __PIKE__
 	mixed addTo = objectbuilder ? objectbuilder() : ({  });
+#else
+	mixed *addTo = ({ });
+#endif
 
 	if (nextClean() != '[') {
-		throw(Error.Generic("A JSONArray must start with '['"));
+		THROW("A JSONArray must start with '['.\n");
 	}
 
 	if (nextClean() == ']') {
+#ifdef __PIKE__
 		return arrayp(addTo) ? addTo : ([object]addTo)->finish();
+#else
+		return addTo;
+#endif
 	}
 
 	back();
@@ -376,18 +467,34 @@ mixed jsonArray() {
 		{
 			case ',':
 				if (nextClean() == ']') {
-					return arrayp(addTo) ? addTo : ([object]addTo)->finish();
+#ifdef __PIKE__
+					return arrayp(addTo)
+						? addTo
+						: ([object]addTo)->finish();
+#else
+					return addTo;
+#endif
 				}
 				back();
 				break;
 			case ']':
-					return arrayp(addTo) ? addTo : ([object]addTo)->finish();
+#ifdef __PIKE__
+					return arrayp(addTo)
+						? addTo
+						: ([object]addTo)->finish();
+#else
+					return addTo;
+#endif
 			default:
-				throw(Error.Generic("Expected a ',' or ']'"));
+				THROW("Expected a ',' or ']'.\n");
 		}
 	}
 
+#ifdef __PIKE__
 	return arrayp(addTo) ? addTo : ([object]addTo)->finish();
+#else
+	return addTo;
+#endif
 }
 
 /// <summary>
@@ -414,16 +521,20 @@ public mixed nextObject() {
 		return jsonArray();
 	}
 
+#ifdef __PIKE__
 	String.Buffer sb = String.Buffer();
+#else
+	string sb = "";
+#endif
 
 	int b = c;
 	while (c >= ' ' && c != ':' && c != ',' && c != ']' && c != '}' && c != '/') {
-		sb+=String.int2char(c);
+		sb+=int2char(c);
 		c = next();
 	}
 	back();
 
-	s = String.trim_whites(sb->get());
+	s = trim_whites(SBGET(sb));
 	if (s == "true")
 		return 1; 
 	if (s == "false")
@@ -432,16 +543,20 @@ public mixed nextObject() {
 		return UNDEFINED;
 
 	if ((b >= '0' && b <= '9') || b == '.' || b == '-' || b == '+') {
-	   int a; float b; string c;
-	   [a, c] = array_sscanf(s, "%d%s");
-	   if(c && sizeof(c)) {
-	     [b] = array_sscanf(s, "%f");
-	     return b;;
+	   int a; float b_; string c_;
+	    sscanf(s, "%d%s", a, c_);
+	   if(c_ && sizeof(c_)) {
+#ifdef __PIKE__
+	     sscanf(s, "%f", b_);
+#else
+	     b_ = to_float(s);
+#endif
+	     return b_;
 	   }
 	   else return a;
 	}
 	if (s == "") {
-		THROW("Missing value\n");
+		THROW("Missing value.\n");
 	}
 	return s;
 }
@@ -492,36 +607,4 @@ public void skipPast(string to) {
 /// <returns>" at character [myIndex] of [mySource]"</returns>
 public string ToString() {
 	return " at character " + myIndex + " of " + mySource;
-}
-
-/// <summary>
-/// Unescape the source text. Convert %hh sequences to single characters,
-/// and convert plus to space. There are Web transport systems that insist on
-/// doing unnecessary URL encoding. This provides a way to undo it.
-/// </summary>
-
-/// <summary>
-/// Convert %hh sequences to single characters, and convert plus to space.
-/// </summary>
-/// <param name="s">A string that may contain plus and %hh sequences.</param>
-/// <returns>The unescaped string.</returns>
-public string unescape(string|void s) {
-	if(!s) s = mySource;
-	int len = sizeof(s);
-	String.Buffer sb = String.Buffer();
-	for (int i=0; i < len; i++) {
-		int c = s[i];
-		if (c == '+') {
-			c = ' ';
-		} else if (c == '%' && (i + 2 < len)) {
-			int d = dehexchar(s[i+1]);
-			int e = dehexchar(s[i+2]);
-			if (d >= 0 && e >= 0) {
-				c = (d*16 + e);
-				i += 2;
-			}
-		}
-		sb+=String.int2char(c);
-	}
-	return sb->get();
 }
