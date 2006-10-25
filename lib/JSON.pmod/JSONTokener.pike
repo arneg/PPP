@@ -1,5 +1,5 @@
 // vim:syntax=lpc
-// $Id: JSONTokener.pike,v 1.3 2006/10/25 16:50:50 tobij Exp $
+// $Id: JSONTokener.pike,v 1.4 2006/10/25 17:01:22 tobij Exp $
 // 
 // I really hate those comments.
 //
@@ -82,6 +82,7 @@ varargs void setup(string s)
 #endif
 {
 	mySource = s;
+	myIndex = 0;
 #ifdef __PIKE__
 	objectbuilder = objectb;
 	arraybuilder = arrayb;
