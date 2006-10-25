@@ -1,5 +1,5 @@
 // vim:syntax=lpc
-// $Id: JSONTokener.pike,v 1.5 2006/10/25 17:15:37 tobij Exp $
+// $Id: JSONTokener.pike,v 1.6 2006/10/25 17:45:47 tobij Exp $
 // 
 // I really hate those comments.
 //
@@ -17,6 +17,7 @@
 // I will probably once find out whether Are and Bill think the same wwy
 // about it.
 
+#ifdef __PIKE__
 /// <summary>
 /// <para>
 ///  A JSONTokener takes a source string and extracts characters and tokens from
@@ -42,8 +43,8 @@ int myIndex;
 /// <summary>The source string being tokenized.</summary>
 string mySource;
 
+# define PROTECTED	public
 
-#ifdef __PIKE__
 # define THROW(x)	throw(Error.Generic(x))
 # define SBGET(x)	(x)->get()
 
@@ -52,6 +53,11 @@ string mySource;
 
 program objectbuilder, arraybuilder;
 #else
+# define PROTECTED	protected
+
+PROTECTED int myIndex;
+PROTECTED string mySource;
+
 # define arrayp(x)	pointerp(x)
 # define THROW(x)	raise_error(x)
 # define UNDEFINED	0
@@ -61,9 +67,9 @@ program objectbuilder, arraybuilder;
 # define trim_whites(x)	trim(x)
 # define search	strstr
 
-public mixed nextObject();
+PROTECTED mixed nextObject();
 
-string _int2char(int c) {
+PROTECTED string _int2char(int c) {
     string s = " ";
 
     s[0] = c;
@@ -76,16 +82,17 @@ string _int2char(int c) {
 /// </summary>
 /// <param name="s">A source string.</param>
 #ifdef __PIKE__
-void create(string s, program|void objectb, program|void arrayb)
+static void create(string s, program|void objectb, program|void arrayb)
 #else
-varargs void setup(string s)
+mixed parse_json(string s)
 #endif
 {
 	mySource = s;
-	myIndex = 0;
 #ifdef __PIKE__
 	objectbuilder = objectb;
 	arraybuilder = arrayb;
+#else
+	return nextObject();
 #endif
 }
 
@@ -94,7 +101,7 @@ varargs void setup(string s)
 /// so that you can test for a digit or letter before attempting to parse
 /// the next number or identifier.
 /// </summary>
-public void back() {
+PROTECTED void back() {
 	if (myIndex > 0)
 		myIndex -= 1;
 }
@@ -107,7 +114,7 @@ public void back() {
 /// between 'a' and 'f'.
 /// </param>
 /// <returns>An int between 0 and 15, or -1 if c was not a hex digit.</returns>
-public int dehexchar(int c) {
+PROTECTED int dehexchar(int c) {
 	if (c >= '0' && c <= '9') 
 	{
 		return c - '0';
@@ -127,7 +134,7 @@ public int dehexchar(int c) {
 /// Determine if the source string still contains characters that next() can consume.
 /// </summary>
 /// <returns>true if not yet at the end of the source.</returns>
-public int more() {
+PROTECTED int more() {
 	return myIndex < sizeof(mySource);
 }
 
@@ -136,9 +143,9 @@ public int more() {
 /// </summary>
 /// <returns>The next character, or 0 if past the end of the source string.</returns>
 #ifdef __PIKE__
-public int next(int|void x)
+PROTECTED int next(int|void x)
 #else
-varargs public int next(int x)
+varargs PROTECTED int next(int x)
 #endif
 {
    if(x) {
@@ -163,7 +170,7 @@ varargs public int next(int x)
 /// </summary>
 /// <param name="n">The number of characters to take.</param>
 /// <returns>A string of n characters.</returns>
-public string nextn(int n) {
+PROTECTED string nextn(int n) {
 	int i = myIndex;
 	int j = i + n;
 
@@ -179,7 +186,7 @@ public string nextn(int n) {
 /// and comments (slashslash and slashstar).
 /// </summary>
 /// <returns>A character, or 0 if there are no more characters.</returns>
-public int nextClean() {
+PROTECTED int nextClean() {
 	while (1) {
 		int c = next();
 		if (c == '/') {
@@ -230,7 +237,7 @@ public int nextClean() {
 /// </summary>
 /// <param name="quote">The quoting character, either " or '</param>
 /// <returns>A String.</returns>
-public string nextString(int quote) {
+PROTECTED string nextString(int quote) {
 	int c;
 #ifdef __PIKE__
 	String.Buffer sb = String.Buffer();
@@ -305,9 +312,9 @@ public string nextString(int quote) {
 /// <param name="s">A string that may contain plus and %hh sequences.</param>
 /// <returns>The unescaped string.</returns>
 #ifdef __PIKE__
-public string unescape(string|void s)
+PROTECTED string unescape(string|void s)
 #else
-public varargs string unescape(string s)
+PROTECTED varargs string unescape(string s)
 #endif
 {
 	if(!s) s = mySource;
@@ -503,7 +510,7 @@ mixed *jsonArray()
 /// JSONArray, JSONObject, or String, or the JSONObject.NULL object.
 /// </summary>
 /// <returns>An object.</returns>
-public mixed nextObject() {
+PROTECTED mixed nextObject() {
 	int c = nextClean();
 	string s;
 
@@ -570,7 +577,7 @@ public mixed nextObject() {
 /// <returns>
 /// The requested character, or zero if the requested character is not found.
 /// </returns>
-public int skipTo(int to) {
+PROTECTED int skipTo(int to) {
 	int c;
 	int i = myIndex;
 	do {
@@ -590,7 +597,7 @@ public int skipTo(int to) {
 /// If it is not found, we are left at the end of the source.
 /// </summary>
 /// <param name="to">A string to skip past.</param>
-public void skipPast(string to) {
+PROTECTED void skipPast(string to) {
 	myIndex = search(mySource, to, myIndex);
 	if (myIndex < 0) {
 		myIndex = sizeof(mySource);
@@ -606,6 +613,7 @@ public void skipPast(string to) {
 /// Make a printable string of this JSONTokener.
 /// </summary>
 /// <returns>" at character [myIndex] of [mySource]"</returns>
-public string ToString() {
+PROTECTED string ToString() {
 	return " at character " + myIndex + " of " + mySource;
 }
+
