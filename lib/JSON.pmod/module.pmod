@@ -1,4 +1,4 @@
-// $Id: module.pmod,v 1.4 2006/10/25 12:43:05 tobij Exp $
+// $Id: module.pmod,v 1.5 2006/10/25 12:47:05 tobij Exp $
 
 mixed parse(string json, program|void objectb, program|void arrayb) {
 #if constant(Public)
@@ -144,7 +144,6 @@ string _float2json(float|object f) {
     string s = lower_case((string)f);
 
     if (!has_value(s, 'e') && has_value(s, '.')) {
-	write("true\n");
 	while (has_suffix(s, "0")) {
 	    s = s[..sizeof(s) - 2];
 	}
