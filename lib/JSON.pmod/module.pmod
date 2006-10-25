@@ -1,4 +1,5 @@
-// $Id: module.pmod,v 1.5 2006/10/25 12:47:05 tobij Exp $
+// vim:syntax=lpc
+// $Id: module.pmod,v 1.6 2006/10/25 12:55:23 tobij Exp $
 
 mixed parse(string json, program|void objectb, program|void arrayb) {
 #if constant(Public)
@@ -36,7 +37,7 @@ mixed serialize_pike(object|mapping|array|string|int|float thing) {
     if (stringp(thing)) {
 	return _string2json(thing);
     } else if (intp(thing)) {
-	return (string)thing;
+	return _int2json(thing);
     } else if (floatp(thing)) {
 	return _float2json(thing);
     } else if (mappingp(thing)) {
@@ -94,6 +95,30 @@ string _string2json(string|object s) {
     return buf->get_copy();
 }
 
+string _int2json(int|object thing) {
+    if (zero_type(thing)) {
+	return "null";
+    } else {
+	return (string)thing;
+    }
+}
+
+string _float2json(float|object f) {
+    string s = lower_case((string)f);
+
+    if (!has_value(s, 'e') && has_value(s, '.')) {
+	while (has_suffix(s, "0")) {
+	    s = s[..sizeof(s) - 2];
+	}
+
+	if (has_suffix(s, ".")) {
+	    s += "0";
+	}
+    }
+
+    return s;
+}
+
 string _array2json(array|object a) {
     String.Buffer buf = String.Buffer();
     function(string... : int) add = buf->add;
@@ -138,20 +163,4 @@ string _mapping2json(mapping|object m) {
     add("}");
     
     return buf->get();
-}
-
-string _float2json(float|object f) {
-    string s = lower_case((string)f);
-
-    if (!has_value(s, 'e') && has_value(s, '.')) {
-	while (has_suffix(s, "0")) {
-	    s = s[..sizeof(s) - 2];
-	}
-
-	if (has_suffix(s, ".")) {
-	    s += "0";
-	}
-    }
-
-    return s;
 }
