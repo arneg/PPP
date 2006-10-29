@@ -1,5 +1,5 @@
 // vim:syntax=lpc
-// $Id: module.pmod,v 1.8 2006/10/25 17:20:37 tobij Exp $
+// $Id: module.pmod,v 1.9 2006/10/29 11:39:19 tobij Exp $
 
 mixed parse(string json, program|void objectb, program|void arrayb) {
 #if constant(Public)
@@ -19,41 +19,52 @@ mixed parse_pike(string json, program|void objectb, program|void arrayb) {
     return .JSONTokener(json, objectb, arrayb)->nextObject();
 }
 
-mixed serialize(object|mapping|array|string|int|float thing) {
+String.Buffer serialize(object|mapping|array|string|int|float thing,
+		String.Buffer|void sb) {
 #if constant(Public)
 # if constant(Public.Parser)
 #  if constant(Public.Parser.JSON)
-    return Public.Parser.JSON.serialize(thing);
+    string res;
+
+    res = Public.Parser.JSON.serialize(thing);
+    if (!sb) sb = String.Buffer(sizeof(res));
+    sb->add(res);
+
+    return sb;
 #  endif
 # endif
 #endif
 
-    return serialize_pike(thing);
+    return serialize_pike(thing, sb);
 }
 
-mixed serialize_pike(object|mapping|array|string|int|float thing) {
+String.Buffer serialize_pike(object|mapping|array|string|int|float thing,
+		     String.Buffer|void sb) {
     int type;
 
+    if (!sb) sb = String.Buffer();
+
     if (stringp(thing)) {
-	return _string2json(thing);
+	_string2json(thing, sb);
     } else if (intp(thing)) {
-	return _int2json(thing);
+	_int2json(thing, sb);
     } else if (floatp(thing)) {
-	return _float2json(thing);
+	_float2json(thing, sb);
     } else if (mappingp(thing)) {
-	return _mapping2json(thing);
+	_mapping2json(thing, sb);
     } else if (arrayp(thing)) {
-	return _array2json(thing);
+	_array2json(thing, sb);
     } else {
 	throw(Error.Generic(sprintf("Could not serialize %O, it's a %O, but I "
 				    "can't handle " "that.\n",
 				    thing, _typeof(thing))));
     }
+
+    return sb;
 }
 
-string _string2json(string|object s) {
-    String.Buffer buf = String.Buffer(sizeof(s) + 10);
-    function(string... : int) add = buf->add;
+void _string2json(string|object s, String.Buffer sb) {
+    function(string... : int) add = sb->add;
 
     add("\"");
 
@@ -91,19 +102,17 @@ string _string2json(string|object s) {
     }
 
     add("\"");
-
-    return buf->get_copy();
 }
 
-string _int2json(int|object thing) {
+void _int2json(int|object thing, String.Buffer sb) {
     if (zero_type(thing)) {
-	return "null";
+	sb->add("null");
     } else {
-	return (string)thing;
+	sb->add((string)thing);
     }
 }
 
-string _float2json(float|object f) {
+void _float2json(float|object f, String.Buffer sb) {
     string s = lower_case((string)f);
 
     if (!has_value(s, 'e') && has_value(s, '.')) {
@@ -111,34 +120,30 @@ string _float2json(float|object f) {
 	    s = s[..sizeof(s) - 2];
 	}
 
+	sb->add(s);
+
 	if (has_suffix(s, ".")) {
-	    s += "0";
+	    sb->add("0");
 	}
     }
-
-    return s;
 }
 
-string _array2json(array|object a) {
-    String.Buffer buf = String.Buffer();
-    function(string... : int) add = buf->add;
+void _array2json(array|object a, String.Buffer sb) {
+    function(string... : int) add = sb->add;
 
     add("[");
 
     foreach (a; int pos; mixed v) {
 	if (pos) add(",");
 
-	add(serialize_pike(v));
+	serialize_pike(v, sb);
     }
 
     add("]");
-
-    return buf->get();
 }
 
-string _mapping2json(mapping|object m) {
-    String.Buffer buf = String.Buffer();
-    function(string... : int) add = buf->add;
+void _mapping2json(mapping|object m, String.Buffer sb) {
+    function(string... : int) add = sb->add;
     int former;
 
     add("{");
@@ -155,12 +160,10 @@ string _mapping2json(mapping|object m) {
 			  _typeof(k), k)));
 	}
 
-	add(_string2json(k));
+	_string2json(k, sb);
 	add(":");
-	add(serialize_pike(v));
+	serialize_pike(v, sb);
     }
 
     add("}");
-    
-    return buf->get();
 }
