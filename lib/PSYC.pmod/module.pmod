@@ -231,7 +231,7 @@ LINE:while (-1 < stop &&
 			 "%s", key, val);
 	    P2(("PSYC.parse", "parsed variable: %s => %O\n", key, val))
 	    if (num == 0) THROW("Blub");
-	    if (num == 1) val = 0;
+	    if (num == 1) val = UNDEFINED;
 	    else if (key == "") { // list continuation
 #ifdef LOVE_JSON
 		if (mod != lastmod) 
@@ -273,7 +273,8 @@ LINE:while (-1 < stop &&
 	if (lastmod != 0) {
 #ifdef LOVE_JSON
 	    // long term plan is to make that on demand inside the packet..
-	    lastval = JSON.parse(lastval);
+	    if (stringp(lastval))
+		lastval = JSON.parse(lastval);
 #endif
 	    if (lastmod != ':') lastkey = String.int2char(lastmod) + lastkey;
 	    packet->vars += ([ lastkey : lastval ]);
