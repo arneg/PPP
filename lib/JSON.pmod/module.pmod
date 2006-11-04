@@ -1,7 +1,8 @@
 // vim:syntax=lpc
-// $Id: module.pmod,v 1.9 2006/10/29 11:39:19 tobij Exp $
+// $Id: module.pmod,v 1.10 2006/11/04 16:13:21 el Exp $
 
 mixed parse(string json, program|void objectb, program|void arrayb) {
+#if 0
 #if constant(Public)
 # if constant(Public.Parser)
 #  if constant(Public.Parser.JSON)
@@ -10,6 +11,7 @@ mixed parse(string json, program|void objectb, program|void arrayb) {
     }
 #  endif
 # endif
+#endif
 #endif
 
     return parse_pike(json, objectb, arrayb);
@@ -20,13 +22,15 @@ mixed parse_pike(string json, program|void objectb, program|void arrayb) {
 }
 
 String.Buffer serialize(object|mapping|array|string|int|float thing,
-		String.Buffer|void sb) {
+		String.Buffer|void sb, string|void newline) {
+#if 0
 #if constant(Public)
 # if constant(Public.Parser)
 #  if constant(Public.Parser.JSON)
     string res;
 
     res = Public.Parser.JSON.serialize(thing);
+    if (newline) res = replace(res, "\n", newline);
     if (!sb) sb = String.Buffer(sizeof(res));
     sb->add(res);
 
@@ -34,7 +38,9 @@ String.Buffer serialize(object|mapping|array|string|int|float thing,
 #  endif
 # endif
 #endif
+#endif
 
+    // use newline
     return serialize_pike(thing, sb);
 }
 

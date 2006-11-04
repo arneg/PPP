@@ -18,6 +18,8 @@ void grcb(MMP.Packet p, function callback, string key, array args) {
     if (key == m["_key"] && search(m->mc, "_notice_retrieve") == 0) {
 	call_out(callback, 0, key, m["_value"], @args);
     } else {
+	// this is somewhat blurry since we consider every !_notice_retrieve
+	// to be a failure/error
 	call_out(callback, 0, key, UNDEFINED, @args);
     }
 }

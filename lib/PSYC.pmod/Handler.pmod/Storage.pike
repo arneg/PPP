@@ -1,6 +1,10 @@
 // vim:syntax=lpc
 inherit PSYC.Handler.Base;
 
+/* TODO: doesnt check if someone is allowed to store or retrieve data ,)
+ * 	 information about linked clients should go with the misc mapping
+ */
+
 PSYC.Storage storage;
 
 constant _ = ([ 

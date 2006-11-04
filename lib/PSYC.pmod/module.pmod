@@ -172,6 +172,7 @@ string|String.Buffer render(Packet o, void|String.Buffer to) {
 
 	putchar(mod[0]);
 	add(key);
+	putchar('\t');
 	JSON.serialize(value, p, "\n"+mod+"\t");
 	add("\n");
     }
@@ -499,11 +500,11 @@ class Server {
 	    // TODO: we need error_handling here!
 	    if (!ip) {
 		P1(("MMP.Server", "Could not resolve %s.\n", host))
-		return;
 	    } else {
 		P2(("MMP.Server", "%s resolves to %s.\n", host, ip))
 	    }
-	    if (has_index(localhosts, ip))
+
+	    if (ip && has_index(localhosts, ip))
 		if_cb(@args);
 	    else if (else_cb)
 		else_cb(@args);

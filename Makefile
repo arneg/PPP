@@ -20,4 +20,4 @@ ifdef B
 endif
 
 ppp:
-	pike -DSTILLE_DULDUNG $(TN) -Ilib -Mlib $(BIND) $(DEBUG) $(LOCALHOST) $(S).pike
+	pike -DSTILLE_DULDUNG -DLOVE_JSON $(TN) -Ilib -Mlib $(BIND) $(DEBUG) $(LOCALHOST) $(S).pike
