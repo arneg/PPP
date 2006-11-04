@@ -105,6 +105,7 @@ void filter(MMP.Packet p, mapping _v, function cb) {
 
     P3(("Auth.Handler", "Handling identification of %O.\n", p->vars))
 
+    // why are we not using send_tagged here???
     if (has_index(p->vars, "_source_identification")) {
 	MMP.Uniform id = p["_source_identification"];	
 	MMP.Uniform s = p["_source"];

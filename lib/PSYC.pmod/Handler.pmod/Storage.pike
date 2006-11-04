@@ -18,19 +18,22 @@ int postfilter_request_store(MMP.Packet p, mapping _v) {
 	return PSYC.Handler.STOP;
     }
 
+    string key = m->vars["_key"];
+    mixed value = m->vars["_value"];
+
     void callback(int i, MMP.Uniform target, PSYC.Packet m) {
 	if (i) {
 	    uni->sendmsg(target, m->reply("_notice_store"));
 	} else {
 	    uni->sendmsg(target, m->reply("_error_store"));
 	}
-    }
+    };
 
     storage->set(key, value, callback, p["_source"], m);
     return PSYC.Handler.STOP;
 }
 
-int postfilter_request_retrieval(MMP.Packet p, mapping _v) {
+int postfilter_request_retrieve(MMP.Packet p, mapping _v) {
     PSYC.Packet m = p->data;
 
     if (!has_index(m->vars, "_key")) {
@@ -38,9 +41,11 @@ int postfilter_request_retrieval(MMP.Packet p, mapping _v) {
 	return PSYC.Handler.STOP;
     }
 
-    void callback(int i, string key, string value, MMP.Uniform target, 
+    string key = m->vars["_key"];
+
+    void callback(string key, string value, MMP.Uniform target, 
 		  PSYC.Packet m) {
-	if (i) {
+	if (value != UNDEFINED) {
 	    uni->sendmsg(target, m->reply("_notice_retrieve", 0, 
 					  ([ "_key" : key,
 					     "_value" : value ])));
@@ -48,9 +53,9 @@ int postfilter_request_retrieval(MMP.Packet p, mapping _v) {
 	    uni->sendmsg(target, m->reply("_error_retrieve", 0,
 					  ([ "_key" : key ])));
 	}
-    }
+    };
 
-    storage->set(key, value, callback, p["_source"], m);
+    storage->get(key, callback, p["_source"], m);
     return PSYC.Handler.STOP;
 }
 

@@ -8,3 +8,8 @@ object uni;
 static void create(object o) {
     uni = o;
 }
+
+MMP.Uniform string2uniform(string|MMP.Uniform u) {
+    if (stringp(u)) return uni->server->get_uniform(u);
+    return u;
+}

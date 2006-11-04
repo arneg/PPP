@@ -1,3 +1,4 @@
+#include <debug.h>
 inherit PSYC.Storage;
 
 MMP.Uniform link_to;
@@ -12,10 +13,12 @@ void create(MMP.Uniform link_to_, object uni_) {
 void grcb(MMP.Packet p, function callback, string key, array args) {
     PSYC.Packet m = p->data;
 
-    if (key == m["_key"] && search(p->mc, "_notice_retrieve") == 0) {
-	call_out(callback, 0, 1, key, m["_value"], @args);
+    P3(("RemoteStorage", "grcb(%O, %O, %O, %O)\n", p, callback, key, args))
+
+    if (key == m["_key"] && search(m->mc, "_notice_retrieve") == 0) {
+	call_out(callback, 0, key, m["_value"], @args);
     } else {
-	call_out(callback, 0, 0, key, 0, @args);
+	call_out(callback, 0, key, UNDEFINED, @args);
     }
 }
 
@@ -23,10 +26,10 @@ void grcb(MMP.Packet p, function callback, string key, array args) {
 void gscb(MMP.Packet p, function callback, string key, array args) {
     PSYC.Packet m = p->data;
 
-    if (key == m["_key"] && search(p->mc, "_notice_store") == 0) {
+    if (key == m["_key"] && search(m->mc, "_notice_store") == 0) {
 	call_out(callback, 0, 1, key, @args);
     } else {
-	call_out(callback, 0, 0, key, 0, @args);
+	call_out(callback, 0, UNDEFINED, key, @args);
     }
 }
 

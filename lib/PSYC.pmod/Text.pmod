@@ -31,6 +31,8 @@ string psyctext(string fmt, mapping|void vars) {
 
 	    if (arrayp(val)) {
 		val = val * ", ";
+	    } else if (mappingp(val)) {
+		val = sprintf("%O", val);
 	    }
 #ifdef HTML
 	    va["[(" + m + ")]"] = replace((string)vars[m],
@@ -72,7 +74,7 @@ class FileTextDB {
     string tdbpath;
 
     void create(string path) {
-	PT(("FileTextDB", "create(%O)\n", path))
+	P3(("FileTextDB", "create(%O)\n", path))
 	tdbpath = path;
 
 	if (path[-1] != '/') {
@@ -81,7 +83,7 @@ class FileTextDB {
     }
 
     void fetch(string mc, function cb, mixed ... extra) {
-	PT(("text", "fetch(%O, %O, %O)\n", mc, cb, extra))
+	P3(("text", "fetch(%O, %O, %O)\n", mc, cb, extra))
 	string filename, fmt, before, match, after;
 	Stdio.File file;
 
@@ -93,14 +95,14 @@ class FileTextDB {
 
 	filename = tdbpath + Stdio.simplify_path(replace(mc, "_", "/")) + ".fmt";
 
-	PT(("Text", "opening %O\n", filename))
+	P3(("Text", "opening %O\n", filename))
 	if (Stdio.is_file(filename)) {
-	    PT(("Text", "is_file\n"))
+	    P3(("Text", "is_file\n"))
 	    file = Stdio.File(filename, "r");
 	    fmt = file->read();
 	    file->close();
 	} else {
-	    PT(("Text", "else\n"))
+	    P3(("Text", "else\n"))
 	    array(string) l = mc / "_";
 
 	    if (sizeof(l) > 2) {
@@ -120,7 +122,7 @@ class FileTextDB {
 #endif
 
 	fmts[mc] = fmt;
-	PT(("Text", "calling_out really soon\n"))
+	P3(("Text", "calling_out really soon\n"))
 	call_out(cb, 0, 1, @extra);
     }
 }

@@ -81,9 +81,9 @@ void handle(MMP.Packet p) {
 }
 
 
-void fetched(string key, string value, MMP.Utils.Queue stack, MMP.Packet p,
+void fetched(string key, mixed value, MMP.Utils.Queue stack, MMP.Packet p,
 	     multiset(string) wvars) {
-    P3(("StageHandler", "fetched(%O, %O, %O, %O, %O)\n", key, value, stack,
+    PT(("StageHandler", "fetched(%O, %O, %O, %O, %O)\n", key, value, stack,
 	p, wvars))
 
     requested[p][key] = value;

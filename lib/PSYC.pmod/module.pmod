@@ -159,8 +159,25 @@ string|String.Buffer render(Packet o, void|String.Buffer to) {
     function add = p->add;
     function putchar = p->putchar;
 
-    if (sizeof(o->vars))
-	MMP.render_vars(o->vars, p);
+    if (sizeof(o->vars)) 
+#if LOVE_JSON
+    foreach (o->vars; string key; mixed value) {
+	string mod;
+	if (key[0] == '_') {
+	    mod = ":";
+	} else {
+	    mod = key[0..0];
+	    key = key[1..];
+	}
+
+	putchar(mod[0]);
+	add(key);
+	JSON.serialize(value, p, "\n"+mod+"\t");
+	add("\n");
+    }
+#else
+    MMP.render_vars(o->vars, p); 
+#endif
 
     add(o->mc);
     putchar('\n');
@@ -215,6 +232,7 @@ LINE:while (-1 < stop &&
 	    if (num == 0) THROW("Blub");
 	    if (num == 1) val = 0;
 	    else if (key == "") { // list continuation
+#ifdef LOVE_JSON
 		if (mod != lastmod) 
 		    THROW("improper list continuation");
 		if (mod == '-') THROW("diminishing lists is not supported");
@@ -222,6 +240,9 @@ LINE:while (-1 < stop &&
 		    lastval = ({ lastval, val });
 		else lastval += ({ val });
 		continue LINE;
+#else
+		THROW("Using JSON for lists from now on!");
+#endif 
 	    }
 	    
 	    break;
@@ -249,6 +270,10 @@ LINE:while (-1 < stop &&
 
 	// TODO: modifier unterscheiden
 	if (lastmod != 0) {
+#ifdef LOVE_JSON
+	    // long term plan is to make that on demand inside the packet..
+	    lastval = JSON.parse(lastval);
+#endif
 	    if (lastmod != ':') lastkey = String.int2char(lastmod) + lastkey;
 	    packet->vars += ([ lastkey : lastval ]);
 	}

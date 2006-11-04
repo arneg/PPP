@@ -23,9 +23,23 @@ void check_authentication(MMP.Uniform t, function cb, mixed ... args) {
 }
 
 PSYC.Packet tag(PSYC.Packet m, function|void callback, mixed ... args) {
-    m["_tag"] = reply->make_reply(callback, @args);
+    m["_tag"] = reply->make_reply(callback, 0, @args);
 
     return m;
+}
+
+PSYC.Packet tagv(PSYC.Packet m, function|void callback, multiset(string) wvars, 
+		 mixed ... args) {
+    m["_tag"] = reply->make_reply(callback, wvars, @args);
+
+    return m;
+}
+
+string send_tagged_v(MMP.Uniform target, PSYC.Packet m, multiset(string) wvars,
+		     function callback, mixed ... args) {
+    tagv(m, callback, wvars, @args); 
+    call_out(sendmsg, 0, target, m);
+    return m["_tag"];
 }
 
 string send_tagged(MMP.Uniform target, PSYC.Packet m, 
@@ -40,7 +54,11 @@ void create(MMP.Uniform u, object s, object storage) {
     server = s;
     ::create(storage);
     add_handlers(auth = PSYC.Handler.Auth(this),
-		 reply = PSYC.Handler.Reply(this));
+		 reply = PSYC.Handler.Reply(this), 
+		 PSYC.Handler.Storage(this, storage),
+		 PSYC.Handler.Trustiness(this),
+		);
+    // the order of storage and trustiness is somehow critical..
 }
 
 void sendmsg(MMP.Uniform target, PSYC.Packet m) {
