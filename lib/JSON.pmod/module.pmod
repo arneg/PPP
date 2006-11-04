@@ -1,5 +1,5 @@
 // vim:syntax=lpc
-// $Id: module.pmod,v 1.10 2006/11/04 16:13:21 el Exp $
+// $Id: module.pmod,v 1.11 2006/11/04 16:30:56 el Exp $
 
 mixed parse(string json, program|void objectb, program|void arrayb) {
 #if 0
@@ -40,8 +40,9 @@ String.Buffer serialize(object|mapping|array|string|int|float thing,
 #endif
 #endif
 
-    // use newline
-    return serialize_pike(thing, sb);
+    return (newline) 
+	    ? replace(serialize_pike(thing, sb), "\n", newline)
+	    : serialize_pike(thing, sb);
 }
 
 String.Buffer serialize_pike(object|mapping|array|string|int|float thing,
