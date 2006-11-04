@@ -15,7 +15,7 @@ XMPP.S2S.ServerManager bumms;
 # define REMOTEHOST "localhost"
 #endif
 
-#if XMPP
+#if HAS_XMPP
 string my_certificate = MIME.decode_base64(
   "MIIBxDCCAW4CAQAwDQYJKoZIhvcNAQEEBQAwbTELMAkGA1UEBhMCREUxEzARBgNV\n"
   "BAgTClRodWVyaW5nZW4xEDAOBgNVBAcTB0lsbWVuYXUxEzARBgNVBAoTClRVIEls\n"
@@ -38,9 +38,10 @@ string my_key = MIME.decode_base64(
   "jwsOclu4b+H8zopfzpAaoB8xMcbs0heN+GNNI0h/dQ==\n");
 #endif
 
-int main(int argc, array(string) argv) {
 
+int main(int argc, array(string) argv) {
     function textdb = PSYC.Text.FileTextDBFactoryFactory("../default/");
+
     dings = PSYC.Server(([
 	"localhosts" : ([ LOCALHOST : 1 
 #if defined(BIND) && BIND != LOCALHOST 
@@ -67,31 +68,17 @@ int main(int argc, array(string) argv) {
 	"localhosts" : ([ LOCALHOST : 1 ]),
 	     "ports" : ({ 5269 }),
 	"tls" : ([ "key" : ([ LOCALHOST : my_key ]),
-		 "certificates" : ([ LOCALHOST : my_certificate ]) ]),
+		 "certificates" : ([ LOCALHOST : my_certificate ]),
+		 ]),
      "secret" : "thesecret"
 	 ]));
     rumms = XMPP.S2S.ClientManager(([
 	"localhosts" : ([ LOCALHOST : 1 ]),
 	"tls" : ([ "key" : ([ LOCALHOST : my_key ]),
-		 "certificates" : ([ LOCALHOST : my_certificate ]) ]),
+		 "certificates" : ([ LOCALHOST : my_certificate ]),
+		 ]),
      "secret" : "thesecret"
 	 ]));
-#if 0
-    flumms = XMPP.S2S.Client(([
-	"domain" : REMOTEHOST,
-	"localdomain" : LOCALHOST,
-	"tls" : ([ "key" : ([ LOCALHOST : my_key ]),
-		 "certificates" : ([ LOCALHOST : my_certificate ]) ]),
-	"secret" : "thesecret",
-	]));
-    flumms->connect();
-#endif
-    MMP.Uniform test = MMP.Uniform("xmpp:" REMOTEHOST);
-    MMP.Packet p = MMP.Packet(0, 
-			      ([ "_target" : test, 
-			         "_source" : MMP.Uniform("xmpp:" LOCALHOST) 
-			]));
-    dings->deliver(test, p);
 #endif
     da = TELNET.Server(([
 	 "psyc_server" : dings,
@@ -149,5 +136,4 @@ object create_module(string name, mapping vars) {
     case "_encrypt":
 
     }
-
 }
