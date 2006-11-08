@@ -8,7 +8,7 @@ PSYC.Handler.Base auth;// = PSYC.Handler.Auth();
 
 object server;
 MMP.Uniform uni;
-int counter = 0;
+int counter = ([]);
 
 mixed cast(string type) {
     if (type == "string") return sprintf("Unl(%s)", qName());
@@ -76,13 +76,14 @@ void sendmmp(MMP.Uniform t, MMP.Packet p) {
 	if (!has_index(p->vars, "_target")) {
 	    p["_target"] = t;
 	}
+
 	if (!has_index(p->vars, "_source")) {
 	    p["_source"] = uni;
 	}
-    }
 
-    if (!has_index(p->vars, "_counter")) {
-	p["_counter"] = counter++;
+	if (!has_index(p->vars, "_counter")) {
+	    p["_counter"] = counter[p["_source"]]++;
+	}
     }
 
     server->deliver(t, p);
