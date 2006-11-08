@@ -12,10 +12,9 @@ void debug(string cl, string format, mixed ... args) {
 # define THROW(s)        throw(({ (s), 0 }))
 #endif
 
-// TODO: this is totally MMP. at least not limited to psyc
 class Uniform {
     string scheme, transport, host, user, resource, slashes, query, body,
-	   userAtHost, pass, hostPort, circuit, root, unl;
+	   userAtHost, pass, hostPort, circuit, root, unl, channel, super;
     int port, parsed;
     object handler;
 
@@ -62,13 +61,14 @@ class Uniform {
 		case "circuit":
 		case "root":
 		case "port":
+		case "channel":
+		case "obj":
 		    parse();
 	    }
 	}
 
 	return ::`->(dings);
     }
-
 
     void parse() {
 	string s, t = unl;
@@ -91,6 +91,15 @@ class Uniform {
 	}
 	body = t;
 	sscanf(t, "%s/%s", t, resource);
+
+	if (2 != sscanf(resource, "%s#%s", obj, channel)) {
+	    obj = resource;
+	    channel = UNDEFINED;
+	    super = UNDEFINED;
+	} else {
+	    super = scheme + slashes + body + "/" + obj;
+	}
+
 	userAtHost = t;
 	if (sscanf(t, "%s@%s", s, t)) {
 		if (!sscanf(s, "%s:%s", user, pass))
@@ -103,6 +112,7 @@ class Uniform {
 		if (!sscanf(s, "%d%s", port, transport))
 		    transport = s;
 	}
+
 	host = t;
 
 	parsed = 1;
@@ -143,7 +153,7 @@ string|String.Buffer render_vars(mapping(string:mixed) vars,
 	    else if (arrayp(val))
 		add(map(val, replace, "\n", "\n\t") * ("\n"+mod+"\t"));
 	    else if (mappingp(val))
-		add("dummy");
+		throw("no syntax for mappings in mmp.");
 	    else if (intp(val) || (objectp(val) && Program.inherits(object_program(val), Uniform)))
 		add((string)val);
 	    
@@ -436,10 +446,11 @@ class Circuit {
 	socket = so;
 	socket->set_nonblocking(start_read, write, close);
 	peerhost = so->query_address();
-	peeraddr = Uniform("psyc://"+((peerhost / " ") * ":"), this);
 	msg_cb = cb;
 	close_cb = closecb;
 	get_uniform = parse_uni||MMP.parse_uniform;
+	peeraddr = get_uniform("psyc://"+((peerhost / " ") * ":"));
+	peeraddr->handler = this;
 
 	q_neg->push(Packet());
 	reset();
@@ -750,7 +761,7 @@ LINE:	while(-1 < stop &&
 			case "_source":
 			case "_target":
 			case "_context":
-			    P2(("MMP.Circuit", "cb: %O\n", get_uniform))
+			    P3(("MMP.Circuit", "cb: %O\n", get_uniform))
 			    val = get_uniform(val); 
 			}
     
