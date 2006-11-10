@@ -23,9 +23,7 @@ void check_authentication(MMP.Uniform t, function cb, mixed ... args) {
 }
 
 PSYC.Packet tag(PSYC.Packet m, function|void callback, mixed ... args) {
-    m["_tag"] = reply->make_reply(callback, 0, @args);
-
-    return m;
+    return tagv(m, callback, 0, @args);
 }
 
 PSYC.Packet tagv(PSYC.Packet m, function|void callback, multiset(string) wvars, 
@@ -44,9 +42,7 @@ string send_tagged_v(MMP.Uniform target, PSYC.Packet m, multiset(string) wvars,
 
 string send_tagged(MMP.Uniform target, PSYC.Packet m, 
 		   function callback, mixed ... args) {
-    tag(m, callback, @args); 
-    call_out(sendmsg, 0, target, m);
-    return m["_tag"];
+    return send_tagged_v(target, m, 0, callback, @args);
 }
 
 void create(MMP.Uniform u, object s, object storage) {
