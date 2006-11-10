@@ -8,7 +8,7 @@ PSYC.Handler.Base auth;// = PSYC.Handler.Auth();
 
 object server;
 MMP.Uniform uni;
-int counter = ([]);
+mapping(MMP.Uniform:int) counter = ([]);
 
 mixed cast(string type) {
     if (type == "string") return sprintf("Unl(%s)", qName());
