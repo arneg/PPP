@@ -326,7 +326,7 @@ class Server {
     // these contexts are local context slaves.. for remote rooms. and also 
     // context slaves for local rooms. we should not make any difference really
     void register_context(MMP.Uniform c, object o) {
-	if (has_index(contexts, c)) throw("murks");
+	if (has_index(contexts, c)) throw(({"murks"}));
 	contexts[c] = o;
     }
 
@@ -351,13 +351,13 @@ class Server {
 	if (has_index(config, "create_local") 
 	    && functionp(create_local = config["create_local"])) {
 	} else {
-	    throw("urks");
+	    throw(({"urks"}));
 	}
 
 	if (has_index(config, "default_localhost")) {
 	    def_localhost = config["default_localhost"];  
 	} else {
-	    throw("aaahahha");
+	    throw(({"aaahahha"}));
 	}
 
 	if (has_index(config, "deliver_remote")) {
@@ -388,12 +388,12 @@ class Server {
 		}
 		p->set_id(p);
 	    }
-	} else throw("help!");
+	} else throw(({ "help!" }));
 
 	//set_weak_flag(unlcache, Pike.WEAK_VALUES);
 
 	circuit_established = PSYC.Packet("_notice_circuit_established", 
-					  "You got connected to %s.\n",
+					  "You got connected to [_source].",
 			  ([ "_implementation" : "better than wurstbrote" ]));
 	MMP.Uniform t = get_uniform("psyc://" + def_localhost + "/");
 	t->handler = this;
@@ -405,11 +405,13 @@ class Server {
     void accept(Stdio.Port lsocket) {
 	string peerhost;
 	Stdio.File socket;
+	MMP.Server con;
+
 	socket = lsocket->accept();
 	peerhost = socket->query_address();
 
-	connections[peerhost] = MMP.Server(socket, route, close, get_uniform);
-	connections[peerhost]->send_neg(MMP.Packet(circuit_established));
+	connections[peerhost] = (con = MMP.Server(socket, route, close, get_uniform));
+	con->send_neg(MMP.Packet(circuit_established, ([ "_source" : uni, "_target" : con->peeraddr ])) );
     }
 
     void connect(int success, Stdio.File so, MMP.Utils.Queue q, 

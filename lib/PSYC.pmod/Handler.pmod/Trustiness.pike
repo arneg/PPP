@@ -50,10 +50,10 @@ constant _ = ([
     ]),
 ]);
 
-int postfilter_request_trustiness(MMP.Packet p, mapping _v) {
+int postfilter_request_trustiness(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data, reply;
     MMP.Uniform source = p->source(), location;
-    int trust;
+    int trust = 0;
 
     if (!has_index(m->vars, "_location")) {
 	P1(("Handler.Trustiness", "%O: Got _request_trustiness without a _location from %O.\n", uni, source))
@@ -77,7 +77,7 @@ int postfilter_request_trustiness(MMP.Packet p, mapping _v) {
     return PSYC.Handler.STOP;
 }
 
-int postfilter_failure_trustiness(MMP.Packet p, mapping _v) {
+int postfilter_failure_trustiness(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
     MMP.Uniform location = (m->vars["_location"] = string2uniform(m->vars["_location"]));
 
@@ -86,7 +86,7 @@ int postfilter_failure_trustiness(MMP.Packet p, mapping _v) {
     return PSYC.Handler.STOP;
 }
 
-void process(MMP.Packet reply, mapping _v, MMP.Uniform trustee, 
+void process(MMP.Packet reply, mapping _v, MMP.Uniform trustee,
 	     MMP.Uniform source) {
     PSYC.Packet m = reply->data;
 
@@ -106,14 +106,14 @@ void process(MMP.Packet reply, mapping _v, MMP.Uniform trustee,
 
     // er....
     if (equal(m->mc / "_", ({ "", "failure", "trustiness" }))) {
-	postfilter_failure_trustiness(reply, _v);
+	postfilter_failure_trustiness(reply, _v, ([]));
     } else if (equal(m->mc / "_", ({ "", "notice", "trustiness" }))) {
-	postfilter_notice_trustiness(reply, _v);
+	postfilter_notice_trustiness(reply, _v, ([]));
     }
 
 }
 
-void postfilter_notice_trustiness(MMP.Packet p, mapping _v) {
+void postfilter_notice_trustiness(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
     MMP.Uniform trustee = p->source();
     MMP.Uniform location = (m->vars["_location"] = string2uniform(m->vars["_location"]));
@@ -161,20 +161,21 @@ void deliver(MMP.Uniform trustee, MMP.Uniform guy, int trust) {
     }
 }
 
-void filter(MMP.Packet p, mapping _v, function cb) {
+void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
     PSYC.Packet m = p->data;
+    int trust = UNDEFINED;
+    MMP.Uniform source = p->source();
 
     // we should change _trust here in any case! later TODO
-    if (has_index(m->vars, "_trustee")) {
-	int trust = UNDEFINED;
-	MMP.Uniform trustee, source = p->source();
+    if (has_index(_v["_friends"], source)) {
+	trust = _v["_friends"][source];
+    } else if (has_index(m->vars, "_trustee")) {
+	MMP.Uniform trustee;
 
 	trustee = (m->vars["_trustee"] = string2uniform(m->vars["_trustee"]));
 
 	// everyone has some friends
-	if (has_index(_v["_friends"], source)) {
-	    trust = _v["_friends"][source];
-	} else if (has_index(trusted, trustee) && has_index(trusted[trustee], source)) {
+	if (has_index(trusted, trustee) && has_index(trusted[trustee], source)) {
 	    trust = trusted[trustee][source];
 	} else if (has_index(pending, trustee) && has_index(pending[trustee], source)) {
 	    pending[trustee][source] += ({ cb });
@@ -184,12 +185,22 @@ void filter(MMP.Packet p, mapping _v, function cb) {
 						"_identification" : source,
 					       ]));
 
-	    uni->send_tagged_v(request, process, 
-			       _["postfilter"]["_notice_trustiness"], 
+#if OK
+	    uni->send_tagged_v(trustee, request, 
+			       (multiset)_["postfilter"]["_notice_trustiness"], 
+			       process, 
 			       trustee, source); 
+#else
+	    uni->send_tagged_v(request, 
+			       process, 
+			       (multiset)_["postfilter"]["_notice_trustiness"], 
+			       trustee, source); 
+#endif
 	}
 	return;
     }
+
+    _m["_trust"] = trust;
 
     PT(("Handler.Trustiness", "%O: leaving filter-stage.\n", uni))
     call_out(cb, 0, PSYC.Handler.GOON);

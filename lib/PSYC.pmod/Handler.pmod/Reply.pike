@@ -19,7 +19,7 @@ mapping(string:array) reply = ([ ]);
 int add_reply(function cb, string tag, multiset(string) vars, mixed ... args) {
     if (has_index(reply, tag)) return 0;
 
-    P3(("Handler.Reply", "%O: added tag(%s) with %O for %O.\n", uni, tag, vars, cb))
+    PT(("Handler.Reply", "%O: added tag(%s) with %O for %O.\n", uni, tag, vars, cb))
 
     reply[tag] = ({ cb, args, vars, vars ? ([]) : 0 });
     return 1;
@@ -29,12 +29,14 @@ int add_reply(function cb, string tag, multiset(string) vars, mixed ... args) {
 string make_reply(function cb, multiset(string) vars, mixed ... args) {
     string tag;
 
+    PT(("Handler.Reply", "%O: make_reply(%O, %O, %O)\n", this, cb, vars, args))
+
     while (has_index(reply, tag = RANDHEXSTRING));
     add_reply(cb, tag, vars, @args);
     return tag;
 }
 
-int filter(MMP.Packet p, mapping _v) {
+int filter(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
 
     P3(("Handler.Reply", "%O: prefilter(%O)\n", uni, p))

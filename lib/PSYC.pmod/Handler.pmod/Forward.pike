@@ -6,7 +6,7 @@ constant _ = ([
     ])
 ]);
 
-int postfilter(MMP.Packet p, mapping _v) {
+int postfilter(MMP.Packet p, mapping _v, mapping _m) {
     call_out(uni->distribute, 0 ,p);
     return PSYC.Handler.GOON;
 }

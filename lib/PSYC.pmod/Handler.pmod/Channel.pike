@@ -19,7 +19,7 @@ inherit PSYC.Handler.Base;
 
 constant _ = ([
     "postfilter" : ([
-	"_request_context_enter" : ({ }),
+	"_request_context_enter" : 0,
 	"_request_context_enter_subscribe" : ({ "_members" }),
     ]),
 ]);

@@ -13,7 +13,7 @@ void verycomplexcallback(int s, function cb) {
     call_out(cb, 0, PSYC.Handler.GOON);
 }
 
-void filter(MMP.Packet p, mapping _v, function cb) {
+void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
     PSYC.Packet m = p->data;
 
     uni->attachee->textdb->fetch(m->mc, verycomplexcallback, cb);

@@ -13,7 +13,6 @@
 inherit PSYC.Unl : unii;
 inherit Group : group;
 
-int counter = 0;
 mapping(MMP.Uniform:multiset(MMP.Uniform)|int) routes = ([]);
 mapping(MMP.Uniform:MMP.Uniform) member = ([]);
 

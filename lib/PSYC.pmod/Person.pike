@@ -8,11 +8,16 @@ PSYC.Handler.Base relay;
 PSYC.Handler.Base link;
 PSYC.Handler.Base forward;
 PSYC.Handler.Base echo;
+PSYC.Handler.Base trust;
 
 // wie waren diese unterschiedlichen level? fippo hatte doch das alles
 // sich genau überlegt.
 // friends landet dann ja wohl im v..
 mixed v;
+
+string _sprintf(int type) {
+    return sprintf("Person(%O)", uni);
+}
 
 void attach(MMP.Uniform unl) {
     clients[unl] = 1;
@@ -21,6 +26,10 @@ void attach(MMP.Uniform unl) {
 void detach(MMP.Uniform unl) {
     //client -= (< unl >);
     clients[unl] = 0;
+}
+
+int attached(MMP.Uniform unl) {
+    return has_index(clients, unl);
 }
 
 void check_authentication(MMP.Uniform t, function cb, mixed ... args) {
@@ -59,6 +68,7 @@ void create(string nick, MMP.Uniform uni, object server) {
     relay = PSYC.Handler.Relay(this);
     link = PSYC.Handler.Link(this);
     echo = PSYC.Handler.Echo(this);
-    add_handlers(relay, link, forward, echo);
+    trust = PSYC.Handler.Trustiness(this);
+    add_handlers(relay, link, forward, echo, trust);
 }
 

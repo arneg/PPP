@@ -1,5 +1,5 @@
 class Queue {
-    array head, tail;
+    array|int head, tail;
     int size = 0;
 
     constant DATA = 0;
@@ -83,7 +83,7 @@ class Queue {
     mixed cast(string type) {
 	if (type == "array") {
 	    array out = allocate(sizeof(this));
-	    array tmp = head;
+	    array|int tmp = head;
 
 	    for (int i; tmp; i++) {
 		out[i] = tmp[DATA];

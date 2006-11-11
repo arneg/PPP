@@ -28,7 +28,7 @@ PSYC.Packet tag(PSYC.Packet m, function|void callback, mixed ... args) {
 
 PSYC.Packet tagv(PSYC.Packet m, function|void callback, multiset(string) wvars, 
 		 mixed ... args) {
-    m["_tag"] = reply->make_reply(callback, wvars, @args);
+    m->vars["_tag"] = reply->make_reply(callback, wvars, @args);
 
     return m;
 }
@@ -51,9 +51,7 @@ void create(MMP.Uniform u, object s, object storage) {
     ::create(storage);
     add_handlers(auth = PSYC.Handler.Auth(this),
 		 reply = PSYC.Handler.Reply(this), 
-		 PSYC.Handler.Storage(this, storage),
-		 PSYC.Handler.Trustiness(this),
-		);
+		 PSYC.Handler.Storage(this, storage));
     // the order of storage and trustiness is somehow critical..
 }
 

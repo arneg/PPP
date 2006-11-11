@@ -19,5 +19,9 @@ ifdef B
     BIND = -DBIND="\"$(B)\""
 endif
 
+ifdef TP
+    TDB = -DTEXT_DB_PATH="\"$(TP)\""
+endif
+
 ppp:
-	pike -DSTILLE_DULDUNG -DLOVE_JSON $(TN) -Ilib -Mlib $(BIND) $(DEBUG) $(LOCALHOST) $(S).pike
+	pike -DSTILLE_DULDUNG -DLOVE_JSON $(TN) -Ilib -Mlib $(BIND) $(DEBUG) $(LOCALHOST) $(TDB) $(S).pike

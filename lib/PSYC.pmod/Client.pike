@@ -2,68 +2,18 @@
 #include <debug.h>
 inherit PSYC.Unl;
 
-class Linker {
-    inherit PSYC.Handler.Base;
-    function error, query_password;
-    MMP.Uniform link_to;
-    
-    void create(object c, function err, function quer, MMP.Uniform link_to_) {
-	error = err;
-	query_password = quer;
-	link_to = link_to_;
-	::create(c);
-    }
-
-    constant _ = ([
-	"postfilter" : ([
-	    "_query_password" : 0,
-	    "_error_invalid_password" : 0,
-	    "_notice_unlink" : 0,
-	    "_notice_link" : 0,
-	]),
-    ]);
-
-    void set_password(string pw, string hash) {
-	PSYC.Packet m = PSYC.Packet("_set_password", 0, ([ "_password" : pw ]));
-	if (hash) {
-	    m["_method_hash"] = hash;
-	}
-	uni->sendmsg(link_to, m);
-    }
-
-    int postfilter_query_password(MMP.Packet p, mapping _v) {
-	call_out(query_password, 0, p, set_password);
-	return PSYC.Handler.GOON;
-    }
-
-    int postfilter_error_invalid_password(MMP.Packet p, mapping _v) {
-	call_out(error, 0, p, set_password);
-	return PSYC.Handler.STOP;
-    }
-
-    int postfilter_notice_unlink(MMP.Packet p, mapping _v) {
-	uni->linked = 0;
-	return PSYC.Handler.GOON;
-    }
-
-    int postfilter_notice_link(MMP.Packet p, mapping _v) {
-	uni->linked = 1;
-	uni->unroll();
-	return PSYC.Handler.GOON;
-    }
-}
-
 int linked = 0;
 MMP.Utils.Queue queue = MMP.Utils.Queue();
 object attachee;
 MMP.Uniform link_to;
+PSYC.Storage storage;
 
 void create(MMP.Uniform uni_, object server, MMP.Uniform unl,
 	    function error, function query_password, string|void password) {
     PSYC.Packet request = PSYC.Packet("_request_link", "let me in!");
     link_to = uni_;
 
-    ::create(unl, server, PSYC.RemoteStorage(link_to, this)); 
+    ::create(unl, server, storage = PSYC.RemoteStorage(link_to, this)); 
     // there will be dragons here
     // (if we directly create a Linker-instance in the add_handlers call,
     // dragons appear.
@@ -123,6 +73,7 @@ void client_sendmmp(MMP.Packet p, MMP.Uniform|void target) {
 }
 
 void unroll() {
+    storage->link();
     while(!queue->isEmpty()) {
 	server->sendmmp(@queue->shift());
     }
@@ -147,4 +98,56 @@ MMP.Uniform room_to_uniform(string l) {
 
     return address;
 }
+
+class Linker {
+    inherit PSYC.Handler.Base;
+    function error, query_password;
+    MMP.Uniform link_to;
+    
+    void create(object c, function err, function quer, MMP.Uniform link_to_) {
+	error = err;
+	query_password = quer;
+	link_to = link_to_;
+	::create(c);
+    }
+
+    constant _ = ([
+	"postfilter" : ([
+	    "_query_password" : 0,
+	    "_error_invalid_password" : 0,
+	    "_notice_unlink" : 0,
+	    "_notice_link" : 0,
+	]),
+    ]);
+
+    void set_password(string pw, string hash) {
+	PSYC.Packet m = PSYC.Packet("_set_password", 0, ([ "_password" : pw ]));
+	if (hash) {
+	    m["_method_hash"] = hash;
+	}
+	uni->sendmsg(link_to, m);
+    }
+
+    int postfilter_query_password(MMP.Packet p, mapping _v) {
+	call_out(query_password, 0, p, set_password);
+	return PSYC.Handler.GOON;
+    }
+
+    int postfilter_error_invalid_password(MMP.Packet p, mapping _v) {
+	call_out(error, 0, p, set_password);
+	return PSYC.Handler.STOP;
+    }
+
+    int postfilter_notice_unlink(MMP.Packet p, mapping _v) {
+	uni->linked = 0;
+	return PSYC.Handler.GOON;
+    }
+
+    int postfilter_notice_link(MMP.Packet p, mapping _v) {
+	uni->linked = 1;
+	uni->unroll();
+	return PSYC.Handler.GOON;
+    }
+}
+
 

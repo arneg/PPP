@@ -39,5 +39,6 @@ void add_handlers(PSYC.Handler.Base ... handlers) {
 }
 
 void msg(MMP.Packet p) {
-    prefilter->handle(p);
+    PT(("MethodMultiplexer", "%O: msg(%O)\n", this, p))
+    prefilter->handle(p, ([]));
 }

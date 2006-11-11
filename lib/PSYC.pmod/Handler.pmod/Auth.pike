@@ -32,7 +32,7 @@ void auth_reply(int s, MMP.Packet p) {
     }
 }
 
-int postfilter_request_authentication(MMP.Packet p, mapping _v) {
+int postfilter_request_authentication(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
 
     if (!has_index(m->vars, "_location")) {
@@ -45,7 +45,7 @@ int postfilter_request_authentication(MMP.Packet p, mapping _v) {
     return PSYC.Handler.STOP;
 }
 
-int filter_error_authentication(MMP.Packet p, mapping _v) {
+int filter_error_authentication(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
 
     if (!has_index(m->vars, "_location")) {
@@ -72,7 +72,7 @@ int filter_error_authentication(MMP.Packet p, mapping _v) {
     return PSYC.Handler.STOP;
 }
 
-int filter_notice_authentication(MMP.Packet p, mapping _v) {
+int filter_notice_authentication(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
 
     if (!has_index(m->vars, "_location")) {
@@ -101,7 +101,7 @@ int filter_notice_authentication(MMP.Packet p, mapping _v) {
     return PSYC.Handler.STOP;
 }
 
-void filter(MMP.Packet p, mapping _v, function cb) {
+void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
 
     P3(("Auth.Handler", "Handling identification of %O.\n", p->vars))
 

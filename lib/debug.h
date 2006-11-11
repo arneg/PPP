@@ -23,7 +23,7 @@
 #  define P4(ding)
 # endif
 #else
-# define THROW(s)	throw(s)
+# define THROW(s)	throw(({ s, 0 }))
 # define PT(ding)
 # define P0(ding)
 # define P1(ding)

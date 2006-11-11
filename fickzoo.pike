@@ -40,7 +40,13 @@ string my_key = MIME.decode_base64(
 
 
 int main(int argc, array(string) argv) {
-    function textdb = PSYC.Text.FileTextDBFactoryFactory("../default/");
+    function textdb = PSYC.Text.FileTextDBFactoryFactory(
+#ifdef TEXT_DB_PATH
+							 TEXT_DB_PATH
+#else
+							 "../default/"
+#endif
+							 );
 
     dings = PSYC.Server(([
 	"localhosts" : ([ LOCALHOST : 1 

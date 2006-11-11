@@ -50,6 +50,12 @@ void add(string mc, object handler, void|mapping|array(string) d) {
 	wvars = d;
     }
 
+#if DEBUG
+    if (arrayp(d) && !sizeof(d)) {
+	THROW(sprintf("Method %s in %O with empty set of wanted vars!!\n", prefix+mc, handler));
+    }
+#endif
+
     function cb = `->(handler, prefix + mc);
     if (!functionp(cb)) {
 	THROW(sprintf("No method %s defined in %O.\n", prefix+mc, handler));
@@ -60,7 +66,7 @@ void add(string mc, object handler, void|mapping|array(string) d) {
     P3(("StageHandler", "table: %O\n", table))
 }
 
-void handle(MMP.Packet p) {
+void handle(MMP.Packet p, mapping _m) {
 
     P3(("StageHandler", "%s:handle(%s)\n", prefix, p->data->mc))
 
@@ -77,12 +83,12 @@ void handle(MMP.Packet p) {
     }
 
     P3(("StageHandler", "stack for %s is %O\n", p->data->mc, (array)liste))
-    progress(liste, p);
+    progress(liste, p, _m);
 }
 
 
 void fetched(string key, mixed value, MMP.Utils.Queue stack, MMP.Packet p,
-	     multiset(string) wvars) {
+	     mapping _m, multiset(string) wvars) {
     PT(("StageHandler", "fetched(%O, %O, %O, %O, %O)\n", key, value, stack,
 	p, wvars))
 
@@ -91,13 +97,15 @@ void fetched(string key, mixed value, MMP.Utils.Queue stack, MMP.Packet p,
     if (wvars[key]) while(--wvars[key]);
 
     if (!sizeof(wvars)) {
-	call_handler(stack, p, m_delete(requested, p));
+	call_handler(stack, p, m_delete(requested, p), _m);
     }
 }
 
-void progress(MMP.Utils.Queue stack, MMP.Packet p) {
+void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
+    PT(("StageHandler", "progressing %O.\n", stack))
+
     if (stack->isEmpty()) {
-	call_out(go_on, 0, p);
+	call_out(go_on, 0, p, _m);
 
 	return;
     }
@@ -107,18 +115,19 @@ void progress(MMP.Utils.Queue stack, MMP.Packet p) {
 
 	requested[p] = ([ ]);
 	foreach(stack->shift_()->wvars;; string key) {
-	    storage->get(key, fetched, stack, p, wvars);
+	    storage->get(key, fetched, stack, p, _m, wvars);
 	}
     } else {
-	call_out(call_handler, 0, stack, p, ([]));	
+	call_out(call_handler, 0, stack, p, ([]), _m);	
     }
 
 }
 
-void call_handler(MMP.Utils.Queue stack, MMP.Packet p, mapping _v) {
+void call_handler(MMP.Utils.Queue stack, MMP.Packet p, mapping _v, mapping _m) {
     int in_progress = 1;
 
     AR o = stack->shift();
+    PT(("StageHandler", "Calling %O for %O with misc: %O.\n", o->handler, p, _m))
     if (o->async) {
 	void callback(int i) {
 	    if (in_progress) {
@@ -127,21 +136,21 @@ void call_handler(MMP.Utils.Queue stack, MMP.Packet p, mapping _v) {
 	    }
 
 	    if (i == PSYC.Handler.GOON) {
-		progress(stack, p);
+		progress(stack, p, _m);
 	    } else {
-		stop(p);
+		stop(p, _m);
 	    }
 	};
 
 	P3(("PSYC.StageHandler", "attempting to call %O.\n", o->handler))
 
-	o->handler(p, _v, callback);
+	o->handler(p, _v, _m, callback);
 	in_progress = 0;
     } else {
-	if (o->handler(p, _v) == PSYC.Handler.GOON) {
-	    progress(stack, p);
+	if (o->handler(p, _v, _m) == PSYC.Handler.GOON) {
+	    progress(stack, p, _m);
 	} else {
-	    stop(p);
+	    stop(p, _m);
 	}
     }
 

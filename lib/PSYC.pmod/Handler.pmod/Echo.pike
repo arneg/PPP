@@ -8,7 +8,7 @@ constant _ = ([
     ]),
 ]);
 
-int postfilter_message_private(MMP.Packet p, mapping _v) {
+int postfilter_message_private(MMP.Packet p, mapping _v, mapping _m) {
    
     PSYC.Packet echo = p->data->reply("_echo" + p->data->mc, p->data->data,
 				      p->data->vars);

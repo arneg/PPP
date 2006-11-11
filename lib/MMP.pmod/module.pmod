@@ -14,7 +14,7 @@ void debug(string cl, string format, mixed ... args) {
 
 class Uniform {
     string scheme, transport, host, user, resource, slashes, query, body,
-	   userAtHost, pass, hostPort, circuit, root, unl, channel, super;
+	   userAtHost, pass, hostPort, circuit, root, unl, channel, super, obj;
     int port, parsed;
     object handler;
 

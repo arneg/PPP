@@ -16,15 +16,15 @@ multiset requested = (< >);
 
 constant _ = ([
     "filter" : ([ 
-	"" : ({ }),
+	"" : 0,
     ]),
     "postfilter" : ([
-	"_notice_context_enter_channel" : ({ }),
-	"_notice_context_enter" : ({ }),
+	"_notice_context_enter_channel" : 0,
+	"_notice_context_enter" : 0,
     ]),
 ]);
 
-int postfilter_notice_context_enter_channel(MMP.Packet p, mapping _v) {
+int postfilter_notice_context_enter_channel(MMP.Packet p, mapping _v, mapping _m) {
     MMP.Uniform channel = p["_source"];
 
     if (channel->channel) {
@@ -44,7 +44,7 @@ int postfilter_notice_context_enter_channel(MMP.Packet p, mapping _v) {
     return PSYC.Handler.STOP;
 }
 
-int postfilter_notice_context_enter(MMP.Packet p, mapping _v) {
+int postfilter_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
     MMP.Uniform context = p["_source"];
 
     if (context->channel) {
@@ -62,7 +62,7 @@ int postfilter_notice_context_enter(MMP.Packet p, mapping _v) {
     return PSYC.Handler.STOP;
 }
 
-int filter(MMP.Packet p, mapping _v) {
+int filter(MMP.Packet p, mapping _v, mapping _m) {
 
     if (has_index(p->vars, "_context")) {
 
