@@ -1,5 +1,5 @@
 // vim:syntax=lpc
-// $Id: JSONTokener.pike,v 1.7 2006/10/25 17:47:38 tobij Exp $
+// $Id: JSONTokener.pike,v 1.8 2006/11/11 13:32:25 tobij Exp $
 // 
 // I really hate those comments.
 //
@@ -537,6 +537,7 @@ PROTECTED mixed nextObject() {
 #endif
 
 	int b = c;
+
 	while (c >= ' ' && c != ':' && c != ',' && c != ']' && c != '}' && c != '/') {
 		sb+=int2char(c);
 		c = next();
@@ -553,7 +554,12 @@ PROTECTED mixed nextObject() {
 
 	if ((b >= '0' && b <= '9') || b == '.' || b == '-' || b == '+') {
 	   int a; float b_; string c_;
-	    sscanf(s, "%d%s", a, c_);
+
+	   if (sscanf(s, "%d%s", a, c_) != 2) {
+	       // TODO:: support "[-].[0-9]"-format
+	       THROW("number format not supported by JSON parser.\n");
+	   }
+
 	   if(c_ && sizeof(c_)) {
 #ifdef __PIKE__
 	     sscanf(s, "%f", b_);
@@ -563,11 +569,13 @@ PROTECTED mixed nextObject() {
 	     return b_;
 	   }
 	   else return a;
+	} else if (s == "") {
+	    THROW("Missing value.\n");
+	} else {
+	    THROW("Invalid JSON.\n");
 	}
-	if (s == "") {
-		THROW("Missing value.\n");
-	}
-	return s;
+
+	return s; // will never happen, but keeps lpc statisfied
 }
 
 /// <summary>
