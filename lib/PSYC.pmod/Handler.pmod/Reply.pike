@@ -21,7 +21,7 @@ int add_reply(function cb, string tag, multiset(string) vars, mixed ... args) {
 
     PT(("Handler.Reply", "%O: added tag(%s) with %O for %O.\n", uni, tag, vars, cb))
 
-    reply[tag] = ({ cb, args, vars, vars ? ([]) : 0 });
+    reply[tag] = ({ cb, args, vars, vars ? ([]) : 0, 0 });
     return 1;
 }
 
@@ -56,7 +56,7 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
 		foreach(ca[WVARS]; string key;) {
 		    uni->storage->get(key, got_data, tag);
 		}
-		ca += ({ p });
+		ca[PACKET] = p;
 		return PSYC.Handler.STOP;
 	    }
 
@@ -79,13 +79,15 @@ void got_data(string key, mixed value, string tag) {
 	array(mixed) ca = reply[tag];
 
 	if (ca[WVARS] && has_index(ca[WVARS], key)) {
-	    while(ca[WVARS]--);
+	    while(--ca[WVARS][key]);
 	    
 	    ca[VARS][key] = value;
 	} else {
 	    P0(("Handler.Reply", "%O: Got data (%s) for a reply to (%s) we never should have requested.\n", uni, key, tag))
 	    return;
 	}
+
+	PT(("Handler.Reply", "%O: got data (%s) from storage. %O to go.\n", this, key, ca[WVARS]))
 
 	if (!sizeof(ca[WVARS])) { // done
 	    m_delete(reply, tag);

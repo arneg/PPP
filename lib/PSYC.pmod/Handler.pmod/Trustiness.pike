@@ -90,11 +90,14 @@ void process(MMP.Packet reply, mapping _v, MMP.Uniform trustee,
 	     MMP.Uniform source) {
     PSYC.Packet m = reply->data;
 
+    PT(("Handler.Trustiness", "%O: process(%O, %O, %O, %O)\n", uni, reply, _v, trustee, source))
+
     // the tagged variant offers us extra checks.. nothing but
     if (!has_index(m->vars, "_location") ||
 	m->vars["_location"] != (string)source ||
-	reply[source] != trustee) {
-	P1(("Handler.Trustiness", "%O: Got reply with a wrong location to an _request_trustiness (%O) from %O.\n", uni, m, reply->source()))
+	reply->source() != trustee) {
+	P1(("Handler.Trustiness", "%O: Got reply with a wrong location (%O instead of %O) to an _request_trustiness (%O) from %O.\n", 
+	    uni, m->vars["_location"], source, m, reply->source()))
 
 	// we might think about deleting the pending stuff
 	// and GOON the packets without any trust
@@ -132,8 +135,6 @@ void postfilter_notice_trustiness(MMP.Packet p, mapping _v, mapping _m) {
 	return PSYC.Handler.STOP;
     }
 
-
-
     if (get_trust(_v["_friends"], trustee) < MIN_TRUST) {
 	P2(("Handler.Trustiness", "%O: Got trustiness for %O from %O (whom we dont trust enough to keep that information).\n", uni, location, trustee))
 	deliver(trustee, location, NO_TRUST); 
@@ -154,8 +155,12 @@ void postfilter_notice_trustiness(MMP.Packet p, mapping _v, mapping _m) {
 // kicks off all pending packets with trust
 void deliver(MMP.Uniform trustee, MMP.Uniform guy, int trust) {
 
+    PT(("Handler.Trustiness", "%O: deliver(%O, %O, %d) from %O.\n", uni, trustee, guy, trust, pending))
+
     if (has_index(pending, trustee) && has_index(pending[trustee], guy)) {
-	foreach (m_delete(pending[trustee], guy);; function cb) {
+	foreach (m_delete(pending[trustee], guy);; array ca) {
+	    function cb = ca[0];
+	    ca[1]["_trust"] = trust;
 	    call_out(cb, 0, PSYC.Handler.GOON);
 	}
     }
@@ -182,20 +187,19 @@ void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
 	} else {
 	    PSYC.Packet request = PSYC.Packet("_request_trustiness", 0, 
 					      ([
-						"_identification" : source,
+						"_location" : source,
 					       ]));
 
-#if OK
 	    uni->send_tagged_v(trustee, request, 
 			       (multiset)_["postfilter"]["_notice_trustiness"], 
 			       process, 
 			       trustee, source); 
-#else
-	    uni->send_tagged_v(request, 
-			       process, 
-			       (multiset)_["postfilter"]["_notice_trustiness"], 
-			       trustee, source); 
-#endif
+
+	    if (!has_index(pending, trustee)) {
+		pending[trustee] = ([]);
+	    }
+
+	    pending[trustee][source] = ({ ({ cb, _m }) });
 	}
 	return;
     }

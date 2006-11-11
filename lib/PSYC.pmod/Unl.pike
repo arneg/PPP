@@ -5,6 +5,7 @@ inherit PSYC.MethodMultiplexer;
 
 PSYC.Handler.Base reply;// = PSYC.Handler.Reply();
 PSYC.Handler.Base auth;// = PSYC.Handler.Auth();
+PSYC.Storage storage;
 
 object server;
 MMP.Uniform uni;
@@ -45,13 +46,14 @@ string send_tagged(MMP.Uniform target, PSYC.Packet m,
     return send_tagged_v(target, m, 0, callback, @args);
 }
 
-void create(MMP.Uniform u, object s, object storage) {
+void create(MMP.Uniform u, object s, object stor) {
     uni = u;
     server = s;
-    ::create(storage);
+    storage = stor;
+    ::create(stor);
     add_handlers(auth = PSYC.Handler.Auth(this),
 		 reply = PSYC.Handler.Reply(this), 
-		 PSYC.Handler.Storage(this, storage));
+		 PSYC.Handler.Storage(this, stor));
     // the order of storage and trustiness is somehow critical..
 }
 

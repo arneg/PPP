@@ -6,14 +6,13 @@ int linked = 0;
 MMP.Utils.Queue queue = MMP.Utils.Queue();
 object attachee;
 MMP.Uniform link_to;
-PSYC.Storage storage;
 
 void create(MMP.Uniform uni_, object server, MMP.Uniform unl,
 	    function error, function query_password, string|void password) {
     PSYC.Packet request = PSYC.Packet("_request_link", "let me in!");
     link_to = uni_;
 
-    ::create(unl, server, storage = PSYC.RemoteStorage(link_to, this)); 
+    ::create(unl, server, PSYC.RemoteStorage(link_to, this)); 
     // there will be dragons here
     // (if we directly create a Linker-instance in the add_handlers call,
     // dragons appear.
