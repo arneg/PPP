@@ -17,7 +17,7 @@ void create(string foo, function go_on_, function stop_, function error_, PSYC.S
     storage = s;
 }
 
-class AR(function handler, array(string) wvars, int async) {
+class AR(function handler, array(string) wvars, int async, array(string) lvars) {
     
     string _sprintf(int type) {
 	if (type == 'O') {
@@ -31,7 +31,7 @@ class AR(function handler, array(string) wvars, int async) {
 
 void add(string mc, object handler, void|mapping|array(string) d) {
     int async = 0;
-    array(string) wvars;
+    array(string) wvars, lvars;
 
     P3(("PSYC.StageHandler", "add(%O)\n", handler))
 
@@ -44,6 +44,10 @@ void add(string mc, object handler, void|mapping|array(string) d) {
 	
 	if (has_index(d, "wvars")) {
 	    wvars = d["wvars"];
+	}
+
+	if (has_index(d, "lock")) {
+	    lvars = d["lock"];
 	}
 
     } else {
@@ -61,7 +65,7 @@ void add(string mc, object handler, void|mapping|array(string) d) {
 	THROW(sprintf("No method %s defined in %O.\n", prefix+mc, handler));
     }
 
-    table[mc] += ({ AR(cb, wvars, async) });
+    table[mc] += ({ AR(cb, wvars, async, lvars) });
 
     P3(("StageHandler", "table: %O\n", table))
 }
@@ -110,13 +114,28 @@ void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 	return;
     }
 
-    if (stack->shift_()->wvars) {
-	multiset wvars = (multiset)stack->shift_()->wvars;
+    array wvars = stack->shift_()->wvars;
+    array lvars = stack->shift_()->lvars;
+
+    if (wvars || lvars) {
+	multiset rvars;
+	if (wvars && lvars) {
+	    rvars = (multiset)wvars;
+	    rvars += (multiset)lvars;
+	} else {
+	    rvars = (multiset)(wvars || lvars);
+	}
 
 	requested[p] = ([ ]);
-	foreach(stack->shift_()->wvars;; string key) {
-	    storage->get(key, fetched, stack, p, _m, wvars);
+
+	if (wvars) foreach(wvars;; string key) {
+	    storage->get(key, fetched, stack, p, _m, rvars);
 	}
+
+	if (lvars) foreach(lvars;; string key) {
+	    storage->get_lock(key, fetched, stack, p, _m, rvars);
+	}
+
     } else {
 	call_out(call_handler, 0, stack, p, ([]), _m);	
     }
