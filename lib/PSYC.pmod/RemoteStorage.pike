@@ -123,7 +123,7 @@ void lock(string key, function callback, mixed ... args) {
 void unlock(string key, function callback, mixed ... args) {
 
     if (!linked) {
-	queue->push(({ _lock, key, callback, args, "_lock" }));
+	queue->push(({ _lock, key, callback, args, "_unlock" }));
 	return;
     }
 
