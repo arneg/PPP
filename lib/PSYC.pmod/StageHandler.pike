@@ -125,7 +125,7 @@ void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
     
     AR o = stack->shift_();
 
-    if (!o->check(p, _m)) {
+    if (o->check && !o->check(p, _m)) {
 	PT(("StageHandler", "%O->check() returned Null.\n", o))
 	stack->shift();
 	call_out(progress, 0, stack, p, _m);
