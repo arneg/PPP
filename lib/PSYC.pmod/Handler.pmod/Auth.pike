@@ -9,7 +9,7 @@ constant _ = ([
 	"_error_authentication" : 0,		      
 	"" : ([ 
 	    "async" : 1,
-	    "check" : has_indentification,
+	    "check" : "has_identification",
 	]),
     ]),
     "postfilter" : ([

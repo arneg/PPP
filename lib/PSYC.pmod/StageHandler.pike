@@ -53,7 +53,10 @@ void add(string mc, object handler, void|mapping|array(string) d) {
 	}
 
 	if (has_index(d, "check")) {
-	    check = d["check"];
+	    check = `->(handler, d["check"]);
+	    if (!functionp(check)) {
+		THROW(sprintf("No method %s is defined in %O.\n", d["check"], handler));
+	    }
 	}
 
     } else {

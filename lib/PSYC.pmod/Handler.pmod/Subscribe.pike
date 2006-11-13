@@ -18,7 +18,7 @@ constant _ = ([
     "filter" : ([ 
 	"" : ([ 
 	      "wvars" : ({ "_subscriptions" }),
-	      "check" : has_context,
+	      "check" : "has_context",
 	      ]),
     ]),
     "postfilter" : ([
