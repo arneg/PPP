@@ -16,7 +16,7 @@ void link() {
     linked = 1;
     while (!queue->isEmpty()) {
 	array a = queue->shift();
-	a[0](a[1..]);
+	a[0](@a[1..]);
     }
 }
 
