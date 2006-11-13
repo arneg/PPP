@@ -1,4 +1,4 @@
-// vim:syntax=lpc
+/ vim:syntax=lpc
 #include <debug.h>
 
 inherit PSYC.Handler.Base;
@@ -16,13 +16,20 @@ multiset requested = (< >);
 
 constant _ = ([
     "filter" : ([ 
-	"" : 0,
+	"" : ([ 
+	      "wvars" : ({ "_subscriptions" }),
+	      "check" : has_context,
+	      ]),
     ]),
     "postfilter" : ([
 	"_notice_context_enter_channel" : 0,
 	"_notice_context_enter" : 0,
     ]),
 ]);
+
+int has_context(MMP.Packet p, mapping _m) {
+    return has_index(p->vars, "_context");
+}
 
 int postfilter_notice_context_enter_channel(MMP.Packet p, mapping _v, mapping _m) {
     MMP.Uniform channel = p["_source"];
@@ -63,32 +70,28 @@ int postfilter_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
 }
 
 int filter(MMP.Packet p, mapping _v, mapping _m) {
+    MMP.Uniform channel = p["_context"];
 
-    if (has_index(p->vars, "_context")) {
+    // we could aswell save the object of that channel into the uniform.. 
+    // they are some somewhat related (instead of cutting the string everytime)
+    if (channel->channel) {
+	MMP.Uniform context = uni->server->get_uniform(channel->super);
 
-	MMP.Uniform channel = p["_context"];
-
-	// we could aswell save the object of that channel into the uniform.. 
-	// they are some somewhat related (instead of cutting the string everytime)
-	if (channel->channel) {
-	    MMP.Uniform context = uni->server->get_uniform(channel->super);
-
-	    if (!has_index(contexts, channel)) {
-		if (has_index(contexts, context)) {
-		    P0(("Handler.Subscribe", "%O: %O forgot to join us into %O.\n", uni, context, channel))
-		} else {
-		    P0(("Handler.Subscribe", "%O: we never joined %O but are getting messages.\n", uni, channel))
-		}
-
-		uni->sendmsg(channel, "_notice_context_leave_channel");
-		return PSYC.Handler.STOP;
+	if (!has_index(contexts, channel)) {
+	    if (has_index(contexts, context)) {
+		P0(("Handler.Subscribe", "%O: %O forgot to join us into %O.\n", uni, context, channel))
+	    } else {
+		P0(("Handler.Subscribe", "%O: we never joined %O but are getting messages.\n", uni, channel))
 	    }
-	} else if (!has_index(contexts, channel)) {
-	    P0(("Handler.Subscribe", "%O: we never joined %O but are getting messages.\n", uni, channel))
-	    uni->sendmsg(channel, PSYC.Packet("_notice_context_leave"));
 
+	    uni->sendmsg(channel, "_notice_context_leave_channel");
 	    return PSYC.Handler.STOP;
 	}
+    } else if (!has_index(contexts, channel)) {
+	P0(("Handler.Subscribe", "%O: we never joined %O but are getting messages.\n", uni, channel))
+	uni->sendmsg(channel, PSYC.Packet("_notice_context_leave"));
+
+	return PSYC.Handler.STOP;
     }
 
     return PSYC.Handler.GOON;

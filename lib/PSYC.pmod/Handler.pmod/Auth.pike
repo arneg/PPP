@@ -7,7 +7,10 @@ constant _ = ([
     "filter" : ([
 	"_notice_authentication" : 0,		      
 	"_error_authentication" : 0,		      
-	"" : ([ "async" : 1 ]),
+	"" : ([ 
+	    "async" : 1,
+	    "check" : has_indentification,
+	]),
     ]),
     "postfilter" : ([
 	"_request_authentication" : 0,
@@ -101,32 +104,35 @@ int filter_notice_authentication(MMP.Packet p, mapping _v, mapping _m) {
     return PSYC.Handler.STOP;
 }
 
+int has_identification(MMP.Packet p, mapping _v) {
+    return has_index(p->vars, "_source_identification");
+}
+
 void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
 
     P3(("Auth.Handler", "Handling identification of %O.\n", p->vars))
 
     // why are we not using send_tagged here???
-    if (has_index(p->vars, "_source_identification")) {
-	MMP.Uniform id = p["_source_identification"];	
-	MMP.Uniform s = p["_source"];
+    MMP.Uniform id = p["_source_identification"];	
+    MMP.Uniform s = p["_source"];
 
-	if (!has_index(unl2uni, s) || (unl2uni[s] != id && m_delete(unl2uni, s))) {
-	    if (!has_index(pending, s)) {
-		pending[s] = ([]);
-	    }
-
-	    if (!has_index(pending[s], id)) {
-		pending[s][id] = ({  }); 
-    P3(("Auth.Handler", "!!!Handling!!! identification of %O.\n", p))
-		PSYC.Packet request = PSYC.Packet("_request_authentication",
-						  "nil", 
-						  ([ "_location" : s ]));
-		uni->sendmsg(id, request);
-	    }
-
-	    pending[s][id] += ({ cb }); 
-	    return;
+    if (!has_index(unl2uni, s) || (unl2uni[s] != id && m_delete(unl2uni, s))) {
+	if (!has_index(pending, s)) {
+	    pending[s] = ([]);
 	}
+
+	if (!has_index(pending[s], id)) {
+	    pending[s][id] = ({  }); 
+P3(("Auth.Handler", "!!!Handling!!! identification of %O.\n", p))
+	    PSYC.Packet request = PSYC.Packet("_request_authentication",
+					      "nil", 
+					      ([ "_location" : s ]));
+	    uni->sendmsg(id, request);
+	}
+
+	pending[s][id] += ({ cb }); 
+	return;
     }
+
     call_out(cb, 0, PSYC.Handler.GOON);
 }
