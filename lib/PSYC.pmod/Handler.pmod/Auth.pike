@@ -65,7 +65,7 @@ int filter_error_authentication(MMP.Packet p, mapping _v, mapping _m) {
 	P3(("Uni", "I was not able to get authentication for %s (claims to be %s).\n", location, source))
 
 	PSYC.Packet failure = PSYC.Packet("_failure_authentification",
-					  "I was unable to verifiy your identification ([_identification]).", ([ "_identification" : source ]));
+					  "I was unable to verify your identification ([_identification]).", ([ "_identification" : source ]));
 
 	uni->sendmsg(location, failure);
     } else {
