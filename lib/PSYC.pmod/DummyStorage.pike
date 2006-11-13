@@ -8,6 +8,7 @@ inherit PSYC.Storage;
 mapping(string:array(mixed)) locks = ([ ]);
 mapping(string:mixed) data = ([
     "_friends" : ([ ]),
+    "_subscriptions" : ([ ]),
     "_password" : "test",
 ]);
 
