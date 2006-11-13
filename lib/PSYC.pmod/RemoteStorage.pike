@@ -2,15 +2,6 @@
 #include <debug.h>
 inherit PSYC.Storage;
 
-#define SET	1
-#define GET	2
-#define SET_LOCK	3
-#define SET_UNLOCK	4
-#define GET_LOCK	5
-#define GET_UNLOCK	6
-#define LOCK	7
-#define UNLOCK	8
-
 MMP.Uniform link_to;
 object uni;
 int linked = 0;
@@ -24,40 +15,10 @@ void create(MMP.Uniform link_to_, object uni_) {
 void link() {
     linked = 1;
     while (!queue->isEmpty()) {
-	process(queue->shift());	
+	array a = queue->shift();
+	array args = a[1..sizeof(a)-2]+a[sizeof(a)-1];
+	a[0](@args);
     }
-}
-
-void process(array(mixed) a) {
-
-    array args = a[1..sizeof(a)-2]+a[sizeof(a)-1];
-
-    switch(a[0]) {
-    case SET:
-	set(@args);
-	break;
-    case SET_LOCK:
-	set_lock(@args);
-	break;
-    case SET_UNLOCK:
-	set_unlock(@args);
-	break;
-    case GET:
-	get(@args);
-	break;
-    case GET_LOCK:
-	get_lock(@args);
-	break;
-    case GET_UNLOCK:
-	get_unlock(@args);
-	break;
-    case LOCK:
-	lock(@args);
-	break;
-    case UNLOCK:
-	unlock(@args);
-	break;
-    } 
 }
 
 // Genereal Retrieve CallBack
@@ -89,7 +50,7 @@ void gscb(MMP.Packet p, function callback, string key, string mc, array args) {
 void get(string key, function callback, mixed ... args) {
 
     if (!linked) {
-	queue->push(({ GET, key, callback, args }));
+	queue->push(({ _get, key, callback, args, "_retrieve" }));
 	return;
     }
 
@@ -99,7 +60,7 @@ void get(string key, function callback, mixed ... args) {
 void get_lock(string key, function callback, mixed ... args) {
 
     if (!linked) {
-	queue->push(({ GET_LOCK, key, callback, args }));
+	queue->push(({ _get, key, callback, args, "_retrieve_lock" }));
 	return;
     }
 
@@ -109,7 +70,7 @@ void get_lock(string key, function callback, mixed ... args) {
 void get_unlock(string key, function callback, mixed ... args) {
 
     if (!linked) {
-	queue->push(({ GET_UNLOCK, key, callback, args }));
+	queue->push(({ _get, key, callback, args, "_retrieve_unlock" }));
 	return;
     }
 
@@ -120,7 +81,7 @@ void set(string key, mixed value, function callback,
 	 mixed ... args) {
 
     if (!linked) {
-	queue->push(({ SET, key, value, callback, args }));
+	queue->push(({ _set, key, value, callback, args, "_store" }));
 	return;
     }
 
@@ -131,7 +92,7 @@ void set_lock(string key, mixed value, function callback,
 	 mixed ... args) {
 
     if (!linked) {
-	queue->push(({ SET_LOCK, key, value, callback, args }));
+	queue->push(({ _set, key, value, callback, args, "_store_lock" }));
 	return;
     }
 
@@ -142,7 +103,7 @@ void set_unlock(string key, mixed value, function callback,
 	 mixed ... args) {
 
     if (!linked) {
-	queue->push(({ SET_UNLOCK, key, value, callback, args }));
+	queue->push(({ _set, key, value, callback, args, "_store_unlock" }));
 	return;
     }
 
@@ -152,7 +113,7 @@ void set_unlock(string key, mixed value, function callback,
 void lock(string key, function callback, mixed ... args) {
     
     if (!linked) {
-	queue->push(({ LOCK, key, callback, args }));
+	queue->push(({ _lock, key, callback, args, "_lock" }));
 	return;
     }
 
@@ -162,7 +123,7 @@ void lock(string key, function callback, mixed ... args) {
 void unlock(string key, function callback, mixed ... args) {
 
     if (!linked) {
-	queue->push(({ UNLOCK, key, callback, args }));
+	queue->push(({ _lock, key, callback, args, "_lock" }));
 	return;
     }
 
