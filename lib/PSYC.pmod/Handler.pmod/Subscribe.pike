@@ -3,10 +3,6 @@
 
 inherit PSYC.Handler.Base;
 
-// contexts/channels we are in
-multiset contexts = (< >);
-multiset requested = (< >);
-
 /* How it works:
  *
  * request membership in a context
@@ -17,13 +13,17 @@ multiset requested = (< >);
 constant _ = ([
     "filter" : ([ 
 	"" : ([ 
-	      "wvars" : ({ "_subscriptions" }),
-	      "check" : "has_context",
-	      ]),
+	    "lock" : ({ "_subscriptions" }),
+	    "check" : "has_context",
+	]),
     ]),
     "postfilter" : ([
-	"_notice_context_enter_channel" : 0,
-	"_notice_context_enter" : 0,
+	"_notice_context_enter_channel" : ([
+	    "lock" : ({ "_subscriptions" }),
+	]),
+	"_notice_context_enter" : ([
+	    "lock" : ({ "_subscriptions" }),
+	]),
     ]),
 ]);
 
@@ -41,11 +41,11 @@ int postfilter_notice_context_enter_channel(MMP.Packet p, mapping _v, mapping _m
 	    contexts[channel] = 1;
 	} else {
 	    P1(("Handler.Subscribe", "%O: someone (%O) tried to forcefully join us into his channel (%O).\n", uni, context, channel))
-	    uni->sendmsg(channel, "_notice_context_leave_channel");
+	    uni->sendmsg(channel, PSYC.Packet("_notice_context_leave_channel"));
 	}
     } else {
 	P0(("Handler.Subscribe", "%O: got _notice_context_enter_channel from non-channel (%O).\n", uni, channel))
-	uni->sendmsg(channel, "_notice_context_leave");
+	uni->sendmsg(channel, PSYC.Packet("_notice_context_leave"));
     }
 
     return PSYC.Handler.STOP;
@@ -62,7 +62,7 @@ int postfilter_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
 	    context[context] = 1;
 	} else {
 	    P1(("Handler.Subscribe", "%O: someone (%O) tried to forcefully join us.\n", uni, context))
-	    uni->sendmsg(channel, "_notice_context_leave");
+	    uni->sendmsg(channel, PSYC.Packet("_notice_context_leave"));
 	}
     }
 
@@ -84,7 +84,7 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
 		P0(("Handler.Subscribe", "%O: we never joined %O but are getting messages.\n", uni, channel))
 	    }
 
-	    uni->sendmsg(channel, "_notice_context_leave_channel");
+	    uni->sendmsg(channel, PSYC.Packet("_notice_context_leave_channel"));
 	    return PSYC.Handler.STOP;
 	}
     } else if (!has_index(contexts, channel)) {
@@ -101,27 +101,22 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
 
 void subscribe(MMP.Uniform channel) {
 
-    requested[channel] = 1;
-
     if (channel->channel) {
 	requested[uni->server->get_uniform(channel->super)] = 1;
+    } else {
+	requested[channel] = 1;
     }
 
     // sending a request directly to a channel is like a recommendation for the
     // context.
-    sendmsg(channel, "_request_context_enter_subscribe");
+    uni->sendmsg(channel, PSYC.Packet("_request_context_enter_subscribe"));
 }
 
 void unsubscribe(MMP.Uniform channel) {
 
-    // wohoo, goto!
-IRG:
     while (has_index(requested, channel)) { requested[channel]--; }
 
-    if (channel->channel) {
-	channel = uni->server->get_uniform(channel->super);
-	goto IRG;
-    }
+    uni->sendmsg(channel, PSYC.Packet("_request_context_leave_subscribe"));
 }
 
 void enter(MMP.Uniform channel) {
@@ -131,7 +126,7 @@ void enter(MMP.Uniform channel) {
 	requested[uni->server->get_uniform(channel->super)] = 1;
     }
 
-    sendmsg(channel, "_request_context_enter");
+    uni->sendmsg(channel, PSYC.Packet("_request_context_enter"));
 }
 
 void leave(MMP.Uniform channel) {
