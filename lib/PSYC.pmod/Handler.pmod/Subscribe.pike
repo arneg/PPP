@@ -3,6 +3,9 @@
 
 inherit PSYC.Handler.Base;
 
+#define REQUESTED(x)	(x&1)
+#define SUBSCRIBED(x)	(x&2)
+
 /* How it works:
  *
  * request membership in a context
@@ -35,10 +38,18 @@ int postfilter_notice_context_enter_channel(MMP.Packet p, mapping _v, mapping _m
     MMP.Uniform channel = p["_source"];
 
     if (channel->channel) {
+	mapping sub = string2uniform(_v["_subscriptions"], 1);
+
 	MMP.Uniform context = uni->server->get_uniform(channel->super);
 
-	if (has_index(requested, context)) {
-	    contexts[channel] = 1;
+	if (has_index(sub, context)) {
+	    if (!SUBSCRIBED(sub[context])) {
+		sub[context] = SUBSCRIBED(255);
+		uni->storage->set_unlock("_subscriptions", sub);
+	    } else {
+		uni->storage->set_unlock("_subscriptions");
+	    }
+
 	} else {
 	    P1(("Handler.Subscribe", "%O: someone (%O) tried to forcefully join us into his channel (%O).\n", uni, context, channel))
 	    uni->sendmsg(channel, PSYC.Packet("_notice_context_leave_channel"));
@@ -101,15 +112,48 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
 
 void subscribe(MMP.Uniform channel) {
 
-    if (channel->channel) {
-	requested[uni->server->get_uniform(channel->super)] = 1;
-    } else {
-	requested[channel] = 1;
-    }
+    void callback1(string key, mixed value, MMP.Uniform channel) {
 
-    // sending a request directly to a channel is like a recommendation for the
-    // context.
-    uni->sendmsg(channel, PSYC.Packet("_request_context_enter_subscribe"));
+	void callback2(int success, string key, MMP.Uniform channel) {
+	    
+	    if (!success) {
+		// sigh!
+		// retry ??
+		uni->storage->unlock("_subscriptions", subscribe);
+		call_out(subscribe, 4, channel);
+		return;
+	    }
+
+	    // sending a request directly to a channel is like a recommendation for the
+	    // context.
+	    uni->sendmsg(channel, PSYC.Packet("_request_context_enter_subscribe"));
+	}; // CALLBACK
+
+	MMP.Uniform context;
+
+	if (key != "_subscriptions") {
+	    P0(("Handler.Subscribe", "got wrong data (%s instead of _subscriptions) from storage.", key))
+	    return;
+	}
+
+	if (channel->channel) {
+	    context = uni->server->get_uniform(channel->super); 
+	} else {
+	    context = channel;
+	}
+
+	mixed sub = string2uniform(value, 1);
+
+	if (has_index(sub, channel) && sub[channel]) {
+	    uni->storage->unlock("_subscriptions", callback2, channel);
+	    return;
+	}
+
+	sub[channel] = REQUESTED(255);
+	uni->storage->set_unlock("_subscriptions", sub, callback2, channel);
+    }; // CALLBACK
+
+    uni->storage->get_lock("_subscriptions", callback, channel);
 }
 
 void unsubscribe(MMP.Uniform channel) {
