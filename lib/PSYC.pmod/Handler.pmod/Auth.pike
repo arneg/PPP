@@ -27,10 +27,10 @@ void auth_reply(int s, MMP.Packet p) {
     PSYC.Packet m = p->data;
 
     if (s) {
-	uni->sendmsg(p["_source"], m->reply("_notice_authentication", 0, 
+	sendmsg(p["_source"], m->reply("_notice_authentication", 0, 
 					([ "_location" : m["_location"] ])));	
     } else {
-	uni->sendmsg(p["_source"], m->reply("_error_authentication", 0, 
+	sendmsg(p["_source"], m->reply("_error_authentication", 0, 
 					([ "_location" : m["_location"] ])));	
     }
 }
@@ -39,7 +39,7 @@ int postfilter_request_authentication(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
 
     if (!has_index(m->vars, "_location")) {
-	uni->sendmsg(p["_source"], m->reply("_error_invalid_request_authentication", "what???"));
+	sendmsg(p["_source"], m->reply("_error_invalid_request_authentication", "what???"));
 	return PSYC.Handler.STOP;
     }
     
@@ -67,7 +67,7 @@ int filter_error_authentication(MMP.Packet p, mapping _v, mapping _m) {
 	PSYC.Packet failure = PSYC.Packet("_failure_authentification",
 					  "I was unable to verify your identification ([_identification]).", ([ "_identification" : source ]));
 
-	uni->sendmsg(location, failure);
+	sendmsg(location, failure);
     } else {
 	P3(("Handler.Auth", "_error_authentication even though we never requested one.\n"))
     }
@@ -127,7 +127,7 @@ P3(("Auth.Handler", "!!!Handling!!! identification of %O.\n", p))
 	    PSYC.Packet request = PSYC.Packet("_request_authentication",
 					      "nil", 
 					      ([ "_location" : s ]));
-	    uni->sendmsg(id, request);
+	    sendmsg(id, request);
 	}
 
 	pending[s][id] += ({ cb }); 

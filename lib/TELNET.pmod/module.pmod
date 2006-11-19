@@ -116,6 +116,7 @@ class Session {
 	client->attach(this);
 
 	add_commands(PSYC.Commands.Tell(this));
+	add_commands(PSYC.Commands.Subscribe(this));
 
 	input_to();
     }

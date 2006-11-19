@@ -38,25 +38,25 @@ int _set(MMP.Packet p, mapping _v, mapping _m, string mc, function set) {
     PSYC.Packet m = p->data;
 
     if (!_m["itsme"]) {
-	uni->sendmsg(p->source(), m->reply("_failure"+mc));
+	sendmsg(p->source(), m->reply("_failure"+mc));
 	return PSYC.Handler.STOP;
     }
 
     if (!has_index(m->vars, "_key") || !has_index(m->vars, "_value")) {
-	uni->sendmsg(p["_source"], m->reply("_error"+mc, "Store what???"));
+	sendmsg(p["_source"], m->reply("_error"+mc, "Store what???"));
 	return PSYC.Handler.STOP;
     }
 
     string key = m->vars["_key"];
     mixed value = m->vars["_value"];
 
-    void callback(int i, MMP.Uniform target, PSYC.Packet m) {
-	if (i) {
-	    uni->sendmsg(target, m->reply("_notice"+mc, 0,
+    void callback(int error, MMP.Uniform target, PSYC.Packet m) {
+	if (error) {
+	    sendmsg(target, m->reply("_error"+mc, 0,
 					  ([ "_key" : key ])));
 	} else {
-	    uni->sendmsg(target, m->reply("_error"+mc, 0,
-					  ([ "_key" : key ])));
+	    sendmsg(target, m->reply("_notice"+mc, 0,
+				      ([ "_key" : key ])));
 	}
     };
 
@@ -80,12 +80,12 @@ int _get(MMP.Packet p, mapping _v, mapping _m, string mc, function get) {
     PSYC.Packet m = p->data;
     
     if (!_m["itsme"]) {
-	uni->sendmsg(p->source(), m->reply("_failure"+mc));
+	sendmsg(p->source(), m->reply("_failure"+mc));
 	return PSYC.Handler.STOP;
     }
 
     if (!has_index(m->vars, "_key")) {
-	uni->sendmsg(p["_source"], m->reply("_error"+mc, "ReTrIEve whAt!!"));
+	sendmsg(p["_source"], m->reply("_error"+mc, "ReTrIEve whAt!!"));
 	return PSYC.Handler.STOP;
     }
 
@@ -94,11 +94,11 @@ int _get(MMP.Packet p, mapping _v, mapping _m, string mc, function get) {
     void callback(string key, string value, MMP.Uniform target, 
 		  PSYC.Packet m) {
 	if (value != UNDEFINED) {
-	    uni->sendmsg(target, m->reply("_notice"+mc, 0, 
+	    sendmsg(target, m->reply("_notice"+mc, 0, 
 					  ([ "_key" : key,
 					     "_value" : value ])));
 	} else {
-	    uni->sendmsg(target, m->reply("_error"+mc, 0,
+	    sendmsg(target, m->reply("_error"+mc, 0,
 					  ([ "_key" : key ])));
 	}
     };
@@ -111,12 +111,12 @@ int postfilter_request_lock(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
 
     if (!_m["itsme"]) {
-	uni->sendmsg(p->source(), m->reply("_failure_lock"));
+	sendmsg(p->source(), m->reply("_failure_lock"));
 	return PSYC.Handler.STOP;
     }
 
     if (!has_index(m->vars, "_key")) {
-	uni->sendmsg(p["_source"], m->reply("_error_lock", "Lock what??"));
+	sendmsg(p["_source"], m->reply("_error_lock", "Lock what??"));
 	return PSYC.Handler.STOP;
     }
 
@@ -124,10 +124,10 @@ int postfilter_request_lock(MMP.Packet p, mapping _v, mapping _m) {
 
     void callback(int error, MMP.Uniform target, PSYC.Packet m) {
 	if (error) {
-	    uni->sendmsg(target, m->reply("_error_lock", 0,
+	    sendmsg(target, m->reply("_error_lock", 0,
 					  ([ "_key" : key ])));
 	} else {
-	    uni->sendmsg(target, m->reply("_notice_lock", 0,
+	    sendmsg(target, m->reply("_notice_lock", 0,
 					  ([ "_key" : key ])));
 	}
     };
@@ -140,12 +140,12 @@ int postfilter_request_unlock(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
 
     if (!_m["itsme"]) {
-	uni->sendmsg(p->source(), m->reply("_failure_unlock"));
+	sendmsg(p->source(), m->reply("_failure_unlock"));
 	return PSYC.Handler.STOP;
     }
 
     if (!has_index(m->vars, "_key")) {
-	uni->sendmsg(p["_source"], m->reply("_error_unlock", "Lock what??"));
+	sendmsg(p["_source"], m->reply("_error_unlock", "Lock what??"));
 	return PSYC.Handler.STOP;
     }
 
@@ -153,10 +153,10 @@ int postfilter_request_unlock(MMP.Packet p, mapping _v, mapping _m) {
 
     void callback(int error, MMP.Uniform target, PSYC.Packet m) {
 	if (error) {
-	    uni->sendmsg(target, m->reply("_error_unlock", 0,
+	    sendmsg(target, m->reply("_error_unlock", 0,
 					  ([ "_key" : key ])));
 	} else {
-	    uni->sendmsg(target, m->reply("_notice_unlock", 0,
+	    sendmsg(target, m->reply("_notice_unlock", 0,
 					  ([ "_key" : key ])));
 	}
     };

@@ -30,7 +30,7 @@ int postfilter_request_link(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
 
     if (!has_index(m->vars, "_password")) {
-	uni->sendmsg(p["_source"], m->reply("_query_password"));
+	sendmsg(p["_source"], m->reply("_query_password"));
 	return PSYC.Handler.STOP;
     }
 
@@ -38,9 +38,9 @@ int postfilter_request_link(MMP.Packet p, mapping _v, mapping _m) {
 
     if (_v["_password"] == m->vars["_password"]) {
 	uni->attach(p["_source"]);
-	uni->sendmsg(p["_source"], m->reply("_notice_link"));	
+	sendmsg(p["_source"], m->reply("_notice_link"));	
     } else {
-	uni->sendmsg(p["_source"], m->reply("_error_invalid_password"));
+	sendmsg(p["_source"], m->reply("_error_invalid_password"));
     }
     return PSYC.Handler.STOP;
 }
@@ -52,6 +52,6 @@ int postfilter_set_password(MMP.Packet p, mapping _v, mapping _m) {
 int postfilter_request_unlink(MMP.Packet p, mapping _v, mapping _m) {
 
     uni->detach(p["_source"]);
-    uni->sendmsg(p["_source"], p->data->reply("_notice_unlink"));
+    sendmsg(p["_source"], p->data->reply("_notice_unlink"));
     return PSYC.Handler.STOP;
 }

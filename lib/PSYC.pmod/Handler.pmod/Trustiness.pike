@@ -74,6 +74,8 @@ int postfilter_request_trustiness(MMP.Packet p, mapping _v, mapping _m) {
 						    ]));
     }
 
+    sendmsg(source, reply);
+
     return PSYC.Handler.STOP;
 }
 

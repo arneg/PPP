@@ -3,11 +3,15 @@
 //
 
 object uni;
+function sendmsg, sendmmp;
 
 // we tried optional, but that doesn't work - might be a bug, we'll ask the
 // pikers soon. in the meantime, we'll use static.
-static void create(object o) {
+static void create(object o, function|void fun1, function|void fun2) {
     uni = o;
+
+    sendmsg = fun1 ? fun1 : o->sendmsg;
+    sendmmp = fun2 ? fun2 : o->sendmmp;
 }
 
 mixed|MMP.Uniform string2uniform(array|mapping|multiset|MMP.Uniform u, void|int type) {

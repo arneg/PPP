@@ -12,7 +12,7 @@ int postfilter_message_private(MMP.Packet p, mapping _v, mapping _m) {
    
     PSYC.Packet echo = p->data->reply("_echo" + p->data->mc, p->data->data,
 				      p->data->vars);
-    uni->sendmsg(p->source(), echo);
+    sendmsg(p->source(), echo);
 
     return PSYC.Handler.GOON;
 }

@@ -34,12 +34,12 @@ int has_context(MMP.Packet p, mapping _m) {
     return has_index(p->vars, "_context");
 }
 
-int postfilter_notice_context_enter_channel(MMP.Packet p, mapping _v, mapping _m) {
+int postfilter_notice_context_enter_channel_subscribe(MMP.Packet p, mapping _v, mapping _m) {
     MMP.Uniform channel = p["_source"];
 
     if (!channel->channel) {
 	P0(("Handler.Subscribe", "%O: got _notice_context_enter_channel from non-channel (%O).\n", uni, channel))
-	uni->sendmsg(channel, PSYC.Packet("_notice_context_leave"));
+	sendmsg(channel, PSYC.Packet("_notice_context_leave"));
 	return PSYC.Handler.STOP;
     }
 
@@ -62,13 +62,13 @@ int postfilter_notice_context_enter_channel(MMP.Packet p, mapping _v, mapping _m
 
     } else {
 	P1(("Handler.Subscribe", "%O: someone (%O) tried to forcefully join us into his channel (%O).\n", uni, context, channel))
-	uni->sendmsg(channel, PSYC.Packet("_notice_context_leave_channel"));
+	sendmsg(channel, PSYC.Packet("_notice_context_leave_channel"));
     }
 
     return PSYC.Handler.STOP;
 }
 
-int postfilter_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
+int postfilter_notice_context_enter_subscribe(MMP.Packet p, mapping _v, mapping _m) {
     MMP.Uniform context = p["_source"];
 
     if (context->channel) {
@@ -88,7 +88,7 @@ int postfilter_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
 	}
     } else {
 	P1(("Handler.Subscribe", "%O: someone (%O) tried to forcefully join us.\n", uni, context))
-	uni->sendmsg(context, PSYC.Packet("_notice_context_leave"));
+	sendmsg(context, PSYC.Packet("_notice_context_leave"));
     }
 
     return PSYC.Handler.STOP;
@@ -103,19 +103,19 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
     if (channel->channel) {
 	MMP.Uniform context = uni->server->get_uniform(channel->super);
 
-	if (!has_index(contexts, channel)) {
-	    if (has_index(contexts, context)) {
+	if (!has_index(sub, channel) && SUBSCRIBED(sub[channel])) {
+	    if (has_index(sub, context)) {
 		P0(("Handler.Subscribe", "%O: %O forgot to join us into %O.\n", uni, context, channel))
 	    } else {
 		P0(("Handler.Subscribe", "%O: we never joined %O but are getting messages.\n", uni, channel))
 	    }
 
-	    uni->sendmsg(channel, PSYC.Packet("_notice_context_leave_channel"));
+	    sendmsg(channel, PSYC.Packet("_notice_context_leave_channel"));
 	    return PSYC.Handler.STOP;
 	}
-    } else if (!has_index(subs, channel)) {
+    } else if (!has_index(sub, channel) && SUBSCRIBED(sub[channel])) {
 	P0(("Handler.Subscribe", "%O: we never joined %O but are getting messages.\n", uni, channel))
-	uni->sendmsg(channel, PSYC.Packet("_notice_context_leave"));
+	sendmsg(channel, PSYC.Packet("_notice_context_leave"));
 
 	return PSYC.Handler.STOP;
     }
@@ -142,7 +142,7 @@ void subscribe(MMP.Uniform channel) {
 
 	    // sending a request directly to a channel is like a recommendation for the
 	    // context.
-	    uni->sendmsg(channel, PSYC.Packet("_request_context_enter_subscribe"));
+	    sendmsg(channel, PSYC.Packet("_request_context_enter_subscribe"));
 	}; // CALLBACK
 
 	MMP.Uniform context;
@@ -169,12 +169,12 @@ void subscribe(MMP.Uniform channel) {
 	uni->storage->set_unlock("_subscriptions", sub, callback2, channel);
     }; // CALLBACK
 
-    uni->storage->get_lock("_subscriptions", callback, channel);
+    uni->storage->get_lock("_subscriptions", callback1, channel);
 }
 
 void unsubscribe(MMP.Uniform channel) {
 
-    uni->sendmsg(channel, PSYC.Packet("_request_context_leave_subscribe"));
+    sendmsg(channel, PSYC.Packet("_request_context_leave_subscribe"));
 
     void callback (string key, mixed value, MMP.Uniform channel) {
 
@@ -195,9 +195,9 @@ void unsubscribe(MMP.Uniform channel) {
 	if (!has_index(sub, context)) {
 	    uni->storage->unlock("_subscriptions");
 	    if (channel == context) {
-		uni->sendmsg(context, PSYC.Packet("_request_context_leave"));
+		sendmsg(context, PSYC.Packet("_request_context_leave"));
 	    } else {
-		uni->sendmsg(context, PSYC.Packet("_request_context_leave_channel"));
+		sendmsg(context, PSYC.Packet("_request_context_leave_channel"));
 	    }
 
 	    return;
@@ -215,19 +215,11 @@ void unsubscribe(MMP.Uniform channel) {
 	    }
 
 
-	}
+	};
 
 	uni->storage->set_unlock("_subscriptions", sub, callback2, context, channel);
     };
 
     uni->storage->get_lock("_subscriptions", callback, channel);
-}
-
-void enter(MMP.Uniform channel) {
-
-    uni->sendmsg(channel, PSYC.Packet("_request_context_enter"));
-}
-
-void leave(MMP.Uniform channel) {
 }
 

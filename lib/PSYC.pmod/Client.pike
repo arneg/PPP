@@ -6,6 +6,7 @@ int linked = 0;
 MMP.Utils.Queue queue = MMP.Utils.Queue();
 object attachee;
 MMP.Uniform link_to;
+function subscribe, unsubscribe;
 
 void create(MMP.Uniform uni_, object server, MMP.Uniform unl,
 	    function error, function query_password, string|void password) {
@@ -17,11 +18,14 @@ void create(MMP.Uniform uni_, object server, MMP.Uniform unl,
     // (if we directly create a Linker-instance in the add_handlers call,
     // dragons appear.
     // might be a pike bug.
-    //PSYC.Handler.Base linker = Linker(this, error, query_password);
-    //add_handlers(linker, Forwarder(this));
+    PSYC.Handler.Base t = PSYC.Handler.Subscribe(this, client_sendmsg); 
     add_handlers(Linker(this, error, query_password, link_to), 
 		 PSYC.Handler.Forward(this), 
-		 PSYC.Handler.Textdb(this));
+		 PSYC.Handler.Textdb(this),
+		 t
+		 );
+    subscribe = t->subscribe;
+    unsubscribe = t->subscribe;
 
     if (password) {
 	request["_password"] = password;
