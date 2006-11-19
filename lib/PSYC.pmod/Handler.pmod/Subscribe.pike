@@ -1,4 +1,4 @@
-/ vim:syntax=lpc
+// vim:syntax=lpc
 #include <debug.h>
 
 inherit PSYC.Handler.Base;
@@ -37,26 +37,32 @@ int has_context(MMP.Packet p, mapping _m) {
 int postfilter_notice_context_enter_channel(MMP.Packet p, mapping _v, mapping _m) {
     MMP.Uniform channel = p["_source"];
 
-    if (channel->channel) {
-	mapping sub = string2uniform(_v["_subscriptions"], 1);
-
-	MMP.Uniform context = uni->server->get_uniform(channel->super);
-
-	if (has_index(sub, context)) {
-	    if (!SUBSCRIBED(sub[context])) {
-		sub[context] = SUBSCRIBED(255);
-		uni->storage->set_unlock("_subscriptions", sub);
-	    } else {
-		uni->storage->set_unlock("_subscriptions");
-	    }
-
-	} else {
-	    P1(("Handler.Subscribe", "%O: someone (%O) tried to forcefully join us into his channel (%O).\n", uni, context, channel))
-	    uni->sendmsg(channel, PSYC.Packet("_notice_context_leave_channel"));
-	}
-    } else {
+    if (!channel->channel) {
 	P0(("Handler.Subscribe", "%O: got _notice_context_enter_channel from non-channel (%O).\n", uni, channel))
 	uni->sendmsg(channel, PSYC.Packet("_notice_context_leave"));
+	return PSYC.Handler.STOP;
+    }
+
+    mapping sub = string2uniform(_v["_subscriptions"], 1);
+
+    MMP.Uniform context = uni->server->get_uniform(channel->super);
+
+    if (has_index(sub, context) && REQUESTED(sub[context])) {
+
+	if (!SUBSCRIBED(sub[context])) {
+	    sub[context] = SUBSCRIBED(255);
+	    sub[channel] = SUBSCRIBED(255);
+	    uni->storage->set_unlock("_subscriptions", sub);
+	} else if (!SUBSCRIBED(sub[channel])) {
+	    sub[channel] = SUBSCRIBED(255);
+	    uni->storage->set_unlock("_subscriptions", sub);
+	} else {
+	    uni->storage->unlock("_subscriptions");
+	}
+
+    } else {
+	P1(("Handler.Subscribe", "%O: someone (%O) tried to forcefully join us into his channel (%O).\n", uni, context, channel))
+	uni->sendmsg(channel, PSYC.Packet("_notice_context_leave_channel"));
     }
 
     return PSYC.Handler.STOP;
@@ -67,14 +73,22 @@ int postfilter_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
 
     if (context->channel) {
 	P0(("Handler.Subscribe", "%O: _notice_context_enter from a channel (%O)!!!\n", context))	
-    } else {
-	if (has_index(requested, context)) {
-	    P3(("Handler.Subscribe", "%O: joined a context (%O).\n", uni, context))
-	    context[context] = 1;
+	return PSYC.Handler.STOP;
+    }
+
+    mapping sub = string2uniform(_v["_subscriptions"], 1);
+
+    if (has_index(sub, context) && REQUESTED(sub[context])) {
+	P3(("Handler.Subscribe", "%O: joined a context (%O).\n", uni, context))
+	if (!SUBSCRIBED(sub[context])) {
+	    sub[context] = SUBSCRIBED(255);
+	    uni->storage->set_unlock("_subscriptions", sub);
 	} else {
-	    P1(("Handler.Subscribe", "%O: someone (%O) tried to forcefully join us.\n", uni, context))
-	    uni->sendmsg(channel, PSYC.Packet("_notice_context_leave"));
+	    uni->storage->unlock("_subscriptions");
 	}
+    } else {
+	P1(("Handler.Subscribe", "%O: someone (%O) tried to forcefully join us.\n", uni, context))
+	uni->sendmsg(context, PSYC.Packet("_notice_context_leave"));
     }
 
     return PSYC.Handler.STOP;
@@ -83,6 +97,7 @@ int postfilter_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
 int filter(MMP.Packet p, mapping _v, mapping _m) {
     MMP.Uniform channel = p["_context"];
 
+    mapping sub = string2uniform(_v["_subscriptions"], 1);
     // we could aswell save the object of that channel into the uniform.. 
     // they are some somewhat related (instead of cutting the string everytime)
     if (channel->channel) {
@@ -98,7 +113,7 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
 	    uni->sendmsg(channel, PSYC.Packet("_notice_context_leave_channel"));
 	    return PSYC.Handler.STOP;
 	}
-    } else if (!has_index(contexts, channel)) {
+    } else if (!has_index(subs, channel)) {
 	P0(("Handler.Subscribe", "%O: we never joined %O but are getting messages.\n", uni, channel))
 	uni->sendmsg(channel, PSYC.Packet("_notice_context_leave"));
 
@@ -114,9 +129,10 @@ void subscribe(MMP.Uniform channel) {
 
     void callback1(string key, mixed value, MMP.Uniform channel) {
 
-	void callback2(int success, string key, MMP.Uniform channel) {
+	void callback2(int error, string key, MMP.Uniform channel) {
 	    
-	    if (!success) {
+	    if (error) {
+		P0(("Handler.Subscribe", "%O: set_unlock in subscribe failed. retry.\n", uni))
 		// sigh!
 		// retry ??
 		uni->storage->unlock("_subscriptions", subscribe);
@@ -132,7 +148,7 @@ void subscribe(MMP.Uniform channel) {
 	MMP.Uniform context;
 
 	if (key != "_subscriptions") {
-	    P0(("Handler.Subscribe", "got wrong data (%s instead of _subscriptions) from storage.", key))
+	    P0(("Handler.Subscribe", "%O: got wrong data (%s instead of _subscriptions) from storage.", uni, key))
 	    return;
 	}
 
@@ -144,7 +160,7 @@ void subscribe(MMP.Uniform channel) {
 
 	mixed sub = string2uniform(value, 1);
 
-	if (has_index(sub, channel) && sub[channel]) {
+	if (has_index(sub, channel) && sub[channel]) { // REQUESTED or SUBSCRIBED
 	    uni->storage->unlock("_subscriptions", callback2, channel);
 	    return;
 	}
@@ -158,23 +174,60 @@ void subscribe(MMP.Uniform channel) {
 
 void unsubscribe(MMP.Uniform channel) {
 
-    while (has_index(requested, channel)) { requested[channel]--; }
-
     uni->sendmsg(channel, PSYC.Packet("_request_context_leave_subscribe"));
+
+    void callback (string key, mixed value, MMP.Uniform channel) {
+
+	if (key != "_subscriptions") {
+	    P0(("Handler.Subscribe", "%O: got wrong data (%s instead of _subscriptions) from storage.", uni, key))
+	    return;
+	}
+	
+	mapping sub = string2uniform(value, 1);
+
+	MMP.Uniform context;
+	if (channel->channel) {
+	    context = uni->server->get_uniform(channel->super); 
+	} else {
+	    context = channel;
+	}
+	
+	if (!has_index(sub, context)) {
+	    uni->storage->unlock("_subscriptions");
+	    if (channel == context) {
+		uni->sendmsg(context, PSYC.Packet("_request_context_leave"));
+	    } else {
+		uni->sendmsg(context, PSYC.Packet("_request_context_leave_channel"));
+	    }
+
+	    return;
+	}
+
+	m_delete(sub, context); // forcefully delete it before we even told the other side??
+	
+	void callback2(int error, string key, MMP.Uniform context, MMP.Uniform channel) {
+
+	    if (error) {
+		P0(("Handler.Subscribe", "%O: set_unlock in unsubscribe failed. retry.\n", uni))
+		uni->storage->unlock("_subscriptions");
+		call_out(unsubscribe, 4, channel);
+		return;
+	    }
+
+
+	}
+
+	uni->storage->set_unlock("_subscriptions", sub, callback2, context, channel);
+    };
+
+    uni->storage->get_lock("_subscriptions", callback, channel);
 }
 
 void enter(MMP.Uniform channel) {
-    requested[channel] = 1;
-
-    if (channel->channel) {
-	requested[uni->server->get_uniform(channel->super)] = 1;
-    }
 
     uni->sendmsg(channel, PSYC.Packet("_request_context_enter"));
 }
 
 void leave(MMP.Uniform channel) {
-    // TODO: dont you stop here.. remember: ASYNC STORAGE NEEDS LOCKS!!!
-
 }
 

@@ -24,7 +24,7 @@ void link() {
 void grcb(MMP.Packet p, function callback, string key, string mc, array args) {
     PSYC.Packet m = p->data;
 
-    P3(("RemoteStorage", "grcb(%O, %O, %O, %O)\n", p, callback, key, args))
+    P3(("RemoteStorage", "grcb(%O, %O, %O, %O, %O)\n", p, callback, key, mc, args))
 
     if (key == m["_key"] && search(m->mc, "_notice"+mc) == 0) {
 	call_out(callback, 0, key, m["_value"], @args);
@@ -39,10 +39,12 @@ void grcb(MMP.Packet p, function callback, string key, string mc, array args) {
 void gscb(MMP.Packet p, function callback, string key, string mc, array args) {
     PSYC.Packet m = p->data;
 
+    P3(("RemoteStorage", "gscb(%O, %O, %O, %O, %O)\n", p, callback, key, mc, args))
+
     if (key == m["_key"] && search(m->mc, "_notice"+mc) == 0) {
-	call_out(callback, 0, 1, key, @args);
+	call_out(callback, 0, OK, key, @args);
     } else {
-	call_out(callback, 0, UNDEFINED, key, @args);
+	call_out(callback, 0, ERROR, key, @args);
     }
 }
 
@@ -76,7 +78,7 @@ void get_unlock(string key, function callback, mixed ... args) {
     _get(key, callback, args, "_retrieve_unlock");
 }
 
-void set(string key, mixed value, function callback, 
+void set(string key, mixed value, function|void callback, 
 	 mixed ... args) {
 
     if (!linked) {
@@ -87,7 +89,7 @@ void set(string key, mixed value, function callback,
     _set(key, value, callback, args, "_store");
 }
 
-void set_lock(string key, mixed value, function callback, 
+void set_lock(string key, mixed value, function|void callback, 
 	 mixed ... args) {
 
     if (!linked) {
@@ -98,7 +100,7 @@ void set_lock(string key, mixed value, function callback,
     _set(key, value, callback, args, "_store_lock");
 }
 
-void set_unlock(string key, mixed value, function callback, 
+void set_unlock(string key, mixed value, function|void callback, 
 	 mixed ... args) {
 
     if (!linked) {
@@ -109,7 +111,7 @@ void set_unlock(string key, mixed value, function callback,
     _set(key, value, callback, args, "_store_unlock");
 }
 
-void lock(string key, function callback, mixed ... args) {
+void lock(string key, function|void callback, mixed ... args) {
     
     if (!linked) {
 	queue->push(({ _lock, key, callback, args, "_lock" }));
@@ -119,7 +121,7 @@ void lock(string key, function callback, mixed ... args) {
     _lock(key, callback, args, "_lock");
 }
 
-void unlock(string key, function callback, mixed ... args) {
+void unlock(string key, function|void callback, mixed ... args) {
 
     if (!linked) {
 	queue->push(({ _lock, key, callback, args, "_unlock" }));
@@ -131,22 +133,40 @@ void unlock(string key, function callback, mixed ... args) {
 
 void _lock(string key, function callback, array(mixed) args, 
 	   string mc) {
-    uni->send_tagged(link_to, PSYC.Packet("_request"+mc, 0, ([
-				"_key" : key
-			    ])), gscb, callback, key, mc, args);
+    PSYC.Packet request = PSYC.Packet("_request"+mc, 0, 
+				      ([
+				    "_key" : key
+					]));
+
+    if (callback) {
+	uni->send_tagged(link_to, request, gscb, callback, key, mc, args);
+    } else { // maybe we should still send a tagged message.. but have dummy callback. not sure.
+	uni->sendmsg(link_to, request);
+    }
 }
 
 void _set(string key, mixed value, function callback,
 	  array(mixed) args, string mc) {
-    uni->send_tagged(link_to, PSYC.Packet("_request"+mc, 0, ([
+    PSYC.Packet request = PSYC.Packet("_request"+mc, 0, ([
 				"_key" : key,
 				"_value" : value,
-			    ])), gscb, callback, key, mc, args);
+			    ]));
+
+    if (callback) {
+	uni->send_tagged(link_to, request, gscb, callback, key, mc, args);
+    } else {
+	uni->sendmsg(link_to, request);
+    }
 }
 
 void _get(string key, function callback, array(mixed) args, string mc) {
-    uni->send_tagged(link_to, PSYC.Packet("_request"+mc, 0, ([
+    PSYC.Packet request = PSYC.Packet("_request"+mc, 0, ([
 				"_key" : key
-			    ])), grcb, callback, key, mc, args);
+			    ]));
+    if (callback) {
+	uni->send_tagged(link_to, request, grcb, callback, key, mc, args);
+    } else {
+	uni->sendmsg(link_to, request);
+    }
 }
 
