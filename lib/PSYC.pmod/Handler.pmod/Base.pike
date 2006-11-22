@@ -10,8 +10,8 @@ function sendmsg, sendmmp;
 static void create(object o, function|void fun1, function|void fun2) {
     uni = o;
 
-    sendmsg = fun1 ? fun1 : o->sendmsg;
-    sendmmp = fun2 ? fun2 : o->sendmmp;
+    sendmsg = fun1 || o->sendmsg;
+    sendmmp = fun2 || o->sendmmp;
 }
 
 mixed|MMP.Uniform string2uniform(array|mapping|multiset|MMP.Uniform u, void|int type) {
