@@ -25,7 +25,7 @@ void create(MMP.Uniform uni_, object server, MMP.Uniform unl,
 		 t
 		 );
     subscribe = t->subscribe;
-    unsubscribe = t->subscribe;
+    unsubscribe = t->unsubscribe;
 
     if (password) {
 	request["_password"] = password;
