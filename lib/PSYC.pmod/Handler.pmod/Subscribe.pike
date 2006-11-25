@@ -97,7 +97,8 @@ int postfilter_notice_context_enter_subscribe(MMP.Packet p, mapping _v, mapping 
 int filter(MMP.Packet p, mapping _v, mapping _m) {
     MMP.Uniform channel = p["_context"];
 
-    if (!channel) return PSYC.Handler.GOON;
+    // we have a check for that, messages without context never get here
+    // if (!channel) return PSYC.Handler.GOON;
 
     mapping sub = string2uniform(_v["_subscriptions"], 1);
     // we could aswell save the object of that channel into the uniform.. 

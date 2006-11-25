@@ -529,7 +529,7 @@ class Server {
 	P2(("PSYC.Server", "%O->deliver(%O, %O)\n", this, target, packet))
 
 	if (target->handler) {
-	    target->handler->msg(packet);
+	    call_out(target->handler->msg, 0, packet);
 	    return;
 	}
 	
@@ -573,12 +573,10 @@ class Server {
 	    connections, peerhost))
 
 	if (has_index(connections, peerhost)) {
-	    (target->handler = connections[peerhost])->msg(packet);
-
+	    call_out((target->handler = connections[peerhost])->msg, 0, packet);
 	    return;
 	} else if (has_index(routes, peerhost)) {
-	    (target->handler = routes[peerhost])->msg(packet);
-
+	    call_out((target->handler = routes[peerhost])->msg, 0, packet);
 	    return;
 	}
 
@@ -589,7 +587,7 @@ class Server {
 	    return;
 	}
 
-	cb(host, host, port, packet);
+	call_out(cb, 0, host, host, port, packet);
     }
 
     void deliver_local(MMP.Packet packet, MMP.Uniform target) {
@@ -604,7 +602,7 @@ class Server {
 	}
 
 	target->handler = o;
-	target->handler->msg(packet);
+	call_out(o->msg, packet);
     }
 
     // actual routing...
