@@ -8,7 +8,6 @@ PSYC.Handler.Base relay;
 PSYC.Handler.Base link;
 PSYC.Handler.Base forward;
 PSYC.Handler.Base echo;
-PSYC.Handler.Base trust;
 
 // wie waren diese unterschiedlichen level? fippo hatte doch das alles
 // sich genau überlegt.
@@ -68,7 +67,9 @@ void create(string nick, MMP.Uniform uni, object server) {
     relay = PSYC.Handler.Relay(this);
     link = PSYC.Handler.Link(this);
     echo = PSYC.Handler.Echo(this);
-    trust = PSYC.Handler.Trustiness(this);
-    add_handlers(relay, link, forward, echo, trust);
+    add_handlers(relay, link, forward, echo, 
+		 PSYC.Handler.Storage(this, storage),
+		 PSYC.Handler.Trustiness(this),
+		 );
 }
 

@@ -40,5 +40,19 @@ void add_handlers(PSYC.Handler.Base ... handlers) {
 
 void msg(MMP.Packet p) {
     PT(("MethodMultiplexer", "%O: msg(%O)\n", this, p))
+    
+    if (p->data) {
+	if (stringp(p->data)) {
+#ifdef LOVE_TELNET
+	    p->data = PSYC.parse(p->data, p->newline);
+#else
+	    p->data = PSYC.parse(p->data);
+#endif
+	}
+    } else {
+	PT(("MethodMultiplexer", "%O: got packet without data. maybe state changes\n"))
+	return;
+    }
+
     prefilter->handle(p, ([]));
 }

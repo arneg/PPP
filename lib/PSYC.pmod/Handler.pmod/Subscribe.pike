@@ -21,10 +21,10 @@ constant _ = ([
 	]),
     ]),
     "postfilter" : ([
-	"_notice_context_enter_channel" : ([
+	"_notice_context_enter_channel_subscribe" : ([
 	    "lock" : ({ "_subscriptions" }),
 	]),
-	"_notice_context_enter" : ([
+	"_notice_context_enter_subscribe" : ([
 	    "lock" : ({ "_subscriptions" }),
 	]),
     ]),

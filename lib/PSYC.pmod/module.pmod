@@ -307,10 +307,9 @@ class Server {
     PSYC.Packet circuit_established;
     string bind_to;
     string def_localhost;
+    PSYC.Root root;
 
     function create_local, create_remote, external_deliver_remote, external_deliver_local;
-
-    inherit ContextManager;
 
     // we could make the verbosity of this putput debug-level dependent
     string _sprintf(int type) {
@@ -332,6 +331,10 @@ class Server {
 
     void unregister_context(MMP.Uniform c) {
 	m_delete(contexts, c);
+    }
+
+    void add_route(MMP.Uniform target, object connection) {
+	routes[target->host + " " + (string)(target->port||4404)] = connection;
     }
 
     void create(mapping(string:mixed) config) {
@@ -398,7 +401,7 @@ class Server {
 	MMP.Uniform t = get_uniform("psyc://" + def_localhost + "/");
 	t->handler = this;
 	// not good for nonstandard port?
-	::create(t, this, PSYC.DummyStorage());
+	root = PSYC.Root(t, this, PSYC.DummyStorage());
     }
 
     // CALLBACKS
@@ -411,7 +414,7 @@ class Server {
 	peerhost = socket->query_address();
 
 	connections[peerhost] = (con = MMP.Server(socket, route, close, get_uniform));
-	con->send_neg(MMP.Packet(circuit_established, ([ "_source" : uni, "_target" : con->peeraddr ])) );
+	con->send_neg(MMP.Packet(circuit_established, ([ "_source" : root->uni, "_target" : con->peeraddr ])) );
     }
 
     void connect(int success, Stdio.File so, MMP.Utils.Queue q, 
@@ -475,7 +478,7 @@ class Server {
     MMP.Uniform random_uniform(string type) {
 	string unl;
 
-	while (has_index(unlcache, unl = (string)uni + "$" + type + String.string2hex(random_string(10))));
+	while (has_index(unlcache, unl = (string)root->uni + "$" + type + String.string2hex(random_string(10))));
 	
 	return get_uniform(unl);
     }
@@ -602,7 +605,7 @@ class Server {
 	}
 
 	target->handler = o;
-	call_out(o->msg, packet);
+	call_out(o->msg, 0, packet);
     }
 
     // actual routing...
@@ -614,6 +617,7 @@ class Server {
 	// this is maybe the most ... innovative piece of code on this planet
 	target = packet["_target"];
 	context = packet["_context"];
+
 	if (!has_index(packet->vars, "_source") && !context) {
 	    source = connection->peeraddr;
 	    // THIS IS REMOTE
@@ -622,19 +626,6 @@ class Server {
 
 	// may be objects already if these are packets coming from a socket that
 	// has been closed.
-	if (packet->data) { 
-	    if (stringp(packet->data)) {
-#ifdef LOVE_TELNET
-		packet->data = PSYC.parse(packet->data, connection->dl);
-#else
-		packet->data = PSYC.parse(packet->data);
-#endif
-	    }
-	} else {
-	    P0(("PSYC.Server", "Nothing to route.\n"))
-	    return;
-	}
-
 	P2(("PSYC.Server", "routing source: %O, target: %O, context: %O\n", 
 	    source, target, context))
 
@@ -661,13 +652,14 @@ class Server {
 #else
 		function dummy;
 #endif
-		if_localhost(target->host, msg, dummy, 
+		if_localhost(target->host, root->msg, dummy, 
 			     packet, connection);
 	    }
 	    break;
 	case 2:
 	case 0:
-	    msg(packet);
+	    PT(("PSYC.Server", "Broken Packet without _target from %O.\n", source))
+	    root->msg(packet);
 	    break;
 	case 4:
 	    P2(("PSYC.Server", "routing multicast message %O to local %s\n", 
@@ -675,7 +667,7 @@ class Server {
 	    if (has_index(contexts, context)) {
 		contexts[context]->msg(packet);
 	    } else {
-		P0(("PSYC.Server", "noone distributing messages in %O\n", 
+		P0(("PSYC.Server", "<F8>hzt noone distributing messages in %O\n", 
 		    context))
 	    }
 	    break;
@@ -694,37 +686,6 @@ class Server {
 	    P0(("PSYC.Server", "unimplemented routing scheme (%d)\n", 7))
 	    // even more bullshit
 	    break;
-	}
-    }
-
-    void msg(MMP.Packet packet, void|object connection) {
-
-	if (::msg(packet)) return;
-
-	MMP.Uniform source = packet["_source"];
-	if (!connection) {
-	    connection = source->handler;
-	}
-	
-	P2(("PSYC.Server", "rootmsg(%O) from %O\n", packet, connection))
-	if (packet->data != 0) {
-	    PSYC.Packet message = packet->data;
-
-	    switch (message->mc) {
-		// ich weiss nichtmehr so genau. in FORK wird das eh alles
-		// anders.. ,)
-	    case "_notice_circuit_established":
-		routes[source->host+" "+(string)(source->port||4404)] = connection;
-	    case "_status_circuit":
-		source->handler = connection;
-		// auch hier nicht sicher
-		connection->activate();
-		break;
-	    default:
-		return;
-	    }
-	} else { // hmm
-
 	}
     }
 }
