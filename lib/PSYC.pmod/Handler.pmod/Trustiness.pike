@@ -64,12 +64,12 @@ int postfilter_request_trustiness(MMP.Packet p, mapping _v, mapping _m) {
 
     if (MIN_TRUST <= get_trust(_v["_friends"], source)) {
 	trust = get_trust(_v["_friends"], location);
-	reply = m->reply("_notice_trustiness", 0, ([
+	reply = m->reply("_notice_trustiness", ([
 					    "_location" : location,
 					    "_trustiness" : trust,
 						   ]));
     } else {
-	reply = m->reply("_failure_trustiness", 0, ([
+	reply = m->reply("_failure_trustiness", ([
 					    "_location" : location,
 						    ]));
     }
@@ -187,7 +187,7 @@ void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
 	} else if (has_index(pending, trustee) && has_index(pending[trustee], source)) {
 	    pending[trustee][source] += ({ cb });
 	} else {
-	    PSYC.Packet request = PSYC.Packet("_request_trustiness", 0, 
+	    PSYC.Packet request = PSYC.Packet("_request_trustiness",
 					      ([
 						"_location" : source,
 					       ]));

@@ -36,6 +36,18 @@ class Circuit {
 
 }
 
+class Signaling {
+
+    inherit PSYC.Handler.Base;
+
+    constant _ = ([
+	"postfilter" : ([
+	    "_notice_context_enter" : 0,
+	    "_notice_context_enter_subscribe" : 0,
+	]),
+    ]);
+}
+
 #if 0
 void msg(MMP.Packet packet) {
 

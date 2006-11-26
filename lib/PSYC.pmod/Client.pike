@@ -10,7 +10,7 @@ function subscribe, unsubscribe;
 
 void create(MMP.Uniform uni_, object server, MMP.Uniform unl,
 	    function error, function query_password, string|void password) {
-    PSYC.Packet request = PSYC.Packet("_request_link", "let me in!");
+    PSYC.Packet request = PSYC.Packet("_request_link");
     link_to = uni_;
 
     ::create(unl, server, PSYC.RemoteStorage(link_to, this)); 
@@ -124,7 +124,7 @@ class Linker {
     ]);
 
     void set_password(string pw, string hash) {
-	PSYC.Packet m = PSYC.Packet("_set_password", 0, ([ "_password" : pw ]));
+	PSYC.Packet m = PSYC.Packet("_set_password", ([ "_password" : pw ]));
 	if (hash) {
 	    m["_method_hash"] = hash;
 	}

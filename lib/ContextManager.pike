@@ -36,7 +36,7 @@ int msg(MMP.Packet p) {
 	{
 	    // the variable naming is somehow beta
 	    if (!has_index(p->vars, "_target_relay")) {
-		sendmsg(p["_source"], m->reply("_failure_request_enter", "enter what???")); 
+		sendmsg(p["_source"], m->reply("_failure_request_enter")); 
 
 		return 1;
 	    }
@@ -82,12 +82,12 @@ int msg(MMP.Packet p) {
     case "_request_leave":
 	{ 
 	    if (!has_index(p->vars, "_target_relay")) {
-		sendmsg(p["_source"], m->reply("_failure_request_leave", "You need to specify the context you like to be removed from."));
+		sendmsg(p["_source"], m->reply("_failure_request_leave"));
 
 		return 1;
 	    }
 	    if (!has_index(contexts, p["_target_relay"])) {
-		sendmsg(p["_source"], m->reply("_failure_request_leave", "I do not manage [_nick_place] right now.", ([ "_nick_place" : p["_target_relay"] ])));
+		sendmsg(p["_source"], m->reply("_failure_request_leave", ([ "_nick_place" : p["_target_relay"] ])));
 
 		return 1;
 	    }
@@ -104,7 +104,7 @@ int msg(MMP.Packet p) {
 			//      _source == _source_relay
 			
 			contexts[room]->remove(orig["_source"]); 	
-			sendmmp(orig["_source"], MMP.Packet(orig->data->reply("_echo_leave", "You left [_source_relay]."), ([ "_source_relay" : room ])));
+			sendmmp(orig["_source"], MMP.Packet(orig->data->reply("_echo_leave"), ([ "_source_relay" : room ])));
 			return;
 		    }
 		}

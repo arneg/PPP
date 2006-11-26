@@ -64,8 +64,8 @@ int filter_error_authentication(MMP.Packet p, mapping _v, mapping _m) {
 
 	P3(("Uni", "I was not able to get authentication for %s (claims to be %s).\n", location, source))
 
-	PSYC.Packet failure = PSYC.Packet("_failure_authentification",
-					  "I was unable to verify your identification ([_identification]).", ([ "_identification" : source ]));
+	PSYC.Packet failure = PSYC.Packet("_failure_authentification", ([ "_identification" : source ]),
+					  "I was unable to verify your identification ([_identification]).");
 
 	sendmsg(location, failure);
     } else {
@@ -125,7 +125,6 @@ void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
 	    pending[s][id] = ({  }); 
 P3(("Auth.Handler", "!!!Handling!!! identification of %O.\n", p))
 	    PSYC.Packet request = PSYC.Packet("_request_authentication",
-					      "nil", 
 					      ([ "_location" : s ]));
 	    sendmsg(id, request);
 	}

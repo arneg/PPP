@@ -27,8 +27,7 @@ class Basic {
 	}
 
 	if (!isMember(p->lsource())) {
-	    sendmsg(p["_source"], PSYC.Packet("_error_membership_required", 
-		    "You need to enter [_nick_place] first.", ([ "_nick_place" : uni ])));
+	    sendmsg(p["_source"], PSYC.Packet("_error_membership_required", ([ "_nick_place" : uni ])));
 	}
 
 	switch(m->mc) {

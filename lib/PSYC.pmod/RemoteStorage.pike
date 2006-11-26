@@ -133,7 +133,7 @@ void unlock(string key, function|void callback, mixed ... args) {
 
 void _lock(string key, function callback, array(mixed) args, 
 	   string mc) {
-    PSYC.Packet request = PSYC.Packet("_request"+mc, 0, 
+    PSYC.Packet request = PSYC.Packet("_request"+mc,
 				      ([
 				    "_key" : key
 					]));
@@ -147,7 +147,7 @@ void _lock(string key, function callback, array(mixed) args,
 
 void _set(string key, mixed value, function callback,
 	  array(mixed) args, string mc) {
-    PSYC.Packet request = PSYC.Packet("_request"+mc, 0, ([
+    PSYC.Packet request = PSYC.Packet("_request"+mc, ([
 				"_key" : key,
 				"_value" : value,
 			    ]));
@@ -160,7 +160,7 @@ void _set(string key, mixed value, function callback,
 }
 
 void _get(string key, function callback, array(mixed) args, string mc) {
-    PSYC.Packet request = PSYC.Packet("_request"+mc, 0, ([
+    PSYC.Packet request = PSYC.Packet("_request"+mc, ([
 				"_key" : key
 			    ]));
     if (callback) {

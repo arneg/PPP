@@ -43,7 +43,7 @@ int _set(MMP.Packet p, mapping _v, mapping _m, string mc, function set) {
     }
 
     if (!has_index(m->vars, "_key") || !has_index(m->vars, "_value")) {
-	sendmsg(p["_source"], m->reply("_error"+mc, "Store what???"));
+	sendmsg(p["_source"], m->reply("_error"+mc));
 	return PSYC.Handler.STOP;
     }
 
@@ -52,10 +52,10 @@ int _set(MMP.Packet p, mapping _v, mapping _m, string mc, function set) {
 
     void callback(int error, MMP.Uniform target, PSYC.Packet m) {
 	if (error) {
-	    sendmsg(target, m->reply("_error"+mc, 0,
+	    sendmsg(target, m->reply("_error"+mc,
 					  ([ "_key" : key ])));
 	} else {
-	    sendmsg(target, m->reply("_notice"+mc, 0,
+	    sendmsg(target, m->reply("_notice"+mc,
 				      ([ "_key" : key ])));
 	}
     };
@@ -85,7 +85,7 @@ int _get(MMP.Packet p, mapping _v, mapping _m, string mc, function get) {
     }
 
     if (!has_index(m->vars, "_key")) {
-	sendmsg(p["_source"], m->reply("_error"+mc, "ReTrIEve whAt!!"));
+	sendmsg(p["_source"], m->reply("_error"+mc));
 	return PSYC.Handler.STOP;
     }
 
@@ -94,11 +94,11 @@ int _get(MMP.Packet p, mapping _v, mapping _m, string mc, function get) {
     void callback(string key, string value, MMP.Uniform target, 
 		  PSYC.Packet m) {
 	if (value != UNDEFINED) {
-	    sendmsg(target, m->reply("_notice"+mc, 0, 
+	    sendmsg(target, m->reply("_notice"+mc,
 					  ([ "_key" : key,
 					     "_value" : value ])));
 	} else {
-	    sendmsg(target, m->reply("_error"+mc, 0,
+	    sendmsg(target, m->reply("_error"+mc,
 					  ([ "_key" : key ])));
 	}
     };
@@ -116,7 +116,7 @@ int postfilter_request_lock(MMP.Packet p, mapping _v, mapping _m) {
     }
 
     if (!has_index(m->vars, "_key")) {
-	sendmsg(p["_source"], m->reply("_error_lock", "Lock what??"));
+	sendmsg(p["_source"], m->reply("_error_lock"));
 	return PSYC.Handler.STOP;
     }
 
@@ -124,11 +124,9 @@ int postfilter_request_lock(MMP.Packet p, mapping _v, mapping _m) {
 
     void callback(int error, MMP.Uniform target, PSYC.Packet m) {
 	if (error) {
-	    sendmsg(target, m->reply("_error_lock", 0,
-					  ([ "_key" : key ])));
+	    sendmsg(target, m->reply("_error_lock", ([ "_key" : key ])));
 	} else {
-	    sendmsg(target, m->reply("_notice_lock", 0,
-					  ([ "_key" : key ])));
+	    sendmsg(target, m->reply("_notice_lock", ([ "_key" : key ])));
 	}
     };
 
@@ -145,7 +143,7 @@ int postfilter_request_unlock(MMP.Packet p, mapping _v, mapping _m) {
     }
 
     if (!has_index(m->vars, "_key")) {
-	sendmsg(p["_source"], m->reply("_error_unlock", "Lock what??"));
+	sendmsg(p["_source"], m->reply("_error_unlock"));
 	return PSYC.Handler.STOP;
     }
 
@@ -153,11 +151,9 @@ int postfilter_request_unlock(MMP.Packet p, mapping _v, mapping _m) {
 
     void callback(int error, MMP.Uniform target, PSYC.Packet m) {
 	if (error) {
-	    sendmsg(target, m->reply("_error_unlock", 0,
-					  ([ "_key" : key ])));
+	    sendmsg(target, m->reply("_error_unlock", ([ "_key" : key ])));
 	} else {
-	    sendmsg(target, m->reply("_notice_unlock", 0,
-					  ([ "_key" : key ])));
+	    sendmsg(target, m->reply("_notice_unlock", ([ "_key" : key ])));
 	}
     };
 

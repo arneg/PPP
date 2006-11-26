@@ -21,9 +21,9 @@ int msg(MMP.Packet p) {
     case "_request_group_enter":
 	{
 	    void _true() {
-		sendmsg(p->source(), m->reply("_echo_enter", "You entered [_source]."));
+		sendmsg(p->source(), m->reply("_echo_enter"));
 		if (!silent) {
-		    kast(PSYC.Packet("_notice_enter", "congratulations, [_nick] entered the froup", ([ "_nick" : p->lsource() ])));
+		    kast(PSYC.Packet("_notice_enter", ([ "_nick" : p->lsource() ])));
 		}
 	    };
 
@@ -42,11 +42,10 @@ int msg(MMP.Packet p) {
 
 	    if (!silent) {
 		kast(PSYC.Packet("_notice_place_leave", 
-			         "[_nick] left.",
 			         ([ "_nick" : source])));
 	    }
 	} else {
-	    sendmsg(source, m->reply("_notice_leave", "the froup doesn't know you anyway."));
+	    sendmsg(source, m->reply("_notice_leave"));
 	}
 
 	return 1;

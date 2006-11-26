@@ -19,11 +19,10 @@ class Packet {
     mapping (string:mixed) vars;
     string data;
 
-    void create(string|void m, string|void d, 
-		mapping(string:mixed)|void v ) {
+    void create(string|void m, mapping(string:mixed)|void v, string|void d) {
 	if (m) mc = m;
-	data = d||"";
-	vars = v||([]);
+	data = d ? d : "";
+	vars = v ? v : ([]);
     }
 
     mixed cast(string type) {
@@ -50,9 +49,8 @@ class Packet {
 	}
     }
 
-    PSYC.Packet reply(string|void mc, string|void d, 
-		mapping(string:mixed)|void v) {
-	PSYC.Packet m = PSYC.Packet(mc, d, v);
+    PSYC.Packet reply(string|void mc, mapping(string:mixed)|void v, string|void d) {
+	PSYC.Packet m = PSYC.Packet(mc, v, d);
 
 	if (has_index(vars, "_tag") && sizeof(vars["_tag"])) {
 	    m["_tag_reply"] = vars["_tag"]; 
@@ -396,8 +394,8 @@ class Server {
 	//set_weak_flag(unlcache, Pike.WEAK_VALUES);
 
 	circuit_established = PSYC.Packet("_notice_circuit_established", 
-					  "You got connected to [_source].",
-			  ([ "_implementation" : "better than wurstbrote" ]));
+			      ([ "_implementation" : "better than wurstbrote" ]),
+			      "You got connected to [_source].");
 	MMP.Uniform t = get_uniform("psyc://" + def_localhost + "/");
 	t->handler = this;
 	// not good for nonstandard port?
