@@ -248,6 +248,9 @@ class Packet {
     mapping(string:mixed) vars;
     string|object data;
     function parsed = 0, sent = 0; 
+#ifdef LOVE_TELNET
+    string newline;
+#endif
 
     // experimental variable family inheritance...
     // this actually does not exactly what we want.. 
@@ -449,7 +452,7 @@ class Circuit {
 	msg_cb = cb;
 	close_cb = closecb;
 	get_uniform = parse_uni||MMP.parse_uniform;
-	peeraddr = get_uniform("psyc://"+((peerhost / " ") * ":"));
+	peeraddr = get_uniform("psyc://"+((peerhost / " ") * ":")+"/");
 	peeraddr->handler = this;
 
 	q_neg->push(Packet());
@@ -490,12 +493,14 @@ class Circuit {
     void reset() {
 	lastval = lastkey = lastmod = 0;
 	inpacket = Packet(0, copy_value(in_state));
+#ifdef LOVE_TELNET
+	inpacket->newline = dl;
+#endif
     }	
 
     void activate() {
 	write_okay = 1;
-	if (write_ready)
-	    write();
+	if (write_ready) write();
     }
 
     void send_neg(Packet mmp) {
@@ -601,6 +606,11 @@ class Circuit {
 	    close_cb(this);
 	    return 1;
 	}
+
+	// the reset has been called before.
+#ifdef LOVE_TELNET
+	inpacket->newline = dl;
+#endif
 	P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", 
 	    peerhost))
 #ifdef LOVE_TELNET
@@ -611,7 +621,6 @@ class Circuit {
 	if (sizeof(data) > 2) {
 	    read(0, data[2 ..]);
 	}
-
 #endif
 	socket->set_read_callback(read);
     }
