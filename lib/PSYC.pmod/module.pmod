@@ -21,8 +21,8 @@ class Packet {
 
     void create(string|void m, mapping(string:mixed)|void v, string|void d) {
 	if (m) mc = m;
-	data = d ? d : "";
-	vars = v ? v : ([]);
+	data = d || "";
+	vars = v || ([ ]);
     }
 
     mixed cast(string type) {
