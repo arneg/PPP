@@ -173,38 +173,6 @@ class Server {
     }
 }
 
-
-Protocols.DNS.async_client _resolver = Protocols.DNS.async_client();
-
-void async_srv(string service, string protocol, string name,
-               function cb, mixed ... cba) {
-    _resolver->do_query("_" + service +"._"+ protocol + "." + name,
-			Protocols.DNS.C_IN,
-			Protocols.DNS.T_SRV, sort_srv, cb, cba);
-}
-
-void sort_srv(string query, mapping result, mixed cb, mixed cba) {
-    array res=({});
-
-    if (result) {
-
-        foreach(result->an, mapping x)
-        {
-           res += ({({x->priority, x->weight, x->port, x->target})});
-        }
-
-        // now we sort the array by priority as a convenience
-        array y=({});
-        foreach(res, array t)
-          y+=({t[0]});
-        sort(y, res);
-        cb(query, res, cba);
-    } else {
-        cb(-1, cba);
-        werror("dns client: no result\n");
-    }
-}
-
 class Connector {
     inherit XMPP.XMPPSocket;
     int connecting;
@@ -236,17 +204,18 @@ class SRVConnector {
 	if (connecting) return;
 	    connecting = 1;
 	if (domain != "localhost")
-	    async_srv(service, protocol, domain, srv_resolved);
+	    MMP.Utils.DNS.async_srv(service, protocol, domain, srv_resolved);
 	else
 	    resolved("localhost", "127.0.0.1", 5269);
     }
 
-    void srv_resolved(string query, array result, mixed args) {
+    void srv_resolved(string query, array result) {
 	// TODO: we should resolve both _xmpp-server and _jabber and then
 	// 	prefer _xmpp-server if both are available
-	if (sizeof(result)) {
+	if (arrrayp(result) && sizeof(result)) {
 	    mixed entry = result[0];
-	    Protocols.DNS.async_host_to_ip(entry[3], resolved, entry[2]);
+	    Protocols.DNS.async_host_to_ip(entry->target, resolved,
+					   entry->port);
 	} else {
 	    Protocols.DNS.async_host_to_ip(config["domain"], resolved, 5269);
 	}
