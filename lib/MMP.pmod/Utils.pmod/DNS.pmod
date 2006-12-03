@@ -15,19 +15,23 @@ void async_srv(string service, string protocol, string name, function cb,
 
 	array(mapping) res;
 
-	if (result && sizeof(res = [array(mapping)]result->an)) {
-	    if (`==(@res->type, Protocols.DNS.T_SRV) == 1) {
-		res = [array(mapping)]Array.sort_array(res, sorter);
-		cb(query, res, @cba);
+	if (result) {
+	    if (sizeof(res = [array(mapping)]result->an)) {
+		if (`==(@res->type, Protocols.DNS.T_SRV) == 1) {
+		    res = [array(mapping)]Array.sort_array(res, sorter);
+		    cb(query, res, @cba);
+		} else {
+		    // TODO:: if this should happen alot, and not all answers
+		    // are of the same (wrong) type, change strategy to "fixing"
+		    // the answers. probably.
+		    cb(query, -2, @cba);
+		    werror("dns client: error-prone reply\n");
+		}
 	    } else {
-		// TODO:: if this should happen alot, and not all answers are
-		// of the same (wrong) type, change strategy to "fixing"
-		// the answers. probably.
-		cb(-2, @cba);
-		werror("dns client: error-prone reply\n");
+		cb(query, res, @cba);
 	    }
 	} else {
-	    cb(-1, @cba);
+	    cb(query, -1, @cba);
 	    werror("dns client: no result\n");
 	}
     };
