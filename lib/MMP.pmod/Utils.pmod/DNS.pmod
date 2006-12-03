@@ -31,10 +31,9 @@ void async_srv(string service, string protocol, string name, function cb,
 						     + 1);
 
 			    foreach (tmp[index]; int i; mapping m) {
-				probability -= m->weight;
-
 				if (probability <= m->weight) {
 				    res += ({ m });
+				    probability -= m->weight;
 				    tmp[index] = tmp[index][..i - 1]
 					    + tmp[index][i + 1..];
 				    break;
