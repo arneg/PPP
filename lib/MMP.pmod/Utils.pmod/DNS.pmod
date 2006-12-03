@@ -5,20 +5,45 @@
 void async_srv(string service, string protocol, string name, function cb,
 	       mixed ... cba) {
     void sort_srv(string query, mapping result) {
-	int(0..1) sorter(mapping a, mapping b) {
-	    if (a->priority == b->priority) {
-		return a->weight < b->weight;
-	    } else {
-		return a->priority > b->priority;
-	    }
-	};
-
 	array(mapping) res;
 
 	if (result) {
 	    if (sizeof(res = [array(mapping)]result->an)) {
 		if (`==(@res->type, Protocols.DNS.T_SRV) == 1) {
-		    res = [array(mapping)]Array.sort_array(res, sorter);
+		    mapping(int : array(mapping)) tmp = ([ ]), tmp2 = ([ ]);
+
+		    foreach (res;; mapping m) {
+			if (!tmp[m->priority]) {
+			    tmp[m->priority] = ({ });
+			    tmp2[m->priority] = ({ });
+			}
+
+			tmp[m->priority] += ({ m });
+		    }
+
+		    res = ({ });
+
+		    foreach (sort(indices(tmp));; int index) {
+			sort(tmp[index]->weight, tmp[index]);
+
+			while (sizeof(tmp[index])) {
+			    int probability = random(`+(@tmp[index]->weight)
+						     + 1);
+
+			    foreach (tmp[index]; int i; mapping m) {
+				probability -= m->weight;
+
+				if (probability <= m->weight) {
+				    res += ({ m });
+				    tmp[index] = tmp[index][..i - 1]
+					    + tmp[index][i + 1..];
+				    break;
+				}
+			    }
+			}
+		    }
+
+		    //res = [array(mapping)]Array.sort_array(res, sorter);
 		    cb(query, res, @cba);
 		} else {
 		    // TODO:: if this should happen alot, and not all answers
