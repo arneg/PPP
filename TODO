@@ -1,4 +1,3 @@
-- repair the multicast stuff in Group.Master
 - fix MMP.Circuits to do negotiation of modules..
 - make TELNET and ContextMaster do proper tagging and checking for tags
 - check for hosts of incoming mmp packets..
