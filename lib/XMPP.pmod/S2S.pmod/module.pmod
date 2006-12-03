@@ -209,7 +209,7 @@ class SRVConnector {
 	    resolved("localhost", "127.0.0.1", 5269);
     }
 
-    void srv_resolved(string query, array result) {
+    void srv_resolved(string query, array|int result) {
 	// TODO: we should resolve both _xmpp-server and _jabber and then
 	// 	prefer _xmpp-server if both are available
 	if (arrrayp(result) && sizeof(result)) {
