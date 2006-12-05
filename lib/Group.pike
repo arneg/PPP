@@ -28,7 +28,7 @@ int msg(MMP.Packet p) {
 	    };
 
 	    void _false() {
-		sendmsg(source, m->reply("_failure_enter", "forget about it, beavis"));
+		sendmsg(source, m->reply("_failure_enter", 0, "forget about it, beavis"));
 	    };
 
 	    enter(p, _true, _false);
