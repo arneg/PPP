@@ -344,10 +344,6 @@ class Server {
 	} else {
 	    localhosts = ([ ]);
 	}
-	localhosts += ([ 
-			"localhost" : 1,
-			"127.0.0.1" : 1,
-		      ]);
 
 	if (has_index(config, "create_local") 
 	    && functionp(create_local = config["create_local"])) {
@@ -375,18 +371,21 @@ class Server {
 
 	if (has_index(config, "ports")) {
 	    // more error-checking would be a good idea.
-	    int|string port;
-	    string ip;
-	    Stdio.Port p;
-	    foreach (config["ports"], port) {
-		if (intp(port)) {
-		    p = Stdio.Port(port, accept);
-		} else { // is a string
-		    [ip, port] = (port / ":");
-		    p = Stdio.Port(port, accept, ip);
-		    localhosts[ip] = 1;
-		    bind_to = ip;
+	    foreach (config["ports"];; string port) {
+		string ip;
+		Stdio.Port p;
+
+		[ip, port] = (port / ":");
+
+		if (!MMP.Utils.Net.is_ip(ip)) {
+		    throw(({ sprintf("%O is not a valid IP by my standards, "
+				     "cannot bind to that... "
+				     "'thing'.\n", ip) }));
 		}
+
+		p = Stdio.Port(port, accept, ip);
+		localhosts[port] = 1;
+		bind_to = ip;
 		p->set_id(p);
 	    }
 	} else throw(({ "help!" }));
@@ -493,14 +492,17 @@ class Server {
 	}
     }
 
-    void if_localhost(string host, function if_cb, function else_cb, 
-		      mixed ... args ) {
+    void if_localhost(string host, function if_cb, function else_cb,
+		      mixed ... args) {
+	_if_localhost(host, if_cb, else_cb, 0, args);
+    }
+
+    void _if_localhost(string host, function if_cb, function else_cb,
+		      int port, array args) {
 	// this is rather blöde
 	P2(("PSYC.Server", "if_localhost(%s, %O, %O, ...)\n", host, if_cb, 
 	    else_cb))
-	void callback(string host, mixed ip, function if_cb, function else_cb, 
-		      mixed ... args ) {
-
+	void callback(string host, mixed ip) {
 	    // TODO: we need error_handling here!
 	    if (!ip) {
 		P1(("MMP.Server", "Could not resolve %s.\n", host))
@@ -508,21 +510,61 @@ class Server {
 		P2(("MMP.Server", "%s resolves to %s.\n", host, ip))
 	    }
 
-	    if (ip && has_index(localhosts, ip))
+	    if (ip && has_index(localhosts, ip + ":" + port))
 		if_cb(@args);
 	    else if (else_cb)
 		else_cb(@args);
-		
 	};
 
-	if (has_index(localhosts, host)) {
-	    if_cb(@args);
-	} else if (sscanf(host, "%*d.%*d.%*d.%*d") == 4) {
-	    Protocols.DNS.async_ip_to_host(host, callback, if_cb, else_cb, 
-					   @args);
+	void handle_srv(string query, array(mapping)|int result) {
+	    if (arrayp(result) && sizeof(result)) {
+		int done, count;
+
+		void _if_cb() {
+		    if (!done) {
+			done = 1;
+			count--;
+			if_cb(@args);
+		    }
+		};
+
+		void _else_cb() {
+		    if (!done && !--count) {
+			else_cb(@args);
+		    }
+		};
+
+		multiset seen = (<>);
+
+		foreach (result;; mapping answer) {
+		    string target = answer->target;
+		    int port = answer->port;
+
+		    if (stringp(target) && sizeof(target)) {
+			if (!has_index(seen, target + ":" + port)) {
+			    seen[target + ":" + port]++;
+			    count++;
+
+			    call_out(_if_localhost, 0, target, _if_cb, _else_cb,
+				     port, ({ }));
+			}
+		    }
+		}
+	    } else {
+		Protocols.DNS.async_host_to_ip(host, callback);
+	    }
+	};
+
+	if (MMP.Utils.Net.is_ip(host)) {
+	    if (has_index(localhosts, host + ":" + port)) {
+		if_cb(@args);
+	    } else {
+		else_cb(@args);
+	    }
+	} else if (!port) {
+	    MMP.Utils.DNS.async_srv("psyc-server", "tcp", host, handle_srv);
 	} else {
-	    Protocols.DNS.async_host_to_ip(host, callback, if_cb, else_cb, 
-					   @args);
+	    Protocols.DNS.async_host_to_ip(host, callback);
 	}
     }
 

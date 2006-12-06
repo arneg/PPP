@@ -8,11 +8,17 @@ XMPP.S2S.ClientManager rumms;
 XMPP.S2S.ServerManager bumms;
 #endif
 
-#ifndef LOCALHOST
-# define LOCALHOST "localhost"
+#ifndef BIND
+# define BIND	"127.0.0.1"
+#endif
+#ifndef HOSTNAME
+# define HOSTNAME	"localhost"
+#endif
+#ifndef LOCALHOST // for XMPP
+# define LOCALHOST	HOSTNAME
 #endif
 #ifndef REMOTEHOST
-# define REMOTEHOST "localhost"
+# define REMOTEHOST	"localhost"
 #endif
 
 #if HAS_XMPP
@@ -47,25 +53,90 @@ int main(int argc, array(string) argv) {
 							 "../default/"
 #endif
 							 );
+    string smtime() {
+	string wday, month;
+	mapping t = localtime(time()),
+		t2 = gmtime(sgn(t->timezone) * t->timezone);
+
+	switch (t->wday) {
+	case 0:
+	    wday = "Sun";
+	    break;
+	case 1:
+	    wday = "Mon";
+	    break;
+	case 2:
+	    wday = "Tue";
+	    break;
+	case 3:
+	    wday = "Wed";
+	    break;
+	case 4:
+	    wday = "Thu";
+	    break;
+	case 5:
+	    wday = "Fri";
+	    break;
+	case 6:
+	    wday = "Sat";
+	    break;
+	}
+
+	switch (t->mon) {
+	case 0:
+	    month = "Jan";
+	    break;
+	case 1:
+	    month = "Feb";
+	    break;
+	case 2:
+	    month = "Mar";
+	    break;
+	case 3:
+	    month = "Apr";
+	    break;
+	case 4:
+	    month = "May";
+	    break;
+	case 5:
+	    month = "Jun";
+	    break;
+	case 6:
+	    month = "Jul";
+	    break;
+	case 7:
+	    month = "Aug";
+	    break;
+	case 8:
+	    month = "Sep";
+	    break;
+	case 9:
+	    month = "Oct";
+	    break;
+	case 10:
+	    month = "Nov";
+	    break;
+	case 11:
+	    month = "Dec";
+	    break;
+	}
+
+	return sprintf("%s, %d %s %d %02d:%02d:%02d %c%02d%02d",
+		       wday, t->mday, month, 1900 + t->year,
+		       t->hour, t->min, t->sec,
+		       sgn(t->timezone) < 0 ? '+' : '-',
+		       t2->hour, t2->min);
+    };
 
     dings = PSYC.Server(([
-	"localhosts" : ([ LOCALHOST : 1 
-#if defined(BIND) && BIND != LOCALHOST 
-			 , BIND : 1
-#endif
-			]),
 	     "ports" : ({ 
-#ifdef BIND
 			BIND
-#else
-			LOCALHOST 
-#endif
 			+ ":4404" }),
       "create_local" : create_local,
     "deliver_remote" : deliver_remote,
     "module_factory" : create_module,
      "offer_modules" : ({ "_compress" }),
- "default_localhost" : LOCALHOST,
+ "default_localhost" : HOSTNAME,
 	 ]));
 #ifdef HAS_XMPP
     XMPP.S2S.Client flumms;
@@ -98,7 +169,7 @@ int main(int argc, array(string) argv) {
 	     "textdb" : textdb,
 			]));
 
-    write("220 ppp ESMTP Sendmail 8.13.7/8.13.7;\n");
+    write("220 ppp ESMTP Sendmail 8.13.7/8.13.7; %s\n", smtime());
     return -1;
 }
 
