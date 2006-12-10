@@ -209,11 +209,11 @@ class SRVConnector {
 	    resolved("localhost", "127.0.0.1", 5269);
     }
 
-    void srv_resolved(string query, array|int result) {
+    void srv_resolved(string query, MMP.Utils.DNS.SRVReply|int result) {
 	// TODO: we should resolve both _xmpp-server and _jabber and then
 	// 	prefer _xmpp-server if both are available
-	if (arrrayp(result) && sizeof(result)) {
-	    mixed entry = result[0];
+	if (objectp(result) && result->has_next()) {
+	    mixed entry = result->next();
 	    Protocols.DNS.async_host_to_ip(entry->target, resolved,
 					   entry->port);
 	} else {
