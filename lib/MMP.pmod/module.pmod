@@ -14,7 +14,8 @@ void debug(string cl, string format, mixed ... args) {
 
 class Uniform {
     string scheme, transport, host, user, resource, slashes, query, body,
-	   userAtHost, pass, hostPort, circuit, root, unl, channel, super, obj;
+	   userAtHost, pass, hostPort, circuit, unl, channel, obj;
+    MMP.Uniform root, super;
     int port, parsed;
     object handler;
 
@@ -92,12 +93,10 @@ class Uniform {
 	body = t;
 	sscanf(t, "%s/%s", t, resource);
 
-	if (2 != sscanf(resource, "%s#%s", obj, channel)) {
+	if (!resource || 2 != sscanf(resource, "%s#%s", obj, channel)) {
 	    obj = resource;
 	    channel = UNDEFINED;
 	    super = UNDEFINED;
-	} else {
-	    super = scheme + slashes + body + "/" + obj;
 	}
 
 	userAtHost = t;
@@ -107,7 +106,7 @@ class Uniform {
 	}
 	hostPort = t;
 	//if (complete) circuit = scheme+":"+hostPort;
-	root = scheme+":"+slashes+hostPort;
+	//root = scheme+":"+slashes+hostPort;
 	if (sscanf(t, "%s:%s", t, s)) {
 		if (!sscanf(s, "%d%s", port, transport))
 		    transport = s;
