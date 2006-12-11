@@ -8,7 +8,7 @@
 // * sync notifications for storage.
 //
 // requirements to channels:
-// * suibscription by the user
+// * subscription by the user
 
 // channel -> member -> urks
 // this is temporary.. 

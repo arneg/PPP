@@ -37,6 +37,7 @@ int has_context(MMP.Packet p, mapping _m) {
 int postfilter_notice_context_enter_channel_subscribe(MMP.Packet p, mapping _v, mapping _m) {
     MMP.Uniform channel = p["_source"];
 
+    // maybe the place for a check function! no need to request the variables then...
     if (!channel->channel) {
 	P0(("Handler.Subscribe", "%O: got _notice_context_enter_channel from non-channel (%O).\n", uni, channel))
 	sendmsg(channel, PSYC.Packet("_notice_context_leave"));
@@ -45,7 +46,7 @@ int postfilter_notice_context_enter_channel_subscribe(MMP.Packet p, mapping _v, 
 
     mapping sub = string2uniform(_v["_subscriptions"], 1);
 
-    MMP.Uniform context = uni->server->get_uniform(channel->super);
+    MMP.Uniform context = channel->super;
 
     if (has_index(sub, context) && REQUESTED(sub[context])) {
 
@@ -104,7 +105,7 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
     // we could aswell save the object of that channel into the uniform.. 
     // they are some somewhat related (instead of cutting the string everytime)
     if (channel->channel) {
-	MMP.Uniform context = uni->server->get_uniform(channel->super);
+	MMP.Uniform context = channel->super;
 
 	if (!has_index(sub, channel) && SUBSCRIBED(sub[channel])) {
 	    if (has_index(sub, context)) {
@@ -156,7 +157,7 @@ void subscribe(MMP.Uniform channel) {
 	}
 
 	if (channel->channel) {
-	    context = uni->server->get_uniform(channel->super); 
+	    context = channel->super; 
 	} else {
 	    context = channel;
 	}
@@ -190,7 +191,7 @@ void unsubscribe(MMP.Uniform channel) {
 
 	MMP.Uniform context;
 	if (channel->channel) {
-	    context = uni->server->get_uniform(channel->super); 
+	    context = channel->super; 
 	} else {
 	    context = channel;
 	}
