@@ -10,7 +10,7 @@ int(0..1) is_ip(string candidate) {
 	    return 0;
 	}
 
-	if (pi < 0 || pi > 256) return 0;
+	if (pi < 0 || pi > 255) return 0;
     }
 
     return 1;
