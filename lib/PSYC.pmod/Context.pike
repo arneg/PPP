@@ -1,3 +1,4 @@
+// vim:syntax=lpc
 object server;
 multiset(MMP.Uniform) members = (<>);
 mapping(MMP.Uniform:int) routes = ([]);
@@ -7,6 +8,15 @@ void create(object s) {
 }
 
 void insert(MMP.Uniform u, function cb, mixed ... args) {
+
+    if (u->is_local()) {
+	members[u] = 1;
+	routes[u] = 1;
+
+	call_out(cb, 0, @args);
+	return;
+    }
+
     void callback(MMP.Packet p, array(mixed) args) {
 	PSYC.Packet m = p->data;
 
@@ -15,16 +25,26 @@ void insert(MMP.Uniform u, function cb, mixed ... args) {
 	    members[u] = 1;
 	    routes[u->root]++;
 
-	    cb(0, @args);
+	    call_out(cb, 0, @args);
 	} else {
-	    cb(1, @args);
+	    call_out(cb, 1, @args);
 	}
     };
 
     server->root->send_tagged(u->root, PSYC.Packet("_request_context_enter"), callback, args);
+
 }
 
 void remove(MMP.Uniform u, function cb, mixed ... args) {
+
+    if (u->is_local()) {
+	members[u] = 0;
+	m_delete(routes, u);
+
+	call_out(cb, 0, @args);
+	return;
+    }
+
     void callback(MMP.Packet p, array(mixed) args) {
 	PSYC.Packet m = p->data;
 
@@ -38,9 +58,9 @@ void remove(MMP.Uniform u, function cb, mixed ... args) {
 		}
 	    }
 
-	    cb(0, @args);
+	    call_out(cb, 0, @args);
 	} else {
-	    cb(1, @args);
+	    call_out(cb, 1, @args);
 	}
     };
 

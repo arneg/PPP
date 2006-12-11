@@ -127,6 +127,7 @@ void create(mapping(string:mixed) config) {
 			  ([ "_implementation" : "better than wurstbrote" ]),
 			  "You got connected to [_source].");
     MMP.Uniform t = get_uniform("psyc://" + def_localhost);
+    t->local = 1;
     t->handler = this;
     // not good for nonstandard port?
     root = PSYC.Root(t, this, PSYC.DummyStorage());

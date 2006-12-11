@@ -16,10 +16,17 @@ mapping(MMP.Uniform:mapping(MMP.Uniform:int)) members = ([ ]);
 
 inherit PSYC.Handler.Base;
 
-
 constant _ = ([
     "postfilter" : ([
 	"_request_context_enter" : 0,
 	"_request_context_enter_subscribe" : ({ "_members" }),
     ]),
 ]);
+
+int postfilter_request_context_enter() {
+    return PSYC.Handler.STOP;
+}
+
+int postfilter_request_context_enter_subscribe() {
+    return PSYC.Handler.STOP;
+}
