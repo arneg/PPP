@@ -48,12 +48,11 @@ mixed `->(string fun) {
     return ::`->(fun);
 }
 
-void import(PSYC.Handler.Base ... handlers) {
-
+void do_import(PSYC.Handler.Base ... handlers) {
     foreach (handlers;; PSYC.Handler.Base handler) {
 	if (has_index(handler, "export")) {
 	    foreach (handler->export;;string fun) {
-		export[fun] = `->(handler, fun);
+		exports[fun] = predef::`->(handler, fun);
 	    }
 	}
     }

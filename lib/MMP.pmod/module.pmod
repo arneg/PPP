@@ -16,7 +16,7 @@ class Uniform {
     string scheme, transport, host, user, resource, slashes, query, body,
 	   userAtHost, pass, hostPort, circuit, unl, channel, obj;
     MMP.Uniform root, super;
-    int port, parsed, local = UNDEFINED;
+    int port, parsed, islocal = UNDEFINED;
     object handler;
 
     void create(string u, object|void o) {
@@ -27,15 +27,15 @@ class Uniform {
     }
 
     int is_local() {
-	if (local == UNDEFINED) {
+	if (islocal == UNDEFINED) {
 	    // -> to trigger parsing
 	    if (this->root) {
-		local = root->is_local();
+		islocal = root->is_local();
 	    }
-	    return local;
+	    return islocal;
 	}
 
-	return local;
+	return islocal;
     }
 
     mixed cast(string type) {
@@ -76,7 +76,7 @@ class Uniform {
 		case "super":
 		case "port":
 		case "channel":
-		case "local":
+		case "islocal":
 		case "obj":
 		    parse();
 	    }
@@ -467,7 +467,7 @@ class Circuit {
 	get_uniform = parse_uni||MMP.parse_uniform;
 	peeraddr = get_uniform("psyc://"+((peerhost / " ") * ":"));
 	peeraddr->handler = this;
-	peeraddr->local = 0;
+	peeraddr->islocal = 0;
 
 	q_neg->push(Packet());
 	reset();
