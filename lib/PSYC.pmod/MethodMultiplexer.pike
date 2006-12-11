@@ -2,6 +2,7 @@
 #include <debug.h>
 
 PSYC.StageHandler prefilter, filter, postfilter;
+mapping(string:function) exports = ([]);
 
 void stop(MMP.Packet p) {
     P3(("MethodMultiplexer", "stopped %O.\n", p))
@@ -35,8 +36,29 @@ void add_handlers(PSYC.Handler.Base ... handlers) {
 	foreach (temp["postfilter"]; string mc; mapping|array(string) wvars) {
 	    postfilter->add(mc, handler, wvars);
 	}
+
     }
 }
+
+mixed `->(string fun) {
+    if (has_index(exports, fun)) {
+	return exports[fun];
+    }
+        
+    return ::`->(fun);
+}
+
+void import(PSYC.Handler.Base ... handlers) {
+
+    foreach (handlers;; PSYC.Handler.Base handler) {
+	if (has_index(handler, "export")) {
+	    foreach (handler->export;;string fun) {
+		export[fun] = `->(handler, fun);
+	    }
+	}
+    }
+}
+
 
 void msg(MMP.Packet p) {
     PT(("MethodMultiplexer", "%O: msg(%O)\n", this, p))
