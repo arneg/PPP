@@ -8,8 +8,10 @@ mapping(string:mixed) localhosts;
 mapping(string:object)  
 		       connecting = ([ ]), // pending, unusable connections
 		       connections = ([ ]),// up and running connections
-		       routes = ([ ]);     // connections routing for for
+		       routes = ([ ]),     // connections routing for for
 					   // somebody else
+		       circuits = ([ ]),
+		       wf_circuits = ([ ]); // wf == waiting for
 mapping(MMP.Uniform:object) contexts = ([ ]);
 mapping(string:MMP.Uniform) unlcache = ([ ]);
 PSYC.Packet circuit_established;
@@ -144,6 +146,20 @@ void accept(Stdio.Port lsocket) {
 
     connections[peerhost] = (con = MMP.Server(socket, route, close, get_uniform));
     con->send_neg(MMP.Packet(circuit_established, ([ "_source" : root->uni, "_target" : con->peeraddr ])) );
+}
+
+// will replace connect soon
+void connect2(int success, Stdio.File so, string id) {
+    MMP.Circuit c = MMP.Active(so, route, close, get_uniform);
+    MMP.Utils.Queue q = m_delete(wf_circuits, id);
+
+    if (success) {
+	circuits[id] = c;
+    }
+
+    while (!q->is_empty()) {
+	call_out(q->shift(), 0, c);
+    }
 }
 
 void connect(int success, Stdio.File so, MMP.Utils.Queue q, 
@@ -323,6 +339,29 @@ void deliver(MMP.Uniform target, MMP.Packet packet) {
     if_localhost(target->host, external_deliver_local, external_deliver_remote, 
 		 packet, target);
     
+}
+
+void circuit_to(string ip, int port, function(MMP.Circuit:void) cb) {
+    string id = ip + " " + port;
+
+    if (has_index(circuits, id)) {
+	cb(circuits[id]);
+    } else if (has_index(wf_circuits, id)) {
+	wf_circuits[id]->push(cb);
+    } else {
+	Stdio.File so;
+
+	wf_circuits[id] = MMP.Utils.Queue();
+	wf_circuits[id]->push(cb);
+
+	P2(("PSYC.Server", "Opening a connection to %O.\n", id))
+
+	so = Stdio.File();
+
+	if (bind_to) so->open_socket(UNDEFINED, bind_to);
+
+	so->async_connect(ip, port, connect2, so, id);
+    }
 }
 
 void deliver_remote(MMP.Packet packet, MMP.Uniform target) {

@@ -80,13 +80,13 @@ class Packet {
 // however, if a circuit breaks and can't be reestablished, 
 // adapters that once shared a circuit may end up in using different circuits
 // (to different servers).
-class Adapter { // TODO:: change that name!!
+class VirtualCircuit {
     MMP.Utils.Queue q;
     MMP.Circuit circuit;
     MMP.Utils.DNS.SRVReply cres;
     PSYC.Server server;
     function check_out;
-    // following to will be needed when a circuit breaks and can't be
+    // following two will be needed when a circuit breaks and can't be
     // reestablished
     string targethost;
     int targetport;
@@ -108,7 +108,7 @@ class Adapter { // TODO:: change that name!!
 	if (port) {
 	    connect_host(targethost, port);
 	} else {
-	    connect_srv(targethost);
+	    connect_srv();
 	}
     }
 
@@ -171,7 +171,7 @@ class Adapter { // TODO:: change that name!!
 	}
     }
 
-    void connect_srv(string host) {
+    void connect_srv() {
 	void srvcb(string query, MMP.Utils.DNS.SRVReply|int result) {
 	    if (objectp(result)) {
 		if (result->has_next()) {
@@ -183,12 +183,12 @@ class Adapter { // TODO:: change that name!!
 			srv_step();
 		    }
 		} else {
-		    connect_host(host, 4404);
+		    connect_host(targethost, 4404);
 		}
 	    }
 	};
 
-	MMP.Utils.DNS.async_srv("psyc-server", "tcp", host, srvcb);
+	MMP.Utils.DNS.async_srv("psyc-server", "tcp", targethost, srvcb);
     }
 }
 
