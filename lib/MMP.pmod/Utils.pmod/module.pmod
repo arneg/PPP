@@ -23,6 +23,10 @@ class Queue {
         return !head;
     }
 
+    int is_empty() { // move to pike style eventually
+	return isEmpty();
+    }
+
     void push(mixed data) {
         if (isEmpty()) {
             head = tail = allocate(2);
