@@ -443,6 +443,9 @@ class Circuit {
     string lastkey, peerhost;
     MMP.Uniform peeraddr;
     function msg_cb, close_cb, get_uniform;
+    mapping(function:array) close_cbs = ([ ]); // close_cb == server, close_cbs
+					       // contains the callbacks of
+					       // the VCs.
 
     // bytes missing in buf to complete the packet inpacket. (means: inpacket 
     // has _length )
@@ -708,6 +711,10 @@ class Circuit {
     int close(mixed id) {
 	// TODO: error message
 	close_cb(this);
+
+	foreach (close_cbs; function cb; array args) {
+	    cb(@args);
+	}
     }
 
     // works quite similar to the psyc-parser. we may think about sharing some
@@ -885,6 +892,14 @@ LINE:	while(-1 < stop &&
 	}
 
 	return ret;
+    }
+
+    void add_close_cb(function cb, mixed ... args) {
+	close_cbs[cb] = args;
+    }
+
+    void remove_close_cb(function cb) {
+	m_delete(close_cbs, cb);
     }
 }
 #undef INBUF
