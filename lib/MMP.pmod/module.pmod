@@ -926,3 +926,136 @@ class Server {
 	return ret;
     }
 }
+
+
+// this is an intermediate object which tries to keep a circuit to a certain
+// target open.
+// multiple of this adapters may share the same circuit.
+// however, if a circuit breaks and can't be reestablished, 
+// adapters that once shared a circuit may end up in using different circuits
+// (to different servers).
+class VirtualCircuit {
+    MMP.Utils.Queue q;
+    MMP.Circuit circuit;
+    MMP.Utils.DNS.SRVReply cres;
+    object server; // duh. pike really needs a way to solve "recursive"
+		   // dependencies.
+    function check_out;
+    // following two will be needed when a circuit breaks and can't be
+    // reestablished
+    string targethost;
+    int targetport;
+
+    void create(MMP.Uniform target, object srv, function co) {
+	targethost = target->host;
+	targetport = target->port;
+
+	server = srv;
+	check_out = co;
+
+	init();
+    }
+
+    void init() {
+	int port = targetport;
+	if (MMP.Utils.Net.is_ip(targethost) && !port) port = 4404;
+
+	if (port) {
+	    connect_host(targethost, port);
+	} else {
+	    connect_srv();
+	}
+    }
+
+    void on_close() {
+	circuit = 0;
+	init();
+    }
+
+    void on_connect(MMP.Circuit c) {
+	if (c) {
+	    circuit = c;
+
+	    if (q) {
+		destruct(cres);
+		// very temporary solution. we'll need to maintain our own queue
+		// and only advertise msg-requests to the circuit, which will
+		// then shift the messages here.
+		while (!q->isEmpty()) {
+		    c->msg(q->shift());
+		}
+
+		// so we will get notified when the connection can't be
+		// maintained any longer (connection break, reconnect fails)
+		c->add_close_cb(on_close);
+
+		destruct(q);
+	    }
+	} else {
+	    if (cres) {
+		srv_step();
+	    } else {
+		// TODO:: try alternatives (srv, multiple a rr), eventually
+		// error.
+	    }
+	}
+    }
+
+    void connect_ip(string ip, int port) {
+	server->circuit_to(ip, port, on_connect);
+    }
+
+    void connect_host(string host, int port) {
+	void dispatch(string query, string ip) {
+	    if (ip) {
+		connect_ip(ip, port);
+	    } else {
+		// TODO:: error
+	    }
+	};
+
+	if (MMP.Utils.Net.is_ip(host)) {
+	    connect_ip(host, port);
+	} else {
+	    // TODO:: resolve in a way that gives us multiple records.
+	    Protocols.DNS.async_host_to_ip(host, dispatch);
+	}
+    }
+
+    void destroy() { // just in case... dunno when the maintenance in here
+		     // is neccessary. probably never, but doesn't hurt much.
+	circuit->remove_close_cb(on_close);
+    }
+
+    void srv_step() {
+	if (cres->has_next()) {
+	    mapping m = cres->next();
+
+	    connect_host(m->target, m->port);
+	} else {
+	    destruct(cres);
+	    // TODO:: there was at least one srv-host, not reachable, so we
+	    // can't reach the target and therefore need to error!
+	}
+    }
+
+    void connect_srv() {
+	void srvcb(string query, MMP.Utils.DNS.SRVReply|int result) {
+	    if (objectp(result)) {
+		if (result->has_next()) {
+		    if (has_value(result->result->target, ".")) {
+			// no psyc offered. error all queued packages, error
+			// and destruct.
+		    } else {
+			cres = result;
+			srv_step();
+		    }
+		} else {
+		    connect_host(targethost, 4404);
+		}
+	    }
+	};
+
+	MMP.Utils.DNS.async_srv("psyc-server", "tcp", targethost, srvcb);
+    }
+}
