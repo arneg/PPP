@@ -1000,6 +1000,7 @@ class VirtualCircuit {
 
     void on_connect(MMP.Circuit c) {
 	if (c) {
+	    int sof = _sizeof();
 	    circuit = c;
 	    destruct(cres);
 
@@ -1007,7 +1008,7 @@ class VirtualCircuit {
 	    // maintained any longer (connection break, reconnect fails)
 	    circuit->add_close_cb(on_close);
 
-	    for (int i = 0; i < _sizeof(); i++) {
+	    for (int i = 0; i < sof; i++) {
 		circuit->msg(this);
 	    }
 	} else {
