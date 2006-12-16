@@ -11,7 +11,8 @@ mapping(string:object)
 		       routes = ([ ]),     // connections routing for for
 					   // somebody else
 		       circuits = ([ ]),
-		       wf_circuits = ([ ]); // wf == waiting for
+		       wf_circuits = ([ ]), // wf == waiting for
+		       vcircuits = ([ ]);
 mapping(MMP.Uniform:object) contexts = ([ ]);
 mapping(string:MMP.Uniform) unlcache = ([ ]);
 PSYC.Packet circuit_established;
@@ -148,8 +149,7 @@ void accept(Stdio.Port lsocket) {
     con->send_neg(MMP.Packet(circuit_established, ([ "_source" : root->uni, "_target" : con->peeraddr ])) );
 }
 
-// will replace connect soon
-void connect2(int success, Stdio.File so, string id) {
+void connect(int success, Stdio.File so, string id) {
     MMP.Circuit c = MMP.Active(so, route, close, get_uniform);
     MMP.Utils.Queue q = m_delete(wf_circuits, id);
 
@@ -162,53 +162,11 @@ void connect2(int success, Stdio.File so, string id) {
     }
 }
 
-void connect(int success, Stdio.File so, MMP.Utils.Queue q, 
-	     MMP.Uniform target, string id) {
-    string peerhost;
-    MMP.Circuit c;
-
-    if (!success) {
-	P0(("PSYC.Server", "Connection to %O failed (%d).\n", id,
-	    so->errno()))
-	// TODO: send _failures back for every packet in the queue
-	// .. or retry. dont know
-	return;
-    }
-    
-    peerhost = so->query_address();
-
-    P2(("PSYC.Server", "get_uniform: %O\n", get_uniform))
-    c = MMP.Active(so, route, close, get_uniform);
-    target->handler = c;
-    c->send_neg(MMP.Packet(circuit_established));
-    
-    connections[peerhost] = c;
-
-    while (!q->isEmpty()) {
-	c->msg(q->shift());
-    }
-    m_delete(connecting, id);
-}
-
 void close(MMP.Circuit c) {
     P0(("PSYC.Server", "%O->close(%O)\n", this, c))
     m_delete(connections, c->socket->peerhost);
     m_delete(routes, c->socket->peerhost);
-    c->peeraddr->handler = UNDEFINED;
-    
-    
-    while (!c->isEmpty()) {
-	mixed p = c->shift();
-
-	if (arrayp(p)) {
-	    p = p[1];
-	}
-	// TODO: this is maybe crap, but routing is worse. the target
-	// this packets has once been send() to may be different
-	// from the peeraddr
-	deliver_remote(p, c->peeraddr);
-	sleep(2);
-    }
+    //c->peeraddr->handler = UNDEFINED;
 }
 
 // returns the handler for a uniform
@@ -360,60 +318,33 @@ void circuit_to(string ip, int port, function(MMP.Circuit:void) cb) {
 
 	if (bind_to) so->open_socket(UNDEFINED, bind_to);
 
-	so->async_connect(ip, port, connect2, so, id);
+	so->async_connect(ip, port, connect, so, id);
     }
 }
 
 void deliver_remote(MMP.Packet packet, MMP.Uniform target) {
     P2(("PSYC.Server", "%O->deliver_remote(%O, %O)\n", this, packet, target))
     string host = target->host;
-    int port = target->port || 4404;
-    string peerhost = host + " " + (string)port;
-    
-    void cb(string host, mixed ip, string|int port, void|MMP.Packet packet) {
-	Stdio.File so;
-	MMP.Utils.Queue q;
-	string id;
-
-	if (ip == 0) {
-	    P0(("PSYC.Server", "Could not resolve %O.\n", packet))
-	    // send a packet back to packet["_source"]... 
-	    return;
-	}
-	// like socket->query_address()
-	id = ip+" "+(string)port;
-	if (!has_index(connecting, id)) {
-	    P2(("PSYC.Server", "Opening a connection to %O.\n", id))
-	    so = Stdio.File();
-	    connecting[id] = q = MMP.Utils.Queue();
-	    if (bind_to)
-		so->open_socket(UNDEFINED, bind_to);
-	    P2(("PSYC.Server", "so->async_connect(%O, %O, %O, %O, %O, %O, %O);\n", ip, port, connect, so, q, target, id))
-	    so->async_connect(ip, port, connect, so, q, target, id);
-	}
-	
-	if (packet) connecting[id]->push(packet);
-    };
+    int port = target->port;
+    string peerhost = host + (port ? " " + port : "");
     
     P2(("PSYC.Server", "looking in %O for a connection to %s.\n", 
 	connections, peerhost))
 
-    if (has_index(connections, peerhost)) {
-	call_out((target->handler = connections[peerhost])->msg, 0, packet);
+    if (has_index(vcircuits, peerhost)) {
+	call_out((target->handler = vcircuits[peerhost])->msg, 0, packet);
 	return;
+    /* // TODO:: someone fix the routes!
     } else if (has_index(routes, peerhost)) {
 	call_out((target->handler = routes[peerhost])->msg, 0, packet);
 	return;
+    */
+    } else {
+	MMP.VirtualCircuit vc = MMP.VirtualCircuit(target, this);
+
+	vcircuits[peerhost] = vc;
+	vc->msg(packet);
     }
-
-    if (sscanf(host, "%*d.%*d.%*d.%*d") != 4) {
-	P0(("PSYC.Server", "uarg, %O\n", host))
-	Protocols.DNS.async_host_to_ip(host, cb, port, packet);
-
-	return;
-    }
-
-    call_out(cb, 0, host, host, port, packet);
 }
 
 void deliver_local(MMP.Packet packet, MMP.Uniform target) {

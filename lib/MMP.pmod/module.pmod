@@ -966,7 +966,7 @@ class VirtualCircuit {
     string targethost;
     int targetport;
 
-    void create(MMP.Uniform target, object srv, function co,
+    void create(MMP.Uniform target, object srv, function|void co,
 		MMP.Circuit|void c) {
 	targethost = target->host;
 	targetport = target->port;
