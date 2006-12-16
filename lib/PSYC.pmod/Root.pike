@@ -1,3 +1,4 @@
+#include <debug.h>
 // vim:syntax=lpc
 // psyc root object. does most routing, multicast signalling etc.
 //
@@ -6,6 +7,7 @@ inherit PSYC.Unl;
 
 void create(MMP.Uniform uniform, object server, PSYC.Storage storage) {
     ::create(uniform, server, storage);
+    PT(("PSYC.Root", "new PSYC.Root(%O, %O, %O)\n", uni, server, storage))
 
     add_handlers(Circuit(this));
 }
@@ -24,6 +26,7 @@ class Circuit {
     int postfilter_notice_circuit_established(MMP.Packet p, mapping _v, mapping _m) {
 	// TODO: is a _source_identification valid here _at all_ ? doesnt make too much sense.
 	server->add_route(p->source(), p->source()->handler);
+	p->source()->handler->activate();
 
 	return PSYC.Handler.STOP;
     }
