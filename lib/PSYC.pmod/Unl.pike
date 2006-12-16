@@ -47,6 +47,7 @@ string send_tagged(MMP.Uniform target, PSYC.Packet m,
 }
 
 void create(MMP.Uniform u, object s, object stor) {
+    PT(("PSYC.Unl", "created object for %s.\n", u))
     uni = u;
     server = s;
     storage = stor;

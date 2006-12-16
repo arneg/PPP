@@ -46,7 +46,7 @@ class Uniform {
 	if (type == 's') {
 	    return sprintf("MMP.Uniform(%s)", unl);
 	} else if (type = 'O') {
-#if defined(DEBUG) && DEBUG < 3
+#if defined(DEBUG) && DEBUG < 10
 	    return sprintf("MMP.Uniform(%s)", unl);
 #else 
 	    return sprintf("MMP.Uniform(%O)", 
@@ -441,7 +441,7 @@ class Circuit {
     int lastmod, write_ready, write_okay; // sending may be forbidden during
 					  // certain parts of neg
     string lastkey, peerhost;
-    MMP.Uniform peeraddr;
+    MMP.Uniform peeraddr, localaddr;
     function msg_cb, close_cb, get_uniform;
     mapping(function:array) close_cbs = ([ ]); // close_cb == server, close_cbs
 					       // contains the callbacks of
@@ -464,10 +464,14 @@ class Circuit {
 	P2(("MMP.Circuit", "create(%O, %O, %O)\n", so, cb, closecb))
 	socket = so;
 	socket->set_nonblocking(start_read, write, close);
-	peerhost = so->query_address();
 	msg_cb = cb;
 	close_cb = closecb;
 	get_uniform = parse_uni||MMP.parse_uniform;
+
+	peerhost = so->query_address(1);
+	localaddr = get_uniform("psyc://"+((peerhost / " ") * ":"));
+	localaddr->islocal = 1;
+	peerhost = so->query_address();
 	peeraddr = get_uniform("psyc://"+((peerhost / " ") * ":"));
 	//peeraddr->handler = this; // TODO:: might be necessary to create a VC
 				    // here.

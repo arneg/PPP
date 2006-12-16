@@ -132,9 +132,10 @@ void create(mapping(string:mixed) config) {
 			  "You got connected to [_source].");
     MMP.Uniform t = get_uniform("psyc://" + def_localhost);
     t->islocal = 1;
-    t->handler = this;
-    // not good for nonstandard port?
     root = PSYC.Root(t, this, PSYC.DummyStorage());
+    t->handler = root;
+    PT(("PSYC.Server", "created a new PSYC.Server(%s) with root object %O.\n", root->uni, root))
+    // not good for nonstandard port?
 }
 
 // CALLBACKS
@@ -181,7 +182,7 @@ object get_local(string uni) {
 MMP.Uniform random_uniform(string type) {
     string unl;
 
-    while (has_index(unlcache, unl = (string)root->uni + "$" + type + String.string2hex(random_string(10))));
+    while (has_index(unlcache, unl = (string)(root->uni) + "/$" + type + String.string2hex(random_string(10))));
     
     return get_uniform(unl);
 }
@@ -218,7 +219,7 @@ void if_localhost(string host, function if_cb, function else_cb,
 void _if_localhost(string host, function if_cb, function else_cb,
 		  int port, array args) {
     // this is rather blöde
-    P2(("PSYC.Server", "if_localhost(%s, %O, %O, ...)\n", host, if_cb, 
+    PT(("PSYC.Server", "if_localhost(%s, %O, %O, ...)\n", host, if_cb, 
 	else_cb))
     void callback(string host, mixed ip) {
 	// TODO: we need error_handling here!
@@ -287,7 +288,7 @@ void _if_localhost(string host, function if_cb, function else_cb,
 }
 
 void deliver(MMP.Uniform target, MMP.Packet packet) {
-    P2(("PSYC.Server", "%O->deliver(%O, %O)\n", this, target, packet))
+    PT(("PSYC.Server", "%O->deliver(%O, %O)\n", this, target, packet))
 
     if (target->handler) {
 	call_out(target->handler->msg, 0, packet);
@@ -371,7 +372,10 @@ void route(MMP.Packet packet, object connection) {
 	source = connection->peeraddr;
 	// THIS IS REMOTE
 	packet["_source"] = source;
-    } else source = packet["_source"];
+    } else {
+	source = packet["_source"];
+	if (!source->handler) source->handler = connection;
+    }
 
     // may be objects already if these are packets coming from a socket that
     // has been closed.
@@ -395,14 +399,19 @@ void route(MMP.Packet packet, object connection) {
 	    deliver(target, packet);
 	} else { // rootmsg
 #ifdef DEBUG
-	    void dummy(MMP.Packet p, object c) {
-		P0(("PSYC.Server", "%O lives in crazytown.\n", c))
+	    void dummy(MMP.Packet p) {
+		P0(("PSYC.Server", "%O lives in crazytown.\n", p->source()))
 	    };
 #else
 	    function dummy;
 #endif
-	    if_localhost(target->host, root->msg, dummy, 
-			 packet, connection);
+	    if (target->islocal == 1) {
+		root->msg(packet);
+	    } else if (target->islocal == 0) {
+		dummy(packet);
+	    } else 
+		if_localhost(target->host, root->msg, dummy, 
+			     packet);
 	}
 	break;
     case 2:

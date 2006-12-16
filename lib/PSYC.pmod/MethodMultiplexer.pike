@@ -45,7 +45,12 @@ mixed `->(string fun) {
 	return exports[fun];
     }
         
-    return ::`->(fun);
+    // TODO: change this when pike 7.7 is there.
+    // 	     this is a hack.
+    if (has_index(this, fun)) {
+	return this[fun];
+    }
+    return UNDEFINED;
 }
 
 void do_import(PSYC.Handler.Base ... handlers) {
@@ -57,7 +62,6 @@ void do_import(PSYC.Handler.Base ... handlers) {
 	}
     }
 }
-
 
 void msg(MMP.Packet p) {
     PT(("MethodMultiplexer", "%O: msg(%O)\n", this, p))
