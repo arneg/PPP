@@ -166,7 +166,6 @@ void connect(int success, Stdio.File so, string id) {
 void close(MMP.Circuit c) {
     P0(("PSYC.Server", "%O->close(%O)\n", this, c))
     m_delete(circuits, c->socket->peerhost);
-    m_delete(routes, c->socket->peerhost);
     //c->peeraddr->handler = UNDEFINED;
 }
 
@@ -335,11 +334,6 @@ void deliver_remote(MMP.Packet packet, MMP.Uniform target) {
     if (has_index(vcircuits, peerhost)) {
 	call_out((target->handler = vcircuits[peerhost])->msg, 0, packet);
 	return;
-    /* // TODO:: someone fix the routes!
-    } else if (has_index(routes, peerhost)) {
-	call_out((target->handler = routes[peerhost])->msg, 0, packet);
-	return;
-    */
     } else {
 	MMP.VirtualCircuit vc = MMP.VirtualCircuit(target, this);
 
