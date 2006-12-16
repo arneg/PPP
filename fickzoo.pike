@@ -130,7 +130,7 @@ int main(int argc, array(string) argv) {
 
     dings = PSYC.Server(([
 	     "ports" : ({ 
-			BIND
+		       (MMP.Utils.Net.is_ip(LOCALHOST) ? LOCALHOST : BIND) 
 			+ ":4404" }),
       "create_local" : create_local,
     "deliver_remote" : deliver_remote,
