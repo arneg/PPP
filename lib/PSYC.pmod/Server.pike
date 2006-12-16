@@ -6,8 +6,6 @@ mapping(string:mixed) localhosts;
 // server could then be stored in uniform->super() (name you have to 
 // 							think about!)
 mapping(string:object)  
-		       connecting = ([ ]), // pending, unusable connections
-		       connections = ([ ]),// up and running connections
 		       routes = ([ ]),     // connections routing for for
 					   // somebody else
 		       circuits = ([ ]),
@@ -145,7 +143,7 @@ void accept(Stdio.Port lsocket) {
     socket = lsocket->accept();
     peerhost = socket->query_address();
 
-    connections[peerhost] = (con = MMP.Server(socket, route, close, get_uniform));
+    circuits[peerhost] = (con = MMP.Server(socket, route, close, get_uniform));
     con->send_neg(MMP.Packet(circuit_established, ([ "_source" : root->uni, "_target" : con->peeraddr ])) );
 }
 
@@ -164,7 +162,7 @@ void connect(int success, Stdio.File so, string id) {
 
 void close(MMP.Circuit c) {
     P0(("PSYC.Server", "%O->close(%O)\n", this, c))
-    m_delete(connections, c->socket->peerhost);
+    m_delete(circuits, c->socket->peerhost);
     m_delete(routes, c->socket->peerhost);
     //c->peeraddr->handler = UNDEFINED;
 }
@@ -329,7 +327,7 @@ void deliver_remote(MMP.Packet packet, MMP.Uniform target) {
     string peerhost = host + (port ? " " + port : "");
     
     P2(("PSYC.Server", "looking in %O for a connection to %s.\n", 
-	connections, peerhost))
+	circuits, peerhost))
 
     if (has_index(vcircuits, peerhost)) {
 	call_out((target->handler = vcircuits[peerhost])->msg, 0, packet);

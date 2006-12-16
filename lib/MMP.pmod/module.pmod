@@ -469,7 +469,8 @@ class Circuit {
 	close_cb = closecb;
 	get_uniform = parse_uni||MMP.parse_uniform;
 	peeraddr = get_uniform("psyc://"+((peerhost / " ") * ":"));
-	peeraddr->handler = this;
+	//peeraddr->handler = this; // TODO:: might be necessary to create a VC
+				    // here.
 	peeraddr->islocal = 0;
 
 	q_neg->push(Packet());
