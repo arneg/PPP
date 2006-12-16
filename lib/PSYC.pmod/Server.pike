@@ -56,7 +56,7 @@ void add_route(MMP.Uniform target, object circuit) {
     string peerhost = target->host + (port ? " " + port : "");
 
     if (!has_index(vcircuits, peerhost)) {
-	vcircuits[peerhost] = MMP.VirtualCircuit(target, this, circuit);
+	vcircuits[peerhost] = MMP.VirtualCircuit(target, this, 0, circuit);
     }
 }
 
