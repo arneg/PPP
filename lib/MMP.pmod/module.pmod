@@ -625,7 +625,7 @@ class Circuit {
 	if (data[0 .. 1] != ".\n") {
 	    // TODO: error message
 	    socket->close();
-	    close();
+	    close(0);
 	    return 1;
 	}
 
@@ -706,7 +706,7 @@ class Circuit {
 	    }
 	    // TODO: error message
 	    socket->close();
-	    close();
+	    close(0);
 	}
 
 
