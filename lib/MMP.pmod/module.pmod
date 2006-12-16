@@ -625,7 +625,7 @@ class Circuit {
 	if (data[0 .. 1] != ".\n") {
 	    // TODO: error message
 	    socket->close();
-	    close_cb(this);
+	    close();
 	    return 1;
 	}
 
@@ -705,8 +705,8 @@ class Circuit {
 		P0(("MMP.Circuit", "Catched an error: %O\n", exception))
 	    }
 	    // TODO: error message
-	    close_cb(this);
 	    socket->close();
+	    close();
 	}
 
 
