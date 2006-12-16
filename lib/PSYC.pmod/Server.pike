@@ -6,8 +6,6 @@ mapping(string:mixed) localhosts;
 // server could then be stored in uniform->super() (name you have to 
 // 							think about!)
 mapping(string:object)  
-		       routes = ([ ]),     // connections routing for for
-					   // somebody else
 		       circuits = ([ ]),
 		       wf_circuits = ([ ]), // wf == waiting for
 		       vcircuits = ([ ]);
@@ -53,8 +51,13 @@ void insert(MMP.Uniform context, MMP.Uniform guz) {
     get_context(context)->insert(guz);
 }
 
-void add_route(MMP.Uniform target, object connection) {
-    routes[target->host + " " + (string)(target->port||4404)] = connection;
+void add_route(MMP.Uniform target, object circuit) {
+    int port = target->port;
+    string peerhost = target->host + (port ? " " + port : "");
+
+    if (!has_index(vcircuits, peerhost)) {
+	vcircuits[peerhost] = MMP.VirtualCircuit(target, this, circuit);
+    }
 }
 
 void create(mapping(string:mixed) config) {
