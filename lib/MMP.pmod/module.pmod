@@ -529,9 +529,9 @@ class Circuit {
 	}
     }
 
-    void msg(Packet mmp) {
-	P0(("MMP.Circuit", "%O->msg(%O)\n", this, mmp))
-	push(mmp);
+    void msg(MMP.Utils.Queue holder) {
+	P0(("MMP.Circuit", "%O->msg(%O)\n", this, holder))
+	push(holder);
 
 	if (write_ready) {
 	    write();
@@ -539,7 +539,7 @@ class Circuit {
     }
 
     int write(void|mixed id) {
-	MMP.Utils.Queue currentQ;
+	MMP.Utils.Queue currentQ, realQ;
 	// we could go for speed with
 	// function currentshift, currentunshift;
 	// as we'd only have to do the -> lookup for q_neg packages then ,)
@@ -559,6 +559,8 @@ class Circuit {
 	}
 #endif
 
+	realQ = currentQ;
+
 	if (!currentQ) {
 	    write_ready = 1;
 	} else {
@@ -568,18 +570,20 @@ class Circuit {
 
 	    write_ready = 0;
 
-	    tmp = currentQ->shift();
+	    if (currentQ == this) realQ = shift();
+
+	    tmp = realQ->shift();
 
 	    if (arrayp(tmp)) {
 		[s, tmp] = tmp;
 		// it seems more logical to me, to put all this logic into
 		// close.
-		if (tmp) shift();
+		if (tmp) realQ->shift();
 	    } else /* if (objectp(tmp)) */ {
 		s = tmp->next();
 		if (tmp->has_next()) {
-		    currentQ->enqueue(tmp);
-		    currentQ = 0;
+		    realQ->push(tmp);
+		    realQ = 0;
 		}
 		// TODO: HOOK
 	    }
@@ -592,9 +596,9 @@ class Circuit {
 		sizeof(s)))
 
 	    if (written != sizeof(s)) {
-		if (currentQ == this) {
+		if (realQ) {
 		    q_neg->unshift(({ s[written..], tmp }));
-		    unshift(tmp);	
+		    realQ->unshift(tmp);	
 		} else {
 		    q_neg->unshift(({ s[written..], 0 }));
 		}
@@ -950,7 +954,8 @@ class Server {
 // adapters that once shared a circuit may end up in using different circuits
 // (to different servers).
 class VirtualCircuit {
-    MMP.Utils.Queue q;
+    inherit MMP.Utils.Queue; // me hulk! me can queue!
+
     MMP.Circuit circuit;
     MMP.Utils.DNS.SRVReply cres;
     object server; // duh. pike really needs a way to solve "recursive"
@@ -961,14 +966,19 @@ class VirtualCircuit {
     string targethost;
     int targetport;
 
-    void create(MMP.Uniform target, object srv, function co) {
+    void create(MMP.Uniform target, object srv, function co,
+		MMP.Circuit|void c) {
 	targethost = target->host;
 	targetport = target->port;
 
 	server = srv;
 	check_out = co;
 
-	init();
+	if (!c) {
+	    init();
+	} else {
+	    on_connect(c);
+	}
     }
 
     void init() {
@@ -990,21 +1000,14 @@ class VirtualCircuit {
     void on_connect(MMP.Circuit c) {
 	if (c) {
 	    circuit = c;
+	    destruct(cres);
 
-	    if (q) {
-		destruct(cres);
-		// very temporary solution. we'll need to maintain our own queue
-		// and only advertise msg-requests to the circuit, which will
-		// then shift the messages here.
-		while (!q->isEmpty()) {
-		    c->msg(q->shift());
-		}
+	    // so we will get notified when the connection can't be
+	    // maintained any longer (connection break, reconnect fails)
+	    circuit->add_close_cb(on_close);
 
-		// so we will get notified when the connection can't be
-		// maintained any longer (connection break, reconnect fails)
-		c->add_close_cb(on_close);
-
-		destruct(q);
+	    for (int i = 0; i < _sizeof(); i++) {
+		circuit->msg(this);
 	    }
 	} else {
 	    if (cres) {
@@ -1072,5 +1075,11 @@ class VirtualCircuit {
 	};
 
 	MMP.Utils.DNS.async_srv("psyc-server", "tcp", targethost, srvcb);
+    }
+
+    void msg(MMP.Packet p) {
+	push(p);
+
+	if (circuit) circuit->msg(this);
     }
 }
