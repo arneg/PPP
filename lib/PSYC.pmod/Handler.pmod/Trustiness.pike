@@ -35,6 +35,10 @@ inherit PSYC.Handler.Base;
 mapping(MMP.Uniform:mapping(MMP.Uniform:int)) trusted = ([]);
 mapping(MMP.Uniform:mapping(MMP.Uniform:array(function))) pending = ([]);
 
+constant export = ({
+    "get_trust"
+});
+
 // we have to make a decision whether we keep the trust for ever or not.
 constant _ = ([
     "filter" : ([

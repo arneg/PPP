@@ -1,3 +1,4 @@
+// vim:syntax=lpc
 #include <random.h>
 #include <debug.h>
 #define CB	0
@@ -13,6 +14,10 @@ constant _ = ([
 	"" : ([ ]),
     ]),
 ]);
+
+constant export = ({
+    "add_reply", "make_reply"
+});
 
 mapping(string:array) reply = ([ ]);
 

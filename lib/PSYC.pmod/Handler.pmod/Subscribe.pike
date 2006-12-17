@@ -30,6 +30,10 @@ constant _ = ([
     ]),
 ]);
 
+constant export = ({
+    "subscribe", "unsubscribe"
+});
+
 int has_context(MMP.Packet p, mapping _m) {
     return has_index(p->vars, "_context");
 }

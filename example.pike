@@ -12,7 +12,11 @@ XMPP.S2S.ServerManager bumms;
 # define BIND	"127.0.0.1"
 #endif
 #ifndef HOSTNAME
-# define HOSTNAME	"localhost"
+# ifdef LOCALHOST
+#  define HOSTNAME	LOCALHOST
+# else
+#  define HOSTNAME	"localhost"
+# endif
 #endif
 #ifndef LOCALHOST // for XMPP
 # define LOCALHOST	HOSTNAME
@@ -160,16 +164,12 @@ int main(int argc, array(string) argv) {
     da = TELNET.Server(([
 	 "psyc_server" : dings,
 	     "ports" : ({ 
-#ifdef BIND
-			BIND
-#else
-			LOCALHOST 
-#endif
+		       (MMP.Utils.Net.is_ip(LOCALHOST) ? LOCALHOST : BIND) 
 			+ ":2000" }),
 	     "textdb" : textdb,
 			]));
 
-    write("220 ppp ESMTP Sendmail 8.13.7/8.13.7; %s\n", smtime());
+    write("220 ppp ESMTP Sendmail 8.13.7/8.13.7; %s\nlocalhost: %s\n", smtime(), LOCALHOST);
     return -1;
 }
 
