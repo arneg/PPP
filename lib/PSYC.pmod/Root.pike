@@ -1,7 +1,7 @@
-#include <debug.h>
 // vim:syntax=lpc
 // psyc root object. does most routing, multicast signalling etc.
 //
+#include <debug.h>
 
 inherit PSYC.Unl;
 
@@ -26,13 +26,13 @@ class Circuit {
     int postfilter_notice_circuit_established(MMP.Packet p, mapping _v, mapping _m) {
 	// TODO: is a _source_identification valid here _at all_ ? doesnt make too much sense.
 	server->add_route(p->source(), p->source()->handler);
-	p->source()->handler->activate();
+	server->activate(p->source());
 
 	return PSYC.Handler.STOP;
     }
 
     int postfilter_status_circuit(MMP.Packet p, mapping _v, mapping _m) {
-	p->source()->handler->activate();
+	server->activate(p->source());
 
 	return PSYC.Handler.STOP;
     }
