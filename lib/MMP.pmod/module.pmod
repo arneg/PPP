@@ -445,7 +445,7 @@ class Circuit {
 				  // now anyway..
     int lastmod, write_ready, write_okay; // sending may be forbidden during
 					  // certain parts of neg
-    string lastkey, peerhost;
+    string lastkey;
     MMP.Uniform peeraddr, localaddr;
     function msg_cb, close_cb, get_uniform;
     mapping(function:array) close_cbs = ([ ]); // close_cb == server, close_cbs
@@ -643,7 +643,7 @@ class Circuit {
 	inpacket->newline = dl;
 #endif
 	P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", 
-	    peerhost))
+	    peeraddr))
 #ifdef LOVE_TELNET
 	if (sizeof(data) > ((dl) ? 3 : 2)) {
 	    read(0, data[((dl) ? 3 : 2) ..]);
