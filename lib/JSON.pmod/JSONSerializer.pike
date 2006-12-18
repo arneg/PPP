@@ -120,12 +120,16 @@ void _mapping2json(mapping|object m) {
 	    former++;
 	}
 
+#if 0 // wtf?? why not? this is exactly why we are using json
 	if (!stringp(k)) {
 	    throw(Error.Generic(sprintf("(%O)%O is not a valid object key.\n",
 			  _typeof(k), k)));
 	}
-
 	_string2json(k);
+#else
+	_thing2json(k);
+#endif
+
 	_add(":");
 	_thing2json(v);
     }

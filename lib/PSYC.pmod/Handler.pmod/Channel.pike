@@ -48,7 +48,7 @@ int postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m) {
 	}
     };
 	
-    uni->add(guy, callback2, p["_target"], p->source());
+    uni->add(p->source(), callback2, p["_target"], p->source());
     return PSYC.Handler.STOP;
 }
 
@@ -85,6 +85,6 @@ void castmsg(MMP.Uniform channel, PSYC.Packet m, MMP.Uniform source_relay) {
     MMP.Packet p = MMP.Packet(m, ([ "_context" : channel, 
 				    "_source_relay" : source_relay,
 				    "_count" : count[channel]++,
-				    ]))
+				    ]));
     uni->server->get_context(channel)->msg(p); 
 }

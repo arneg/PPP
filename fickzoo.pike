@@ -202,7 +202,7 @@ object create_local(MMP.Uniform uni) {
 	return o;
 	break;
     case '@':
-	return Place.Basic(uni, dings);
+	return PSYC.Place(uni, dings);
 	break;
     }
 }

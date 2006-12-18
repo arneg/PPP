@@ -68,7 +68,11 @@ void client_sendmmp(MMP.Packet p, MMP.Uniform|void target) {
     }
 
     if (linked) {
-	server->sendmmp(target, p);
+	// i dont understand this. why not use
+	// the standard sendmmp. probably just
+	// wrong.
+	//server->sendmmp(target, p);
+	sendmmp(target, p);
 	return;
     }
     
@@ -78,7 +82,8 @@ void client_sendmmp(MMP.Packet p, MMP.Uniform|void target) {
 void unroll() {
     storage->link();
     while(!queue->isEmpty()) {
-	server->sendmmp(@queue->shift());
+	//server->sendmmp(@queue->shift());
+	sendmmp(@queue->shift());
     }
 }
 

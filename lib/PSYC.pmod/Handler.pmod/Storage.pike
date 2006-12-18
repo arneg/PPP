@@ -1,5 +1,6 @@
 // vim:syntax=lpc
 inherit PSYC.Handler.Base;
+#include <debug.h>
 
 /* TODO: doesnt check if someone is allowed to store or retrieve data ,)
  * 	 information about linked clients should go with the misc mapping
@@ -50,7 +51,8 @@ int _set(MMP.Packet p, mapping _v, mapping _m, string mc, function set) {
     string key = m->vars["_key"];
     mixed value = m->vars["_value"];
 
-    void callback(int error, MMP.Uniform target, PSYC.Packet m) {
+    void callback(int error, string key, MMP.Uniform target, PSYC.Packet m) {
+	PT(("Handler.Storage", "callback(%O, %O, %O)\n", error, target, m))
 	if (error) {
 	    sendmsg(target, m->reply("_error"+mc,
 					  ([ "_key" : key ])));

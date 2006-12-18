@@ -3,7 +3,7 @@ inherit PSYC.Unl;
 void create(MMP.Uniform uniform, object server) {
     
     ::create(uniform, server, PSYC.DummyStorage());
-    add_handler(Channel(this));
+    add_handlers(PSYC.Handler.Channel(this));
 }
 
 void add(MMP.Uniform guy, function cb, mixed ... args) {
