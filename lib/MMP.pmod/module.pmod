@@ -697,7 +697,7 @@ class Circuit {
 		    if (inpacket->parsed)
 			inpacket->parsed();
 		    if (pcount < 3) {
-			if (!pcount["_target"]->reconnectable) pcount["_target"]->islocal = 1;
+			if (!inpacket["_target"]->reconnectable) inpacket["_target"]->islocal = 1;
 		    }
 		    msg_cb(inpacket, this);
 		    reset(); // watch out. this may produce strange bugs...
