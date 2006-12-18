@@ -64,7 +64,7 @@ void do_import(PSYC.Handler.Base ... handlers) {
 }
 
 void msg(MMP.Packet p) {
-    PT(("MethodMultiplexer", "%O: msg(%O)\n", this, p))
+    P3(("MethodMultiplexer", "%O: msg(%O)\n", this, p))
     
     if (p->data) {
 	if (stringp(p->data)) {
@@ -75,7 +75,7 @@ void msg(MMP.Packet p) {
 #endif
 	}
     } else {
-	PT(("MethodMultiplexer", "%O: got packet without data. maybe state changes\n"))
+	P1(("MethodMultiplexer", "%O: got packet without data. maybe state changes\n"))
 	return;
     }
 

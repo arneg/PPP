@@ -29,7 +29,7 @@ void add_commands(PSYC.Commands.Base ... args) {
 }
 
 void cmd(string input) {
-    PT(("PSYC.CommandSingleplexer", "cmd(%O)\n", input))
+    P3(("PSYC.CommandSingleplexer", "cmd(%O)\n", input))
 	
     array(string) params = input / " ";
     string command = params[0];
@@ -44,7 +44,7 @@ COMMAND: foreach (commands[command];;array pair) {
 	    [fun, specs] = pair;
 
 	    if (sizeof(specs) / 2 >= sizeof(params)) {
-		PT(("PSYC.CommandSingleplexer", "break!!>!\n"))
+		P1(("PSYC.CommandSingleplexer", "break!!>!\n"))
 		break;
 	    }
 
@@ -56,14 +56,14 @@ COMMAND: foreach (commands[command];;array pair) {
 		[type, name] = spec;
 
 		if (sizeof(params) <= i) {
-		    PT(("PSYC.CommandSingleplexer", "sizeof(params)(==%O) <= %O\n", sizeof(params), i))
+		    P1(("PSYC.CommandSingleplexer", "sizeof(params)(==%O) <= %O\n", sizeof(params), i))
 		    break COMMAND;
 		}
 		
 		[stat, result] = PSYC.Commands.parse(type, params[i..], this);
 
 		if (stat == 0) {
-		    PT(("PSYC.CommandSingleplexer", "a parse(%O) failed, hooray.\n", type))
+		    P1(("PSYC.CommandSingleplexer", "a parse(%O) failed, hooray.\n", type))
 		    break COMMAND;
 		}
 
@@ -71,12 +71,12 @@ COMMAND: foreach (commands[command];;array pair) {
 		results += ({ result });
 	    }
 
-	    PT(("PSYC.CommandSingleplexer", "results == %O\n", results))
+	    P1(("PSYC.CommandSingleplexer", "results == %O\n", results))
 
     	    fun(@results, params);
 	    return;
 	}
     }
     
-    PT(("PSYC.CommandSingleplexer", "could not find a handler for the input.\n"))
+    P0(("PSYC.CommandSingleplexer", "could not find a handler for the input.\n"))
 }

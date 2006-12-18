@@ -96,7 +96,7 @@ void process(MMP.Packet reply, mapping _v, MMP.Uniform trustee,
 	     MMP.Uniform source) {
     PSYC.Packet m = reply->data;
 
-    PT(("Handler.Trustiness", "%O: process(%O, %O, %O, %O)\n", uni, reply, _v, trustee, source))
+    P3(("Handler.Trustiness", "%O: process(%O, %O, %O, %O)\n", uni, reply, _v, trustee, source))
 
     // the tagged variant offers us extra checks.. nothing but
     if (!has_index(m->vars, "_location") ||
@@ -161,7 +161,7 @@ void postfilter_notice_trustiness(MMP.Packet p, mapping _v, mapping _m) {
 // kicks off all pending packets with trust
 void deliver(MMP.Uniform trustee, MMP.Uniform guy, int trust) {
 
-    PT(("Handler.Trustiness", "%O: deliver(%O, %O, %d) from %O.\n", uni, trustee, guy, trust, pending))
+    P3(("Handler.Trustiness", "%O: deliver(%O, %O, %d) from %O.\n", uni, trustee, guy, trust, pending))
 
     if (has_index(pending, trustee) && has_index(pending[trustee], guy)) {
 	foreach (m_delete(pending[trustee], guy);; array ca) {
@@ -212,6 +212,5 @@ void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
 
     _m["_trust"] = trust;
 
-    PT(("Handler.Trustiness", "%O: leaving filter-stage.\n", uni))
     call_out(cb, 0, PSYC.Handler.GOON);
 }

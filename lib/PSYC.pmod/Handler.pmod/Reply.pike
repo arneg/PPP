@@ -24,7 +24,7 @@ mapping(string:array) reply = ([ ]);
 int add_reply(function cb, string tag, multiset(string) vars, mixed ... args) {
     if (has_index(reply, tag)) return 0;
 
-    PT(("Handler.Reply", "%O: added tag(%s) with %O for %O.\n", uni, tag, vars, cb))
+    P2(("Handler.Reply", "%O: added tag(%s) with %O for %O.\n", uni, tag, vars, cb))
 
     reply[tag] = ({ cb, args, vars, vars ? ([]) : 0, 0 });
     return 1;
@@ -34,7 +34,7 @@ int add_reply(function cb, string tag, multiset(string) vars, mixed ... args) {
 string make_reply(function cb, multiset(string) vars, mixed ... args) {
     string tag;
 
-    PT(("Handler.Reply", "%O: make_reply(%O, %O, %O)\n", this, cb, vars, args))
+    P2(("Handler.Reply", "%O: make_reply(%O, %O, %O)\n", this, cb, vars, args))
 
     while (has_index(reply, tag = RANDHEXSTRING));
     add_reply(cb, tag, vars, @args);
@@ -92,7 +92,7 @@ void got_data(string key, mixed value, string tag) {
 	    return;
 	}
 
-	PT(("Handler.Reply", "%O: got data (%s) from storage. %O to go.\n", this, key, ca[WVARS]))
+	P2(("Handler.Reply", "%O: got data (%s) from storage. %O to go.\n", this, key, ca[WVARS]))
 
 	if (!sizeof(ca[WVARS])) { // done
 	    m_delete(reply, tag);

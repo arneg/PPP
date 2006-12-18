@@ -28,12 +28,12 @@ void _set(string key, mixed val) {
 
 void _lock(string key) {
     
-    PT(("DummyStorage", "%O: Locking already locked key %s.\n", this, key))
+    P0(("DummyStorage", "%O: Locking already locked key %s.\n", this, key))
     locks[key] = ({ });
 }
 
 void get(string key, function cb, mixed ... args) {
-    PT(("DummyStorage", "%O: get(%s, %O, %O)\n", this, key, cb, args))
+    P3(("DummyStorage", "%O: get(%s, %O, %O)\n", this, key, cb, args))
 
     if (has_index(locks, key)) {
 	locks[key] += ({ ({ GET, key, cb, args }) });	
@@ -44,7 +44,7 @@ void get(string key, function cb, mixed ... args) {
 }
 
 void set(string key, mixed value, function|void cb, mixed ... args) {
-    PT(("DummyStorage", "%O: set(%s, %O, %O, %O)\n", this, key, value, cb, args))
+    P3(("DummyStorage", "%O: set(%s, %O, %O, %O)\n", this, key, value, cb, args))
 
     if (has_index(locks, key)) {
 	locks[key] += ({ ({ SET, key, value, cb, args }) });	
@@ -56,7 +56,7 @@ void set(string key, mixed value, function|void cb, mixed ... args) {
 }
 
 void get_lock(string key, function cb, mixed ... args) {
-    PT(("DummyStorage", "%O: get_lock(%s, %O, %O)\n", this, key, cb, args))
+    P3(("DummyStorage", "%O: get_lock(%s, %O, %O)\n", this, key, cb, args))
 
     if (has_index(locks, key)) {
 	locks[key] += ({ ({ GET|LOCK, key, cb, args }) });	
@@ -68,7 +68,7 @@ void get_lock(string key, function cb, mixed ... args) {
 }
 
 void set_lock(string key, mixed value, function|void cb, mixed ... args) {
-    PT(("DummyStorage", "%O: set_lock(%s, %O, %O, %O)\n", this, key, value, cb, args))
+    P3(("DummyStorage", "%O: set_lock(%s, %O, %O, %O)\n", this, key, value, cb, args))
 
     if (has_index(locks, key)) {
 	locks[key] += ({ ({ SET|LOCK, key, value, cb, args }) });	
@@ -81,7 +81,7 @@ void set_lock(string key, mixed value, function|void cb, mixed ... args) {
 }
 
 void lock(string key, function|void cb, mixed ... args) {
-    PT(("DummyStorage", "%O: lock(%s, %O, %O)\n", this, key, cb, args))
+    P3(("DummyStorage", "%O: lock(%s, %O, %O)\n", this, key, cb, args))
     
     if (has_index(locks, key)) {
 	locks[key] += ({ ({ LOCK, key, cb, args }) });	
@@ -94,7 +94,7 @@ void lock(string key, function|void cb, mixed ... args) {
 
 
 void get_unlock(string key, function cb, mixed ... args) {
-    PT(("DummyStorage", "%O: get_unlock(%s, %O, %O)\n", this, key, cb, args))
+    P3(("DummyStorage", "%O: get_unlock(%s, %O, %O)\n", this, key, cb, args))
     call_out(cb, 0, key, _get(key), @args);
     _unlock(key);
 }
@@ -102,7 +102,7 @@ void get_unlock(string key, function cb, mixed ... args) {
 // no sure when to use that. maybe if we want to be sure that the value we stored
 // stays there unchanged until we unlock..
 void set_unlock(string key, mixed value, function|void cb, mixed ... args) {
-    PT(("DummyStorage", "%O: set_unlock(%s, %O, %O, %O)\n", this, key, value, cb, args))
+    P3(("DummyStorage", "%O: set_unlock(%s, %O, %O, %O)\n", this, key, value, cb, args))
     if (cb) call_out(cb, 0, OK, key, @args);
     _set(key, value);
     _unlock(key);
@@ -143,7 +143,7 @@ void _unlock(string key) {
 }
 
 void unlock(string key, function|void cb, mixed ... args) {
-    PT(("DummyStorage", "%O: unlock(%s, %O, %O)\n", this, key, cb, args))
+    P3(("DummyStorage", "%O: unlock(%s, %O, %O)\n", this, key, cb, args))
     _unlock(key);
     if (cb) call_out(cb, 0, OK, key, @args);
 }

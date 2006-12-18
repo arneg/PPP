@@ -102,7 +102,7 @@ void handle(MMP.Packet p, mapping _m) {
 
 void fetched(string key, mixed value, MMP.Utils.Queue stack, MMP.Packet p,
 	     mapping _m, multiset(string) wvars) {
-    PT(("StageHandler", "fetched(%O, %O, %O, %O, %O)\n", key, value, stack,
+    P3(("StageHandler", "fetched(%O, %O, %O, %O, %O)\n", key, value, stack,
 	p, wvars))
 
     requested[p][key] = value;
@@ -115,7 +115,7 @@ void fetched(string key, mixed value, MMP.Utils.Queue stack, MMP.Packet p,
 }
 
 void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
-    PT(("StageHandler", "progressing %O.\n", stack))
+    P3(("StageHandler", "progressing %O.\n", stack))
 
     if (stack->isEmpty()) {
 	call_out(go_on, 0, p, _m);
@@ -126,7 +126,7 @@ void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
     AR o = stack->shift_();
 
     if (o->check && !o->check(p, _m)) {
-	PT(("StageHandler", "%O->check() returned Null.\n", o))
+	P1(("StageHandler", "%O->check() returned Null.\n", o))
 	stack->shift();
 	call_out(progress, 0, stack, p, _m);
 	return;
@@ -164,7 +164,7 @@ void call_handler(MMP.Utils.Queue stack, MMP.Packet p, mapping _v, mapping _m) {
     int in_progress = 1;
 
     AR o = stack->shift();
-    PT(("StageHandler", "Calling %O for %O with misc: %O.\n", o->handler, p, _m))
+    P3(("StageHandler", "Calling %O for %O with misc: %O.\n", o->handler, p, _m))
     if (o->async) {
 	void callback(int i) {
 	    if (in_progress) {
