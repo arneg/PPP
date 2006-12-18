@@ -109,7 +109,7 @@ void create(mapping(string:mixed) config) {
 
     if (has_index(config, "default_localhost")) {
 	def_localhost = config["default_localhost"];  
-    } else {
+   } else {
 	throw(({"aaahahha"}));
     }
 
@@ -131,6 +131,7 @@ void create(mapping(string:mixed) config) {
 	    string ip;
 	    Stdio.Port p;
 
+	    localhosts[port] = 1;
 	    [ip, port] = (port / ":");
 
 	    if (!MMP.Utils.Net.is_ip(ip)) {
@@ -293,10 +294,10 @@ void _if_localhost(MMP.Uniform candidate, function if_cb, function else_cb,
 	}
     };
 
-    if (!port) port = (candidate->port) ? candidate->port : 4404;
+    if (!port) port = candidate->port;
 
     if (MMP.Utils.Net.is_ip(candidate->host)) {
-	if (has_index(localhosts, candidate->host + ":" + port)) {
+	if (has_index(localhosts, candidate->host + ":" + (port ? port : 4404))) {
 	    if_cb(@args);
 	} else {
 	    else_cb(@args);
