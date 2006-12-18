@@ -8,9 +8,6 @@ XMPP.S2S.ClientManager rumms;
 XMPP.S2S.ServerManager bumms;
 #endif
 
-#ifndef BIND
-# define BIND	"127.0.0.1"
-#endif
 #ifndef HOSTNAME
 # ifdef LOCALHOST
 #  define HOSTNAME	LOCALHOST
@@ -134,7 +131,11 @@ int main(int argc, array(string) argv) {
 
     dings = PSYC.Server(([
 	     "ports" : ({ 
-		       (MMP.Utils.Net.is_ip(LOCALHOST) ? LOCALHOST : BIND) 
+#ifdef BIND
+			BIND
+#elif defined(LOCALHOST)
+			LOCALHOST
+#endif
 			+ ":4404" }),
       "create_local" : create_local,
     "deliver_remote" : deliver_remote,
@@ -164,7 +165,11 @@ int main(int argc, array(string) argv) {
     da = TELNET.Server(([
 	 "psyc_server" : dings,
 	     "ports" : ({ 
-		       (MMP.Utils.Net.is_ip(LOCALHOST) ? LOCALHOST : BIND) 
+#ifdef BIND
+			BIND
+#elif defined(LOCALHOST)
+			LOCALHOST
+#endif
 			+ ":2000" }),
 	     "textdb" : textdb,
 			]));

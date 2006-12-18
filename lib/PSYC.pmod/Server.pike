@@ -1,4 +1,4 @@
-// vim:symtax=lpc
+// vim:syntax=lpc
 #include <debug.h>
 
 mapping(string:mixed) localhosts;
@@ -390,7 +390,6 @@ void route(MMP.Packet packet, object connection) {
 	packet["_source"] = source;
     } else {
 	source = packet["_source"];
-	if (!source->handler) source->handler = connection;
     }
 
     // may be objects already if these are packets coming from a socket that
@@ -416,7 +415,7 @@ void route(MMP.Packet packet, object connection) {
 	} else { // rootmsg
 #ifdef DEBUG
 	    void dummy(MMP.Packet p) {
-		P0(("PSYC.Server", "%O lives in crazytown.\n", p->source()))
+		P0(("PSYC.Server", "%O sent us a packet (%O) that apparently does not belong here.\n", p->source(), p))
 	    };
 #else
 	    function dummy;

@@ -482,6 +482,14 @@ class Circuit {
 	//::create();
     }
 
+    string _sprintf(int type) {
+	switch (type) {
+	case 's':
+	case 'O':
+	    return sprintf("MMP.Circuit(%s)", peeraddr);
+	}
+    }
+
     void assign(mapping state, string key, mixed val) {
 	state[key] = val;	
     }
@@ -521,6 +529,7 @@ class Circuit {
     }	
 
     void activate() {
+	PT(("MMP.Circuit", "%O->activate()\n", this))
 	write_okay = 1;
 	if (write_ready) write();
     }
