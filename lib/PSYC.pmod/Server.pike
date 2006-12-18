@@ -1,3 +1,4 @@
+// vim:symtax=lpc
 #include <debug.h>
 
 mapping(string:mixed) localhosts;
@@ -5,7 +6,7 @@ mapping(string:mixed) localhosts;
 // stuff to Uniform -> object. the uniform of the root-object of a
 // server could then be stored in uniform->super() (name you have to 
 // 							think about!)
-mapping(string:object)  
+mapping(object:object)  
 		       circuits = ([ ]),
 		       wf_circuits = ([ ]), // wf == waiting for
 		       vcircuits = ([ ]);
@@ -17,6 +18,26 @@ string def_localhost;
 PSYC.Root root;
 
 function create_local, create_remote, external_deliver_remote, external_deliver_local, create_context;
+
+// to be moved farther down
+void activate(MMP.Uniform croot) { // croot == circuit root
+    if (croot->handler && croot->handler->circuit) {
+	croot->handler->circuit->activate();
+	return;
+    } else if (has_index(vcircuits, croot)) {
+	croot->handler = vcircuits[croot];
+
+	if (croot->handler->circuit) {
+	    croot->handler->circuit->activate();
+	    return;
+	}
+    }
+
+    // not sure. activate does not really make sense without
+    // a circuit. we might even throw! ... or exit(12).
+    // TODO:: throw or exit. ,)
+    P0(("PSYC.Server", "%O->activate(%s) failed because the circuit was non-existing??!", this, croot))
+}
 
 // we could make the verbosity of this putput debug-level dependent
 string _sprintf(int type) {
@@ -52,11 +73,9 @@ void insert(MMP.Uniform context, MMP.Uniform guz) {
 }
 
 void add_route(MMP.Uniform target, object circuit) {
-    int port = target->port;
-    string peerhost = target->host + (port ? " " + port : "");
 
-    if (!has_index(vcircuits, peerhost)) {
-	vcircuits[peerhost] = MMP.VirtualCircuit(target, this, 0, circuit);
+    if (!has_index(vcircuits, target->root)) {
+	vcircuits[target->root] = MMP.VirtualCircuit(target, this, 0, circuit);
     }
 }
 
@@ -140,18 +159,16 @@ void create(mapping(string:mixed) config) {
 
 // CALLBACKS
 void accept(Stdio.Port lsocket) {
-    string peerhost;
     Stdio.File socket;
     MMP.Server con;
 
     socket = lsocket->accept();
-    peerhost = socket->query_address();
-
-    circuits[peerhost] = (con = MMP.Server(socket, route, close, get_uniform));
+    con = MMP.Server(socket, route, close, get_uniform);
+    circuits[con->peeraddr] = con;
     con->send_neg(MMP.Packet(circuit_established, ([ "_source" : root->uni, "_target" : con->peeraddr ])) );
 }
 
-void connect(int success, Stdio.File so, string id) {
+void connect(int success, Stdio.File so, MMP.Uniform id) {
     MMP.Circuit c = MMP.Active(so, route, close, get_uniform);
     MMP.Utils.Queue q = m_delete(wf_circuits, id);
 
@@ -211,15 +228,15 @@ MMP.Uniform get_uniform(string unl) {
     }
 }
 
-void if_localhost(string host, function if_cb, function else_cb,
+void if_localhost(MMP.Uniform candidate, function if_cb, function else_cb,
 		  mixed ... args) {
-    _if_localhost(host, if_cb, else_cb, 0, args);
+    _if_localhost(candidate, if_cb, else_cb, 0, args);
 }
 
-void _if_localhost(string host, function if_cb, function else_cb,
+void _if_localhost(MMP.Uniform candidate, function if_cb, function else_cb,
 		  int port, array args) {
     // this is rather blöde
-    PT(("PSYC.Server", "if_localhost(%s, %O, %O, ...)\n", host, if_cb, 
+    PT(("PSYC.Server", "if_localhost(%s, %O, %O, ...)\n", candidate, if_cb, 
 	else_cb))
     void callback(string host, mixed ip) {
 	// TODO: we need error_handling here!
@@ -264,26 +281,28 @@ void _if_localhost(string host, function if_cb, function else_cb,
 			seen[target + ":" + port]++;
 			count++;
 
-			call_out(_if_localhost, 0, target, _if_cb, _else_cb,
+			call_out(_if_localhost, 0, get_uniform("psyc://"+target+":"+port), _if_cb, _else_cb,
 				 port, ({ }));
 		    }
 		}
 	    }
 	} else {
-	    Protocols.DNS.async_host_to_ip(host, callback);
+	    Protocols.DNS.async_host_to_ip(candidate->host, callback);
 	}
     };
 
-    if (MMP.Utils.Net.is_ip(host)) {
-	if (has_index(localhosts, host + ":" + port)) {
+    if (!port) port = candidate->port;
+
+    if (MMP.Utils.Net.is_ip(candidate->host)) {
+	if (has_index(localhosts, candidate->host + ":" + port)) {
 	    if_cb(@args);
 	} else {
 	    else_cb(@args);
 	}
     } else if (!port) {
-	MMP.Utils.DNS.async_srv("psyc-server", "tcp", host, handle_srv);
+	MMP.Utils.DNS.async_srv("psyc-server", "tcp", candidate->host, handle_srv);
     } else {
-	Protocols.DNS.async_host_to_ip(host, callback);
+	Protocols.DNS.async_host_to_ip(candidate->host, callback);
     }
 }
 
@@ -295,50 +314,47 @@ void deliver(MMP.Uniform target, MMP.Packet packet) {
 	return;
     }
     
-    if_localhost(target->host, external_deliver_local, external_deliver_remote, 
+    if_localhost(target, external_deliver_local, external_deliver_remote, 
 		 packet, target);
     
 }
 
-void circuit_to(string ip, int port, function(MMP.Circuit:void) cb) {
-    string id = ip + " " + port;
+void circuit_to(MMP.Uniform target, function(MMP.Circuit:void) cb) {
 
-    if (has_index(circuits, id)) {
-	cb(circuits[id]);
-    } else if (has_index(wf_circuits, id)) {
-	wf_circuits[id]->push(cb);
+    if (has_index(circuits, target)) {
+	cb(circuits[target]);
+    } else if (has_index(wf_circuits, target)) {
+	wf_circuits[target]->push(cb);
     } else {
 	Stdio.File so;
 
-	wf_circuits[id] = MMP.Utils.Queue();
-	wf_circuits[id]->push(cb);
+	wf_circuits[target] = MMP.Utils.Queue();
+	wf_circuits[target]->push(cb);
 
-	P2(("PSYC.Server", "Opening a connection to %O.\n", id))
+	P2(("PSYC.Server", "Opening a connection to %O.\n", target))
 
 	so = Stdio.File();
 
 	if (bind_to) so->open_socket(UNDEFINED, bind_to);
 
-	so->async_connect(ip, port, connect, so, id);
+	so->async_connect(target->host, target->port, connect, so, target);
     }
 }
 
-void deliver_remote(MMP.Packet packet, MMP.Uniform target) {
-    P2(("PSYC.Server", "%O->deliver_remote(%O, %O)\n", this, packet, target))
-    string host = target->host;
-    int port = target->port;
-    string peerhost = host + (port ? " " + port : "");
+void deliver_remote(MMP.Packet packet, MMP.Uniform root) {
+    P2(("PSYC.Server", "%O->deliver_remote(%O, %O)\n", this, packet, root))
+    root = root->root;
     
     P2(("PSYC.Server", "looking in %O for a connection to %s.\n", 
-	circuits, peerhost))
+	circuits, root))
 
-    if (has_index(vcircuits, peerhost)) {
-	call_out((target->handler = vcircuits[peerhost])->msg, 0, packet);
+    if (has_index(vcircuits, root)) {
+	call_out((root->handler = vcircuits[root])->msg, 0, packet);
 	return;
     } else {
-	MMP.VirtualCircuit vc = MMP.VirtualCircuit(target, this);
+	MMP.VirtualCircuit vc = MMP.VirtualCircuit(root, this);
 
-	vcircuits[peerhost] = vc;
+	vcircuits[root] = vc;
 	vc->msg(packet);
     }
 }
@@ -405,13 +421,15 @@ void route(MMP.Packet packet, object connection) {
 #else
 	    function dummy;
 #endif
+	    // wouldnt it be good to have if_localhost check for that
+	    // in the uniform on its own?
+	    //  being local should never change...
 	    if (target->islocal == 1) {
 		root->msg(packet);
 	    } else if (target->islocal == 0) {
 		dummy(packet);
 	    } else 
-		if_localhost(target->host, root->msg, dummy, 
-			     packet);
+		if_localhost(target, root->msg, dummy, packet);
 	}
 	break;
     case 2:

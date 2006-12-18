@@ -1026,7 +1026,7 @@ class VirtualCircuit {
     }
 
     void connect_ip(string ip, int port) {
-	server->circuit_to(ip, port, on_connect);
+	server->circuit_to(server->get_uniform("psyc://" + ip + ":" + port), on_connect);
     }
 
     void connect_host(string host, int port) {

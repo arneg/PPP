@@ -169,7 +169,7 @@ int main(int argc, array(string) argv) {
 	     "textdb" : textdb,
 			]));
 
-    write("220 ppp ESMTP Sendmail 8.13.7/8.13.7; %s\nlocalhost: %s\n", smtime(), LOCALHOST);
+    write("220 %s ESMTP Sendmail 8.13.7/8.13.7; %s\n", LOCALHOST, smtime());
     return -1;
 }
 
