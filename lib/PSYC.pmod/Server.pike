@@ -249,7 +249,7 @@ void _if_localhost(MMP.Uniform candidate, function if_cb, function else_cb,
 	    P2(("MMP.Server", "%s resolves to %s.\n", host, ip))
 	}
 
-	if (ip && has_index(localhosts, ip + ":" + port))
+	if (ip && has_index(localhosts, ip + ":" + (port ? port : 4404)))
 	    if_cb(@args);
 	else if (else_cb)
 	    else_cb(@args);
