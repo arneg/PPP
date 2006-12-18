@@ -83,6 +83,8 @@ void create(mapping(string:mixed) config) {
 
     // TODO: expecting ip:port ... is maybe a bit too much
     // looks terribly ugly..
+    //
+    // better create root uniforms..
     if (has_index(config, "localhosts")) { 
 	localhosts = config["localhosts"];
     } else {

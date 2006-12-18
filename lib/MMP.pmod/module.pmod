@@ -16,7 +16,7 @@ class Uniform {
     string scheme, transport, host, user, resource, slashes, query, body,
 	   userAtHost, pass, hostPort, circuit, unl, channel, obj;
     MMP.Uniform root, super;
-    int port, parsed, islocal = UNDEFINED;
+    int port, parsed, islocal = UNDEFINED, reconnectable = 1;
     object handler;
 
     void create(string u, object|void o) {
@@ -78,6 +78,7 @@ class Uniform {
 		case "channel":
 		case "islocal":
 		case "obj":
+		case "reconnectable":
 		    parse();
 	    }
 	}
@@ -122,6 +123,10 @@ class Uniform {
 	//if (complete) circuit = scheme+":"+hostPort;
 	//root = scheme+":"+slashes+hostPort;
 	if (sscanf(t, "%s:%s", t, s)) {
+		if (sizeof(s) && s[0] == '-') {
+		    s = s[1..];
+		    reconnectable = 0;
+		}
 		if (!sscanf(s, "%d%s", port, transport))
 		    transport = s;
 	}
@@ -451,7 +456,7 @@ class Circuit {
     // has _length )
     // start parsing at byte start_parse. start_parse == 0 means create a new
     // packet.
-    int m_bytes, start_parse;
+    int m_bytes, start_parse, pcount = 0;
 
     // cb(received & parsed mmp_message);
     //
@@ -467,15 +472,6 @@ class Circuit {
 	msg_cb = cb;
 	close_cb = closecb;
 	get_uniform = parse_uni||MMP.parse_uniform;
-
-	peerhost = so->query_address(1);
-	localaddr = get_uniform("psyc://"+((peerhost / " ") * ":"));
-	localaddr->islocal = 1;
-	peerhost = so->query_address();
-	peeraddr = get_uniform("psyc://"+((peerhost / " ") * ":"));
-	//peeraddr->handler = this; // TODO:: might be necessary to create a VC
-				    // here.
-	peeraddr->islocal = 0;
 
 	q_neg->push(Packet());
 	reset();
@@ -700,11 +696,15 @@ class Circuit {
 		    // TODO: HOOK
 		    if (inpacket->parsed)
 			inpacket->parsed();
+		    if (pcount < 3) {
+			if (!pcount["_target"]->reconnectable) pcount["_target"]->islocal = 1;
+		    }
 		    msg_cb(inpacket, this);
 		    reset(); // watch out. this may produce strange bugs...
 		} else {
 		    P2(("MMP.Circuit", "Got a ping.\n"))
 		}
+		pcount++;
 	    }
 	    if (ret > 0) m_bytes = ret;
 	};
@@ -928,6 +928,17 @@ LINE:	while(-1 < stop &&
 class Active {
     inherit Circuit;
 
+    void create(Stdio.File|Stdio.FILE so, function cb, function closecb, void|function get_uniform) {
+	::create(so, cb, closecb, get_uniform);
+
+	string peerhost = so->query_address(1);
+	localaddr = get_uniform("psyc://"+((peerhost / " ") * ":-"));
+	localaddr->islocal = 1;
+	peerhost = so->query_address();
+	peeraddr = get_uniform("psyc://"+((peerhost / " ") * ":"));
+	peeraddr->islocal = 0;
+    }
+
     void start_read(mixed id, string data) {
 	::start_read(id, data);
     }
@@ -939,7 +950,18 @@ class Server {
     void create(Stdio.File|Stdio.FILE so, function cb, function closecb, void|function get_uniform) {
 	::create(so, cb, closecb, get_uniform);
 
+	string peerhost = so->query_address(1);
+	localaddr = get_uniform("psyc://"+((peerhost / " ") * ":"));
+	localaddr->islocal = 1;
+	peerhost = so->query_address();
+	peeraddr = get_uniform("psyc://"+((peerhost / " ") * ":-"));
+	peeraddr->islocal = 0;
+
 	activate();
+    }
+
+    int sgn() {
+	return -1;
     }
 
 #ifdef LOVE_TELNET
