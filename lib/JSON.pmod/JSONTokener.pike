@@ -1,5 +1,5 @@
 // vim:syntax=lpc
-// $Id: JSONTokener.pike,v 1.9 2006/12/27 15:56:10 p0rtage Exp $
+// $Id: JSONTokener.pike,v 1.10 2006/12/27 17:04:09 p0rtage Exp $
 // 
 // I really hate those comments.
 //
@@ -414,7 +414,12 @@ mapping jsonObject()
 				key = nextObject();
 				break;
 			default:
-				THROW("Non-String as "
+				if (has_index(generics, c)) {
+				    back();
+				    key = nextObject();
+				}
+
+				THROW("Non-Quoted as "
 						    "JSONObject-key. That "
 						    "is invalid!\n");
 		}
@@ -540,7 +545,7 @@ PROTECTED mixed nextObject() {
 	int c = nextClean();
 	string s;
 
-	if (c == '"' || c == '\'') {
+	if (c == '"') { // || c == '\'') {
 		return nextString(c);
 	}
 	// Object
