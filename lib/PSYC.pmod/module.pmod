@@ -272,7 +272,7 @@ LINE:while (-1 < stop &&
 #ifdef LOVE_JSON
 	    // long term plan is to make that on demand inside the packet..
 	    if (stringp(lastval))
-		lastval = JSON.parse(lastval);
+		lastval = parse_JSON(lastval);
 #endif
 	    if (lastmod != ':') lastkey = String.int2char(lastmod) + lastkey;
 	    packet->vars += ([ lastkey : lastval ]);

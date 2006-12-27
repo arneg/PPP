@@ -153,7 +153,7 @@ void subscribe(MMP.Uniform channel) {
 #if 0
 	    sendmsg(channel, PSYC.Packet("_request_context_enter_subscribe"));
 #endif
-	    sendmsg(uni->root, PSYC.Packet("_request_context_enter_subscribe"), ({ "_group" : channel }));
+	    sendmsg(uni->root, PSYC.Packet("_request_context_enter_subscribe"), ([ "_group" : channel ]));
 	}; // CALLBACK
 
 	MMP.Uniform context;

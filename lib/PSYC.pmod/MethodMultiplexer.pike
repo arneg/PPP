@@ -67,12 +67,12 @@ void msg(MMP.Packet p) {
     P3(("MethodMultiplexer", "%O: msg(%O)\n", this, p))
     
     object factory() {
-	return JSON.UniformBuilder(server->get_uniform);
+	return JSON.UniformBuilder(this->server->get_uniform);
     };
 
     mixed parse_JSON(string d) {
 	JSON.parse(d, 0, 0, ([ '\'' : factory ]));
-    }
+    };
     
     if (p->data) {
 	if (stringp(p->data)) {
