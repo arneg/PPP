@@ -1006,6 +1006,12 @@ class VirtualCircuit {
     string targethost;
     int targetport;
 
+    string _sprinf(int type) {
+	if (type == 's' || type == 'O') {
+	    return sprintf("MMP.VirtualCircuit(%s:%d)", targethost, targetport);
+	}
+    }
+
     void create(MMP.Uniform target, object srv, function|void co,
 		MMP.Circuit|void c) {
 	targethost = target->host;
