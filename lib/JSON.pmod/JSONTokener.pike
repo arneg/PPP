@@ -1,5 +1,5 @@
 // vim:syntax=lpc
-// $Id: JSONTokener.pike,v 1.10 2006/12/27 17:04:09 p0rtage Exp $
+// $Id: JSONTokener.pike,v 1.11 2006/12/27 17:05:44 p0rtage Exp $
 // 
 // I really hate those comments.
 //
@@ -417,6 +417,7 @@ mapping jsonObject()
 				if (has_index(generics, c)) {
 				    back();
 				    key = nextObject();
+				    break;
 				}
 
 				THROW("Non-Quoted as "
