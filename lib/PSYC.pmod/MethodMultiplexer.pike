@@ -71,7 +71,7 @@ void msg(MMP.Packet p) {
     };
 
     mixed parse_JSON(string d) {
-	JSON.parse(d, 0, 0, ([ '\'' : factory ]));
+	return JSON.parse(d, 0, 0, ([ '\'' : factory ]));
     };
     
     if (p->data) {
