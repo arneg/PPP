@@ -48,7 +48,7 @@ int postfilter_notice_context_enter_channel_subscribe(MMP.Packet p, mapping _v, 
 	return PSYC.Handler.STOP;
     }
 
-    mapping sub = string2uniform(_v["_subscriptions"], 1);
+    mapping sub = _v["_subscriptions"];
 
     MMP.Uniform context = channel->super;
 
@@ -81,7 +81,7 @@ int postfilter_notice_context_enter_subscribe(MMP.Packet p, mapping _v, mapping 
 	return PSYC.Handler.STOP;
     }
 
-    mapping sub = string2uniform(_v["_subscriptions"], 1);
+    mapping sub = _v["_subscriptions"];
 
     if (has_index(sub, context) && REQUESTED(sub[context])) {
 	P3(("Handler.Subscribe", "%O: joined a context (%O).\n", uni, context))
@@ -105,7 +105,7 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
     // we have a check for that, messages without context never get here
     // if (!channel) return PSYC.Handler.GOON;
 
-    mapping sub = string2uniform(_v["_subscriptions"], 1);
+    mapping sub = _v["_subscriptions"];
     // we could aswell save the object of that channel into the uniform.. 
     // they are some somewhat related (instead of cutting the string everytime)
     if (channel->channel) {
@@ -169,7 +169,7 @@ void subscribe(MMP.Uniform channel) {
 	    context = channel;
 	}
 
-	mixed sub = string2uniform(value, 1);
+	mixed sub = value;
 
 	if (has_index(sub, channel) && sub[channel]) { // REQUESTED or SUBSCRIBED
 	    uni->storage->unlock("_subscriptions", callback2, channel);
@@ -194,7 +194,7 @@ void unsubscribe(MMP.Uniform channel) {
 	    return;
 	}
 	
-	mapping sub = string2uniform(value, 1);
+	mapping sub = value;
 
 	MMP.Uniform context;
 	if (channel->channel) {

@@ -64,7 +64,7 @@ int postfilter_request_trustiness(MMP.Packet p, mapping _v, mapping _m) {
 	return PSYC.Handler.STOP;
     }
 
-    location = (m->vars["_location"] = string2uniform(m->vars["_location"]));
+    location = (m->vars["_location"] = m->vars["_location"]);
 
     if (MIN_TRUST <= get_trust(_v["_friends"], source)) {
 	trust = get_trust(_v["_friends"], location);
@@ -85,7 +85,7 @@ int postfilter_request_trustiness(MMP.Packet p, mapping _v, mapping _m) {
 
 int postfilter_failure_trustiness(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
-    MMP.Uniform location = (m->vars["_location"] = string2uniform(m->vars["_location"]));
+    MMP.Uniform location = (m->vars["_location"] = m->vars["_location"]);
 
     deliver(p->source(), location, NO_TRUST);
     
@@ -111,7 +111,7 @@ void process(MMP.Packet reply, mapping _v, MMP.Uniform trustee,
 	return;
     }
 
-    m->vars["_location"] = string2uniform(m->vars["_location"]);
+    m->vars["_location"] = m->vars["_location"];
 
     // er....
     if (equal(m->mc / "_", ({ "", "failure", "trustiness" }))) {
@@ -125,7 +125,7 @@ void process(MMP.Packet reply, mapping _v, MMP.Uniform trustee,
 void postfilter_notice_trustiness(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
     MMP.Uniform trustee = p->source();
-    MMP.Uniform location = (m->vars["_location"] = string2uniform(m->vars["_location"]));
+    MMP.Uniform location = (m->vars["_location"] = m->vars["_location"]);
 
     if (!has_index(m->vars, "_trustiness") || !intp(m->vars["_trustiness"])) {
 	P1(("Handler.Trustiness", "%O: _notice_trustiness from %O contains strange or no _trustiness (%O).\n", uni, p->source(), m->vars["_trustiness"]))
@@ -183,7 +183,7 @@ void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
     } else if (has_index(m->vars, "_trustee")) {
 	MMP.Uniform trustee;
 
-	trustee = (m->vars["_trustee"] = string2uniform(m->vars["_trustee"]));
+	trustee = (m->vars["_trustee"] = m->vars["_trustee"]);
 
 	// everyone has some friends
 	if (has_index(trusted, trustee) && has_index(trusted[trustee], source)) {
