@@ -40,28 +40,72 @@ class Circuit {
 }
 
 class Signaling {
-    // TOP-DOWN routing, may be changed later on.
+    // basic, abstract routing functionality
 
     inherit PSYC.Handler.Base;
+    int _init = 0;
+    array init_callbacks = ({});
 
     constant _ = ([
+	"_" : ([ "lock" : ({ "groups" }) ]),
 	"postfilter" : ([
 	    // someone entered the context and is supposed to get
 	    // all messages on that context from us. this would
 	    // in many cases be a local user, doesnt matter though
-	    "_request_context_enter" : 0,  
+	    "_request_context_enter" : 0, 
 #ifdef SUBSCRIBE
-	    "_request_context_enter_subscribe" : 0,
+	    "_request_context_enter_subscribe" : ([ "lock" : ({ "groups" })]),
 #endif
 	    // same for leaving
-	    "_request_context_leave" : 0,  
+	    "_request_context_leave" : 0, 
 #ifdef SUBSCRIBE
-	    "_request_context_leave_subscribe" : 0,
+	    "_request_context_leave_subscribe" : ([ "lock" : ({ "groups" })]),
 #endif
 	    // the context is empty. stop sending any messages. 
 	    "_status_context_empty" : 0, 
 	]),
     ]);
+
+    int is_inited() {
+	return _init;	
+    }
+
+    int init_cb_add(mixed ... args) {
+	init_callbacks += ({ args });
+    }
+
+    int init(mapping _v, function callback) {
+
+	int count;
+
+	void _cb(int error, MMP.Uniform group, MMP.Uniform guy) {
+	    if (!--count) {
+		_init = 1;
+		foreach (init_callbacks; ; mixed temp) {
+		    temp[0](@temp[1..]);
+		}
+	    }
+
+	    if (error) {
+		P0(("PSYC.Root", "Insert failed for %O into %O.\n", guy, group))
+	    }
+	};
+	
+	foreach (_v["groups"]; MMP.Uniform group; mapping members) {
+	    object context = uni->server->get_context(group);
+
+	    count += sizeof(members);
+	    foreach (members; MMP.Uniform guy; int d) {
+		call_out(context->insert, 0, guy, _cb, group, guy);
+	    }
+	}
+
+	if (!count) {
+	    call_out(callback, 0, PSYC.Handler.GOON);
+	} else {
+	    init_cb_add(callback);
+	}
+    }
 
     int postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m) {
 	MMP.Uniform member = p["_source_relay"];

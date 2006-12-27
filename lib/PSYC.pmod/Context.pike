@@ -2,6 +2,7 @@
 object server;
 multiset(MMP.Uniform) members = (<>);
 mapping(MMP.Uniform:int) routes = ([]);
+mapping options;
 
 void create(object s) {
     server = s;

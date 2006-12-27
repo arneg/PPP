@@ -161,10 +161,21 @@ void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 }
 
 void call_handler(MMP.Utils.Queue stack, MMP.Packet p, mapping _v, mapping _m) {
-    int in_progress = 1;
 
     AR o = stack->shift();
     P3(("StageHandler", "Calling %O for %O with misc: %O.\n", o->handler, p, _m))
+
+    if (has_index(function_object(o->handler)->_, "_")) {
+	object handler = function_object(o->handler);
+
+	if (!handler->is_inited()) {
+	    handler->init_cb_add(call_handler, stack, p, _v, _m);
+	    return;
+	}
+    }
+
+    int in_progress = 1;
+    
     if (o->async) {
 	void callback(int i) {
 	    if (in_progress) {

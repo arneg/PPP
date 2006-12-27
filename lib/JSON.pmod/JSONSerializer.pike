@@ -25,7 +25,11 @@ void _thing2json(object|mapping|array|string|int|float thing) {
     } else if (arrayp(thing)) {
 	_array2json(thing);
     } else if (objectp(thing)) {
-	_string2json((string)thing);
+	if (thing->to_json) {
+	    _add(thing->to_json());
+	} else {
+	    _string2json((string)thing);
+	}
     } else {
 	throw(Error.Generic(sprintf("Could not serialize %O, it's a %O, but I "
 				    "can't handle " "that.\n",

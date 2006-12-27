@@ -150,7 +150,10 @@ void subscribe(MMP.Uniform channel) {
 
 	    // sending a request directly to a channel is like a recommendation for the
 	    // context.
+#if 0
 	    sendmsg(channel, PSYC.Packet("_request_context_enter_subscribe"));
+#endif
+	    sendmsg(uni->root, PSYC.Packet("_request_context_enter_subscribe"), ({ "_group" : channel }));
 	}; // CALLBACK
 
 	MMP.Uniform context;

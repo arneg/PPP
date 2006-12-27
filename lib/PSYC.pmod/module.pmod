@@ -188,12 +188,12 @@ string|String.Buffer render(Packet o, void|String.Buffer to) {
 
 // returns a Packet or an error string
 #ifdef LOVE_TELNET
-Packet parse(string data, string|void linebreak) {
+Packet parse(string data, function parse_JSON, string|void linebreak) {
     if (linebreak == 0) linebreak = "\n";
 # define LL	linebreak
 # define LD	sizeof(linebreak)
 #else
-Packet parse(string data) {
+Packet parse(string data, function parse_JSON) {
 # define LL	"\n"
 # define LD	1
 #endif

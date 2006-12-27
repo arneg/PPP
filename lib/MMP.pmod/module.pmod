@@ -42,6 +42,10 @@ class Uniform {
 	if (type == "string") return unl;
     }
 
+    string to_json() {
+	return "'" + unl + "'";
+    }
+
     string _sprintf(int type) {
 	if (type == 's') {
 	    return sprintf("MMP.Uniform(%s)", unl);

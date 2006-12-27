@@ -1,5 +1,5 @@
 // vim:syntax=lpc
-// $Id: JSONTokener.pike,v 1.8 2006/11/11 13:32:25 tobij Exp $
+// $Id: JSONTokener.pike,v 1.9 2006/12/27 15:56:10 p0rtage Exp $
 // 
 // I really hate those comments.
 //
@@ -43,6 +43,8 @@ int myIndex;
 /// <summary>The source string being tokenized.</summary>
 string mySource;
 
+mapping(int:object) generics = ([ ]);
+
 # define PROTECTED	public
 
 # define THROW(x)	throw(Error.Generic(x))
@@ -82,7 +84,7 @@ PROTECTED string _int2char(int c) {
 /// </summary>
 /// <param name="s">A source string.</param>
 #ifdef __PIKE__
-void create(string s, program|void objectb, program|void arrayb)
+void create(string s, program|void objectb, program|void arrayb, mapping(int:object)|void builders)
 #else
 mixed parse_json(string s)
 #endif
@@ -92,6 +94,7 @@ mixed parse_json(string s)
 #ifdef __PIKE__
 	objectbuilder = objectb;
 	arraybuilder = arrayb;
+	generics = builders;
 #else
 	return nextObject();
 #endif
@@ -300,6 +303,28 @@ PROTECTED string nextString(int quote) {
 	return ""; // will never be reached. stupid LDMud
 #endif
 }
+
+#ifdef __PIKE__
+PROTECTED mixed nextGeneric(int quote, object|function|program builderp) {
+    object builder = builderp();
+
+    for (;;) {
+	int c;
+
+	if (!more()) {
+	    error("Unterminated %c%c\n", quote, quote);
+	}
+
+	c = next();
+
+	if (c == quote) {
+	    return builder->finish();
+	} else {
+	    builder->add(c);
+	}
+    }
+}
+#endif
 
 /// <summary>
 /// Unescape the source text. Convert %hh sequences to single characters,
@@ -529,6 +554,12 @@ PROTECTED mixed nextObject() {
 		back();
 		return jsonArray();
 	}
+
+#ifdef __PIKE__
+	if (has_index(generics, c)) {
+	    return nextGeneric(c, generics[c]);
+	}
+#endif
 
 #ifdef __PIKE__
 	String.Buffer sb = String.Buffer();
