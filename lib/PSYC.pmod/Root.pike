@@ -25,7 +25,9 @@ class Circuit {
 
     int postfilter_notice_circuit_established(MMP.Packet p, mapping _v, mapping _m) {
 	// TODO: is a _source_identification valid here _at all_ ? doesnt make too much sense.
-	server->add_route(p->source(), p->source()->handler->circuit);
+	if (p->source()->handler) {
+	    server->add_route(p->source(), p->source()->handler->circuit);
+	}
 	server->activate(p->source()->root);
 
 	return PSYC.Handler.STOP;
