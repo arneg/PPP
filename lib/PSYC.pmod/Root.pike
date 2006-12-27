@@ -117,7 +117,7 @@ class Signaling {
 	    return PSYC.Handler.STOP;
 	}
 
-	MMP.Uniform context = string2uniform(t["_group"]);
+	MMP.Uniform context = t["_group"];
 
 	uni->server->get_context(context)->insert(member);
 	uni->sendmsg(p->source(), t->reply("_status_context_enter"));
@@ -136,7 +136,7 @@ class Signaling {
 	    return PSYC.Handler.STOP;
 	}
 
-	MMP.Uniform context = string2uniform(t["_group"]);
+	MMP.Uniform context = t["_group"];
 
 	object c = uni->server->get_context(context);
 	c->remove(member);
@@ -159,7 +159,7 @@ class Signaling {
 	    return PSYC.Handler.STOP;
 	}
 
-	MMP.Uniform context = string2uniform(t["_group"]);
+	MMP.Uniform context = t["_group"];
     }
 
 
