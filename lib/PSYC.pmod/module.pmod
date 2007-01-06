@@ -14,6 +14,18 @@ Packet reply(Packet m, string|void mc, string|void data, mapping(string:mixed)|v
     return t;
 }
 
+int abbrev(string haystack, string needle) {
+    if (haystack == needle) return 1;
+
+    if (sizeof(needle) < sizeof(haystack)) return 0;
+
+    if (haystack[..sizeof(needle)-1] != needle) return 0;
+
+    if (haystack[sizeof(needle)] == '_') return 1;
+
+    return 0;
+}
+
 class Packet {
     string mc, cache;
     mapping (string:mixed) vars;

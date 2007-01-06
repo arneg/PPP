@@ -5,7 +5,7 @@ inherit PSYC.MethodMultiplexer;
 
 PSYC.Handler.Base reply;// = PSYC.Handler.Reply();
 PSYC.Handler.Base auth;// = PSYC.Handler.Auth();
-PSYC.Storage storage;
+object storage;
 
 object server;
 MMP.Uniform uni;
@@ -27,23 +27,11 @@ PSYC.Packet tag(PSYC.Packet m, function|void callback, mixed ... args) {
     return tagv(m, callback, 0, @args);
 }
 
-PSYC.Packet tagv(PSYC.Packet m, function|void callback, multiset(string) wvars, 
+PSYC.Packet tagv(PSYC.Packet m, function|void callback, multiset(string)|mapping wvars, 
 		 mixed ... args) {
     m->vars["_tag"] = reply->make_reply(callback, wvars, @args);
 
     return m;
-}
-
-string send_tagged_v(MMP.Uniform target, PSYC.Packet m, multiset(string) wvars,
-		     function callback, mixed ... args) {
-    tagv(m, callback, wvars, @args); 
-    call_out(sendmsg, 0, target, m);
-    return m["_tag"];
-}
-
-string send_tagged(MMP.Uniform target, PSYC.Packet m, 
-		   function callback, mixed ... args) {
-    return send_tagged_v(target, m, 0, callback, @args);
 }
 
 void create(MMP.Uniform u, object s, object stor) {
@@ -53,17 +41,9 @@ void create(MMP.Uniform u, object s, object stor) {
     storage = stor;
     ::create(stor);
 
-    add_handlers(auth = PSYC.Handler.Auth(this),
-		 reply = PSYC.Handler.Reply(this));
+    add_handlers(auth = PSYC.Handler.Auth(this, sendmmp),
+		 reply = PSYC.Handler.Reply(this, sendmmp));
     // the order of storage and trustiness is somehow critical..
-}
-
-void sendmsg(MMP.Uniform target, PSYC.Packet m) {
-    P3(("PSYC.Unl", "sendmsg(%O, %O)\n", target, m))
-    MMP.Packet p = MMP.Packet(m, 
-			  ([ "_source" : uni,
-			     "_target" : target ]));
-    sendmmp(target, p);    
 }
 
 void sendmmp(MMP.Uniform t, MMP.Packet p) {

@@ -63,13 +63,13 @@ void distribute(MMP.Packet p) {
 void create(string nick, MMP.Uniform uni, object server) {
     ::create(uni, server, PSYC.DummyStorage());
 
-    forward = PSYC.Handler.Forward(this);
-    relay = PSYC.Handler.Relay(this);
-    link = PSYC.Handler.Link(this);
-    echo = PSYC.Handler.Echo(this);
+    forward = PSYC.Handler.Forward(this, sendmmp);
+    relay = PSYC.Handler.Relay(this, sendmmp);
+    link = PSYC.Handler.Link(this, sendmmp);
+    echo = PSYC.Handler.Echo(this, sendmmp);
     add_handlers(relay, link, forward, echo, 
-		 PSYC.Handler.Storage(this, storage),
-		 PSYC.Handler.Trustiness(this),
+		 PSYC.Handler.Storage(this, sendmmp, storage),
+		 PSYC.Handler.Trustiness(this, sendmmp),
 		 );
 }
 

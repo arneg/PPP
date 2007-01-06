@@ -12,7 +12,7 @@ void finish(MMP.Packet p) {
     P3(("MethodMultiplexer", "finished %O.\n", p))
 }
 
-void create(PSYC.Storage storage) {
+void create(object storage) {
     postfilter = PSYC.StageHandler("postfilter", finish, finish, throw, storage);
     filter = PSYC.StageHandler("filter", postfilter->handle, stop, throw, storage);
     prefilter = PSYC.StageHandler("prefilter", filter->handle, filter->handle, 
@@ -36,8 +36,9 @@ void add_handlers(PSYC.Handler.Base ... handlers) {
 	foreach (temp["postfilter"]; string mc; mapping|array(string) wvars) {
 	    postfilter->add(mc, handler, wvars);
 	}
-
     }
+
+    do_import(@handlers);
 }
 
 mixed `->(string fun) {

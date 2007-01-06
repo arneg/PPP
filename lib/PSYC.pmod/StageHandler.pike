@@ -1,13 +1,13 @@
 // vim:syntax=lpc
 #include <debug.h>
 
-PSYC.Storage storage;
+object storage;
 mapping table = ([]);
 mapping requested = ([]);
 function go_on, stop, error;
 string prefix;
 
-void create(string foo, function go_on_, function stop_, function error_, PSYC.Storage s) {
+void create(string foo, function go_on_, function stop_, function error_, object s) {
     prefix = foo;
 
     go_on = go_on_;
@@ -22,7 +22,7 @@ class AR(function handler, array(string) wvars, int async, array(string) lvars,
     
     string _sprintf(int type) {
 	if (type == 'O') {
-	    return sprintf("AR(%O)", handler);
+	    return sprintf("AR(%O, %O, lock: %O)", handler, wvars, lvars);
 	}
     
 	return UNDEFINED;
@@ -99,7 +99,7 @@ void handle(MMP.Packet p, mapping _m) {
     progress(liste, p, _m);
 }
 
-
+#if 0
 void fetched(string key, mixed value, MMP.Utils.Queue stack, MMP.Packet p,
 	     mapping _m, multiset(string) wvars) {
     P3(("StageHandler", "fetched(%O, %O, %O, %O, %O)\n", key, value, stack,
@@ -113,6 +113,7 @@ void fetched(string key, mixed value, MMP.Utils.Queue stack, MMP.Packet p,
 	call_handler(stack, p, m_delete(requested, p), _m);
     }
 }
+#endif
 
 void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
     P3(("StageHandler", "progressing %O.\n", stack))
@@ -132,6 +133,13 @@ void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 	return;
     }
 
+    void fail(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
+	P0(("StageHandler", "fetching data for %O failed in stack %O.\n", p, stack))
+    };
+
+    PSYC.Storage.aggregate(storage, o->lvars && (multiset)o->lvars, o->wvars && (multiset)o->wvars, call_handler, fail, stack, p, _m);
+
+#if 0
     array wvars = o->wvars;
     array lvars = o->lvars;
 
@@ -157,11 +165,11 @@ void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
     } else {
 	call_out(call_handler, 0, stack, p, ([]), _m);	
     }
+#endif
 
 }
 
-void call_handler(MMP.Utils.Queue stack, MMP.Packet p, mapping _v, mapping _m) {
-
+void call_handler(mapping _v, MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
     AR o = stack->shift();
     P3(("StageHandler", "Calling %O for %O with misc: %O.\n", o->handler, p, _m))
 
@@ -169,7 +177,7 @@ void call_handler(MMP.Utils.Queue stack, MMP.Packet p, mapping _v, mapping _m) {
 	object handler = function_object(o->handler);
 
 	if (!handler->is_inited()) {
-	    handler->init_cb_add(call_handler, stack, p, _v, _m);
+	    handler->init_cb_add(call_handler, _v, stack, p, _m);
 	    return;
 	}
     }

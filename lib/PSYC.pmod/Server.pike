@@ -210,6 +210,10 @@ MMP.Uniform random_uniform(string type) {
 MMP.Uniform get_uniform(string unl) {
     unl = lower_case(unl);
 
+    if (!sizeof(unl)) {
+	THROW("ahhhhhh\n");
+    }
+
     if (has_index(unlcache, unl)) {
 	P2(("PSYC.Server", "returning cached %O\n", unlcache[unl]))
 	return unlcache[unl];
@@ -346,7 +350,9 @@ void circuit_to(MMP.Uniform target, function(MMP.Circuit:void) cb) {
 
 void deliver_remote(MMP.Packet packet, MMP.Uniform root) {
     P2(("PSYC.Server", "%O->deliver_remote(%O, %O)\n", this, packet, root))
+    root->islocal = 0;
     root = root->root;
+    root->islocal = 0;
     
     P2(("PSYC.Server", "looking in %O for a connection to %s.\n", 
 	circuits, root))
@@ -366,6 +372,7 @@ void deliver_local(MMP.Packet packet, MMP.Uniform target) {
     P2(("PSYC.Server", "%O->deliver_local(%O, %O)\n", this, packet, 
 	target))
     object o = create_local(target);
+    target->islocal = 1;
 
     if (!o) {
 	P0(("PSYC.Server", "Could not summon a local object for %O.\n",

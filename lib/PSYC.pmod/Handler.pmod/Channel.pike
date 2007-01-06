@@ -10,16 +10,18 @@
 // requirements to channels:
 // * subscription by the user
 
-// channel -> member -> urks
-// this is temporary.. 
-mapping(MMP.Uniform:int) count = ([ ]);
-
 inherit PSYC.Handler.Base;
+
+mapping callbacks = ([ ]);
 
 constant _ = ([
     "postfilter" : ([
-	"_request_context_enter" : 0,
-	"_request_context_enter_subscribe" : ({ "_members" }),
+	"_request_context_enter" : ([
+	    "async" : 1,
+	]),
+	"_request_context_enter_subscribe" : ([
+	    "async" : 1,
+	]),
     ]),
 ]);
 
@@ -27,64 +29,56 @@ constant export = ({
     "castmsg", "create_channel"
 });
 
-int postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m) {
+void create_channel(MMP.Uniform channel, function|void subscribe, function|void enter) {
+    callbacks[channel] = ({ subscribe, enter });
+}
 
-    void callback2(int success, PSYC.Packet answer, MMP.Uniform channel, MMP.Uniform guy) {
-	void callback1(int error, MMP.Uniform channel, MMP.Uniform guy) {
-	    if (error) {
-		sendmsg(guy, PSYC.Packet("_error_context_enter"));
-		return;
-	    }
+void postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m, function cb) {
+    MMP.Uniform target = p["_target"];
+    MMP.Uniform source = p->source();
+    PSYC.Packet m = p->data;
 
-	    //sendmsg(guy, PSYC.Packet("_notice_place_enter"));
-	    castmsg(channel, PSYC.Packet("_notice_place_enter"), guy);
-	};
+    if (!has_index(callbacks, target)) {
+	// blub
+	P0(("PSYC.Handler.Channel", "Channel does not exist.\n"))
+	sendmsg(p->source(), m->reply("_failure_context_enter"));
+	call_out(cb, 0, PSYC.Handler.STOP);
+	return;
+    }
 
-	if (success) {
-	    uni->server->get_context(channel)->insert(guy, callback1, channel, guy);
+    void callback(int may, MMP.Packet p) {
+	if (may) {
+	    sendmsg(p->source(), m->reply("_notice_context_enter", ([ "_supplicant" : m["_supplicant"] ])));
 	} else {
-	    if (!answer) answer = PSYC.Packet("_failure_context_enter");
-	    sendmsg(guy, answer);
+	    sendmsg(p->source(), m->reply("_notice_context_discord", ([ "_supplicant" : m["_supplicant"] ])));
 	}
     };
-	
-    uni->add(p->source(), callback2, p["_target"], p->source());
+
+    if (!callbacks[target][1]) {
+	sendmsg(p->source(), m->reply("_notice_context_enter", ([ "_supplicant" : m["_supplicant"] ])));
+	sendmsg(p->source(), m->reply("_status_context_open"));
+	call_out(cb, 0, PSYC.Handler.STOP);
+	return;
+    }
+
+    callbacks[target][1](p->lsource(), callback, p);
+
+    call_out(cb, 0, PSYC.Handler.STOP);
+}
+
+void postfilter_request_context_enter_subscribe(MMP.Packet p, mapping _v, mapping _m, function cb) {
     return PSYC.Handler.STOP;
 }
 
-int postfilter_request_context_enter_subscribe(MMP.Packet p, mapping _v, mapping _m) {
-
-
-
-    return PSYC.Handler.STOP;
-}
-
-
-int create_channel(MMP.Uniform channel) {
-    
-    if (channel->channel) {
-	if (channel->super != uni->uni) {
-	    return 0;
-	}
-
-    } else if (channel != uni->uni) {
-	return 0;
-    }
-
-    if (!has_index(count, channel)) {
-	count[channel] = 0;
-    }
-}
 
 void castmsg(MMP.Uniform channel, PSYC.Packet m, MMP.Uniform source_relay) {
 
-    if (!has_index(count, channel)) {
-	THROW("trying to cast on an nonexistent channel\n");
+    if (!has_index(callbacks, channel)) {
+	THROW(("Handlers.Channel", "%O is very unlikely to contain anyone as you never created them.\n", channel));
     }
 
     MMP.Packet p = MMP.Packet(m, ([ "_context" : channel, 
 				    "_source_relay" : source_relay,
-				    "_count" : count[channel]++,
 				    ]));
     uni->server->get_context(channel)->msg(p); 
 }

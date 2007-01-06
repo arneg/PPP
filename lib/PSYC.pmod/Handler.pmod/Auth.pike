@@ -39,8 +39,7 @@ int postfilter_request_authentication(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
 
     if (!has_index(m->vars, "_location")) {
-	sendmsg(p["_source"], m->reply("_error_invalid_request_authentication",
-				       0, "what???"));
+	sendmsg(p["_source"], m->reply("_error_invalid_request_authentication"));
 	return PSYC.Handler.STOP;
     }
     
@@ -65,8 +64,7 @@ int filter_error_authentication(MMP.Packet p, mapping _v, mapping _m) {
 
 	P3(("Uni", "I was not able to get authentication for %s (claims to be %s).\n", location, source))
 
-	PSYC.Packet failure = PSYC.Packet("_failure_authentification", ([ "_identification" : source ]),
-					  "I was unable to verify your identification ([_identification]).");
+	PSYC.Packet failure = PSYC.Packet("_failure_authentification", ([ "_identification" : source ]));
 
 	sendmsg(location, failure);
     } else {

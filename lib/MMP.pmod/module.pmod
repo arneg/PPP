@@ -27,9 +27,9 @@ class Uniform {
     }
 
     int is_local() {
-	if (islocal == UNDEFINED) {
+	if (zero_type(islocal)) {
 	    // -> to trigger parsing
-	    if (this->root) {
+	    if (this->root && this != root) {
 		islocal = root->is_local();
 	    }
 	    return islocal;
@@ -51,7 +51,7 @@ class Uniform {
 	    return sprintf("MMP.Uniform(%s)", unl);
 	} else if (type = 'O') {
 #if defined(DEBUG) && DEBUG < 10
-	    return sprintf("MMP.Uniform(%s)", unl);
+	    return sprintf("MMP.Uniform(%s, %s)", unl, is_local() ? "local" : "remote");
 #else 
 	    return sprintf("MMP.Uniform(%O)", 
 			   aggregate_mapping(@Array.splice(indices(this), values(this))));
@@ -92,7 +92,7 @@ class Uniform {
 
     void parse() {
 	string s, t = unl;
-	if (!sscanf(t, "%s:%s", scheme, t)) THROW("this is not uniforminess");
+	if (!sscanf(t, "%s:%s", scheme, t)) THROW(sprintf("this (%s) is not uniforminess", unl));
 	slashes = "";
 	switch(scheme) {
 	case "sip":

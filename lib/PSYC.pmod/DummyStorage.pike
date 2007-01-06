@@ -10,6 +10,8 @@ mapping(string:mixed) data = ([
     "_friends" : ([ ]),
     "_subscriptions" : ([ ]),
     "_password" : "test",
+    "_groups" : ([]),
+    "places" : ([]),
 ]);
 
 mixed _get(string key) {

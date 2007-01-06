@@ -5,11 +5,12 @@
 
 inherit PSYC.Unl;
 
-void create(MMP.Uniform uniform, object server, PSYC.Storage storage) {
+void create(MMP.Uniform uniform, object server, object storage) {
     ::create(uniform, server, storage);
-    PT(("PSYC.Root", "new PSYC.Root(%O, %O, %O)\n", uni, server, storage))
+    P3(("PSYC.Root", "new PSYC.Root(%O, %O, %O)\n", uni, server, storage))
 
-    add_handlers(Circuit(this));
+    add_handlers(Circuit(this),
+		 Signaling(this));
 }
 
 class Circuit {
@@ -45,25 +46,17 @@ class Signaling {
     // basic, abstract routing functionality
 
     inherit PSYC.Handler.Base;
-    int _init = 0;
+    int _init = 1;
     array init_callbacks = ({});
 
     constant _ = ([
-	"_" : ([ "lock" : ({ "groups" }) ]),
+	"_" : ({ "groups" }),
 	"postfilter" : ([
 	    // someone entered the context and is supposed to get
 	    // all messages on that context from us. this would
 	    // in many cases be a local user, doesnt matter though
 	    "_request_context_enter" : 0, 
-#ifdef SUBSCRIBE
-	    "_request_context_enter_subscribe" : ([ "lock" : ({ "groups" })]),
-#endif
-	    // same for leaving
 	    "_request_context_leave" : 0, 
-#ifdef SUBSCRIBE
-	    "_request_context_leave_subscribe" : ([ "lock" : ({ "groups" })]),
-#endif
-	    // the context is empty. stop sending any messages. 
 	    "_status_context_empty" : 0, 
 	]),
     ]);
@@ -110,25 +103,50 @@ class Signaling {
     }
 
     int postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m) {
-	MMP.Uniform member = p["_source_relay"];
 	PSYC.Packet t = p->data;
-	if (!has_index(t->vars, "_group")) {
+
+	if (!(has_index(t->vars, "_group") && objectp(t["_group"]) 
+	      && has_index(t->vars, "_supplicant") && objectp(t["_supplicant"]))) {
 	    uni->sendmsg(p->source(), t->reply("_error_context_enter"));
 	    return PSYC.Handler.STOP;
 	}
 
-	MMP.Uniform context = t["_group"];
+	MMP.Uniform member = t["_supplicant"];
+	MMP.Uniform group = t["_group"];
 
-	uni->server->get_context(context)->insert(member);
-	uni->sendmsg(p->source(), t->reply("_status_context_enter"));
+	void callback(MMP.Packet reply, mapping _v) {
+	    PSYC.Packet m = reply->data;
+	    mapping groups = _v["_groups"];
+
+	    if (PSYC.abbrev(m->mc, "_notice_context_enter")) {
+		uni->server->get_context(group)->insert(member);
+		if (!has_index(groups, group)) {
+		    groups[group] = ([]);
+		}
+		groups[group][member] = 1;
+		uni->sendmsg(p->source(), t->reply("_notice_context_enter"));
+		uni->storage->set_unlock("_groups", groups);
+	    } else {
+		uni->sendmsg(p->source(), t->reply("_notice_context_enter"));
+		uni->storage->unlock("_groups");
+	    }
+
+	};
+
+	MMP.Uniform target = group->is_local() ? group : group->root;
+
+	if (target == uni->uni) {
+	    P0(("Root", "crazy in %O.\n", p))
+	    return PSYC.Handler.STOP;
+	}
+
+	server->root->send_tagged_v(target, PSYC.Packet("_request_context_enter", ([ "_group" : group, "_supplicant" : member ])), 
+				    ([ "lock" : (< "_groups" >) ]), callback);
 
 	return PSYC.Handler.STOP;
     }
 
-    int postfilter_status_context_enter_subscribe(MMP.Packet p, mapping _v, mapping _m) {
-    }
-
-    int postfilter_status_context_leave(MMP.Packet p, mapping _v, mapping _m) {
+    int postfilter_request_context_leave(MMP.Packet p, mapping _v, mapping _m) {
 	MMP.Uniform member = p["_source_relay"];
 	PSYC.Packet t = p->data;
 	if (!has_index(t->vars, "_group")) {
@@ -149,9 +167,6 @@ class Signaling {
 	sendmsg(p->source(), PSYC.Packet("_status_context_leave", ([ "_group" : context ])));
     }
 
-    int postfilter_status_context_leave_subscribe(MMP.Packet p, mapping _v, mapping _m) {
-    }
-
     int postfilter_status_context_empty(MMP.Packet p, mapping _v, mapping _m) {
 	PSYC.Packet t = p->data;
 	if (!has_index(t->vars, "_group")) {
@@ -165,32 +180,3 @@ class Signaling {
 
 }
 
-#if 0
-void msg(MMP.Packet packet) {
-
-    if (::msg(packet)) return;
-
-    MMP.Uniform source = packet["_source"];
-
-    P2(("PSYC.Server", "rootmsg(%O) from %O\n", packet, connection))
-    if (packet->data) {
-	PSYC.Packet message = packet->data;
-
-	switch (message->mc) {
-	    // ich weiss nichtmehr so genau. in FORK wird das eh alles
-	    // anders.. ,)
-	case "_notice_circuit_established":
-	    server->add_route(source->host+" "+(string)(source->port||4404), connection);
-	case "_status_circuit":
-	    // auch hier nicht sicher
-	    
-	    source->handler->activate();
-	    break;
-	default:
-	    return;
-	}
-    } else { // hmm
-
-    }
-}
-#endif

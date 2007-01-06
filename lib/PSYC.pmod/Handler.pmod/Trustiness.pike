@@ -196,7 +196,7 @@ void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
 						"_location" : source,
 					       ]));
 
-	    uni->send_tagged_v(trustee, request, 
+	    send_tagged_v(trustee, request, 
 			       (multiset)_["postfilter"]["_notice_trustiness"], 
 			       process, 
 			       trustee, source); 

@@ -10,7 +10,6 @@ function subscribe, unsubscribe;
 
 void create(MMP.Uniform uni_, object server, MMP.Uniform unl,
 	    function error, function query_password, string|void password) {
-    PSYC.Packet request = PSYC.Packet("_request_link");
     link_to = uni_;
 
     ::create(unl, server, PSYC.RemoteStorage(link_to, this)); 
@@ -18,20 +17,20 @@ void create(MMP.Uniform uni_, object server, MMP.Uniform unl,
     // (if we directly create a Linker-instance in the add_handlers call,
     // dragons appear.
     // might be a pike bug.
-    PSYC.Handler.Base t = PSYC.Handler.Subscribe(this, client_sendmsg); 
-    add_handlers(Linker(this, error, query_password, link_to), 
-		 PSYC.Handler.Forward(this), 
-		 PSYC.Handler.Textdb(this),
+    PSYC.Handler.Base t = PSYC.Handler.Subscribe(this, client_sendmmp); 
+    add_handlers(Linker(this, sendmmp, error, query_password, link_to), 
+		 PSYC.Handler.Forward(this, sendmmp), 
+		 PSYC.Handler.Textdb(this, sendmmp),
 		 t
 		 );
-    subscribe = t->subscribe;
-    unsubscribe = t->unsubscribe;
+
+    PSYC.Packet request = PSYC.Packet("_request_link");
 
     if (password) {
 	request["_password"] = password;
     }
 
-    sendmsg(link_to, request);
+    sendmmp(link_to, MMP.Packet(request));
 }
 
 void attach(object o) {
@@ -51,20 +50,10 @@ void distribute(MMP.Packet p) {
     PT(("PSYC.Client", "Noone using %O. Dropping %O.\n", this, p->data->data))
 }
 
-void client_sendmsg(MMP.Uniform target, PSYC.Packet m) {
-    MMP.Packet p = MMP.Packet(m, ([
-	"_target" : target,
-	"_source_identification" : link_to,
-	"_source" : uni,
-    ]));
+void client_sendmmp(MMP.Uniform target, MMP.Packet p) {
 
-    client_sendmmp(p, target);
-}
-
-void client_sendmmp(MMP.Packet p, MMP.Uniform|void target) {
-
-    if (!target) {
-	target = p["_target"];
+    if (!has_index(p->vars, "_source_identification")) {
+	p["_source_identification"] = link_to;
     }
 
     if (linked) {
@@ -112,11 +101,11 @@ class Linker {
     function error, query_password;
     MMP.Uniform link_to;
     
-    void create(object c, function err, function quer, MMP.Uniform link_to_) {
+    void create(object c, function sendmmp, function err, function quer, MMP.Uniform link_to_) {
 	error = err;
 	query_password = quer;
 	link_to = link_to_;
-	::create(c);
+	::create(c, sendmmp);
     }
 
     constant _ = ([

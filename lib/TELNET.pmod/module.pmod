@@ -9,7 +9,6 @@
 
 // one TELNET session. which attaches to a user and then.. sends psyc
 class Session {
-
     inherit PSYC.CommandSingleplexer;
 
     object textdb;
@@ -21,6 +20,65 @@ class Session {
     function set_password;
     function SKINNER;
     function textdbfac;
+
+    class GroovyTelnetPromptChangeHandler {
+	inherit PSYC.Handler.Base;
+
+	constant _ = ([
+	    "postfilter" : ([
+		"_notice_link" : 0,
+		"_notice_context_enter": 0,
+	    ]),
+	]);
+
+	int postfilter_notice_link(MMP.Packet p, mapping _v, mapping _m) {
+	    socket->readline->set_prompt("> ");
+	    socket->readline->redisplay();
+	    socket->readline->set_echo(1);
+	    input_to(read);
+
+	    return PSYC.Handler.GOON;
+	}
+
+	int postfilter_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
+	    MMP.Uniform place = p["_group"];
+
+	    if (p["_supplicant"] == client->uni) {
+		socket->readline->set_prompt((string)place->unl + "> ");
+	    }
+
+	    return PSYC.Handler.GOON;
+	}
+    }
+
+    class UngroovyTelnetDisplayHandler {
+	inherit PSYC.Handler.Base;
+
+	object textdb;
+
+	constant _ = ([
+	    "postfilter" : ([
+		"" : 0,
+	    ]),
+	]);
+
+	constant export = ({ "display" });
+
+	void create(object u, function sendmmp, object tdb) {
+	    textdb = tdb;
+	    ::create(u, sendmmp);
+	}
+
+	void display(MMP.Packet p) {
+	    writeln(PSYC.psyctext(p, textdb));
+	}
+
+	int postfilter(MMP.Packet p, mapping _v, mapping _m) {
+	    display(p);
+	    
+	    return PSYC.Handler.GOON;
+	}
+    }
 
     void input_to(function|void _input_) {
 	SKINNER = _input_;
@@ -102,6 +160,7 @@ class Session {
     }
 
     void read_username(mixed id, string data) {
+
 	username = data;
 
 	if (search(data, ":") == -1) {
@@ -112,11 +171,15 @@ class Session {
 
 	MMP.Uniform unl = server->random_uniform("telnet");
 	client = PSYC.Client(user, server, unl, query_password, query_password);
+	object test = UngroovyTelnetDisplayHandler(client, client->sendmmp, textdb);
 	unl->handler = client;
 	client->attach(this);
+	client->add_handlers(GroovyTelnetPromptChangeHandler(client, client->sendmmp),
+			     test);
 
 	add_commands(PSYC.Commands.Tell(this));
-	add_commands(PSYC.Commands.Subscribe(this));
+	//add_commands(PSYC.Commands.Subscribe(this));
+	add_commands(PSYC.Commands.Enter(this));
 
 	input_to();
     }
@@ -147,72 +210,6 @@ class Session {
 	writeln("join a room, you kinky bastard!");
     }
 
-    void msg(MMP.Packet p) {
-	P0(("TELNET.Session", "%O->msg(%O)\n", this, p))
-
-	PSYC.Packet m = p->data;
-	
-	switch(m->mc) {
-	case "_notice_link":
-	    socket->readline->set_prompt("> ");
-	    socket->readline->redisplay();
-	    socket->readline->set_echo(1);
-	    input_to(read);
-	    break;
-#if 0
-	case "_echo_leave":
-	    if (has_index(m->vars, "_tag_reply")) {
-		MMP.Uniform room = p["_source_relay"];
-
-		if (place == room) {
-		    place = UNDEFINED;
-
-		    if (!query) {
-			socket->readline->set_prompt("> ");
-		    }
-		}
-
-		places[room] = 0;
-	    } else {
-		P0(("TELNET.Session", "%O ignored an _echo_reply (%O) without a proper _tag_reply.\n", this, p))
-	    }
-	    break;
-#ifdef STILLE_DULDUNG
-	case "_notice_place_leave":
-#endif
-	case "_notice_leave":
-	    if (p->lsource() == user->uni) {
-		MMP.Uniform room = p["_context"];
-
-		if (place == room) {
-		    place = UNDEFINED;
-
-		    if (!query) {
-			socket->readline->set_prompt("> ");
-		    }
-		}
-
-		places[room] = 0;
-	    }
-
-	    break;
-#ifdef STILLE_DULDUNG
-	case "_echo_place_enter":
-#endif
-	case "_echo_enter":
-	    place = p->lsource();
-	    places[place] = 1;
-
-	    if (!query) {
-		socket->readline->set_prompt(place->unl + "> ");
-	    }
-
-	    break;
-#endif
-	}
-
-	writeln(PSYC.psyctext(p, textdb));
-    }
 }
 
 // handles different TELNET sessions for local users..

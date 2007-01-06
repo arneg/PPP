@@ -24,7 +24,7 @@ void link() {
 void grcb(MMP.Packet p, function callback, string key, string mc, array args) {
     PSYC.Packet m = p->data;
 
-    P3(("RemoteStorage", "grcb(%O, %O, %O, %O, %O)\n", p, callback, key, mc, args))
+    PT(("RemoteStorage", "grcb(%O, %O, %O, %O, %O)\n", p, callback, key, mc, args))
 
     if (key == m["_key"] && search(m->mc, "_notice"+mc) == 0) {
 	call_out(callback, 0, key, m["_value"], @args);

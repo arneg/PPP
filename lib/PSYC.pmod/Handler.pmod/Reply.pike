@@ -4,8 +4,7 @@
 #define CB	0
 #define ARGS	1
 #define WVARS	2
-#define VARS	3
-#define PACKET	4
+#define LVARS	3
 
 inherit PSYC.Handler.Base;
 
@@ -21,17 +20,38 @@ constant export = ({
 
 mapping(string:array) reply = ([ ]);
 
-int add_reply(function cb, string tag, multiset(string) vars, mixed ... args) {
+int add_reply(function cb, string tag, multiset(string)|mapping vars, mixed ... args) {
     if (has_index(reply, tag)) return 0;
+    multiset wvars, lvars;
 
     P2(("Handler.Reply", "%O: added tag(%s) with %O for %O.\n", uni, tag, vars, cb))
 
-    reply[tag] = ({ cb, args, vars, vars ? ([]) : 0, 0 });
+    if (multisetp(vars)) {
+	wvars = vars;
+    } else if (mappingp(vars)) {
+	if (has_index(vars, "lock")) {
+	    if (multisetp(vars["lock"])) {
+		lvars = (multiset)vars["lock"];
+	    } else {
+		THROW(sprintf("set of locked variables has to be an array.\n"));
+	    }
+	}
+
+	if (has_index(vars, "wvars")) {
+	    if (multisetp(vars["wvars"])) {
+		wvars = (multiset)vars["wvars"];
+	    } else {
+		THROW(sprintf("set of variables has to be an array.\n"));
+	    }
+	}
+    }
+
+    reply[tag] = ({ cb, args, wvars, lvars });
     return 1;
 }
 
 
-string make_reply(function cb, multiset(string) vars, mixed ... args) {
+string make_reply(function cb, multiset(string)|mapping vars, mixed ... args) {
     string tag;
 
     P2(("Handler.Reply", "%O: make_reply(%O, %O, %O)\n", this, cb, vars, args))
@@ -53,20 +73,22 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
 	    array(mixed) ca = reply[tag];
 
 	    P3(("Handler.Reply", "%O: ca: %O\n", uni, ca))
-	    // still some vars missing/supposed to come from storage
-	    if (ca[WVARS] && sizeof(ca[WVARS])) {
-
-		// requesting the data in got_data is _bad_ because a reply
-		// should in theory take much longer than a storage request
-		foreach(ca[WVARS]; string key;) {
-		    uni->storage->get(key, got_data, tag);
+	    // callback for storage
+	    void got_data(mapping _v, MMP.Packet, function callback, mixed args) {
+		if (sizeof(_v)) {
+		    call_out(callback, 0, p, _v, @args); 
+		} else {
+		    call_out(callback, 0, p, @args); 
 		}
-		ca[PACKET] = p;
-		return PSYC.Handler.STOP;
-	    }
+	    };
 
+	    void fail(MMP.Packet, function callback, mixed args) {
+		P0(("PSYC.Handler.Reply", "fetching data failed for someone.. %O\n", args))
+		// TODO: das alles toller
+	    };
+	    // still some vars missing/supposed to come from storage
+	    PSYC.Storage.aggregate(uni->storage, ca[LVARS], ca[WVARS], got_data, fail, p, ca[CB], ca[ARGS]);
 	    m_delete(reply, tag);
-	    call_out(ca[CB], 0, p, @(ca[ARGS]));
 	    return PSYC.Handler.STOP;
 	} else {
 	    // bad reply.. complain
@@ -77,30 +99,3 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
     return PSYC.Handler.GOON;
 }
 
-// callback for storage
-void got_data(string key, mixed value, string tag) {
-    
-    if (has_index(reply, tag)) {
-	array(mixed) ca = reply[tag];
-
-	if (ca[WVARS] && has_index(ca[WVARS], key)) {
-	    while(--ca[WVARS][key]);
-	    
-	    ca[VARS][key] = value;
-	} else {
-	    P0(("Handler.Reply", "%O: Got data (%s) for a reply to (%s) we never should have requested.\n", uni, key, tag))
-	    return;
-	}
-
-	P2(("Handler.Reply", "%O: got data (%s) from storage. %O to go.\n", this, key, ca[WVARS]))
-
-	if (!sizeof(ca[WVARS])) { // done
-	    m_delete(reply, tag);
-	    call_out(ca[CB], 0, ca[PACKET], ca[VARS], @(ca[ARGS]));
-	}
-
-	return;
-    }
-	
-    P0(("Handler.Reply", "%O: Got data (%s) from storage for an unknown reply to (%s).\n", uni, key, tag))
-}

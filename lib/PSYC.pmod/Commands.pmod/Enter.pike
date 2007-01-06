@@ -5,12 +5,12 @@ inherit PSYC.Commands.Base;
 constant _ = ([
     "enter" : ({ 
 	({ "enter", 
-	    ({ PSYC.Commands.Uniform, "channel" }),
+	    ({ PSYC.Commands.Uniform|PSYC.Commands.Place, "channel" }),
 	 }),
     }),
     "leave" : ({
 	({ "leave",
-	    ({ PSYC.Commands.Uniform, "channel" }),
+	    ({ PSYC.Commands.Uniform|PSYC.Commands.Place, "channel" }),
 	}),
     }),
 ]);

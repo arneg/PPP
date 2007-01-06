@@ -8,7 +8,7 @@ inherit PSYC.Handler.Base;
  * 	 replace p["_source"] by p->source() ???
  */
 
-PSYC.Storage storage;
+object storage;
 
 constant _ = ([ 
     "postfilter" : ([ 
@@ -163,8 +163,8 @@ int postfilter_request_unlock(MMP.Packet p, mapping _v, mapping _m) {
     return PSYC.Handler.STOP;
 }
 
-void create(object uni, object s) {
+void create(object uni, function f, object s) {
     storage = s;
-    ::create(uni);
+    ::create(uni, f);
 }
 
