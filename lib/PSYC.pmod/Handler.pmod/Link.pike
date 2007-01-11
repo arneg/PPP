@@ -16,7 +16,7 @@ constant _ = ([
 
 int prefilter(MMP.Packet p, mapping _v, mapping _m) {
     
-    if (uni->attached(p->source())) {
+    if (parent->attached(p->source())) {
 	_m["itsme"] = 1;
     } else {
 	_m["itsme"] = 0;
@@ -37,7 +37,7 @@ int postfilter_request_link(MMP.Packet p, mapping _v, mapping _m) {
     P3(("PSYC.Handler.Link", "comparing %O and %O.\n", _v["_password"], m->vars["_password"]))
 
     if (_v["_password"] == m->vars["_password"]) {
-	uni->attach(p["_source"]);
+	parent->attach(p["_source"]);
 	sendmsg(p["_source"], m->reply("_notice_link"));	
     } else {
 	sendmsg(p["_source"], m->reply("_error_invalid_password"));
@@ -51,7 +51,7 @@ int postfilter_set_password(MMP.Packet p, mapping _v, mapping _m) {
 
 int postfilter_request_unlink(MMP.Packet p, mapping _v, mapping _m) {
 
-    uni->detach(p["_source"]);
+    parent->detach(p["_source"]);
     sendmsg(p["_source"], p->data->reply("_notice_unlink"));
     return PSYC.Handler.STOP;
 }

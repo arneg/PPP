@@ -332,7 +332,7 @@ class Packet {
 	}
 
 	if (!is_mmpvar(id) && objectp(data)) {
-	    P0(("MMP.Packet", "Accessing non-mmp variable (%s) in an mmp-packet.\n", id))
+	    P3(("MMP.Packet", "Accessing non-mmp variable (%s) in an mmp-packet.\n", id))
 	    return data[id];
 	}
 
@@ -486,7 +486,7 @@ class Circuit {
 	switch (type) {
 	case 's':
 	case 'O':
-	    return sprintf("MMP.Circuit(%s)", peeraddr);
+	    return sprintf("MMP.Circuit(%O)", peeraddr);
 	}
     }
 
@@ -535,7 +535,7 @@ class Circuit {
     }
 
     void send_neg(Packet mmp) {
-	P0(("MMP.Circuit", "%O->send_neg(%O)\n", this, mmp))
+	P3(("MMP.Circuit", "%O->send_neg(%O)\n", this, mmp))
 	q_neg->push(mmp);
 
 	if (write_ready) {
@@ -544,7 +544,7 @@ class Circuit {
     }
 
     void msg(MMP.Utils.Queue holder) {
-	P0(("MMP.Circuit", "%O->msg(%O)\n", this, holder))
+	P3(("MMP.Circuit", "%O->msg(%O)\n", this, holder))
 	push(holder);
 
 	if (write_ready) {
@@ -878,7 +878,7 @@ LINE:	while(-1 < stop &&
 		    RETURN(-1);
 		} else {
 		    inpacket->data = INBUF[stop+LL .. length-1];	
-		    P0(("MMP.Server", "data: %O\n", inpacket->data))
+		    P2(("MMP.Server", "data: %O\n", inpacket->data))
 		    if (sizeof(inbuf) == length+2*LL+1)
 			inbuf = 0;
 		    else

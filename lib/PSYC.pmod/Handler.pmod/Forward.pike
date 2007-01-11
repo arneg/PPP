@@ -1,3 +1,4 @@
+#include <debug.h>
 inherit PSYC.Handler.Base;
 
 constant _ = ([
@@ -7,6 +8,8 @@ constant _ = ([
 ]);
 
 int postfilter(MMP.Packet p, mapping _v, mapping _m) {
-    call_out(uni->distribute, 0 ,p);
+    PT(("Handler.Forward", "postfilter(%O)\n", p))
+
+    call_out(parent->distribute, 0 ,p);
     return PSYC.Handler.GOON;
 }

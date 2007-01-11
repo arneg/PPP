@@ -29,6 +29,14 @@ class AR(function handler, array(string) wvars, int async, array(string) lvars,
     }
 }
 
+#ifdef DEBUG
+string _sprintf(int type) {
+    if (type == 'O') {
+	return sprintf("StageHandler(%O)", function_object(error));
+    }
+}
+#endif
+
 
 void add(string mc, object handler, void|mapping|array(string) d) {
     int async = 0;
@@ -95,7 +103,7 @@ void handle(MMP.Packet p, mapping _m) {
 	}
     }
 
-    P3(("StageHandler", "stack for %s is %O\n", p->data->mc, (array)liste))
+    P3(("StageHandler", "%O: stack for %s is %O\n", function_object(go_on), p->data->mc, (array)liste))
     progress(liste, p, _m);
 }
 

@@ -7,10 +7,10 @@ inherit PSYC.Unl;
 
 void create(MMP.Uniform uniform, object server, object storage) {
     ::create(uniform, server, storage);
-    P3(("PSYC.Root", "new PSYC.Root(%O, %O, %O)\n", uni, server, storage))
+    P3(("PSYC.Root", "new PSYC.Root(%O, %O, %O)\n", parent, server, storage))
 
-    add_handlers(Circuit(this),
-		 Signaling(this));
+    add_handlers(Circuit(this, sendmmp, uni),
+		 Signaling(this, sendmmp, uni));
 }
 
 class Circuit {
@@ -87,7 +87,7 @@ class Signaling {
 	};
 	
 	foreach (_v["groups"]; MMP.Uniform group; mapping members) {
-	    object context = uni->server->get_context(group);
+	    object context = parent->server->get_context(group);
 
 	    count += sizeof(members);
 	    foreach (members; MMP.Uniform guy; int d) {
@@ -107,7 +107,7 @@ class Signaling {
 
 	if (!(has_index(t->vars, "_group") && objectp(t["_group"]) 
 	      && has_index(t->vars, "_supplicant") && objectp(t["_supplicant"]))) {
-	    uni->sendmsg(p->source(), t->reply("_error_context_enter"));
+	    sendmsg(p->source(), t->reply("_error_context_enter"));
 	    return PSYC.Handler.STOP;
 	}
 
@@ -118,29 +118,31 @@ class Signaling {
 	    PSYC.Packet m = reply->data;
 	    mapping groups = _v["_groups"];
 
+	    P0(("Root", "%O: reply to _request is %O.\n", parent, m))
+
 	    if (PSYC.abbrev(m->mc, "_notice_context_enter")) {
-		uni->server->get_context(group)->insert(member);
+		parent->server->get_context(group)->insert(member);
 		if (!has_index(groups, group)) {
 		    groups[group] = ([]);
 		}
 		groups[group][member] = 1;
-		uni->sendmsg(p->source(), t->reply("_notice_context_enter"));
-		uni->storage->set_unlock("_groups", groups);
+		sendmsg(p->source(), t->reply("_notice_context_enter", ([ "_group" : group ])));
+		parent->storage->set_unlock("_groups", groups);
 	    } else {
-		uni->sendmsg(p->source(), t->reply("_notice_context_enter"));
-		uni->storage->unlock("_groups");
+		sendmsg(p->source(), t->reply("_notice_context_discord", ([ "_group" : group ])));
+		parent->storage->unlock("_groups");
 	    }
 
 	};
 
 	MMP.Uniform target = group->is_local() ? group : group->root;
 
-	if (target == uni->uni) {
+	if (target == uni) {
 	    P0(("Root", "crazy in %O.\n", p))
 	    return PSYC.Handler.STOP;
 	}
 
-	server->root->send_tagged_v(target, PSYC.Packet("_request_context_enter", ([ "_group" : group, "_supplicant" : member ])), 
+	send_tagged_v(target, PSYC.Packet("_request_context_enter", ([ "_group" : group, "_supplicant" : member ])), 
 				    ([ "lock" : (< "_groups" >) ]), callback);
 
 	return PSYC.Handler.STOP;
@@ -150,17 +152,17 @@ class Signaling {
 	MMP.Uniform member = p["_source_relay"];
 	PSYC.Packet t = p->data;
 	if (!has_index(t->vars, "_group")) {
-	    uni->sendmsg(p->source(), t->reply("_error_context_leave"));
+	    sendmsg(p->source(), t->reply("_error_context_leave"));
 	    return PSYC.Handler.STOP;
 	}
 
 	MMP.Uniform context = t["_group"];
 
-	object c = uni->server->get_context(context);
+	object c = parent->server->get_context(context);
 	c->remove(member);
 
 	if (!sizeof(c)) {
-	    uni->server->unregister_context(context);
+	    parent->server->unregister_context(context);
 	    sendmsg(p->source(), PSYC.Packet("_status_context_empty", ([ "_group" : context ])));
 	}
 
@@ -170,7 +172,7 @@ class Signaling {
     int postfilter_status_context_empty(MMP.Packet p, mapping _v, mapping _m) {
 	PSYC.Packet t = p->data;
 	if (!has_index(t->vars, "_group")) {
-	    uni->sendmsg(p->source(), t->reply("_error_context_empty"));
+	    sendmsg(p->source(), t->reply("_error_context_empty"));
 	    return PSYC.Handler.STOP;
 	}
 

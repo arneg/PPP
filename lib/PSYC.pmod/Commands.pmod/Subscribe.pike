@@ -17,11 +17,11 @@ constant _ = ([
 
 void subscribe(MMP.Uniform channel) {
     PT(("PSYC.Commands.Subscribe", "subscribe(%O)\n", channel))
-    ui->client->subscribe(channel);
+    parent->client->subscribe(channel);
 }
 
 void unsubscribe(MMP.Uniform channel) {
     PT(("PSYC.Commands.Subscribe", "unsubscribe(%O)\n", channel))
-    ui->client->unsubscribe(channel);
+    parent->client->unsubscribe(channel);
 }
 

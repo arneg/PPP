@@ -41,8 +41,8 @@ void create(MMP.Uniform u, object s, object stor) {
     storage = stor;
     ::create(stor);
 
-    add_handlers(auth = PSYC.Handler.Auth(this, sendmmp),
-		 reply = PSYC.Handler.Reply(this, sendmmp));
+    add_handlers(auth = PSYC.Handler.Auth(this, sendmmp, uni),
+		 reply = PSYC.Handler.Reply(this, sendmmp, uni));
     // the order of storage and trustiness is somehow critical..
 }
 

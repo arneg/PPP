@@ -30,7 +30,11 @@ void _set(string key, mixed val) {
 
 void _lock(string key) {
     
-    P0(("DummyStorage", "%O: Locking already locked key %s.\n", this, key))
+    if (has_index(locks, key)) {
+	P0(("DummyStorage", "%O: Locking already locked key %s.\n", this, key))
+	return;
+    }
+
     locks[key] = ({ });
 }
 
@@ -38,6 +42,7 @@ void get(string key, function cb, mixed ... args) {
     P3(("DummyStorage", "%O: get(%s, %O, %O)\n", this, key, cb, args))
 
     if (has_index(locks, key)) {
+	P0(("DummyStorage", "%O: %s is locked. scheduling get.\n", this, key))
 	locks[key] += ({ ({ GET, key, cb, args }) });	
 	return;
     }
@@ -61,6 +66,7 @@ void get_lock(string key, function cb, mixed ... args) {
     P3(("DummyStorage", "%O: get_lock(%s, %O, %O)\n", this, key, cb, args))
 
     if (has_index(locks, key)) {
+	P0(("DummyStorage", "%O: %s is locked. scheduling get_lock.\n", this, key))
 	locks[key] += ({ ({ GET|LOCK, key, cb, args }) });	
 	return;
     }
@@ -142,6 +148,8 @@ void _unlock(string key) {
 	    return;
 	}
     }
+
+    m_delete(locks, key);
 }
 
 void unlock(string key, function|void cb, mixed ... args) {

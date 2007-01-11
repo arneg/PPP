@@ -215,10 +215,10 @@ MMP.Uniform get_uniform(string unl) {
     }
 
     if (has_index(unlcache, unl)) {
-	P2(("PSYC.Server", "returning cached %O\n", unlcache[unl]))
+	P3(("PSYC.Server", "returning cached %O\n", unlcache[unl]))
 	return unlcache[unl];
     } else {
-	P2(("PSYC.Server", "returning newly created %O\n", unl))
+	P3(("PSYC.Server", "returning newly created %O\n", unl))
 	MMP.Uniform t = MMP.Uniform(unl);
 
 	if (t->resource) {
@@ -354,7 +354,7 @@ void deliver_remote(MMP.Packet packet, MMP.Uniform root) {
     root = root->root;
     root->islocal = 0;
     
-    P2(("PSYC.Server", "looking in %O for a connection to %s.\n", 
+    P3(("PSYC.Server", "looking in %O for a connection to %s.\n", 
 	circuits, root))
 
     if (has_index(vcircuits, root)) {
@@ -369,7 +369,7 @@ void deliver_remote(MMP.Packet packet, MMP.Uniform root) {
 }
 
 void deliver_local(MMP.Packet packet, MMP.Uniform target) {
-    P2(("PSYC.Server", "%O->deliver_local(%O, %O)\n", this, packet, 
+    P3(("PSYC.Server", "%O->deliver_local(%O, %O)\n", this, packet, 
 	target))
     object o = create_local(target);
     target->islocal = 1;
@@ -387,7 +387,7 @@ void deliver_local(MMP.Packet packet, MMP.Uniform target) {
 // actual routing...
 void route(MMP.Packet packet, object connection) {
     
-    P2(("PSYC.Server", "%O->route(%O)\n", this, packet))
+    P3(("PSYC.Server", "%O->route(%O)\n", this, packet))
     
     MMP.Uniform target, source, context;
     // this is maybe the most ... innovative piece of code on this planet
@@ -404,7 +404,7 @@ void route(MMP.Packet packet, object connection) {
 
     // may be objects already if these are packets coming from a socket that
     // has been closed.
-    P2(("PSYC.Server", "routing source: %O, target: %O, context: %O\n", 
+    P3(("PSYC.Server", "routing source: %O, target: %O, context: %O\n", 
 	source, target, context))
 
     switch ((target ? 1 : 0)|
@@ -412,7 +412,7 @@ void route(MMP.Packet packet, object connection) {
 	    (context ? 4 : 0)) {
     case 3:
     case 1:
-	P2(("PSYC.Server", "routing %O via unicast to %s\n", packet, 
+	P3(("PSYC.Server", "routing %O via unicast to %s\n", packet, 
 	    target))
 
 	if (target->handler) {
@@ -443,7 +443,7 @@ void route(MMP.Packet packet, object connection) {
 	break;
     case 2:
     case 0:
-	PT(("PSYC.Server", "Broken Packet without _target from %O.\n", source))
+	P0(("PSYC.Server", "Broken Packet without _target from %O.\n", source))
 	root->msg(packet);
 	break;
     case 4:

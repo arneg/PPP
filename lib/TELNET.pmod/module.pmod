@@ -64,13 +64,15 @@ class Session {
 
 	constant export = ({ "display" });
 
-	void create(object u, function sendmmp, object tdb) {
+	void create(object u, function sendmmp, MMP.Uniform un, object tdb) {
 	    textdb = tdb;
-	    ::create(u, sendmmp);
+	    ::create(u, sendmmp, un);
 	}
 
 	void display(MMP.Packet p) {
+	    P0(("TELNET.UngroovyTelnetDisplayHandler", "display(%O)\n", p))
 	    writeln(PSYC.psyctext(p, textdb));
+	    writeln("just outputted for: " + (objectp(p->data) ? p->data->mc : "an mc-less packet") + ".");
 	}
 
 	int postfilter(MMP.Packet p, mapping _v, mapping _m) {
@@ -106,7 +108,7 @@ class Session {
 	socket = Protocols.TELNET.Readline(so, superintendent_read, 0,
 					   close, ([]));
 	server = se;
-	textdb = (textdbfac = textdbfac_)("plain", "de");
+	textdb = (textdbfac = textdbfac_)("plain", "en");
     }
     
     void write(string t) {
@@ -171,15 +173,15 @@ class Session {
 
 	MMP.Uniform unl = server->random_uniform("telnet");
 	client = PSYC.Client(user, server, unl, query_password, query_password);
-	object test = UngroovyTelnetDisplayHandler(client, client->sendmmp, textdb);
+	object test = UngroovyTelnetDisplayHandler(client, client->sendmmp, client->uni,textdb);
 	unl->handler = client;
 	client->attach(this);
-	client->add_handlers(GroovyTelnetPromptChangeHandler(client, client->sendmmp),
+	client->add_handlers(GroovyTelnetPromptChangeHandler(client, client->sendmmp, client->uni),
 			     test);
 
-	add_commands(PSYC.Commands.Tell(this));
+	add_commands(PSYC.Commands.Tell(this, client->sendmmp, client->uni));
 	//add_commands(PSYC.Commands.Subscribe(this));
-	add_commands(PSYC.Commands.Enter(this));
+	add_commands(PSYC.Commands.Enter(this, client->sendmmp, client->uni));
 
 	input_to();
     }

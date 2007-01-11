@@ -4,8 +4,8 @@ inherit PSYC.Unl;
 void create(MMP.Uniform uniform, object server) {
     
     ::create(uniform, server, PSYC.DummyStorage());
-    add_handlers(PSYC.Handler.Channel(this, sendmmp),
-		 Public(this, sendmmp));
+    add_handlers(PSYC.Handler.Channel(this, sendmmp, uniform),
+		 Public(this, sendmmp, uniform));
     this->create_channel(uniform);
 }
 
@@ -15,7 +15,9 @@ void add(MMP.Uniform guy, function cb, mixed ... args) {
 
 
 class Public {
-    
+
+    inherit PSYC.Handler.Base;
+
     constant _ = ([
 	"postfilter" : ([
 	    "_message_public" : 0,
@@ -24,7 +26,7 @@ class Public {
 
     int postfilter_message_public(MMP.Packet p, mapping _v, mapping _m) {
 	
-	uni->castmsg(uni->uni, PSYC.Packet(p->data->mc, 0, p->data->data), p->source());
+	parent->castmsg(uni, PSYC.Packet(p->data->mc, 0, p->data->data), p->source());
 	return PSYC.Handler.GOON;
     }
 }

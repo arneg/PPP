@@ -34,11 +34,11 @@ void create_channel(MMP.Uniform channel, function|void subscribe, function|void 
 }
 
 void postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m, function cb) {
-    MMP.Uniform target = p["_target"];
+    MMP.Uniform group = p["_group"];
     MMP.Uniform source = p->source();
     PSYC.Packet m = p->data;
 
-    if (!has_index(callbacks, target)) {
+    if (!has_index(callbacks, group)) {
 	// blub
 	P0(("PSYC.Handler.Channel", "Channel does not exist.\n"))
 	sendmsg(p->source(), m->reply("_failure_context_enter"));
@@ -48,20 +48,20 @@ void postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m, func
 
     void callback(int may, MMP.Packet p) {
 	if (may) {
-	    sendmsg(p->source(), m->reply("_notice_context_enter", ([ "_supplicant" : m["_supplicant"] ])));
+	    sendmsg(p->source(), m->reply("_notice_context_enter", ([ "_supplicant" : m["_supplicant"], "_group" : group ])));
 	} else {
-	    sendmsg(p->source(), m->reply("_notice_context_discord", ([ "_supplicant" : m["_supplicant"] ])));
+	    sendmsg(p->source(), m->reply("_notice_context_discord", ([ "_supplicant" : m["_supplicant"], "_group" : group ])));
 	}
     };
 
-    if (!callbacks[target][1]) {
-	sendmsg(p->source(), m->reply("_notice_context_enter", ([ "_supplicant" : m["_supplicant"] ])));
-	sendmsg(p->source(), m->reply("_status_context_open"));
+    if (!callbacks[group][1]) {
+	sendmsg(p->source(), m->reply("_notice_context_enter", ([ "_supplicant" : m["_supplicant"], "_group" : group ])));
+	sendmsg(p->source(), PSYC.Packet("_status_context_open", ([ "_group" : group ])));
 	call_out(cb, 0, PSYC.Handler.STOP);
 	return;
     }
 
-    callbacks[target][1](p->lsource(), callback, p);
+    callbacks[group][1](p->lsource(), callback, p);
 
     call_out(cb, 0, PSYC.Handler.STOP);
 }
@@ -80,5 +80,5 @@ void castmsg(MMP.Uniform channel, PSYC.Packet m, MMP.Uniform source_relay) {
     MMP.Packet p = MMP.Packet(m, ([ "_context" : channel, 
 				    "_source_relay" : source_relay,
 				    ]));
-    uni->server->get_context(channel)->msg(p); 
+    parent->server->get_context(channel)->msg(p); 
 }

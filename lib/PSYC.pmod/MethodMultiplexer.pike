@@ -12,6 +12,12 @@ void finish(MMP.Packet p) {
     P3(("MethodMultiplexer", "finished %O.\n", p))
 }
 
+#ifdef DEBUG
+void throw(mixed ... x) {
+    predef::throw(@x);
+}
+#endif
+
 void create(object storage) {
     postfilter = PSYC.StageHandler("postfilter", finish, finish, throw, storage);
     filter = PSYC.StageHandler("filter", postfilter->handle, stop, throw, storage);

@@ -163,8 +163,8 @@ int postfilter_request_unlock(MMP.Packet p, mapping _v, mapping _m) {
     return PSYC.Handler.STOP;
 }
 
-void create(object uni, function f, object s) {
+void create(object uni, function f, MMP.Uniform u, object s) {
     storage = s;
-    ::create(uni, f);
+    ::create(uni, f, u);
 }
 

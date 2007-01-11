@@ -83,7 +83,7 @@ class FileTextDB {
     }
 
     void fetch(string mc, function cb, mixed ... extra) {
-	P3(("text", "fetch(%O, %O, %O)\n", mc, cb, extra))
+	PT(("text", "fetch(%O, %O, %O)\n", mc, cb, extra))
 	string filename, fmt, before, match, after;
 	Stdio.File file;
 
@@ -95,14 +95,14 @@ class FileTextDB {
 
 	filename = tdbpath + Stdio.simplify_path(replace(mc, "_", "/")) + ".fmt";
 
-	P3(("Text", "opening %O\n", filename))
+	PT(("Text", "opening %O\n", filename))
 	if (Stdio.is_file(filename)) {
-	    P3(("Text", "is_file\n"))
+	    PT(("Text", "is_file\n"))
 	    file = Stdio.File(filename, "r");
 	    fmt = file->read();
 	    file->close();
 	} else {
-	    P3(("Text", "else\n"))
+	    PT(("Text", "else\n"))
 	    array(string) l = mc / "_";
 
 	    if (sizeof(l) > 2) {
@@ -122,7 +122,7 @@ class FileTextDB {
 #endif
 
 	fmts[mc] = fmt;
-	P3(("Text", "calling_out really soon\n"))
+	PT(("Text", "calling_out really soon\n"))
 	call_out(cb, 0, 1, @extra);
     }
 }

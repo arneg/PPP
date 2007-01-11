@@ -12,15 +12,15 @@ void create(MMP.Uniform uni_, object server, MMP.Uniform unl,
 	    function error, function query_password, string|void password) {
     link_to = uni_;
 
-    ::create(unl, server, PSYC.RemoteStorage(link_to, this)); 
+    ::create(unl, server, PSYC.RemoteStorage(this, sendmmp, uni, link_to)); 
     // there will be dragons here
     // (if we directly create a Linker-instance in the add_handlers call,
     // dragons appear.
     // might be a pike bug.
-    PSYC.Handler.Base t = PSYC.Handler.Subscribe(this, client_sendmmp); 
-    add_handlers(Linker(this, sendmmp, error, query_password, link_to), 
-		 PSYC.Handler.Forward(this, sendmmp), 
-		 PSYC.Handler.Textdb(this, sendmmp),
+    PSYC.Handler.Base t = PSYC.Handler.Subscribe(this, client_sendmmp, link_to); 
+    add_handlers(Linker(this, sendmmp, uni, error, query_password, link_to), 
+		 //PSYC.Handler.Forward(this, sendmmp), 
+		 PSYC.Handler.Textdb(this, sendmmp, uni),
 		 t
 		 );
 
@@ -101,11 +101,11 @@ class Linker {
     function error, query_password;
     MMP.Uniform link_to;
     
-    void create(object c, function sendmmp, function err, function quer, MMP.Uniform link_to_) {
+    void create(object c, function sendmmp, MMP.Uniform u, function err, function quer, MMP.Uniform link_to_) {
 	error = err;
 	query_password = quer;
 	link_to = link_to_;
-	::create(c, sendmmp);
+	::create(c, sendmmp, u);
     }
 
     constant _ = ([
@@ -122,7 +122,7 @@ class Linker {
 	if (hash) {
 	    m["_method_hash"] = hash;
 	}
-	uni->sendmsg(link_to, m);
+	sendmsg(link_to, m);
     }
 
     int postfilter_query_password(MMP.Packet p, mapping _v) {
@@ -136,13 +136,13 @@ class Linker {
     }
 
     int postfilter_notice_unlink(MMP.Packet p, mapping _v) {
-	uni->linked = 0;
+	parent->linked = 0;
 	return PSYC.Handler.GOON;
     }
 
     int postfilter_notice_link(MMP.Packet p, mapping _v) {
-	uni->linked = 1;
-	uni->unroll();
+	parent->linked = 1;
+	parent->unroll();
 	return PSYC.Handler.GOON;
     }
 }

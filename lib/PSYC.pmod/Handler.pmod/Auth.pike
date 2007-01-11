@@ -43,7 +43,7 @@ int postfilter_request_authentication(MMP.Packet p, mapping _v, mapping _m) {
 	return PSYC.Handler.STOP;
     }
     
-    uni->check_authentication(m["_location"], auth_reply, p);
+    parent->check_authentication(m["_location"], auth_reply, p);
 
     return PSYC.Handler.STOP;
 }

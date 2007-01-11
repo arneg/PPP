@@ -48,6 +48,7 @@ int isNewbie() {
 }
 
 void distribute(MMP.Packet p) {
+    P0(("Person", "distribute(%O)\n", p))
 
     PSYC.Packet m = p->data;
 
@@ -63,13 +64,13 @@ void distribute(MMP.Packet p) {
 void create(string nick, MMP.Uniform uni, object server) {
     ::create(uni, server, PSYC.DummyStorage());
 
-    forward = PSYC.Handler.Forward(this, sendmmp);
-    relay = PSYC.Handler.Relay(this, sendmmp);
-    link = PSYC.Handler.Link(this, sendmmp);
-    echo = PSYC.Handler.Echo(this, sendmmp);
+    forward = PSYC.Handler.Forward(this, sendmmp, uni);
+    relay = PSYC.Handler.Relay(this, sendmmp, uni);
+    link = PSYC.Handler.Link(this, sendmmp, uni);
+    echo = PSYC.Handler.Echo(this, sendmmp, uni);
     add_handlers(relay, link, forward, echo, 
-		 PSYC.Handler.Storage(this, sendmmp, storage),
-		 PSYC.Handler.Trustiness(this, sendmmp),
+		 PSYC.Handler.Storage(this, sendmmp, uni, storage),
+		 PSYC.Handler.Trustiness(this, sendmmp, uni),
 		 );
 }
 

@@ -51,7 +51,7 @@ void postfilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m, funct
 	if (error) {
 	    P0(("PSYC.Handler.Subscribe", "set_unlock failed for places. retry... \n."))
 
-	    uni->storage->set_unlock("places", sub, callback);
+	    parent->storage->set_unlock("places", sub, callback);
 	    return;
 	}
 
@@ -61,7 +61,7 @@ void postfilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m, funct
     if (has_index(sub, source)) {
 	m_delete(sub, source);
 
-	uni->storage->set_unlock("places", sub, callback);
+	parent->storage->set_unlock("places", sub, callback);
     }
 }
 
@@ -79,16 +79,16 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
 
 	if (!has_index(sub, channel)) {
 	    if (has_index(sub, context)) {
-		P0(("Handler.Subscribe", "%O: %O forgot to join us into %O.\n", uni, context, channel))
+		P0(("Handler.Subscribe", "%O: %O forgot to join us into %O.\n", parent, context, channel))
 	    } else {
-		P0(("Handler.Subscribe", "%O: we never joined %O but are getting messages from %O.\n", uni, context, channel))
+		P0(("Handler.Subscribe", "%O: we never joined %O but are getting messages from %O.\n", parent, context, channel))
 	    }
 
 	    sendmsg(channel, PSYC.Packet("_notice_context_leave_channel"));
 	    return PSYC.Handler.STOP;
 	}
     } else if (!has_index(sub, channel)) {
-	P0(("Handler.Subscribe", "%O: we never joined %O but are getting messages.\n", uni, channel))
+	P0(("Handler.Subscribe", "%O: we never joined %O but are getting messages.\n", parent, channel))
 	sendmsg(channel, PSYC.Packet("_notice_context_leave"));
 
 	return PSYC.Handler.STOP;
@@ -110,21 +110,21 @@ void enter(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 
 	if (PSYC.abbrev(m->mc, "_notice_context_enter")) {
 	    if (has_index(sub, source)) {
-		P3(("Handler.Subscribe", "%O: Double joined %O.\n", uni, source))
-		uni->storage->unlock("places", error_cb, @args);
-		return;
+		P3(("Handler.Subscribe", "%O: Double joined %O.\n", parent, source))
+		parent->storage->unlock("places", error_cb, @args);
+	    } else {
+		sub[source] = 1;
+		parent->storage->set_unlock("places", sub, error_cb, @args);
 	    }
-	    sub[source] = 1;
-	    uni->storage->set_unlock("places", sub, error_cb, @args);
-	} else if (PSYC.abbrev(m->mc, "_error_context_enter")) {
-	    uni->storage->unlock("places", error_cb, @args);
+	} else if (PSYC.abbrev(m->mc, "_notice_context_discord")) {
+	    parent->storage->unlock("places", error_cb, @args);
 	}
 
-	uni->display(p);
+	parent->display(p);
     };
 
-    send_tagged_v(uni->uni->root, PSYC.Packet("_request_context_enter_subscribe", 
-						   ([ "_group" : channel, "_supplicant" : uni->uni ])), 
+    send_tagged_v(uni->root, PSYC.Packet("_request_context_enter_subscribe", 
+						   ([ "_group" : channel, "_supplicant" : uni ])), 
 		       ([ "lock" : (< "places" >) ]), callback);
 }
 
@@ -144,14 +144,14 @@ void leave(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 	    
 	    if (has_index(sub, channel)) {
 		m_delete(sub, channel);
-		uni->storage->set_unlock("places", sub, error_cb, @args);
+		parent->storage->set_unlock("places", sub, error_cb, @args);
 	    } else {
-		uni->storage->unlock("places", error_cb, @args);
+		parent->storage->unlock("places", error_cb, @args);
 	    }
 	}
     };
 
-    send_tagged_v(uni->uni->root, PSYC.Packet(mc, ([ "_group" : channel ])), 
+    send_tagged_v(uni->root, PSYC.Packet(mc, ([ "_group" : channel ])), 
 		       ([ "lock" : (< "places" >) ]), callback);
 }
 
@@ -167,13 +167,13 @@ void really_unsubscribe(MMP.Uniform channel) {
 
 	if (has_index(sub, channel)) {
 	    m_delete(sub, channel);
-	    uni->storage->set_unlock("places", sub);
+	    parent->storage->set_unlock("places", sub);
 	} else {
-	    uni->storage->unlock("places");
+	    parent->storage->unlock("places");
 	}
     };
 
-    uni->storage->get_lock("places", callback);
+    parent->storage->get_lock("places", callback);
     sendmsg(channel, PSYC.Packet(mc));
 }
 

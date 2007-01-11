@@ -24,7 +24,7 @@ int add_reply(function cb, string tag, multiset(string)|mapping vars, mixed ... 
     if (has_index(reply, tag)) return 0;
     multiset wvars, lvars;
 
-    P2(("Handler.Reply", "%O: added tag(%s) with %O for %O.\n", uni, tag, vars, cb))
+    P2(("Handler.Reply", "%O: added tag(%s) with %O for %O.\n", parent, tag, vars, cb))
 
     if (multisetp(vars)) {
 	wvars = vars;
@@ -64,7 +64,7 @@ string make_reply(function cb, multiset(string)|mapping vars, mixed ... args) {
 int filter(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
 
-    P3(("Handler.Reply", "%O: prefilter(%O)\n", uni, p))
+    P3(("Handler.Reply", "%O: prefilter(%O)\n", parent, p))
     
     if (has_index(m->vars, "_tag_reply")) {
 	string tag = m->vars["_tag_reply"];
@@ -72,7 +72,7 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
 	if (has_index(reply, tag)) {
 	    array(mixed) ca = reply[tag];
 
-	    P3(("Handler.Reply", "%O: ca: %O\n", uni, ca))
+	    P3(("Handler.Reply", "%O: ca: %O\n", parent, ca))
 	    // callback for storage
 	    void got_data(mapping _v, MMP.Packet, function callback, mixed args) {
 		if (sizeof(_v)) {
@@ -87,12 +87,13 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
 		// TODO: das alles toller
 	    };
 	    // still some vars missing/supposed to come from storage
-	    PSYC.Storage.aggregate(uni->storage, ca[LVARS], ca[WVARS], got_data, fail, p, ca[CB], ca[ARGS]);
+	    PSYC.Storage.aggregate(parent->storage, ca[LVARS], ca[WVARS], got_data, fail, p, ca[CB], ca[ARGS]);
 	    m_delete(reply, tag);
 	    return PSYC.Handler.STOP;
 	} else {
+	    P0(("Handler.Reply", "packet %O is tagged with an unknown tag.", p))
 	    // bad reply.. complain
-	    return PSYC.Handler.STOP;
+	    return PSYC.Handler.GOON;
 	}
     }
 

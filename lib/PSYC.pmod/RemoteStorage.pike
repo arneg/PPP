@@ -1,15 +1,15 @@
 // vim:syntax=lpc
 #include <debug.h>
+inherit PSYC.HandlingTools;
 inherit PSYC.Storage;
 
 MMP.Uniform link_to;
-object uni;
 int linked = 0;
 MMP.Utils.Queue queue = MMP.Utils.Queue();
 
-void create(MMP.Uniform link_to_, object uni_) {
+void create(object parent, function sendmmp, MMP.Uniform u, MMP.Uniform link_to_) {
     link_to = link_to_;
-    uni = uni_;
+    ::create(parent, sendmmp, u);
 }
 
 void link() {
@@ -139,9 +139,9 @@ void _lock(string key, function callback, array(mixed) args,
 					]));
 
     if (callback) {
-	uni->send_tagged(link_to, request, gscb, callback, key, mc, args);
+	send_tagged(link_to, request, gscb, callback, key, mc, args);
     } else { // maybe we should still send a tagged message.. but have dummy callback. not sure.
-	uni->sendmsg(link_to, request);
+	sendmsg(link_to, request);
     }
 }
 
@@ -153,9 +153,9 @@ void _set(string key, mixed value, function callback,
 			    ]));
 
     if (callback) {
-	uni->send_tagged(link_to, request, gscb, callback, key, mc, args);
+	send_tagged(link_to, request, gscb, callback, key, mc, args);
     } else {
-	uni->sendmsg(link_to, request);
+	sendmsg(link_to, request);
     }
 }
 
@@ -164,9 +164,9 @@ void _get(string key, function callback, array(mixed) args, string mc) {
 				"_key" : key
 			    ]));
     if (callback) {
-	uni->send_tagged(link_to, request, grcb, callback, key, mc, args);
+	send_tagged(link_to, request, grcb, callback, key, mc, args);
     } else {
-	uni->sendmsg(link_to, request);
+	sendmsg(link_to, request);
     }
 }
 
