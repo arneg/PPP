@@ -47,7 +47,7 @@ int _sizeof() {
 }
 
 void msg(MMP.Packet p) {
-    p->vars["_count"] = count++;
+    p["_counter"] = count++;
 
     foreach(routes; MMP.Uniform u;) {
 	server->deliver(u, p);
