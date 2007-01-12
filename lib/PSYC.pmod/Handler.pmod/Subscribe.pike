@@ -106,14 +106,20 @@ void enter(MMP.Uniform channel, function|void error_cb, mixed ... args) {
     void callback(MMP.Packet p, mapping _v) {
 	PSYC.Packet m = p->data;
 	MMP.Uniform source = p->source();
+
+	MMP.Uniform group;
+	if (!has_index(m->vars, "_group") || !objectp(group = m["_group"])) {
+	    group = channel; 
+	}
+
 	mapping sub = _v["places"];
 
 	if (PSYC.abbrev(m->mc, "_notice_context_enter")) {
-	    if (has_index(sub, source)) {
-		P3(("Handler.Subscribe", "%O: Double joined %O.\n", parent, source))
+	    if (has_index(sub, group)) {
+		P3(("Handler.Subscribe", "%O: Double joined %O.\n", parent, group))
 		parent->storage->unlock("places", error_cb, @args);
 	    } else {
-		sub[source] = 1;
+		sub[group] = 1;
 		parent->storage->set_unlock("places", sub, error_cb, @args);
 	    }
 	} else if (PSYC.abbrev(m->mc, "_notice_context_discord")) {
@@ -135,12 +141,20 @@ void leave(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 	MMP.Uniform source = p->source();
 	mapping sub = _v["places"];
 	
+	MMP.Uniform group;
+	if (!has_index(m->vars, "_group") || !objectp(group = m["_group"])) {
+	    group = channel; 
+	}
+	    
 	if (PSYC.abbrev(m->mc, "_notice_context_leave")) {
+	    // TODO think about really_leave
+#if 0
 	    if (source != channel) {
 		really_unsubscribe(channel);
 		return;
 	    }
-	    
+#endif
+
 	    if (has_index(sub, channel)) {
 		m_delete(sub, channel);
 		parent->storage->set_unlock("places", sub, error_cb, @args);
@@ -148,9 +162,11 @@ void leave(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 		parent->storage->unlock("places", error_cb, @args);
 	    }
 	}
+
+	parent->display(p);
     };
 
-    send_tagged_v(uni->root, PSYC.Packet("_request_context_leave", ([ "_group" : channel ])), 
+    send_tagged_v(uni->root, PSYC.Packet("_request_context_leave", ([ "_group" : channel, "_supplicant" : uni ])), 
 		       ([ "lock" : (< "places" >) ]), callback);
 }
 
