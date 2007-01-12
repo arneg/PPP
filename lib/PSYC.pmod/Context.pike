@@ -26,7 +26,7 @@ void insert(MMP.Uniform u) {
 
 }
 
-void contains(MMP.Uniform u) {
+int contains(MMP.Uniform u) {
     return has_index(members, u);
 }
 

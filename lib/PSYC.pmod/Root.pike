@@ -223,7 +223,7 @@ class Signaling {
 	    sendmsg(p->source(), t->reply("_notice_context_leave", ([ "_group" : group, "_supplicant" : member ])));
 	};
 
-	if (!o->contains(member)) {
+	if (!c->contains(member)) {
 	    sendmsg(p->source(), t->reply("_notice_context_leave", ([ "_group" : group, "_supplicant" : member ]))); 
 	    return PSYC.Handler.STOP;
 	}
