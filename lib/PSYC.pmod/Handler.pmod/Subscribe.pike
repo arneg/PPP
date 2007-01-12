@@ -123,13 +123,12 @@ void enter(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 	parent->display(p);
     };
 
-    send_tagged_v(uni->root, PSYC.Packet("_request_context_enter_subscribe", 
+    send_tagged_v(uni->root, PSYC.Packet("_request_context_enter", 
 						   ([ "_group" : channel, "_supplicant" : uni ])), 
 		       ([ "lock" : (< "places" >) ]), callback);
 }
 
 void leave(MMP.Uniform channel, function|void error_cb, mixed ... args) {
-    string mc = "_request_context_leave" + (channel->channel) ? "_channel" : ""; 
 
     void callback(MMP.Packet p, mapping _v) {
 	PSYC.Packet m = p->data;
@@ -151,7 +150,7 @@ void leave(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 	}
     };
 
-    send_tagged_v(uni->root, PSYC.Packet(mc, ([ "_group" : channel ])), 
+    send_tagged_v(uni->root, PSYC.Packet("_request_context_leave", ([ "_group" : channel ])), 
 		       ([ "lock" : (< "places" >) ]), callback);
 }
 

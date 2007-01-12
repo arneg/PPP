@@ -106,7 +106,13 @@ void handle(MMP.Packet p, mapping _m) {
 	}
     }
 
-    P3(("StageHandler", "%O: stack for %s is %O\n", function_object(go_on), p->data->mc, (array)liste))
+#if DEBUG > 1
+    if (!sizeof(liste)) {
+	P1(("StageHandler", "%O: no stack for method %s.\n", function_object(go_on), p->data->mc))
+    } else {
+	P3(("StageHandler", "%O: stack for %s is %O\n", function_object(go_on), p->data->mc, (array)liste))
+    }
+#endif
     progress(liste, p, _m);
 }
 

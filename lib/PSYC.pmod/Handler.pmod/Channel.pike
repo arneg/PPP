@@ -35,7 +35,7 @@ constant export = ({
 
 void create_channel(MMP.Uniform channel, function|void subscribe, function|void enter, void|function leave) {
 
-    if (channel->root != uni) {
+    if (channel->channel ? (channel->super != uni) : (channel != uni)) {
 	THROW(sprintf("cannot create channel %O in %O because it doesnt belong there.\n", channel, uni));
     }
     callbacks[channel] = ({ subscribe, enter, leave });
