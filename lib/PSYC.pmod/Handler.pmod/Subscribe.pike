@@ -129,7 +129,7 @@ void enter(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 }
 
 void leave(MMP.Uniform channel, function|void error_cb, mixed ... args) {
-    string mc = "_request_context_leave" + (channel->channel) ? "_channel" : "" + "_subscribe"; 
+    string mc = "_request_context_leave" + (channel->channel) ? "_channel" : ""; 
 
     void callback(MMP.Packet p, mapping _v) {
 	PSYC.Packet m = p->data;

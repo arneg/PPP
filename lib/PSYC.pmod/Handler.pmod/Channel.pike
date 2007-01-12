@@ -9,6 +9,9 @@
 //
 // requirements to channels:
 // * subscription by the user
+#define SUBSCRIBE 	0
+#define ENTER		1
+#define LEAVE		2
 
 inherit PSYC.Handler.Base;
 
@@ -22,6 +25,7 @@ constant _ = ([
 	"_request_context_enter_subscribe" : ([
 	    "async" : 1,
 	]),
+	"_request_context_leave" : 0,
     ]),
 ]);
 
@@ -29,14 +33,18 @@ constant export = ({
     "castmsg", "create_channel"
 });
 
-void create_channel(MMP.Uniform channel, function|void subscribe, function|void enter) {
-    callbacks[channel] = ({ subscribe, enter });
+void create_channel(MMP.Uniform channel, function|void subscribe, function|void enter, void|function leave) {
+
+    if (channel->root != uni) {
+	THROW(sprintf("cannot create channel %O in %O because it doesnt belong there.\n", channel, uni));
+    }
+    callbacks[channel] = ({ subscribe, enter, leave });
 }
 
 void postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m, function cb) {
-    MMP.Uniform group = p["_group"];
     MMP.Uniform source = p->source();
     PSYC.Packet m = p->data;
+    MMP.Uniform group = m["_group"];
 
     if (!has_index(callbacks, group)) {
 	// blub
@@ -61,9 +69,24 @@ void postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m, func
 	return;
     }
 
+    // maybe wrong!! should be supplicant not _source_relay.
     callbacks[group][1](p->lsource(), callback, p);
 
     call_out(cb, 0, PSYC.Handler.STOP);
+}
+
+int postfilter_request_context_leave(MMP.Packet p, mapping _v, mapping _m) {
+    MMP.Uniform source = p->source();
+    PSYC.Packet m = p->data;
+    MMP.Uniform group = m["_group"];
+    
+    sendmsg(p->source(), m->reply("_notice_context_leave", ([ "_supplicant" : m["_supplicant"], "_group" : group ])));
+
+    if (callbacks[group][LEAVE]) {
+	callbacks[group][LEAVE](m["_supplicant"]);
+    }
+
+    return PSYC.Handler.STOP;
 }
 
 void postfilter_request_context_enter_subscribe(MMP.Packet p, mapping _v, mapping _m, function cb) {

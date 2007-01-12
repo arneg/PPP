@@ -26,6 +26,10 @@ void insert(MMP.Uniform u) {
 
 }
 
+void contains(MMP.Uniform u) {
+    return has_index(members, u);
+}
+
 void remove(MMP.Uniform u) {
 
     while (members[u]--);
@@ -49,6 +53,8 @@ int _sizeof() {
 void msg(MMP.Packet p) {
     p["_counter"] = count++;
 
+    // the PSYC packet actually goes through unparsed. and it is parsed once if
+    // its delivered locally. hooray
     foreach(routes; MMP.Uniform u;) {
 	server->deliver(u, p);
     }

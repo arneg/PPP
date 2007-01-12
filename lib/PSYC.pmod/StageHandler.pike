@@ -1,6 +1,9 @@
 // vim:syntax=lpc
 #include <debug.h>
 
+// TODO
+// - let the check function return variables to request.
+
 object storage;
 mapping table = ([]);
 mapping requested = ([]);

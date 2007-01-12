@@ -102,6 +102,9 @@ class Signaling {
 	}
     }
 
+    // TODO: 
+    // 	let the master enter someone to a channel
+    // 	master here means a top router.
     int postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m) {
 	PSYC.Packet t = p->data;
 
@@ -113,6 +116,26 @@ class Signaling {
 
 	MMP.Uniform member = t["_supplicant"];
 	MMP.Uniform group = t["_group"];
+
+	// TODO: this is a "security" check special to the way our signaling currently works,
+	// e.g. with one hop. we have to set up something else to be able to have it work in
+	// more complex settings. would make some kind of trust necessary
+	if (member->is_local() ? (member != p->source()) : (p->source() != member->root)) {
+	    sendmsg(p->source(), t->reply("_error_context_enter_trust"));
+	}
+
+	MMP.Uniform target;
+
+	if (group->is_local()) {
+	    target = group;
+	} else {
+	    target = group->root;
+	}
+
+	if (target == uni) {
+	    P0(("Root", "crazy in %O.\n", p))
+	    return PSYC.Handler.STOP;
+	}
 
 	void callback(MMP.Packet reply, mapping _v) {
 	    PSYC.Packet m = reply->data;
@@ -135,12 +158,6 @@ class Signaling {
 
 	};
 
-	MMP.Uniform target = group->is_local() ? group : group->root;
-
-	if (target == uni) {
-	    P0(("Root", "crazy in %O.\n", p))
-	    return PSYC.Handler.STOP;
-	}
 
 	send_tagged_v(target, PSYC.Packet("_request_context_enter", ([ "_group" : group, "_supplicant" : member ])), 
 				    ([ "lock" : (< "_groups" >) ]), callback);
@@ -148,25 +165,81 @@ class Signaling {
 	return PSYC.Handler.STOP;
     }
 
+    // bottom up leave request. top down just sends a notice.. not politeness needed
     int postfilter_request_context_leave(MMP.Packet p, mapping _v, mapping _m) {
-	MMP.Uniform member = p["_source_relay"];
 	PSYC.Packet t = p->data;
-	if (!has_index(t->vars, "_group")) {
+
+	if (!(has_index(t->vars, "_group") && objectp(t["_group"]) 
+	      && has_index(t->vars, "_supplicant") && objectp(t["_supplicant"]))) {
 	    sendmsg(p->source(), t->reply("_error_context_leave"));
 	    return PSYC.Handler.STOP;
 	}
 
-	MMP.Uniform context = t["_group"];
+	MMP.Uniform member = t["_supplicant"];
+	MMP.Uniform group = t["_group"];
 
-	object c = parent->server->get_context(context);
-	c->remove(member);
-
-	if (!sizeof(c)) {
-	    parent->server->unregister_context(context);
-	    sendmsg(p->source(), PSYC.Packet("_status_context_empty", ([ "_group" : context ])));
+	if (member->is_local() ? (p->source() != member) : (p->source() != member->root)) {
+	    sendmsg(p->source(), t->reply("_error_context_leave_trust"));
+	    return PSYC.Handler.STOP;
 	}
 
-	sendmsg(p->source(), PSYC.Packet("_status_context_leave", ([ "_group" : context ])));
+	MMP.Uniform target;
+
+	if (group->is_local()) {
+	    target = group;
+	} else {
+	    target = group->root;
+	}
+
+	if (target == uni) {
+	    P0(("Root", "crazy in %O.\n", p))
+	    return PSYC.Handler.STOP;
+	}
+
+	object c = parent->server->get_context(group);
+
+	void callback(MMP.Packet reply, mapping _v) {
+	    PSYC.Packet m = reply->data;
+	    mapping groups = _v["_groups"];
+
+	    P0(("Root", "%O: reply to _request is %O.\n", parent, m))
+
+	    if (c->contains(member)) {
+		c->remove(member);
+
+		if (!has_index(groups, group)) {
+		    P0(("Root", "inconsistency of storage and context.\n"))
+		    parent->storage->unlock("_groups");
+		} else {
+		    if (has_index(groups[group], member)) {
+			m_delete(groups[group], member);
+			parent->storage->set_unlock("_groups", groups);
+		    } else {
+			parent->storage->unlock("_groups");
+		    }
+		}
+	    }
+
+	    sendmsg(p->source(), t->reply("_notice_context_leave", ([ "_group" : group, "_supplicant" : member ])));
+	};
+
+	if (!o->contains(member)) {
+	    sendmsg(p->source(), t->reply("_notice_context_leave", ([ "_group" : group, "_supplicant" : member ]))); 
+	    return PSYC.Handler.STOP;
+	}
+
+	send_tagged_v(target, PSYC.Packet("_request_context_leave", ([ "_group" : group, "_supplicant" : member ])), 
+				    ([ "lock" : (< "_groups" >) ]), callback);
+
+	return PSYC.Handler.STOP;
+    }
+
+    // master kicks someone out.
+    int postfilter_notice_context_leave() {
+    }
+
+    // master puts someone into a channel
+    int postfilter_notice_context_enter_channel() {
     }
 
     int postfilter_status_context_empty(MMP.Packet p, mapping _v, mapping _m) {
