@@ -23,6 +23,7 @@ void check_authentication(MMP.Uniform t, function cb, mixed ... args) {
     call_out(cb, 0, uni == t, @args);
 }
 
+// make HandlingTools use this directly.
 PSYC.Packet tag(PSYC.Packet m, function|void callback, mixed ... args) {
     return tagv(m, callback, 0, @args);
 }

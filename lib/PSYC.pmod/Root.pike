@@ -120,7 +120,7 @@ class Signaling {
 	// TODO: this is a "security" check special to the way our signaling currently works,
 	// e.g. with one hop. we have to set up something else to be able to have it work in
 	// more complex settings. would make some kind of trust necessary
-	if (member->is_local() ? (member != p->source()) : (p->source() != member->root)) {
+	if (p->source() != (member->is_local() ? member : member->root)) {
 	    sendmsg(p->source(), t->reply("_error_context_enter_trust"));
 	}
 
@@ -178,7 +178,7 @@ class Signaling {
 	MMP.Uniform member = t["_supplicant"];
 	MMP.Uniform group = t["_group"];
 
-	if (member->is_local() ? (p->source() != member) : (p->source() != member->root)) {
+	if (p->source() != (member->is_local() ? member : member->root)) {
 	    sendmsg(p->source(), t->reply("_error_context_leave_trust"));
 	    return PSYC.Handler.STOP;
 	}
@@ -239,7 +239,54 @@ class Signaling {
     }
 
     // master puts someone into a channel
-    int postfilter_notice_context_enter_channel() {
+    int postfilter_notice_context_enter_channel(MMP.Packet p, mapping _v, mapping _m) {
+	PSYC.Packet m = p->data;	
+	MMP.Uniform member = m["_supplicant"];
+	MMP.Uniform channel = m["_group"];
+
+	if (!objectp(member) || !objectp(channel)) {
+	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
+	    return PSYC.Handler.STOP;
+	}
+
+	if (!channel->super) {
+	    // be more specific here
+	    P1(("Root", "%O: got channel join from %O for a non-channel (%O).\n", uni, p->source(), channel))
+	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
+	    return PSYC.Handler.STOP;
+	}
+
+	if (p->source() != (channel->is_local() ? channel->super : channel->root)) {
+	    P1(("Root", "%O: Got channel join to %O from context %O. denied.\n", uni, channel, p->source()))
+	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
+	    return PSYC.Handler.STOP;
+	}
+
+	object c = parent->server->get_context(channel->super);
+
+	if (!c->contains(member)) {
+	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
+	    return PSYC.Handler.STOP;
+	}
+
+	c = parent->server->get_context(channel);
+
+	if (c->contains(member)) {
+	    // all is fine.
+	    P1(("Root", "%O: %O tries to double join %O into %O.\n", uni, p->source(), member, channel))
+	    return PSYC.Handler.STOP;
+	}
+
+	MMP.Uniform target;
+	if (member->is_local()) {
+	    target = member; 
+	} else {
+	    target = member->root;
+	}
+
+	c->insert(member);
+	sendmsg(target, m);
+	return PSYC.Handler.STOP;
     }
 
     int postfilter_status_context_empty(MMP.Packet p, mapping _v, mapping _m) {
