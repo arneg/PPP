@@ -27,6 +27,10 @@ constant _ = ([
 	    "async" : 1,
 	]),
 #endif
+	"_notice_context_enter_channel" : ([
+	    "lock" : ({ "places" }),
+	    "async" : 1,
+       ]),
 	"_notice_context_leave" : ([
 	    "lock" : ({ "places" }),
 	    "async" : 1,
@@ -95,6 +99,37 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
     }
 
     return PSYC.Handler.GOON;
+}
+
+void postfilter_notice_context_enter_channel(MMP.Packet p, mapping _v, mapping _m, function cb) {
+    PSYC.Packet m = p->data;
+    MMP.Uniform member = m["_supplicant"];
+    MMP.Uniform channel = m["_group"];
+
+    mapping sub = _v["places"];
+
+    if (!channel->super) {
+	// dum dump
+	P1(("Handler.Subscribe", "%O: got channel join without channel from dump dump %O.\n", uni, p->source()))
+	call_out(cb, 0, PSYC.Handler.STOP);
+	return;
+    }
+
+    if (!has_index(sub, channel->super)) {
+	P1(("Handler.Subscribe", "%O: illegal channel join to %O from %O.\n", uni, channel, p->source()))
+	call_out(cb, 0, PSYC.Handler.STOP);
+	return;
+    }
+
+    if (has_index(sub, channel)) {
+	parent->storage->unlock("places");
+    } else {
+	sub[channel] = 1;
+	parent->storage->set_unlock("places", sub);
+    }
+
+    call_out(cb, 0, PSYC.Handler.GOON);
+    return;
 }
 
 // ==================================
