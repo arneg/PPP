@@ -385,6 +385,12 @@ class Packet {
 	return vars["_source"];
     }
 
+    MMP.Uniform reply() {
+	return vars["_source_identification_reply"]
+	    || vars["_source_reply"]
+	    || vars["_source"];
+    }
+
     MMP.Uniform lsource() {
 	if (has_index(vars, "_source_relay")) {
 	    mixed s = vars["_source_relay"];
