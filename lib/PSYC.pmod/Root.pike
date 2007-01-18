@@ -44,6 +44,8 @@ class Circuit {
 
 class Signaling {
     // basic, abstract routing functionality
+    // TODO: move the storage stuff to the Context objects! it sux in this 
+    // 	     place.
 
     inherit PSYC.Handler.Base;
     int _init = 1;
@@ -58,6 +60,8 @@ class Signaling {
 	    "_request_context_enter" : 0, 
 	    "_request_context_leave" : 0, 
 	    "_status_context_empty" : 0, 
+	    "_notice_context_leave" : ([ "lock" : ({ "groups" }) ]), 
+	    "_notice_context_enter_channel" : ([ "lock" : ({ "groups" }) ]), 
 	]),
     ]);
 
@@ -235,7 +239,57 @@ class Signaling {
     }
 
     // master kicks someone out.
-    int postfilter_notice_context_leave() {
+    int postfilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m) {
+	PSYC.Packet m = p->data;	
+	MMP.Uniform member = m["_supplicant"];
+	MMP.Uniform channel = m["_group"];
+
+	if (!objectp(member) || !objectp(channel)) {
+	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
+	    parent->storage->unlock("groups");
+	    return PSYC.Handler.STOP;
+	}
+
+	if (p->source() != (channel->is_local() 
+			    ? (channel->channel ? channel->super : channel) 
+			    : channel->root)) {
+	    P1(("Root", "%O: Got channel leave for context %O from %O. denied.\n", uni, channel, p->source()))
+	    // TODO: fix the mc here.. depending on the incoming one
+	    sendmsg(p->source(), m->reply("_error_context_leave"));
+	    parent->storage->unlock("groups");
+	    return PSYC.Handler.STOP;
+	}
+
+	object c = parent->server->get_context(channel);
+
+	if (!c->contains(member)) {
+	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
+	    parent->storage->unlock("groups");
+	    return PSYC.Handler.STOP;
+	}
+
+	mapping groups = _v["groups"];
+
+	c->remove(member);
+	
+	if (!has_index(groups, channel)) {
+	    P0(("Root", "inconsistency of storage and context.\n"))
+	    parent->storage->unlock("_groups");
+	     
+	    return PSYC.Handler.STOP;
+	}
+
+	MMP.Uniform target;
+	if (member->is_local()) {
+	    target = member; 
+	} else {
+	    target = member->root;
+	}
+	
+	sendmsg(target, m);
+	m_delete(groups[channel], member);
+	parent->storage->set_unlock("groups", groups);
+	return PSYC.Handler.STOP;
     }
 
     // master puts someone into a channel
@@ -246,6 +300,8 @@ class Signaling {
 
 	if (!objectp(member) || !objectp(channel)) {
 	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
+
+	    parent->storage->unlock("groups");
 	    return PSYC.Handler.STOP;
 	}
 
@@ -253,12 +309,14 @@ class Signaling {
 	    // be more specific here
 	    P1(("Root", "%O: got channel join from %O for a non-channel (%O).\n", uni, p->source(), channel))
 	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
+	    parent->storage->unlock("groups");
 	    return PSYC.Handler.STOP;
 	}
 
 	if (p->source() != (channel->is_local() ? channel->super : channel->root)) {
 	    P1(("Root", "%O: Got channel join to %O from context %O. denied.\n", uni, channel, p->source()))
 	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
+	    parent->storage->unlock("groups");
 	    return PSYC.Handler.STOP;
 	}
 
@@ -266,6 +324,7 @@ class Signaling {
 
 	if (!c->contains(member)) {
 	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
+	    parent->storage->unlock("groups");
 	    return PSYC.Handler.STOP;
 	}
 
@@ -274,6 +333,7 @@ class Signaling {
 	if (c->contains(member)) {
 	    // all is fine.
 	    P1(("Root", "%O: %O tries to double join %O into %O.\n", uni, p->source(), member, channel))
+	    parent->storage->unlock("groups");
 	    return PSYC.Handler.STOP;
 	}
 
@@ -283,9 +343,17 @@ class Signaling {
 	} else {
 	    target = member->root;
 	}
+	// TODO: check for mappingp(_v["groups"])
+	mapping groups = _v["groups"];
 
+	if (!has_index(groups, channel)) {
+	    groups[channel] = ([]);
+	}
+
+	groups[channel][member] = 1;
 	c->insert(member);
 	sendmsg(target, m);
+	parent->storage->set_unlock("groups", groups);
 	return PSYC.Handler.STOP;
     }
 
