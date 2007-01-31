@@ -9,7 +9,7 @@
 #endif
 
 struct state {
-    int cs, top, stack[32]; 
+    int cs, top; 
 };
 
 struct depth {
@@ -143,7 +143,7 @@ PIKECLASS Util {
 }
 #endif
 
-int parse_uniform(const char *d, struct state *fsm, int n) {
+int parse_psyc(const char *d, struct state *fsm, int n) {
     const char *p = d;
     const char *pe = d + n;
     const char *i = 0;
@@ -172,7 +172,7 @@ int main() {
 
     const char *one = "_sdlkf	\"hihihi\\\"\"\n_hallo	{ \"sdf\"  : \"sdf\", \"hihihahahiahia\\n\\f\" : \"\"}\n_hehe\t[ \"juchuu\" , \"wulle wulle wu\"   ]\n_message_public\nlksadsalkf ashdf kjhsafkj hsdakhf s\n\n\n\n";
     printf("%s\n", one);
-    parse_uniform(one, &fsm, strlen(one));
+    parse_psyc(one, &fsm, strlen(one));
 
     return 0;
 }
