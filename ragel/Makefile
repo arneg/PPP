@@ -6,11 +6,11 @@ all: psyc
 
 ps: psyc.ps
 
-pike: psyc.rl psyc.c
-	gcc -I$(PIKESOURCE) -L$(PIKESOURCE) -DPIKE -Wall -O2 -g psyc.c -o pike
-
 ps: psyc.o 
 	gcc -g -o psyc psyc.o
+
+pike: psyc.rl
+	$(RAGEL) psyc.rl | $(RLCODEGEN) -G2 -o cmod/psyc.cmod
 
 psyc.c: psyc.rl
 	$(RAGEL) psyc.rl | $(RLCODEGEN) -G2 -o psyc.c

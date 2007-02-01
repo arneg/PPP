@@ -1,23 +1,24 @@
 // vim:syntax=ragel
 #include <stdio.h>
-#ifdef PIKE
+#ifdef __PIKE__
 # include "global.h"
 # include "stralloc.h"
 # include "mapping.h"
 # include "svalue.h"
-# include "dmalloc.h"
+# include "array.h"
 # include "module.h"
 #else
+# include <string.h>
 # include <stdlib.h>
 #endif
 
 struct state {
-    int cs, top; 
+    int cs, top;
 };
 
 struct depth {
     struct depth *up;
-#ifdef PIKE
+#ifdef __PIKE__
     struct svalue var;
 #endif
     int level;
@@ -75,7 +76,7 @@ struct depth {
 
     action begin_string {
 	printf("beginning string.\n");
-#ifdef PIKE
+#ifdef __PIKE__
 	reset_string_builder(&s);
 #endif
     }
@@ -84,12 +85,15 @@ struct depth {
     action marknext { i = fpc + 1; }
 
     action string_append {
+#ifdef __PIKE__
 	if (fpc - i - 1 > 0) {
-	    string_builder_binary_strcat(&s, i, (ptrdiff_t)(fpc - i - 1)); 
+	    string_builder_binary_strcat(&s, i, (ptrdiff_t)(fpc - i - 1));
 	}
+#endif
     }
 
     action string_unquote {
+#ifdef __PIKE__
 	switch (fc) {
 	case 'n':	string_builder_putchar(&s, '\n'); break;
 	case 't':	string_builder_putchar(&s, '\t'); break;
@@ -99,11 +103,12 @@ struct depth {
 	case '"':
 	case '\\':	string_builder_putchar(&s, fc); break;
 	}
+#endif
     }
 
     action end_string {
 	printf("string: '%.*s' length: %d\n", (int)(fpc - i), i, fpc - i);
-#ifdef PIKE
+#ifdef __PIKE__
 	cur->var.type = PIKE_T_STRING;
 	cur->var.u.string = finish_string_builder(&s);
 #endif
@@ -115,8 +120,8 @@ struct depth {
 #
 #	struct pike_string *finish_string_builder(struct string_builder *s)
 #
-#	void string_builder_append(struct string_builder *s,                                                                      
-#	                           PCHARP from,                                           
+#	void string_builder_append(struct string_builder *s,
+#	                           PCHARP from,
 #	                           ptrdiff_t len)
 #
 #	void string_builder_putchar(struct string_builder *s, int ch)
@@ -128,12 +133,12 @@ struct depth {
 		),
 		unquote: (
 		    [nt"\\/bfnrt] >string_unquote @marknext -> start
-		) 
+		)
     ) >mark >begin_string @end_string @ascend;
 
     action begin_mapping {
 	printf("beginning mapping.\n");
-#ifdef PIKE
+#ifdef __PIKE__
 	cur->var.type = PIKE_T_MAPPING;
 	cur->var.u.mapping = debug_allocate_mapping(8);
 #endif
@@ -144,8 +149,8 @@ struct depth {
     }
 
     action add_mapping {
-#ifdef PIKE
-	mapping_insert(cur->var.u.mapping, &key->var, &last->var); 
+#ifdef __PIKE__
+	mapping_insert(cur->var.u.mapping, &key->var, &last->var);
 #endif
 	free(key);
 	free(last);
@@ -180,7 +185,7 @@ struct depth {
 
     array := ( myspace* . (any - myspace) >descend >{ fhold; fgoto value;} . myspace* . (',' |  ']' >ascend ) )*;
 
-    
+
     #json
     value = (myspace* . (
 		  '"' >{ fgoto string; } |
@@ -194,14 +199,56 @@ struct depth {
     main := variable* . variable_name . '\n' @{ done = 1; };
 }%%
 
-#if 0
-PIKECLASS Util {
+#ifdef __PIKE__
+/*! @module Public
+ */
 
-    PSYCFUN int parse_psyc(string data, object o) {
+/*! @module Parser
+ */
 
+/*! @module PSYC
+ */
+
+/*! @decl mapping parse(string s)
+ *!
+ *! Parses a JSON-formatted string and returns the corresponding mapping.
+ */
+PIKEFUN int parse(string data, object o) {
+    char *p, *pe, *i;
+    char done = 0;
+    struct depth *cur, *last, *key;
+    // we wont be building more than one string at once.
+    struct string_builder s;
+
+    if (stream->size_shift != 0) {
+	Pike_error("Size shift != 0.");
+	// no need to return. does a longjmp
     }
+
+    // length n can be alot but is certainly enough.
+    string_builder_allocate(&s, data->len, 0);
+    
+    p = (char*)STR0(data);
+    pe = p + data->len;
+
+    cur = (struct depth*)malloc(sizeof(struct depth));
+    cur->level = 0;
+
+    %% write init;
+    %% write exec;
+
+    free(cur);
+    if ( done == 1 ) {
+	printf("The machine parsed the packet successfully. data is: '%.*s'\n", pe - p, p);
+    } else {
+	printf("Error while parsing.");
+    }
+
+    free_string_builder(&s);
+
+    RETURN 1;    
 }
-#endif
+#else
 
 int parse_psyc(char *d, struct state *fsm, int n) {
     char *p = d;
@@ -210,12 +257,6 @@ int parse_psyc(char *d, struct state *fsm, int n) {
     char done = 0;
 
     struct depth *cur, *last, *key;
-#ifdef PIKE
-    // we wont be building more than one string at once.
-    struct string_builder s;
-    // length n can be alot but is certainly enough.
-    string_builder_allocate(&s, n, 0);
-#endif
     cur = (struct depth*)malloc(sizeof(struct depth));
     cur->level = 0;
 
@@ -230,13 +271,8 @@ int parse_psyc(char *d, struct state *fsm, int n) {
 	printf("Error while parsing.");
     }
 
-#ifdef PIKE
-    free_string_builder(&s);
-#endif
-
     return 0;
 }
-
 
 int main() {
     struct state fsm;
@@ -247,4 +283,5 @@ int main() {
 
     return 0;
 }
+#endif
 
