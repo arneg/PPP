@@ -19,6 +19,7 @@ struct state {
 
 struct depth {
     struct depth *up;
+    struct depth *key;
 #ifdef __PIKE__
     struct svalue var;
 #endif
@@ -69,7 +70,6 @@ struct depth {
 #endif
 	}
 
-	// keep the key, for gods sake!
 #ifndef __PIKE__
 	printf("ascending to %d at '%c' (pos: %d).\n", cur->state, fc, (int)fpc);
 #endif
@@ -157,9 +157,9 @@ struct depth {
 
     action add_mapping {
 #ifdef __PIKE__
-	mapping_insert(cur->var.u.mapping, &key->var, &last->var);
+	mapping_insert(cur->var.u.mapping, &cur->key->var, &last->var);
 #endif
-	free(key);
+	free(cur->key);
 	free(last);
     }
 
@@ -177,7 +177,7 @@ struct depth {
 #                       struct svalue *val)
     mapping := (
 		  start: myspace* . (
-		    '"' >descend >{ fgoto string; } . myspace* . ':' >{ key = last; } >descend >{ printf("value:\n"); fgoto value; } -> more |
+		    '"' >descend >{ fgoto string; } . myspace* . ':' >{ cur->key = last; } >descend >{ printf("value:\n"); fgoto value; } -> more |
 		    '}' -> final
 		  ),
 		  more: myspace* . (
@@ -186,12 +186,27 @@ struct depth {
 		  ) >add_mapping
     ) >begin_mapping @ascend;
 
-    array := ( myspace* . (any - myspace) >descend >{ fhold; fgoto value;} . myspace* . (',' |  ']' >ascend ) )*;
+    action begin_array {
+#ifdef __PIKE__	
+	cur->var.type = PIKE_T_ARRAY;
+	cur->var.u.array = low_allocate_array(0, 8);
+#endif
+    }
+
+    action add_array {
+#ifdef __PIKE__	
+	
+	cur->var.u.array = append_array(cur->var.u.array, last->var);
+#endif
+	free(last);
+    }
+
+    array := ( myspace* . (any - myspace) >descend >{ fhold; fgoto value;} . myspace* . (','  |  ']' @ascend ) >add_array )*;
 
     value = (myspace* . (
 		  '"' >{ fgoto string; } |
 		  '{' >{ fgoto mapping; } |
-		  '[' >{ fgoto array; }
+		  '[' >begin_array >{ fgoto array; }
 		 ) . myspace* );
 
     variable_name = '_' . (alpha | '_')+;
@@ -216,8 +231,9 @@ struct depth {
  */
 PIKEFUN int parse(string data, object o) {
     char *p, *pe, *i;
+    int c;
     char done = 0;
-    struct depth *cur, *last, *key;
+    struct depth *cur, *last;
     // we wont be building more than one string at once.
     struct string_builder s;
     struct state fsm;
@@ -226,6 +242,11 @@ PIKEFUN int parse(string data, object o) {
 	Pike_error("Size shift != 0.");
 	// no need to return. does a longjmp
     }
+#if 0
+void object_set_index(struct object *o,                                                                                   
+		      struct svalue *index,                                                                               
+		      struct svalue *from)
+#endif
 
     // length n can be alot but is certainly enough.
     init_string_builder(&s, 1);
