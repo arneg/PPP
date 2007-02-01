@@ -48,9 +48,12 @@ struct depth {
 	cur = (struct depth*)malloc(sizeof(struct depth));
 
 	if (cur == NULL) {
-	    // TODO: Pike error
+#ifdef __PIKE__
+	    Pike_error("malloc failed.");
+#else
 	    printf("malloc returned NULLLLLL!!!1!\n");
 	    exit(-1);
+#endif
 	}
 	cur->level = last->level+1;
 	cur->up = last;
@@ -65,20 +68,26 @@ struct depth {
 	cur = cur->up;
 
 	if (cur == NULL) {
-
+#ifdef __PIKE__
+	    Pike_error("pointer gone to heaven!");
+#else
 	    printf("pointer gone to heaven!\n");
 	    exit(-1);
+#endif
 	}
 
 	// keep the key, for gods sake!
+#ifndef __PIKE__
 	printf("ascending to %d at '%c' (pos: %d).\n", cur->state, fc, (int)fpc);
+#endif
 	fgoto *cur->state;
     }
 
     action begin_string {
-	printf("beginning string.\n");
 #ifdef __PIKE__
 	reset_string_builder(&s);
+#else
+	printf("beginning string.\n");
 #endif
     }
 
@@ -108,10 +117,11 @@ struct depth {
     }
 
     action end_string {
-	printf("string: '%.*s' length: %d\n", (int)(fpc - i), i, fpc - i);
 #ifdef __PIKE__
 	cur->var.type = PIKE_T_STRING;
 	cur->var.u.string = finish_string_builder(&s);
+#else
+	printf("string: '%.*s' length: %d\n", (int)(fpc - i), i, fpc - i);
 #endif
     }
 
@@ -138,15 +148,18 @@ struct depth {
     ) >mark >begin_string @end_string @ascend;
 
     action begin_mapping {
-	printf("beginning mapping.\n");
 #ifdef __PIKE__
 	cur->var.type = PIKE_T_MAPPING;
 	cur->var.u.mapping = debug_allocate_mapping(8);
+#else
+	printf("beginning mapping.\n");
 #endif
     }
 
     action end_mapping {
+#ifndef __PIKE__
 	printf("end mapping.\n");
+#endif
     }
 
     action add_mapping {
@@ -239,16 +252,18 @@ PIKEFUN int parse(string data, object o) {
     %% write exec;
 
     free(cur);
-    if ( done == 1 ) {
-	printf("The machine parsed the packet successfully. data is: '%.*s'\n", pe - p, p);
-    } else {
-	printf("Error while parsing.");
-    }
 
     free_string_builder(&s);
 
-    RETURN 1;    
+    if ( done != 1 ) {
+	RETURN (INT_TYPE)0;
+    }
+    
+    // extract the mc. 
+
+    RETURN (INT_TYPE)1;    
 }
+
 #else
 
 int parse_psyc(char *d, struct state *fsm, int n) {
