@@ -171,7 +171,7 @@ struct depth {
     }
 
     alphtype char;
-    access fsm->;
+    access fsm.;
 
     myspace = ' ';
 
@@ -233,8 +233,9 @@ PIKEFUN int parse(string data, object o) {
     struct depth *cur, *last, *key;
     // we wont be building more than one string at once.
     struct string_builder s;
+    struct state fsm;
 
-    if (stream->size_shift != 0) {
+    if (data->size_shift != 0) {
 	Pike_error("Size shift != 0.");
 	// no need to return. does a longjmp
     }
@@ -248,6 +249,7 @@ PIKEFUN int parse(string data, object o) {
     cur = (struct depth*)malloc(sizeof(struct depth));
     cur->level = 0;
 
+    %%
     %% write init;
     %% write exec;
 
@@ -266,11 +268,12 @@ PIKEFUN int parse(string data, object o) {
 
 #else
 
-int parse_psyc(char *d, struct state *fsm, int n) {
+int parse_psyc(char *d, struct state *f, int n) {
     char *p = d;
     char *pe = d + n;
     char *i = p;
     char done = 0;
+    struct state fsm = *f;
 
     struct depth *cur, *last, *key;
     cur = (struct depth*)malloc(sizeof(struct depth));
