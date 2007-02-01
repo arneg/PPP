@@ -1,13 +1,13 @@
 RAGEL = ragel
 RLCODEGEN = rlcodegen
-PIKESOURCE = /home/el/tmp/Pike-v7.6.86/src
+PIKESOURCE = /home/el/tmp/Pike-v7.6.86/src/
 
 all: psyc
 
 ps: psyc.ps
 
-pike: psyc.rl
-	$(RAGEL) psyc.rl | $(RLCODEGEN) -G2 -o psyc.c && gcc -DPIKE -Wall -O2 -g -I$(PIKESOURCE) psyc.c -o pike
+pike: psyc.rl psyc.c
+	gcc -I$(PIKESOURCE) -L$(PIKESOURCE) -DPIKE -Wall -O2 -g psyc.c -o pike
 
 ps: psyc.o 
 	gcc -g -o psyc psyc.o
