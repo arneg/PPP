@@ -31,19 +31,12 @@ struct depth {
     machine psyc;
     write data noerror nofinal;
 
-    action begin {
-	i = fpc;
-    }
-
-    action end {
-	printf("stopping at %d\n", (int)fpc);
-	printf("host: '%.*s' length: %d\n", (int)(fpc - i), i, fpc - i);
-    }
-
     action descend {
 	last = cur;
 	cur->state = ftargs;
+#ifndef __PIKE__
 	printf("descending before state %d at '%c' (pos: %d).\n", ftargs, fc, (int)fpc);
+#endif
 	// TODO: use pikes alloc
 	cur = (struct depth*)malloc(sizeof(struct depth));
 
@@ -193,14 +186,8 @@ struct depth {
 		  ) >add_mapping
     ) >begin_mapping @ascend;
 
-    action begin_number {
-	printf("beginning number\n");
-    }
-
     array := ( myspace* . (any - myspace) >descend >{ fhold; fgoto value;} . myspace* . (',' |  ']' >ascend ) )*;
 
-
-    #json
     value = (myspace* . (
 		  '"' >{ fgoto string; } |
 		  '{' >{ fgoto mapping; } |
@@ -241,7 +228,7 @@ PIKEFUN int parse(string data, object o) {
     }
 
     // length n can be alot but is certainly enough.
-    string_builder_allocate(&s, data->len, 0);
+    init_string_builder(&s, 1);
     
     p = (char*)STR0(data);
     pe = p + data->len;
@@ -254,7 +241,6 @@ PIKEFUN int parse(string data, object o) {
     %% write exec;
 
     free(cur);
-
     free_string_builder(&s);
 
     if ( done != 1 ) {
