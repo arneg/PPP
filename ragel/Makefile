@@ -7,7 +7,7 @@ all: psyc
 ps: psyc.ps
 
 pike: psyc.rl
-	$(RAGEL) psyc.rl | $(RLCODEGEN) -G2 -o psyc.c && gcc -DPIKE -Wall -O2 -g -I$(PIKE) psyc.c -o pike
+	$(RAGEL) psyc.rl | $(RLCODEGEN) -G2 -o psyc.c && gcc -DPIKE -Wall -O2 -g -I$(PIKESOURCE) psyc.c -o pike
 
 ps: psyc.o 
 	gcc -g -o psyc psyc.o
