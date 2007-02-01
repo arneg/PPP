@@ -8,7 +8,7 @@ DESCRIPTION="compiler/parser compiler"
 HOMEPAGE="http://www.cs.queensu.ca/~thurston/ragel/"
 SRC_URI="${HOMEPAGE}${P}.tar.gz"
 
-LICENSE="GPL-1"
+LICENSE="GPL-2"
 SLOT="0"
 KEYWORDS="x86"
 
