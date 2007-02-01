@@ -2,6 +2,7 @@
 #include <stdio.h>
 #ifdef __PIKE__
 # include "global.h"
+# include "interpret.h"
 # include "stralloc.h"
 # include "mapping.h"
 # include "svalue.h"

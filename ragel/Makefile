@@ -1,6 +1,5 @@
 RAGEL = ragel
 RLCODEGEN = rlcodegen
-PIKESOURCE = /home/el/tmp/Pike-v7.6.86/src/
 
 all: psyc
 
