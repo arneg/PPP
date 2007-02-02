@@ -73,6 +73,9 @@ struct depth {
 #ifndef __PIKE__
 	printf("ascending to %d at '%c' (pos: %d).\n", cur->state, fc, (int)fpc);
 #endif
+    }
+
+    action jump {
 	fgoto *cur->state;
     }
 
@@ -89,8 +92,8 @@ struct depth {
 
     action string_append {
 #ifdef __PIKE__
-	if (fpc - i - 1 > 0) {
-	    string_builder_binary_strcat(&s, i, (ptrdiff_t)(fpc - i - 1));
+	if (fpc - i > 0) {
+	    string_builder_binary_strcat(&s, i, (ptrdiff_t)(fpc - i));
 	}
 #endif
     }
@@ -138,7 +141,7 @@ struct depth {
 		unquote: (
 		    [nt"\\/bfnrt] >string_unquote @marknext -> start
 		)
-    ) >mark >begin_string @end_string @ascend;
+    ) >mark >begin_string @end_string @ascend @jump;
 
     action begin_mapping {
 #ifdef __PIKE__
@@ -175,14 +178,14 @@ struct depth {
 #                       struct svalue *val)
     mapping := (
 		  start: myspace* . (
-		    '"' >descend >{ fgoto string; } . myspace* . ':' >{ cur->key = last; } >descend >{ printf("value:\n"); fgoto value; } -> more |
+		    '"' >descend >{ fgoto string; } . myspace* . ':' >{ cur->key = last; } >descend >{ fgoto value; } -> more |
 		    '}' -> final
 		  ),
 		  more: myspace* . (
 		    ',' -> start|
 		    '}' -> final
 		  ) >add_mapping
-    ) >begin_mapping @ascend;
+    ) >begin_mapping @ascend @jump;
 
     action begin_array {
 #ifdef __PIKE__	
@@ -199,7 +202,7 @@ struct depth {
 //	free(last);
     }
 
-    array := ( myspace* . (any - myspace) >descend >{ fhold; fgoto value;} . myspace* . (','  |  ']' @ascend ) >add_array )*;
+    array := ( myspace* . (any - myspace) >descend >{ fhold; fgoto value;} . myspace* . (','  |  ']' @ascend @jump ) >add_array )*;
 
     value = (myspace* . (
 		  '"' >{ fgoto string; } |
@@ -207,7 +210,8 @@ struct depth {
 		  '[' >begin_array >{ fgoto array; }
 		 ) . myspace* );
 
-    variable_name = '_' . (alpha | '_')+;
+    method = '_' . (alpha | '_')+;
+    variable_name = [:=+-?] . method;
     variable = variable_name >descend >mark >begin_string
 	    . '\t' >string_append >end_string @ascend @{ cur->key = last; }
 	    . value >descend . '\n' >add_mapping;
@@ -220,7 +224,7 @@ struct depth {
 	}
     }
 
-    main := variable* . variable_name >store_vars >mark >begin_string . '\n' >string_append >end_string @{ done = 1; };
+    main := variable* . method >store_vars >mark >begin_string . '\n' >string_append >end_string @{ done = 1; };
 }%%
 
 #ifdef __PIKE__
@@ -272,10 +276,11 @@ PIKEFUN int parse(string data, object o) {
     %% write init;
     %% write exec;
 
+
     if ( done != 1 ) {
 	free(cur);
+	Pike_error("length: %d\t cur: %d\t last: %d\t at '%.*s'\n", data->len, cur->state, last->state, MINIMUM(10, (int)(pe - p)), p);
 	//free_string_builder(&s);
-	RETURN (INT_TYPE)0;
     }
 
     c = find_identifier("mc", prog);
@@ -296,7 +301,7 @@ PIKEFUN int parse(string data, object o) {
     //free(cur);
     //free_string_builder(&s);
 
-    RETURN (INT_TYPE)1;
+    RETURN (INT_TYPE)0;
 }
 
 #else

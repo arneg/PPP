@@ -9,7 +9,7 @@ ps: psyc.o
 	gcc -g -o psyc psyc.o
 
 pike: psyc.rl
-	$(RAGEL) psyc.rl | $(RLCODEGEN) -G2 -o cmod/psyc.cmod && (cd cmod/ && pike -x module)
+	$(RAGEL) -e psyc.rl | $(RLCODEGEN) -G2 -o cmod/psyc.cmod && (cd cmod/ && pike -x module)
 
 psyc.c: psyc.rl
 	$(RAGEL) psyc.rl | $(RLCODEGEN) -G2 -o psyc.c
@@ -23,4 +23,4 @@ psyc.ps: psyc.rl
 distclean clean:
 	rm -Rf *.o psyc.c psyc psyc.ps
 test:
-	pike -DDEBUG=50 -I../lib -M../lib test.pike
+	pike -I../lib -M../lib test.pike
