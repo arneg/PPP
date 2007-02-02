@@ -54,7 +54,7 @@ struct depth {
     }
 
     action free {
-	free(last);
+	//free(last);
     }
 
     action ascend {
@@ -159,8 +159,6 @@ struct depth {
 #ifdef __PIKE__
 	mapping_insert(cur->var.u.mapping, &cur->key->var, &last->var);
 #endif
-	free(cur->key);
-	free(last);
     }
 
     alphtype char;
@@ -196,9 +194,9 @@ struct depth {
     action add_array {
 #ifdef __PIKE__	
 	
-	cur->var.u.array = append_array(cur->var.u.array, last->var);
+	cur->var.u.array = append_array(cur->var.u.array, &last->var);
 #endif
-	free(last);
+//	free(last);
     }
 
     array := ( myspace* . (any - myspace) >descend >{ fhold; fgoto value;} . myspace* . (','  |  ']' @ascend ) >add_array )*;
@@ -210,9 +208,19 @@ struct depth {
 		 ) . myspace* );
 
     variable_name = '_' . (alpha | '_')+;
-    variable = variable_name . '\t' . value >descend . '\n';
+    variable = variable_name >descend >mark >begin_string
+	    . '\t' >string_append >end_string @ascend @{ cur->key = last; }
+	    . value >descend . '\n' >add_mapping;
 
-    main := variable* . variable_name . '\n' @{ done = 1; };
+    action store_vars {
+	// a check to find out if any vars were found.
+	if (cur->var.type == PIKE_T_MAPPING) {
+	    c = find_identifier("vars", prog);
+	    object_low_set_index(o, c, &(cur->var));
+	}
+    }
+
+    main := variable* . variable_name >store_vars >mark >begin_string . '\n' >string_append >end_string @{ done = 1; };
 }%%
 
 #ifdef __PIKE__
@@ -237,40 +245,58 @@ PIKEFUN int parse(string data, object o) {
     // we wont be building more than one string at once.
     struct string_builder s;
     struct state fsm;
+    struct program *prog;
+
+    if (!o || !(prog=o->prog)) {
+	Pike_error("Lookup in destructed object.\n");
+    }
 
     if (data->size_shift != 0) {
 	Pike_error("Size shift != 0.");
 	// no need to return. does a longjmp
     }
-#if 0
-void object_set_index(struct object *o,                                                                                   
-		      struct svalue *index,                                                                               
-		      struct svalue *from)
-#endif
 
     // length n can be alot but is certainly enough.
     init_string_builder(&s, 1);
-    
+
     p = (char*)STR0(data);
     pe = p + data->len;
 
     cur = (struct depth*)malloc(sizeof(struct depth));
     cur->level = 0;
 
+    cur->var.type = PIKE_T_MAPPING;
+    cur->var.u.mapping = debug_allocate_mapping(8);
+
     %%
     %% write init;
     %% write exec;
 
-    free(cur);
-    free_string_builder(&s);
-
     if ( done != 1 ) {
+	free(cur);
+	//free_string_builder(&s);
 	RETURN (INT_TYPE)0;
     }
-    
-    // extract the mc. 
 
-    RETURN (INT_TYPE)1;    
+    c = find_identifier("mc", prog);
+    object_low_set_index(o, c, &(cur->var));
+
+    if (pe - p > 0) {
+	reset_string_builder(&s);
+	string_builder_binary_strcat(&s, p, (ptrdiff_t)(pe - p));
+	cur->var.u.string = finish_string_builder(&s);
+    } else {
+	cur->var.u.string = empty_pike_string;
+    }
+
+    c = find_identifier("data", prog);
+    object_low_set_index(o, c, &(cur->var));
+
+    // extract the mc.
+    //free(cur);
+    //free_string_builder(&s);
+
+    RETURN (INT_TYPE)1;
 }
 
 #else

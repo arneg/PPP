@@ -22,3 +22,5 @@ psyc.ps: psyc.rl
 
 distclean clean:
 	rm -Rf *.o psyc.c psyc psyc.ps
+test:
+	pike -DDEBUG=50 -I../lib -M../lib test.pike
