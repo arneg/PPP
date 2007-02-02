@@ -27,10 +27,10 @@ void auth_reply(int s, MMP.Packet p) {
     PSYC.Packet m = p->data;
 
     if (s) {
-	sendmsg(p["_source"], m->reply("_notice_authentication",
+	sendmsg(p->reply(), m->reply("_notice_authentication",
 				       ([ "_location" : m["_location"] ]), 0));	
     } else {
-	sendmsg(p["_source"], m->reply("_error_authentication",
+	sendmsg(p->reply(), m->reply("_error_authentication",
 				       ([ "_location" : m["_location"] ]), 0));	
     }
 }
@@ -39,7 +39,7 @@ int postfilter_request_authentication(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
 
     if (!has_index(m->vars, "_location")) {
-	sendmsg(p["_source"], m->reply("_error_invalid_request_authentication"));
+	sendmsg(p->reply(), m->reply("_error_invalid_request_authentication"));
 	return PSYC.Handler.STOP;
     }
     
@@ -104,7 +104,7 @@ int filter_notice_authentication(MMP.Packet p, mapping _v, mapping _m) {
 }
 
 int has_identification(MMP.Packet p, mapping _v) {
-    return has_index(p->vars, "_source_identification");
+    return has_index(p->vars, "_source_identification") || has_index(p->vars, "_source_identification_reply");
 }
 
 void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {

@@ -24,6 +24,7 @@ constant _ = ([
 ]);
 
 int postfilter_request_store_lock(MMP.Packet p, mapping _v, mapping _m) {
+
     return _set(p, _v, _m, "_store_lock", storage->set_lock);
 }
 

@@ -51,7 +51,7 @@ class Packet {
     string _sprintf(int format) {
 	switch (format) {
 	    case 'O':
-#if defined(DEBUG) && DEBUG < 3
+#if defined(DEBUG) && DEBUG > 3
 		return sprintf("PSYC.Packet(%O, %O)", mc, vars);
 #else
 		return sprintf("PSYC.Packet(%O)", mc);
@@ -200,12 +200,12 @@ string|String.Buffer render(Packet o, void|String.Buffer to) {
 
 // returns a Packet or an error string
 #ifdef LOVE_TELNET
-Packet parse(string data, function parse_JSON, string|void linebreak) {
+Packet parse(string data, function parse_JSON, string|void linebreak, object|void packet) {
     if (linebreak == 0) linebreak = "\n";
 # define LL	linebreak
 # define LD	sizeof(linebreak)
 #else
-Packet parse(string data, function parse_JSON) {
+Packet parse(string data, function parse_JSON, object|void packet) {
 # define LL	"\n"
 # define LD	1
 #endif
@@ -213,7 +213,7 @@ Packet parse(string data, function parse_JSON) {
     string key, lastkey; 
     mixed lastval, val;
 
-    Packet packet = Packet();
+    if (!packet) packet = Packet();
     packet->vars = ([]);
     packet->cache = data;
 
