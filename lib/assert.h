@@ -1,11 +1,11 @@
 #ifndef _ASSERT_H
 # define _ASSERT_H
+
 # if (defined(DEBUG) && !defined(NO_ASSERT)) || defined(ASSERT)
-#  define assert(x)	if (!(x)) error("Assertion (" #x ") failed.\n")
+#  define assert(x)	enforce(x)
 # else
-#  define assert(x)
+#  define assert(x)	(0)
 # endif
 
-# define enforce(x)	if(!(x)) error("Enforcing (" #x ") with this " \
-				       "throw.\n")
+# define enforce(x)	(!(x) && error("Assertion (" #x ") failed.\n"))
 #endif
