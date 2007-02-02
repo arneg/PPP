@@ -7,5 +7,5 @@
 # endif
 
 # define enforce(x)	if(!(x)) error("Enforcing (" #x ") with this " \
-				       "throw.")
+				       "throw.\n")
 #endif
