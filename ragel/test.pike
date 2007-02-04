@@ -24,10 +24,10 @@ int main() {
     write("c: %O\n", a);
 
     write("c parser used %f\n", gauge{
-	for (int i = 0; i < 100000; i++) Public.Parser.PSYC.parse(p1, a);
+	Public.Parser.PSYC.parse(p1, a);
     });
     write("pike parser used %f\n", gauge{
-	for (int i = 0; i < 100000; i++) PSYC.parse(p1, parse_JSON, a);
+	PSYC.parse(p1, parse_JSON, a);
     });
 
     return 0;

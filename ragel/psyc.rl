@@ -49,16 +49,20 @@ struct depth {
 	    exit(-1);
 #endif
 	}
+
+	memset(cur, 0, sizeof(struct depth));
 	cur->level = last->level+1;
 	cur->up = last;
     }
 
-    action free {
-	//free(last);
-    }
-
     action ascend {
 	last = cur;
+	free(last);
+#ifdef __PIKE__
+	if (last->var.type == PIKE_T_MAPPING) {
+	    free(last->key);
+	}
+#endif
 	cur = cur->up;
 
 	if (cur == NULL) {
@@ -267,6 +271,7 @@ PIKEFUN int parse(string data, object o) {
     pe = p + data->len;
 
     cur = (struct depth*)malloc(sizeof(struct depth));
+    memset(cur, 0, sizeof(struct depth));
     cur->level = 0;
 
     cur->var.type = PIKE_T_MAPPING;
@@ -298,7 +303,7 @@ PIKEFUN int parse(string data, object o) {
     object_low_set_index(o, c, &(cur->var));
 
     // extract the mc.
-    //free(cur);
+    free(cur);
     //free_string_builder(&s);
 
     RETURN (INT_TYPE)0;
