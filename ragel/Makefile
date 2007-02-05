@@ -1,5 +1,5 @@
 RAGEL = ragel
-RLCODEGEN = rlcodegen
+RLCODEGEN = rlcodegen -G2
 
 all: psyc
 
@@ -9,13 +9,25 @@ ps: psyc.o
 	gcc -g -o psyc psyc.o
 
 pike: psyc.rl
-	$(RAGEL) -e psyc.rl | $(RLCODEGEN) -G2 -o cmod/psyc.cmod && (cd cmod/ && pike -x module)
+	$(RAGEL) -e psyc.rl | $(RLCODEGEN) -o cmod/psyc.cmod && (cd cmod/ && pike -x module)
 
 psyc.c: psyc.rl
-	$(RAGEL) psyc.rl | $(RLCODEGEN) -G2 -o psyc.c
+	$(RAGEL) psyc.rl | $(RLCODEGEN) -o psyc.c
 
 psyc.ps: psyc.rl
 	$(RAGEL) psyc.rl | $(RLCODEGEN) -Vp | dot -Tps > psyc.ps
+
+json_string.c: json_string.rl
+	$(RAGEL) json_string.rl | $(RLCODEGEN) -o json_string.c
+
+json.c: json.rl json_string.c
+	$(RAGEL) json.rl | $(RLCODEGEN) -o json.c
+
+json.ps: json.rl json_string.rl json_mapping.rl json_array.rl
+	$(RAGEL) json.rl | $(RLCODEGEN) -Vp | dot -Tps > json.ps
+	$(RAGEL) json_string.rl | $(RLCODEGEN) -Vp | dot -Tps > json_string.ps
+	$(RAGEL) json_mapping.rl | $(RLCODEGEN) -Vp | dot -Tps > json_mapping.ps
+	$(RAGEL) json_array.rl | $(RLCODEGEN) -Vp | dot -Tps > json_array.ps
 
 %.o: %.c
 	gcc -Wall -O3 -g -c -o $@ $<
