@@ -21,12 +21,11 @@ struct depth {
     struct depth *up;
     struct depth *key;
 #ifdef __PIKE__
-    struct svalue var;
+    struct svalue *var;
 #endif
     int level;
     int state;
 };
-
 
 %%{
     machine psyc;
@@ -55,19 +54,22 @@ struct depth {
 	cur->up = last;
     }
 
+    action free {
+	//free(last);
+    }
+
     action ascend {
 	last = cur;
-	free(last);
 #ifdef __PIKE__
-	if (last->var.type == PIKE_T_MAPPING) {
-	    free(last->key);
+	if (last->var->type == PIKE_T_MAPPING) {
+	    //free(last->key);
 	}
 #endif
 	cur = cur->up;
 
 	if (cur == NULL) {
 #ifdef __PIKE__
-	    Pike_error("pointer gone to heaven!");
+	    Pike_error("pointer gone to heaven at! length: %d\t cur: %d\t last: %d\t at '%.*s'\n", data->len, cur->state, last->state, MINIMUM(10, (int)(pe - p)), p);
 #else
 	    printf("pointer gone to heaven!\n");
 	    exit(-1);
@@ -118,8 +120,9 @@ struct depth {
 
     action end_string {
 #ifdef __PIKE__
-	cur->var.type = PIKE_T_STRING;
-	cur->var.u.string = finish_string_builder(&s);
+	cur->var = (struct svalue*)malloc(sizeof(struct svalue));
+	cur->var->type = PIKE_T_STRING;
+	cur->var->u.string = finish_string_builder(&s);
 #else
 	printf("string: '%.*s' length: %d\n", (int)(fpc - i), i, fpc - i);
 #endif
@@ -149,8 +152,9 @@ struct depth {
 
     action begin_mapping {
 #ifdef __PIKE__
-	cur->var.type = PIKE_T_MAPPING;
-	cur->var.u.mapping = debug_allocate_mapping(8);
+	cur->var = (struct svalue*)malloc(sizeof(struct svalue));
+	cur->var->type = PIKE_T_MAPPING;
+	cur->var->u.mapping = debug_allocate_mapping(8);
 #else
 	printf("beginning mapping.\n");
 #endif
@@ -164,7 +168,7 @@ struct depth {
 
     action add_mapping {
 #ifdef __PIKE__
-	mapping_insert(cur->var.u.mapping, &cur->key->var, &last->var);
+	mapping_insert(cur->var->u.mapping, cur->key->var, last->var);
 #endif
     }
 
@@ -193,15 +197,16 @@ struct depth {
 
     action begin_array {
 #ifdef __PIKE__	
-	cur->var.type = PIKE_T_ARRAY;
-	cur->var.u.array = low_allocate_array(0, 8);
+	cur->var = (struct svalue*)malloc(sizeof(struct svalue));
+	cur->var->type = PIKE_T_ARRAY;
+	cur->var->u.array = low_allocate_array(0, 8);
 #endif
     }
 
     action add_array {
 #ifdef __PIKE__	
 	
-	cur->var.u.array = append_array(cur->var.u.array, &last->var);
+	cur->var->u.array = append_array(cur->var->u.array, last->var);
 #endif
 //	free(last);
     }
@@ -214,21 +219,21 @@ struct depth {
 		  '[' >begin_array >{ fgoto array; }
 		 ) . myspace* );
 
-    method = '_' . (alpha | '_')+;
+    method = '_' . (alnum | '_')+;
     variable_name = [:=+-?] . method;
-    variable = variable_name >descend >mark >begin_string
+    var = variable_name >descend >mark >begin_string
 	    . '\t' >string_append >end_string @ascend @{ cur->key = last; }
 	    . value >descend . '\n' >add_mapping;
 
     action store_vars {
 	// a check to find out if any vars were found.
-	if (cur->var.type == PIKE_T_MAPPING) {
+	if (cur->var->type == PIKE_T_MAPPING) {
 	    c = find_identifier("vars", prog);
-	    object_low_set_index(o, c, &(cur->var));
+	    object_low_set_index(o, c, cur->var);
 	}
     }
 
-    main := variable* . method >store_vars >mark >begin_string . '\n' >string_append >end_string @{ done = 1; };
+    main := var* . method >store_vars >mark >begin_string . '\n' >string_append >end_string @{ done = 1; };
 }%%
 
 #ifdef __PIKE__
@@ -274,8 +279,9 @@ PIKEFUN int parse(string data, object o) {
     memset(cur, 0, sizeof(struct depth));
     cur->level = 0;
 
-    cur->var.type = PIKE_T_MAPPING;
-    cur->var.u.mapping = debug_allocate_mapping(8);
+    cur->var = (struct svalue*)malloc(sizeof(struct svalue));
+    cur->var->type = PIKE_T_MAPPING;
+    cur->var->u.mapping = debug_allocate_mapping(8);
 
     %%
     %% write init;
@@ -283,27 +289,27 @@ PIKEFUN int parse(string data, object o) {
 
 
     if ( done != 1 ) {
-	free(cur);
+	//if (cur) free(cur);
 	Pike_error("length: %d\t cur: %d\t last: %d\t at '%.*s'\n", data->len, cur->state, last->state, MINIMUM(10, (int)(pe - p)), p);
 	//free_string_builder(&s);
     }
 
     c = find_identifier("mc", prog);
-    object_low_set_index(o, c, &(cur->var));
+    object_low_set_index(o, c, cur->var);
 
     if (pe - p > 0) {
 	reset_string_builder(&s);
 	string_builder_binary_strcat(&s, p, (ptrdiff_t)(pe - p));
-	cur->var.u.string = finish_string_builder(&s);
+	cur->var->u.string = finish_string_builder(&s);
     } else {
-	cur->var.u.string = empty_pike_string;
+	cur->var->u.string = empty_pike_string;
     }
 
     c = find_identifier("data", prog);
-    object_low_set_index(o, c, &(cur->var));
+    object_low_set_index(o, c, cur->var);
 
     // extract the mc.
-    free(cur);
+    //free(cur);
     //free_string_builder(&s);
 
     RETURN (INT_TYPE)0;
