@@ -1,5 +1,5 @@
 // vim:syntax=ragel
-#define HEX2DEC(x) ((x) <= '9' ? (x) - '0' : ((x) < 'G') ? (x) - 'A' : (x) - 'a')
+#define HEX2DEC(x) ((x) <= '9' ? (x) - '0' : ((x) < 'G') ? (x) - 'A' + 10 : (x) - 'a' + 10)
 
 %%{
     machine JSON_string;
