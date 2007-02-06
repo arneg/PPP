@@ -15,7 +15,7 @@
 	i = _parse_JSON(fpc, pe, value, s);
 
 	if (i == NULL) {
-	    free(value);
+	//    free(value);
 	    fbreak;
 	}
 
@@ -35,7 +35,7 @@
 				']' -> final |
 				',' . myspace* -> start 
 			      )
-			     );
+			     ) %*{ fbreak; };
 }%%
 
 char *_parse_JSON_array(char *p, char *pe, struct svalue *var, struct string_builder *s) {
@@ -49,11 +49,11 @@ char *_parse_JSON_array(char *p, char *pe, struct svalue *var, struct string_bui
     %% write init;
     %% write exec;
 
-    if (cs >= JSON_array_first_final) {
-	return p + 1;
+    if (i != NULL && cs >= JSON_array_first_final) {
+	return p;
     }
     // error
-    do_free_array(var->u.array);
+    //do_free_array(var->u.array);
     return NULL;
 }
 

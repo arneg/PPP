@@ -8,11 +8,31 @@
 #include "array.h"
 #include "module.h"
 
-char *_parse_JSON(char* p, char* pe, struct svalue *var, struct string_builder *s); 
-char *_parse_JSON_mapping(char* p, char* pe, struct svalue *var, struct string_builder *s); 
-char *_parse_JSON_array(char* p, char* pe, struct svalue *var, struct string_builder *s); 
-char *_parse_JSON_number(char* p, char* pe, struct svalue *var, struct string_builder *s); 
-char *_parse_JSON_string(char* p, char* pe, struct svalue *var, struct string_builder *s); 
+char *_parse_JSON(char* p, char* pe, 
+#ifndef USE_PIKE_STACK
+		  struct svalue *var, 
+#endif
+		  struct string_builder *s); 
+char *_parse_JSON_mapping(char* p, char* pe, 
+#ifndef USE_PIKE_STACK
+			  struct svalue *var, 
+#endif
+			  struct string_builder *s); 
+char *_parse_JSON_array(char* p, char* pe, 
+#ifndef USE_PIKE_STACK
+			struct svalue *var, 
+#endif
+			struct string_builder *s); 
+char *_parse_JSON_number(char* p, char* pe, 
+#ifndef USE_PIKE_STACK
+			 struct svalue *var, 
+#endif
+			 struct string_builder *s); 
+char *_parse_JSON_string(char* p, char* pe, 
+#ifndef USE_PIKE_STACK
+			 struct svalue *var, 
+#endif
+			 struct string_builder *s); 
 
 #include "json_string.c"
 #include "json_number.c"
@@ -29,25 +49,41 @@ struct state {
     write data;
 
     action parse_string {
-	i = _parse_JSON_string(fpc, pe, var, s);
+	i = _parse_JSON_string(fpc, pe, 
+#ifndef USE_PIKE_STACK
+			       var, 
+#endif
+			       s);
 	if (i == NULL) fbreak;
 	fexec i;
     }
 
     action parse_mapping {
-	i = _parse_JSON_mapping(fpc, pe, var, s);
+	i = _parse_JSON_mapping(fpc, pe, 
+#ifndef USE_PIKE_STACK
+				var, 
+#endif
+				s);
 	if (i == NULL) fbreak;
 	fexec i;
     }
 
     action parse_array {
-	i = _parse_JSON_array(fpc, pe, var, s);
+	i = _parse_JSON_array(fpc, pe, 
+#ifndef USE_PIKE_STACK
+			      var, 
+#endif
+			      s);
 	if (i == NULL) fbreak;
 	fexec i;
     }
 
     action parse_number {
-	i = _parse_JSON_number(fpc, pe, var, s);
+	i = _parse_JSON_number(fpc, pe, 
+#ifndef USE_PIKE_STACK
+			       var, 
+#endif
+			       s);
 	if (i == NULL) fbreak;
 	fexec i;
     }
@@ -65,18 +101,22 @@ struct state {
 			array_start >parse_array |
 			'true' |
 			'false' |
-			'null') . myspace*;
+			'null') . myspace* %*{ fbreak; };
 }%%
 
-char *_parse_JSON(char *p, char *pe, struct svalue *var, struct string_builder *s) {
+char *_parse_JSON(char *p, char *pe, 
+#ifndef USE_PIKE_STACK
+		  struct svalue *var, 
+#endif
+		  struct string_builder *s) {
     char *i = p;
     int cs;
 
     %% write init;
     %% write exec;
 
-    if (cs >= JSON_first_final) {
-	return p + 1;
+    if (i != NULL && cs >= JSON_first_final) {
+	return p;
     }
 
     return NULL;
@@ -98,10 +138,13 @@ char *_parse_JSON(char *p, char *pe, struct svalue *var, struct string_builder *
 PIKEFUN mixed parse(string data) {
     struct string_builder s;
     init_string_builder(&s, 1);
+#ifndef USE_PIKE_STACK
     struct svalue *var;
+#endif
     char *ret;
     // we wont be building more than one string at once.
 
+#ifndef USE_PIKE_STACK
     var = (struct svalue *)malloc(sizeof(struct svalue));
 
     if (var == NULL) {
@@ -109,21 +152,28 @@ PIKEFUN mixed parse(string data) {
     }
 
     memset(var, 0, sizeof(struct svalue));
+#endif
 
     if (data->size_shift != 0) {
 	Pike_error("Size shift != 0.");
 	// no need to return. does a longjmp
     }
 
+    pop_stack();
     ret = (char*)STR0(data);
-    ret = _parse_JSON(ret, ret + data->len, var, &s);
+    ret = _parse_JSON(ret, ret + data->len, 
+#ifndef USE_PIKE_STACK
+		      var, 
+#endif
+		      &s);
 
     if (ret == NULL) {
 	Pike_error("Error while parsing JSON!\n");
     }
 
-    pop_stack();
+#ifndef USE_PIKE_STACK
     push_svalue(var);
+#endif
     return;
 }
 

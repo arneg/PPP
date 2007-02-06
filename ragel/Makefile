@@ -45,4 +45,4 @@ json.ps: json.rl json_string.rl json_mapping.rl json_array.rl json_number.rl
 distclean clean:
 	rm -Rf *.o psyc.c psyc psyc.ps
 test:
-	pike -I../lib -M../lib test.pike
+	pike -I../lib -M../lib test_json.pike

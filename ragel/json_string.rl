@@ -51,25 +51,42 @@
 		       ["\\/bfnrt] >add_unquote -> start |
 		       'u' . (xdigit >hex1 . xdigit >hex2){2} -> start
 		   ) @mark_next
-		  ) >mark;
+		  ) >mark %*{ fbreak; };
 }%%
 
-char *_parse_JSON_string(char *p, char *pe, struct svalue *var, struct string_builder *s) {
+char *_parse_JSON_string(char *p, char *pe, 
+#ifndef USE_PIKE_STACK
+			 struct svalue *var, 
+#endif
+			 struct string_builder *s) {
     char temp = 0;
     char *mark = 0;
     int cs;
-
     init_string_builder(s, 1);
+
+#ifdef DEBUG
+    printf(">> STRING\nstarting to parse string at %.*s \n", MINIMUM(pe - p, 10), p);
+#endif
 
     %% write init;
     %% write exec;
 
     if (cs < JSON_string_first_final) {
+#ifdef DEBUG
+	printf("failed parsing string at %.*s in state %d.\n", MINIMUM(pe - p, 10),p, cs);
+#endif
 	return NULL;
     }
 
+#ifndef USE_PIKE_STACK
     var->type = PIKE_T_STRING;
     var->u.string = finish_string_builder(s);
+#else
+    push_string(finish_string_builder(s));
+#endif
 
-    return p + 1;
+#ifdef DEBUG
+    printf("stopping parsing string at %c in state %d.\n<< STRING\n", *p, cs);
+#endif
+    return p;
 }
