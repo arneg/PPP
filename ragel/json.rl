@@ -1,17 +1,24 @@
 // vim:syntax=ragel
 #include <stdio.h>
-#ifdef __PIKE__
-# include "global.h"
-# include "interpret.h"
-# include "stralloc.h"
-# include "mapping.h"
-# include "svalue.h"
-# include "array.h"
-# include "module.h"
-#else
-# include <string.h>
-# include <stdlib.h>
-#endif
+#include "global.h"
+#include "interpret.h"
+#include "stralloc.h"
+#include "mapping.h"
+#include "svalue.h"
+#include "array.h"
+#include "module.h"
+
+char *_parse_JSON(char* p, char* pe, struct svalue *var, struct string_builder *s); 
+char *_parse_JSON_mapping(char* p, char* pe, struct svalue *var, struct string_builder *s); 
+char *_parse_JSON_array(char* p, char* pe, struct svalue *var, struct string_builder *s); 
+char *_parse_JSON_number(char* p, char* pe, struct svalue *var, struct string_builder *s); 
+char *_parse_JSON_string(char* p, char* pe, struct svalue *var, struct string_builder *s); 
+
+#include "json_string.c"
+#include "json_number.c"
+#include "json_array.c"
+#include "json_mapping.c"
+
 
 struct state {
     int cs, top;
@@ -19,27 +26,62 @@ struct state {
 
 %%{
     machine JSON;
-    write data noerror nofinal;
+    write data nofinal;
 
-    value_start = ["[{\-+.tf] | digit;
+    action parse_string {
+	i = _parse_JSON_string(fpc, pe, var, s);
+	if (i == NULL) fbreak;
+	fexec i;
+    }
 
+    action parse_mapping {
+	i = _parse_JSON_mapping(fpc, pe, var, s);
+	if (i == NULL) fbreak;
+	fexec i;
+    }
+
+    action parse_array {
+	i = _parse_JSON_array(fpc, pe, var, s);
+	if (i == NULL) fbreak;
+	fexec i;
+    }
+
+    action parse_number {
+	i = _parse_JSON_number(fpc, pe, var, s);
+	if (i == NULL) fbreak;
+	fexec i;
+    }
+
+    number_start = [\-+.] | digit;
+    array_start = '[';
+    mapping_start = '{';
+    string_start = '"';
+    value_start = number_start | array_start | mapping_start | string_start;
     myspace = ' ';
 
-    main := myspace*;
+    main := myspace* . (number_start >parse_number |
+			string_start >parse_string |
+			mapping_start >parse_mapping |
+			array_start >parse_array |
+			'true' |
+			'false' |
+			'null') . myspace*;
 }%%
 
-char *_parse_JSON(char *p, char *pe, struct svalue *var) {
-    struct state fsm;
-
-    init_string_builder(&s, 1);
+char *_parse_JSON(char *p, char *pe, struct svalue *var, struct string_builder *s) {
+    char *i = p;
+    int cs;
 
     %% write init;
     %% write exec;
 
-    struct string_builder s;
+    if (cs == JSON_error || i == NULL) {
+	return NULL;
+    }
+
+    return p;
 }
 
-#ifdef __PIKE__
 /*! @module Public
  */
 
@@ -49,27 +91,29 @@ char *_parse_JSON(char *p, char *pe, struct svalue *var) {
 /*! @module PSYC
  */
 
-/*! @decl mapping parse(string s)
+/*! @decl array|mapping|string|float|int parse_JSON(string s)
  *!
- *! Parses a JSON-formatted string and returns the corresponding mapping.
+ *! Parses a JSON-formatted string and returns the corresponding pike data type.
  */
 PIKEFUN mixed parse_JSON(string data) {
+    struct string_builder s;
+    init_string_builder(&s, 1);
+    struct svalue var;
+    char *ret;
     // we wont be building more than one string at once.
-
-    if (!o || !(prog=o->prog)) {
-	Pike_error("Lookup in destructed object.\n");
-    }
 
     if (data->size_shift != 0) {
 	Pike_error("Size shift != 0.");
 	// no need to return. does a longjmp
     }
 
-    // length n can be alot but is certainly enough.
+    ret = (char*)STR0(data);
+    ret = _parse_JSON(ret, ret + data->len, &var, &s);
 
+    if (ret == NULL) {
+	Pike_error("Error while parsing JSON!\n");
+    }
 
-
-    RETURN (INT_TYPE)0;
+    RETURN &var;
 }
-#endif
 

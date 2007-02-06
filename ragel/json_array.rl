@@ -1,6 +1,7 @@
 // vim:syntax=ragel
 %%{
     machine JSON_array;
+    write data nofinal;
 
     action parse_value {
 	value = (struct svalue*)malloc(sizeof(struct svalue));

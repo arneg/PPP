@@ -3,7 +3,7 @@
 
 %%{
     machine JSON_string;
-    write data;
+    write data nofinal;
 
     action hex1 {
 	temp += HEX2DEC(fc) * 16;
@@ -33,8 +33,8 @@
     action mark_next { mark = fpc + 1; }
 
     action string_append {
-	if (fpc - i > 0) {                                                                                                            
-            string_builder_binary_strcat(s, i, (ptrdiff_t)(fpc - i));                                                                
+	if (fpc - mark > 0) {
+            string_builder_binary_strcat(s, mark, (ptrdiff_t)(fpc - mark));
         }
     }
 
@@ -67,6 +67,6 @@ char *_parse_JSON_string(char *p, char *pe, struct svalue *var, struct string_bu
 
     var->type = PIKE_T_STRING;
     var->u.string = finish_string_builder(s);
-    
+
     return p;
 }
