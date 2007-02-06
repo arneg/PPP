@@ -1,0 +1,14 @@
+@make_variables@
+VPATH=@srcdir@
+OBJS=json2.o
+MODDIR=Public.pmod/Parser.pmod/
+MODNAME=JSON2
+AUTODOC_SRC_IN=json.cmod
+
+MODULE_LDFLAGS = @LDFLAGS@ @LIBS@ 
+MODULE_CFLAGS = -std=gnu99 -D__PIKE__ -I..
+
+CONFIG_HEADERS = @CONFIG_HEADERS@
+
+@dynamic_module_makefile@
+@dependencies@
