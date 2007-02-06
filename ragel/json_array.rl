@@ -1,7 +1,7 @@
 // vim:syntax=ragel
 %%{
     machine JSON_array;
-    write data nofinal;
+    write data;
 
     action parse_value {
 	value = (struct svalue*)malloc(sizeof(struct svalue));
@@ -43,10 +43,11 @@ char *_parse_JSON_array(char *p, char *pe, struct svalue *var, struct string_bui
     %% write init;
     %% write exec;
 
-    // error
-    if (cs == JSON_array_error || i == NULL) {
-	do_free_array(var->u.array);
-	return NULL;
+    if (cs >= JSON_array_first_final) {
+	return p + 1;
     }
+    // error
+    do_free_array(var->u.array);
+    return NULL;
 }
 

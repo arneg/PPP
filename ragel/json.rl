@@ -26,7 +26,7 @@ struct state {
 
 %%{
     machine JSON;
-    write data nofinal;
+    write data;
 
     action parse_string {
 	i = _parse_JSON_string(fpc, pe, var, s);
@@ -75,11 +75,11 @@ char *_parse_JSON(char *p, char *pe, struct svalue *var, struct string_builder *
     %% write init;
     %% write exec;
 
-    if (cs == JSON_error || i == NULL) {
-	return NULL;
+    if (cs >= JSON_first_final) {
+	return p + 1;
     }
 
-    return p;
+    return NULL;
 }
 
 /*! @module Public
@@ -95,7 +95,7 @@ char *_parse_JSON(char *p, char *pe, struct svalue *var, struct string_builder *
  *!
  *! Parses a JSON-formatted string and returns the corresponding pike data type.
  */
-PIKEFUN mixed parse_JSON(string data) {
+PIKEFUN mixed parse(string data) {
     struct string_builder s;
     init_string_builder(&s, 1);
     struct svalue var;
@@ -114,6 +114,8 @@ PIKEFUN mixed parse_JSON(string data) {
 	Pike_error("Error while parsing JSON!\n");
     }
 
-    RETURN &var;
+    pop_stack();
+    push_svalue(&var);
+    return;
 }
 

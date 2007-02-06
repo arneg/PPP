@@ -1,7 +1,7 @@
 // vim:syntax=ragel
 %%{
     machine JSON_mapping;
-    write data nofinal;
+    write data;
 
     action parse_value {
 	value = (struct svalue*)malloc(sizeof(struct svalue));
@@ -60,10 +60,11 @@ char *_parse_JSON_mapping(char *p, char *pe, struct svalue *var, struct string_b
     %% write init;
     %% write exec;
 
-    // error
-    if (cs == JSON_mapping_error || i == NULL) {
-	do_free_mapping(var->u.mapping);
-	return NULL;
+    if (cs >= JSON_mapping_first_final) {
+	return p + 1;
     }
+    // error
+    do_free_mapping(var->u.mapping);
+    return NULL;
 }
 

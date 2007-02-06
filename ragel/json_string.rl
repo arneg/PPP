@@ -3,7 +3,7 @@
 
 %%{
     machine JSON_string;
-    write data nofinal;
+    write data;
 
     action hex1 {
 	temp += HEX2DEC(fc) * 16;
@@ -61,12 +61,12 @@ char *_parse_JSON_string(char *p, char *pe, struct svalue *var, struct string_bu
     %% write init;
     %% write exec;
 
-    if (cs == JSON_string_error ) {
+    if (cs < JSON_string_first_final) {
 	return NULL;
     }
 
     var->type = PIKE_T_STRING;
     var->u.string = finish_string_builder(s);
 
-    return p;
+    return p + 1;
 }
