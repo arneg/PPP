@@ -5,6 +5,12 @@
 
     action parse_value {
 	value = (struct svalue*)malloc(sizeof(struct svalue));
+
+	if (value == NULL) {
+	    i = NULL;
+	    fbreak;
+	}
+
 	memset(value, 0, sizeof(struct svalue));
 	i = _parse_JSON(fpc, pe, value, s);
 

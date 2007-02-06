@@ -98,9 +98,17 @@ char *_parse_JSON(char *p, char *pe, struct svalue *var, struct string_builder *
 PIKEFUN mixed parse(string data) {
     struct string_builder s;
     init_string_builder(&s, 1);
-    struct svalue var;
+    struct svalue *var;
     char *ret;
     // we wont be building more than one string at once.
+
+    var = (struct svalue *)malloc(sizeof(struct svalue));
+
+    if (var == NULL) {
+	Pike_error("malloc failed during JSON parse.\n");
+    }
+
+    memset(var, 0, sizeof(struct svalue));
 
     if (data->size_shift != 0) {
 	Pike_error("Size shift != 0.");
@@ -108,14 +116,14 @@ PIKEFUN mixed parse(string data) {
     }
 
     ret = (char*)STR0(data);
-    ret = _parse_JSON(ret, ret + data->len, &var, &s);
+    ret = _parse_JSON(ret, ret + data->len, var, &s);
 
     if (ret == NULL) {
 	Pike_error("Error while parsing JSON!\n");
     }
 
     pop_stack();
-    push_svalue(&var);
+    push_svalue(var);
     return;
 }
 
