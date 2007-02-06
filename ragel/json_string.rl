@@ -35,6 +35,9 @@
     action string_append {
 	if (fpc - mark > 0) {
             string_builder_binary_strcat(s, mark, (ptrdiff_t)(fpc - mark));
+#ifdef DEBUG
+	    printf("parsed string: '%.*s'\n", (int)(fpc - mark), mark);
+#endif
         }
     }
 

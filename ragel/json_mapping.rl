@@ -21,6 +21,13 @@
 	    fbreak;
 	}
 
+#ifdef DEBUG
+	printf("adding key:");
+	print_svalue(stderr, key);
+	printf("\nand value:");
+	print_svalue(stderr, value);
+	printf("\n");
+#endif
 	mapping_insert(var->u.mapping, key, value);
 	fexec i;
     }
