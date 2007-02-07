@@ -24,16 +24,14 @@
 	printf("value: %p. null: %p\n", i, NULL);
 # endif
 
-	if (i == NULL) {
-	    //free(key);
-	    //free(value);
-	    fbreak;
-	}
 #ifdef USE_PIKE_STACK
 	c++;
-#endif
-
-#ifndef USE_PIKE_STACK
+#else
+	if (i == NULL) {
+	    free(key);
+	    free(value);
+	    fbreak;
+	}
 # ifdef DEBUG
 	printf("adding key:\n");
 	print_svalue(stdout, key);
@@ -64,13 +62,12 @@
 			       s);
 #ifdef USE_PIKE_STACK
 	c++;
-#endif
-
+#else
 	if (i == NULL) {
-	    //free(key);
+	    free(key);
 	    fbreak;
 	}
-
+#endif
 	fexec i;
     }
 
@@ -89,7 +86,7 @@
 			    ',' . myspace* -> start |
 			    '}' -> final
 			)
-		       ) %*{ fbreak; } $!{ printf("error in state %d at '%.*s'\n", fcurs, MINIMUM(pe - p, 10), p); };
+		       ) %*{ fbreak; };
 }%%
 
 char *_parse_JSON_mapping(char *p, char *pe, 
@@ -120,7 +117,11 @@ char *_parse_JSON_mapping(char *p, char *pe,
 #endif
 
 
-    if (i != NULL && cs >= JSON_mapping_first_final) {
+    if (
+#ifndef USE_PIKE_STACK
+	i != NULL && 
+#endif
+	cs >= JSON_mapping_first_final) {
 #ifdef USE_PIKE_STACK
 	f_aggregate_mapping(c);
 #endif
@@ -128,9 +129,12 @@ char *_parse_JSON_mapping(char *p, char *pe,
     }
 #ifdef USE_PIKE_STACK
     pop_n_elems(c);
+
+    Pike_error("Error parsing mapping at '%.*s'.\n", MINIMUM(pe - p, 10), p);
+#else
+    do_free_mapping(var->u.mapping);
 #endif
     // error
-    //do_free_mapping(var->u.mapping);
     return NULL;
 }
 

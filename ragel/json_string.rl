@@ -75,7 +75,12 @@ char *_parse_JSON_string(char *p, char *pe,
 #ifdef DEBUG
 	printf("failed parsing string at %.*s in state %d.\n", MINIMUM(pe - p, 10),p, cs);
 #endif
+
+#ifndef USE_PIKE_STACK
 	return NULL;
+#else
+	Pike_error("Failed to parse string '%.*s'.\n", MINIMUM(pe - p, 10), p);
+#endif
     }
 
 #ifndef USE_PIKE_STACK

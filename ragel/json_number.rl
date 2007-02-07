@@ -6,7 +6,7 @@
 
     # we could be much less specific here.. but i guess its ok to ensure the format not
     # correctness in the sense of sscanf 
-    main := '-'? . ( '0' | ([1-9] . digit*) )? . '.' >{ d = 1; } . digit+ . ([eE] . [+\-] . digit+ )? %~{ fbreak; };
+    main := '-'? . ( '0' | ([1-9] . digit*) )? . '.' >{ d = 1; } . digit+ . ([eE] . [+\-] . digit+ )? %*{ fbreak; };
 }%%
 
 char *_parse_JSON_number(char *p, char *pe, 
@@ -35,9 +35,12 @@ char *_parse_JSON_number(char *p, char *pe,
 #else
 			    &f
 #endif
-			    )) return NULL;
+			    )) 
 #ifdef USE_PIKE_STACK
+		Pike_error("Error parsing float (%.*s) in JSON.", MINIMUM((int)(p - i), 10), i);
 	    push_float(f);
+#else
+		return NULL;
 #endif
 	} else {
 #ifndef USE_PIKE_STACK
@@ -49,12 +52,22 @@ char *_parse_JSON_number(char *p, char *pe,
 #else
 			    &d
 #endif
-			    )) return NULL;
+			    )) 
+#ifdef USE_PIKE_STACK
+		Pike_error("Error parsing integer (%.*s) in JSON.", MINIMUM((int)(p - i), 10), i);
 	    push_int(d);
+#else
+		return NULL;
+#endif
 	}
-	return p + 1;
+	return p;
     }
 
+#ifdef USE_PIKE_STACK
+    Pike_error("Error parsing number (%.*s) in JSON.\n", MINIMUM((int)(pe - i), 10), i);
+    return NULL; // make gcc happy
+#else
     return NULL;
+#endif
 }
 

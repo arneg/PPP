@@ -6,6 +6,7 @@
 #include "mapping.h"
 #include "svalue.h"
 #include "array.h"
+#include "builtin_functions.h"
 #include "module.h"
 
 char *_parse_JSON(char* p, char* pe, 
@@ -39,11 +40,6 @@ char *_parse_JSON_string(char* p, char* pe,
 #include "json_array.c"
 #include "json_mapping.c"
 
-
-struct state {
-    int cs, top;
-};
-
 %%{
     machine JSON;
     write data;
@@ -54,7 +50,9 @@ struct state {
 			       var, 
 #endif
 			       s);
+#ifndef USE_PIKE_STACK
 	if (i == NULL) fbreak;
+#endif
 	fexec i;
     }
 
@@ -64,7 +62,9 @@ struct state {
 				var, 
 #endif
 				s);
+#ifndef USE_PIKE_STACK
 	if (i == NULL) fbreak;
+#endif
 	fexec i;
     }
 
@@ -74,7 +74,9 @@ struct state {
 			      var, 
 #endif
 			      s);
+#ifndef USE_PIKE_STACK
 	if (i == NULL) fbreak;
+#endif
 	fexec i;
     }
 
@@ -84,7 +86,9 @@ struct state {
 			       var, 
 #endif
 			       s);
+#ifndef USE_PIKE_STACK
 	if (i == NULL) fbreak;
+#endif
 	fexec i;
     }
 
@@ -115,10 +119,16 @@ char *_parse_JSON(char *p, char *pe,
     %% write init;
     %% write exec;
 
-    if (i != NULL && cs >= JSON_first_final) {
+    if (
+#ifndef USE_PIKE_STACK
+	i != NULL && 
+#endif
+	cs >= JSON_first_final) {
 	return p;
     }
-
+#ifndef USE_PIKE_STACK
+    Pike_error("Error parsing JSON at '%.*s'\n", MINIMUM((int)(pe - p), 10), p);
+#endif
     return NULL;
 }
 
@@ -167,9 +177,12 @@ PIKEFUN mixed parse(string data) {
 #endif
 		      &s);
 
+#ifndef USE_PIKE_STACK
     if (ret == NULL) {
+	free(var);
 	Pike_error("Error while parsing JSON!\n");
     }
+#endif
 
 #ifndef USE_PIKE_STACK
     push_svalue(var);
