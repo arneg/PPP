@@ -103,9 +103,9 @@ char *_parse_JSON_string(char* p, char* pe,
 			string_start >parse_string |
 			mapping_start >parse_mapping |
 			array_start >parse_array |
-			'true' |
-			'false' |
-			'null') . myspace* %*{ fbreak; };
+			'true' @{ push_int(1); } |
+			'false' @{ push_undefined(); } |
+			'null' @{ push_int(0); } ) . myspace* %*{ fbreak; };
 }%%
 
 char *_parse_JSON(char *p, char *pe, 
