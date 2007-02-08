@@ -3,7 +3,7 @@ VPATH=@srcdir@
 OBJS=psyc.o
 MODDIR=Public.pmod/Parser.pmod/
 MODNAME=PSYC
-AUTODOC_SRC_IN=json.cmod
+AUTODOC_SRC_IN=psyc.cmod
 
 MODULE_LDFLAGS = @LDFLAGS@ @LIBS@ 
 MODULE_CFLAGS = -std=gnu99 -D__PIKE__
