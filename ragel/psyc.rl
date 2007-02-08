@@ -13,230 +13,73 @@
 # include <stdlib.h>
 #endif
 
-struct state {
-    int cs, top;
-};
-
-struct depth {
-    struct depth *up;
-    struct depth *key;
-#ifdef __PIKE__
-    struct svalue *var;
-#endif
-    int level;
-    int state;
-};
+#define push_n_text(T, n) do {						\
+    const char *_ = (T);						\
+    struct svalue *_sp_ = Pike_sp++;                                 	\
+    _sp_->subtype=0;                                                    \
+    _sp_->u.string=make_shared_binary_string(_,n);              	\
+    debug_malloc_touch(_sp_->u.string);                                 \
+    _sp_->type=PIKE_T_STRING;                                           \
+  }while(0)
 
 %%{
     machine psyc;
-    write data noerror nofinal;
+    write data;
 
-    action descend {
-	last = cur;
-	cur->state = ftargs;
-#ifndef __PIKE__
-	printf("descending before state %d at '%c' (pos: %d).\n", ftargs, fc, (int)fpc);
-#endif
-	// TODO: use pikes alloc
-	cur = (struct depth*)malloc(sizeof(struct depth));
+    action parse_key {
+	push_n_text(mark, (ptrdiff_t)(fpc - mark));
+	c++;
+    }
 
-	if (cur == NULL) {
-#ifdef __PIKE__
-	    Pike_error("malloc failed.");
-#else
-	    printf("malloc returned NULLLLLL!!!1!\n");
-	    exit(-1);
-#endif
+    action push_val {
+	if (fpc - mark > 0) {                                                                                                         
+            string_builder_binary_strcat(s, mark, (ptrdiff_t)(fpc - mark));                                                           
+        }
+    }
+
+    action list {
+	list++;
+    }
+
+    action add_newline {
+	string_builder_putchar(s, '\n');
+    }
+
+    action add_list {
+	if (list >= 1) {
+	    f_aggregate(list+1);
+	    c -= list;
+	    list = 0;
 	}
-
-	memset(cur, 0, sizeof(struct depth));
-	cur->level = last->level+1;
-	cur->up = last;
     }
 
-    action free {
-	//free(last);
-    }
-
-    action ascend {
-	last = cur;
-#ifdef __PIKE__
-	if (last->var->type == PIKE_T_MAPPING) {
-	    //free(last->key);
+    action add_last {
+	if (lastmod != 0) {
+	    push_string(finish_string_builder(s));
+	    inti_string_builder(s, 1);
+	    c++;
 	}
-#endif
-	cur = cur->up;
+    }
 
-	if (cur == NULL) {
-#ifdef __PIKE__
-	    Pike_error("pointer gone to heaven at! length: %d\t cur: %d\t last: %d\t at '%.*s'\n", data->len, cur->state, last->state, MINIMUM(10, (int)(pe - p)), p);
-#else
-	    printf("pointer gone to heaven!\n");
-	    exit(-1);
-#endif
+    action curmod { lastmod = mod; mod = fc; }
+    action mark { mark = fpc; }
+    action markprev { mark = fpc-1; }
+    action checkmod { if (lasmod == 0) Pike_error("Invalid variable/list continuation."); }
+    action checkmod_equal {
+	if (mod =! lastmod) {
+	    Pike_error("Continuation of variable (modifier: '%c') with different modifier '%c'.", lastmod, mod);
 	}
-
-#ifndef __PIKE__
-	printf("ascending to %d at '%c' (pos: %d).\n", cur->state, fc, (int)fpc);
-#endif
     }
-
-    action jump {
-	fgoto *cur->state;
-    }
-
-    action begin_string {
-#ifdef __PIKE__
-	reset_string_builder(&s);
-#else
-	printf("beginning string.\n");
-#endif
-    }
-
-    action mark { i = fpc; }
-    action marknext { i = fpc + 1; }
-
-    action string_append {
-#ifdef __PIKE__
-	if (fpc - i > 0) {
-	    string_builder_binary_strcat(&s, i, (ptrdiff_t)(fpc - i));
-	}
-#endif
-    }
-
-    action string_unquote {
-#ifdef __PIKE__
-	switch (fc) {
-	case 'n':	string_builder_putchar(&s, '\n'); break;
-	case 't':	string_builder_putchar(&s, '\t'); break;
-	case 'r':	string_builder_putchar(&s, '\r'); break;
-	case 'f':	string_builder_putchar(&s, '\f'); break;
-	case 'b':	string_builder_putchar(&s, '\b'); break;
-	case '"':
-	case '\\':	string_builder_putchar(&s, fc); break;
-	}
-#endif
-    }
-
-    action end_string {
-#ifdef __PIKE__
-	cur->var = (struct svalue*)malloc(sizeof(struct svalue));
-	cur->var->type = PIKE_T_STRING;
-	cur->var->u.string = finish_string_builder(&s);
-#else
-	printf("string: '%.*s' length: %d\n", (int)(fpc - i), i, fpc - i);
-#endif
-    }
-
-#	PIKE API:
-#
-#	string_builder_binary_strcat(string_builder *s, char *str, int lenth)
-#
-#	struct pike_string *finish_string_builder(struct string_builder *s)
-#
-#	void string_builder_append(struct string_builder *s,
-#	                           PCHARP from,
-#	                           ptrdiff_t len)
-#
-#	void string_builder_putchar(struct string_builder *s, int ch)
-    string := (
-	       start: (
-		    '"' >string_append -> final |
-		    '\\' >string_append -> unquote |
-		    (any - ["\\]) -> start
-		),
-		unquote: (
-		    [nt"\\/bfnrt] >string_unquote @marknext -> start
-		)
-    ) >mark >begin_string @end_string @ascend @jump;
-
-    action begin_mapping {
-#ifdef __PIKE__
-	cur->var = (struct svalue*)malloc(sizeof(struct svalue));
-	cur->var->type = PIKE_T_MAPPING;
-	cur->var->u.mapping = debug_allocate_mapping(8);
-#else
-	printf("beginning mapping.\n");
-#endif
-    }
-
-    action end_mapping {
-#ifndef __PIKE__
-	printf("end mapping.\n");
-#endif
-    }
-
-    action add_mapping {
-#ifdef __PIKE__
-	mapping_insert(cur->var->u.mapping, cur->key->var, last->var);
-#endif
-    }
-
-    alphtype char;
-    access fsm.;
-
-    myspace = ' ';
-
-#	PIKE API
-#
-#	struct mapping *debug_allocate_mapping(int size)
-#
-#	mapping_insert(struct mapping *m,
-#                        struct svalue *key,
-#                       struct svalue *val)
-    mapping := (
-		  start: myspace* . (
-		    '"' >descend >{ fgoto string; } . myspace* . ':' >{ cur->key = last; } >descend >{ fgoto value; } -> more |
-		    '}' -> final
-		  ),
-		  more: myspace* . (
-		    ',' -> start|
-		    '}' -> final
-		  ) >add_mapping
-    ) >begin_mapping @ascend @jump;
-
-    action begin_array {
-#ifdef __PIKE__	
-	cur->var = (struct svalue*)malloc(sizeof(struct svalue));
-	cur->var->type = PIKE_T_ARRAY;
-	cur->var->u.array = low_allocate_array(0, 8);
-#endif
-    }
-
-    action add_array {
-#ifdef __PIKE__	
-	
-	cur->var->u.array = append_array(cur->var->u.array, last->var);
-#endif
-//	free(last);
-    }
-
-    array := ( myspace* . (any - myspace) >descend >{ fhold; fgoto value;} . myspace* . (','  |  ']' @ascend @jump ) >add_array )*;
-
-    value = (myspace* . (
-		  '"' >{ fgoto string; } |
-		  '{' >{ fgoto mapping; } |
-		  '[' >begin_array >{ fgoto array; }
-		 ) . myspace* );
 
     method = '_' . (alnum | '_')+;
-    variable_name = [:=+-?] . method;
-    var = variable_name >descend >mark >begin_string
-	    . '\t' >string_append >end_string @ascend @{ cur->key = last; }
-	    . value >descend . '\n' >add_mapping;
-
-    action store_vars {
-	// a check to find out if any vars were found.
-	if (cur->var->type == PIKE_T_MAPPING) {
-	    c = find_identifier("vars", prog);
-	    object_low_set_index(o, c, cur->var);
-	}
-    }
-
-    main := var* . method >store_vars >mark >begin_string . '\n' >string_append >end_string @{ done = 1; };
+    modifier = [:=+-?];
+    value = (any - '\n');
+    var = method >markprev %parse_key. '\t' . value* >mark %push_val . '\n';
+    continuation = '\t' >checkmod . value* >mark %push_val . '\n';
+    header_line = ((modifier >curmod . (var >add_list | continuation >checkmod_equal %list) >add_last) | continuation >add_newline);
+    main := header_line* . method >add_last >mark . '\n' %*{ fbreak; };
 }%%
 
-#ifdef __PIKE__
 /*! @module Public
  */
 
@@ -246,28 +89,18 @@ struct depth {
 /*! @module PSYC
  */
 
-/*! @decl mapping parse(string s)
+/*! @decl object parse(string s)
  *!
  *! Parses a JSON-formatted string and returns the corresponding mapping.
  */
-PIKEFUN int parse(string data, object o) {
-    char *p, *pe, *i;
-    int c;
-    char done = 0;
-    struct depth *cur, *last;
+PIKEFUN object parse(string data, object o) {
+    char *p, *pe, *mark;
+    int c = 0;
+    int list = 0;
+    int done = 0;
+    char lastmod = 0, mod = 0;
     // we wont be building more than one string at once.
     struct string_builder s;
-    struct state fsm;
-    struct program *prog;
-
-    if (!o || !(prog=o->prog)) {
-	Pike_error("Lookup in destructed object.\n");
-    }
-
-    if (data->size_shift != 0) {
-	Pike_error("Size shift != 0.");
-	// no need to return. does a longjmp
-    }
 
     // length n can be alot but is certainly enough.
     init_string_builder(&s, 1);
@@ -275,27 +108,18 @@ PIKEFUN int parse(string data, object o) {
     p = (char*)STR0(data);
     pe = p + data->len;
 
-    cur = (struct depth*)malloc(sizeof(struct depth));
-    memset(cur, 0, sizeof(struct depth));
-    cur->level = 0;
-
-    cur->var = (struct svalue*)malloc(sizeof(struct svalue));
-    cur->var->type = PIKE_T_MAPPING;
-    cur->var->u.mapping = debug_allocate_mapping(8);
-
     %%
     %% write init;
     %% write exec;
 
-
-    if ( done != 1 ) {
-	//if (cur) free(cur);
-	Pike_error("length: %d\t cur: %d\t last: %d\t at '%.*s'\n", data->len, cur->state, last->state, MINIMUM(10, (int)(pe - p)), p);
-	//free_string_builder(&s);
+    if (cs < PSYC_first_final) {
+	Pike_error("Error parsing PSYC packet.\n");
     }
 
+    f_aggregate_mapping(c);
+
     c = find_identifier("mc", prog);
-    object_low_set_index(o, c, cur->var);
+    object_low_set_index(o, c, );
 
     if (pe - p > 0) {
 	reset_string_builder(&s);
@@ -315,41 +139,4 @@ PIKEFUN int parse(string data, object o) {
     RETURN (INT_TYPE)0;
 }
 
-#else
-
-int parse_psyc(char *d, struct state *f, int n) {
-    char *p = d;
-    char *pe = d + n;
-    char *i = p;
-    char done = 0;
-    struct state fsm = *f;
-
-    struct depth *cur, *last, *key;
-    cur = (struct depth*)malloc(sizeof(struct depth));
-    cur->level = 0;
-
-    %% write init;
-    %% write exec;
-
-    printf("the machine stopped at char %c at position %d in state %d. left: %d, length: %d\n", *p, (int)p, fsm->cs, (int)(pe - p), strlen(p));
-    free(cur);
-    if ( done == 1 ) {
-	printf("The machine parsed the packet successfully. data is: '%.*s'\n", pe - p, p);
-    } else {
-	printf("Error while parsing.");
-    }
-
-    return 0;
-}
-
-int main() {
-    struct state fsm;
-
-    char *one = "_sdlkf	\"hihihi\\\"\"\n_hallo	{ \"sdf\"  : \"sdf\", \"hihihahahiahia\\n\\f\" : \"\"}\n_hehe\t[ \"juchuu\" , \"wulle wulle wu\"   ]\n_message_public\nlksadsalkf ashdf kjhsafkj hsdakhf s\n\n\n\n";
-    printf("%s\n", one);
-    parse_psyc(one, &fsm, strlen(one));
-
-    return 0;
-}
-#endif
 
