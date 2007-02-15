@@ -1,5 +1,5 @@
 RAGEL = ragel
-RLCODEGEN = rlcodegen -G2
+RLCODEGEN = rlgen-cd -G2
 
 all: psyc
 
