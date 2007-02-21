@@ -12,7 +12,7 @@ void create(MMP.Uniform uni_, object server, MMP.Uniform unl,
 	    function error, function query_password, string|void password) {
     link_to = uni_;
 
-    ::create(unl, server, PSYC.RemoteStorage(this, sendmmp, uni, link_to)); 
+    ::create(unl, server, PSYC.Storage.Remote(this, sendmmp, uni, link_to)); 
     // there will be dragons here
     // (if we directly create a Linker-instance in the add_handlers call,
     // dragons appear.

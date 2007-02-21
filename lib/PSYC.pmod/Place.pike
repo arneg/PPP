@@ -3,9 +3,9 @@ inherit PSYC.Unl;
 
 object context;
 
-void create(MMP.Uniform uniform, object server) {
+void create(MMP.Uniform uniform, object server, object storage) {
     
-    ::create(uniform, server, PSYC.DummyStorage());
+    ::create(uniform, server, storage);
     add_handlers(PSYC.Handler.Channel(this, sendmmp, uniform),
 		 Public(this, sendmmp, uniform));
     this->create_channel(uniform);
@@ -29,7 +29,7 @@ class Public {
 
     int postfilter_message_public(MMP.Packet p, mapping _v, mapping _m) {
 	
-	if (!context->contains(p->source()) {
+	if (!context->contains(p->source())) {
 	    sendmsg(p->reply(), p->data->reply("_failure_message_public")); 
 	}
 

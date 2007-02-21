@@ -87,7 +87,7 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
 		// TODO: das alles toller
 	    };
 	    // still some vars missing/supposed to come from storage
-	    PSYC.Storage.aggregate(parent->storage, ca[LVARS], ca[WVARS], got_data, fail, p, ca[CB], ca[ARGS]);
+	    PSYC.Storage.multifetch(parent->storage, ca[LVARS], ca[WVARS], got_data, fail, p, ca[CB], ca[ARGS]);
 	    m_delete(reply, tag);
 	    return PSYC.Handler.STOP;
 	} else {

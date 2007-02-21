@@ -61,8 +61,8 @@ void distribute(MMP.Packet p) {
 }
 
 // vielleicht ist das nicht gut
-void create(string nick, MMP.Uniform uni, object server) {
-    ::create(uni, server, PSYC.DummyStorage());
+void create(string nick, MMP.Uniform uni, object server, object storage) {
+    ::create(uni, server, storage);
 
     forward = PSYC.Handler.Forward(this, sendmmp, uni);
     relay = PSYC.Handler.Relay(this, sendmmp, uni);

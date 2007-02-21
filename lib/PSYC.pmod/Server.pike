@@ -1,5 +1,6 @@
 // vim:syntax=lpc
 #include <debug.h>
+#include <assert.h>
 
 mapping(string:mixed) localhosts;
 // TODO: i was thinking about changing all those connection based
@@ -16,6 +17,7 @@ PSYC.Packet circuit_established;
 string bind_to;
 string def_localhost;
 PSYC.Root root;
+object storage_factory;
 
 function create_local, create_remote, external_deliver_remote, external_deliver_local, create_context;
 
@@ -85,33 +87,26 @@ void create(mapping(string:mixed) config) {
     // looks terribly ugly..
     //
     // better create root uniforms..
-    if (has_index(config, "localhosts")) { 
-	localhosts = config["localhosts"];
-    } else {
-	localhosts = ([ ]);
+
+    enforcer(stringp(def_localhost = config["default_localhost"]), 
+	    "Default localhost for the PSYC Server missing. (setting: 'default_localhost')");
+
+    if (!arrayp(localhosts = config["localhosts"])) {
+	localhosts = ([ def_localhost : 1]);
     }
 
-    if (has_index(config, "create_local") 
-	&& functionp(create_local = config["create_local"])) {
-    } else {
-	throw(({"urks"}));
-    }
+    enforcer(functionp(create_local = config["create_local"]),
+	    "Function to create local objects missing. (setting: 'create_local')");
 
-    if (has_index(config, "create_context") 
-	&& functionp(create_context = config["create_context"])) {
-    } else {
+    if (!functionp(create_context = config["create_context"])) {
 	object cc(MMP.Uniform context) {
 	    return PSYC.Context(this);	    
 	};
-
 	create_context = cc;
     }
 
-    if (has_index(config, "default_localhost")) {
-	def_localhost = config["default_localhost"];  
-   } else {
-	throw(({"aaahahha"}));
-    }
+    enforcer(objectp(storage_factory = config["storage"]), 
+	    "Storage factory missing (setting: 'storage')");
 
     if (has_index(config, "deliver_remote")) {
 	external_deliver_remote = config["deliver_remote"];
@@ -125,27 +120,27 @@ void create(mapping(string:mixed) config) {
 	external_deliver_local = deliver_local; 
     }
 
-    if (has_index(config, "ports")) {
+    enforcer(arrayp(config["ports"]), 
+	     "List of ports missing. (setting: 'ports')");
 	// more error-checking would be a good idea.
-	foreach (config["ports"];; string port) {
-	    string ip;
-	    Stdio.Port p;
+    foreach (config["ports"];; string port) {
+	string ip;
+	Stdio.Port p;
 
-	    localhosts[port] = 1;
-	    [ip, port] = (port / ":");
+	localhosts[port] = 1;
+	[ip, port] = (port / ":");
 
-	    if (!MMP.Utils.Net.is_ip(ip)) {
-		throw(({ sprintf("%O is not a valid IP by my standards, "
-				 "cannot bind to that... "
-				 "'thing'.\n", ip) }));
-	    }
-
-	    p = Stdio.Port(port, accept, ip);
-	    localhosts[port] = 1;
-	    bind_to = ip;
-	    p->set_id(p);
+	if (!MMP.Utils.Net.is_ip(ip)) {
+	    throw(({ sprintf("%O is not a valid IP by my standards, "
+			     "cannot bind to that... "
+			     "'thing'.\n", ip) }));
 	}
-    } else throw(({ "help!" }));
+
+	p = Stdio.Port(port, accept, ip);
+	localhosts[port] = 1;
+	bind_to = ip;
+	p->set_id(p);
+    }
 
     //set_weak_flag(unlcache, Pike.WEAK_VALUES);
 
@@ -154,7 +149,7 @@ void create(mapping(string:mixed) config) {
 			  "You got connected to [_source].");
     MMP.Uniform t = get_uniform("psyc://" + def_localhost);
     t->islocal = 1;
-    root = PSYC.Root(t, this, PSYC.DummyStorage());
+    root = PSYC.Root(t, this, storage_factory->getStorage(t));
     t->handler = root;
     PT(("PSYC.Server", "created a new PSYC.Server(%s) with root object %O.\n", root->uni, root))
     // not good for nonstandard port?

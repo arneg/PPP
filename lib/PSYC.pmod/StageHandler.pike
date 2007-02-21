@@ -154,7 +154,7 @@ void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 	P0(("StageHandler", "fetching data for %O failed in stack %O.\n", p, stack))
     };
 
-    PSYC.Storage.aggregate(storage, o->lvars && (multiset)o->lvars, o->wvars && (multiset)o->wvars, call_handler, fail, stack, p, _m);
+    PSYC.Storage.multifetch(storage, o->lvars && (multiset)o->lvars, o->wvars && (multiset)o->wvars, call_handler, fail, stack, p, _m);
 
 #if 0
     array wvars = o->wvars;
