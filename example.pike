@@ -2,6 +2,7 @@
 //
 PSYC.Server dings;
 TELNET.Server da;
+PSYC.Storage.Factory dumms;
 
 #ifdef HAS_XMPP
 XMPP.S2S.ClientManager rumms;
@@ -54,6 +55,9 @@ int main(int argc, array(string) argv) {
 							 "../default/"
 #endif
 							 );
+
+    dumms = PSYC.Storage.FileFactory(DATA_PATH); 
+
     string smtime() {
 	string wday, month;
 	mapping t = localtime(time()),
@@ -137,10 +141,11 @@ int main(int argc, array(string) argv) {
 			LOCALHOST
 #endif
 			+ ":4404" }),
+	   "storage" : dumms,
       "create_local" : create_local,
+     "offer_modules" : ({ "_compress" }),
     "deliver_remote" : deliver_remote,
     "module_factory" : create_module,
-     "offer_modules" : ({ "_compress" }),
  "default_localhost" : HOSTNAME,
 	 ]));
 #ifdef HAS_XMPP
@@ -198,11 +203,11 @@ object create_local(MMP.Uniform uni) {
     if (sizeof(uni->resource) > 1) switch (uni->resource[0]) {
     case '~':
 	// TODO check for the path...
-	o = PSYC.Person(uni->resource[1..], uni, dings);
+	o = PSYC.Person(uni->resource[1..], uni, dings, dumms->getStorage(uni));
 	return o;
 	break;
     case '@':
-	return PSYC.Place(uni, dings);
+	return PSYC.Place(uni, dings, dumms->getStorage(uni));
 	break;
     }
 }
