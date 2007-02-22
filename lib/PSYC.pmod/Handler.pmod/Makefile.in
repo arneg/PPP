@@ -1,0 +1,14 @@
+@make_variables@
+VPATH=@srcdir@
+#OBJS=psyc.o
+MODDIR=PSYC.pmod/Handler.pmod/
+MODNAME=Handler
+AUTODOC_SRC_IN=Base.pike
+
+#MODULE_LDFLAGS = @LDFLAGS@ @LIBS@ 
+#MODULE_CFLAGS = -std=gnu99 -D__PIKE__
+
+#CONFIG_HEADERS = @CONFIG_HEADERS@
+
+@dynamic_module_makefile@
+@dependencies@
