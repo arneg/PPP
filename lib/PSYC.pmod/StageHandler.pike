@@ -1,5 +1,6 @@
 // vim:syntax=lpc
 #include <debug.h>
+#include <assert.h>
 
 // TODO
 // - let the check function return variables to request.
@@ -20,18 +21,6 @@ void create(string foo, function go_on_, function stop_, function error_, object
     storage = s;
 }
 
-class AR(function handler, array(string) wvars, int async, array(string) lvars,
-	 function check) {
-    
-    string _sprintf(int type) {
-	if (type == 'O') {
-	    return sprintf("AR(%O, %O, lock: %O)", handler, wvars, lvars);
-	}
-    
-	return UNDEFINED;
-    }
-}
-
 #ifdef DEBUG
 string _sprintf(int type) {
     if (type == 'O') {
@@ -42,50 +31,24 @@ string _sprintf(int type) {
 
 
 void add(string mc, object handler, void|mapping|array(string) d) {
-    int async = 0;
-    array(string) wvars, lvars;
-    function check;
+    PSYC.AR result;
 
     P3(("PSYC.StageHandler", "add(%O)\n", handler))
 
     if (!has_index(table, mc)) table[mc] = ({ }); 
 
-    if (mappingp(d)) {
-	if (has_index(d, "async")) {
-	    async = d["async"];
-	} 
-	
-	if (has_index(d, "wvars")) {
-	    wvars = d["wvars"];
-	}
+    result = PSYC.handler_parser(d);
 
-	if (has_index(d, "lock")) {
-	    lvars = d["lock"];
-	}
+    result->handler = `->(handler, prefix + mc);
+    enforcer(functionp(result->handler),
+	     sprintf("No method %s defined in %O.\n", prefix+mc, handler));
 
-	if (has_index(d, "check")) {
-	    check = `->(handler, d["check"]);
-	    if (!functionp(check)) {
-		THROW(sprintf("No method %s is defined in %O.\n", d["check"], handler));
-	    }
-	}
-
-    } else {
-	wvars = d;
+    if (result->check) {
+	result->check = `->(handler, result->check);
+	enforcer(functionp(result->check),
+		 sprintf("No method %s is defined in %O.\n", d["check"], handler));
     }
-
-#if DEBUG
-    if (arrayp(d) && !sizeof(d)) {
-	THROW(sprintf("Method %s in %O with empty set of wanted vars!!\n", prefix+mc, handler));
-    }
-#endif
-
-    function cb = `->(handler, prefix + mc);
-    if (!functionp(cb)) {
-	THROW(sprintf("No method %s defined in %O.\n", prefix+mc, handler));
-    }
-
-    table[mc] += ({ AR(cb, wvars, async, lvars, check) });
+    table[mc] += ({ result });
 
     P3(("StageHandler", "table: %O\n", table))
 }
@@ -141,7 +104,7 @@ void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 	return;
     }
     
-    AR o = stack->shift_();
+    PSYC.AR o = stack->shift_();
 
     if (o->check && !o->check(p, _m)) {
 	P1(("StageHandler", "%O->check() returned Null.\n", o))
@@ -187,7 +150,7 @@ void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 }
 
 void call_handler(mapping _v, MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
-    AR o = stack->shift();
+    PSYC.AR o = stack->shift();
     P3(("StageHandler", "Calling %O for %O with misc: %O.\n", o->handler, p, _m))
 
     if (has_index(function_object(o->handler)->_, "_")) {

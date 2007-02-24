@@ -2,6 +2,8 @@
 #include <debug.h>
 #include <assert.h>
 
+//! PSYC Server class. Does routing and delivery of @[MMP.Packet]s.
+
 mapping(string:mixed) localhosts;
 // TODO: i was thinking about changing all those connection based
 // stuff to Uniform -> object. the uniform of the root-object of a
@@ -81,6 +83,32 @@ void add_route(MMP.Uniform target, object circuit) {
     }
 }
 
+//! @param config
+//! 	Mandatory settings: 
+//! 	@mapping
+//! 		@member string "default_localhost"
+//! 			The domain this server should use.
+//! 		@member function "create_local"
+//! 			Callback to be called whenever a local entity needs to be created. 
+//! 			Ought to return an object offering a @expr{msg()@} method.
+//! 		@member object "storage"
+//! 			An instance of a suiting @[PSYC.Storage.Factory] subclass.
+//! 		@member array(string) "ports"
+//! 			An array of "host:port" strings the server will then try to listen on.
+//! 	@endmapping
+//! 	Optional settings:
+//! 	@mapping
+//! 		@member array(string) "localhosts"
+//! 			Domains the server should treat as local domains, e.g. himself. Keep in 
+//! 			mind that for an @[MMP.Uniform] to be truly local, also the port has to match
+//! 			one of those the server is listening on.
+//! 		@member function "create_context"
+//! 			Callback to be called whenever a local context needs to be created. 
+//! 			@b{This has nothing to do with local places/rooms@}. Use "create_local" 
+//! 			for that.
+//! 		@member function "deliver_remote"
+//! 		@member function "deliver_local"
+//! 	@endmapping
 void create(mapping(string:mixed) config) {
 
     // TODO: expecting ip:port ... is maybe a bit too much
@@ -185,7 +213,10 @@ void close(MMP.Circuit c) {
     //c->peeraddr->handler = UNDEFINED;
 }
 
-// returns the handler for a uniform
+//! @returns
+//! 	The object managing the given uniform...string.
+//! @note
+//! 	You might probably not want to use this, instead contact the entity by sending MMP/PSYC packets.
 object get_local(string uni) {
 
     MMP.Uniform u = get_uniform(uni);
@@ -194,6 +225,12 @@ object get_local(string uni) {
     return u->handler = create_local(u);
 }
 
+//! @returns
+//!	Returns an unused random local address (to be used for mostly temporary entities that don't need a real name).
+//! @param type
+//! 	The type of the uniform. Will simply be prepended to the resulting uniforms uniform.
+//! @throws
+//! 	Will throw if type contains something that better does not go into a uniform.
 MMP.Uniform random_uniform(string type) {
     string unl;
 
@@ -202,6 +239,15 @@ MMP.Uniform random_uniform(string type) {
     return get_uniform(unl);
 }
 
+//! @returns
+//! 	@i{The @}@[MMP.Uniform] object for the uniform given as a string.
+//! @throws
+//! 	Will throw if the uniform contains something that better does not go into a uniform.
+//! @note
+//! 	Never ever parse your uniforms manually! @[get_uniform()] uses a
+//! 	per server cache to ensure that only one @[MMP.Uniform] for a uniform 
+//!	exists in the system at the same time. This allows for cheap checks for
+//!	equality by comparing object pointers.
 MMP.Uniform get_uniform(string unl) {
     unl = lower_case(unl);
 
@@ -308,6 +354,13 @@ void _if_localhost(MMP.Uniform candidate, function if_cb, function else_cb,
     }
 }
 
+//! Deliver a @[MMP.Packet] either locally or to a remote host.
+//! @param target
+//! 	Not to be confused with the MMP variable @expr{_target@}.
+//! 	@expr{target@} is used only to find the target host.
+//! @note
+//! 	If you use convenient @[PSYC.Person] and the like, you most probably 
+//! 	don't need to use this directly.
 void deliver(MMP.Uniform target, MMP.Packet packet) {
     PT(("PSYC.Server", "%O->deliver(%O, %O)\n", this, target, packet))
 

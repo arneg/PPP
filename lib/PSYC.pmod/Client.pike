@@ -8,9 +8,39 @@ object attachee;
 MMP.Uniform link_to;
 function subscribe, unsubscribe;
 
-void create(MMP.Uniform uni_, object server, MMP.Uniform unl,
+//! Generic PSYC client implementation.
+//! Allows for user interfaces and commands (read: functionality) to be added,
+//! and does some basic PSYC processing by default.
+//!
+//! Handlers used by default:
+//! @ul
+//! 	@item
+//! 		@[PSYC.Handler.Subscribe]
+//! 	@item
+//! 		@[PSYC.Handler.Textdb]
+//! @endul
+
+//! @param person
+//! 	The uniform the client should link to.
+//! @param server
+//! 	The @[PSYC.Server] this client runs in.
+//! @param unl
+//! 	The uniform this client shall have.
+//! @param error
+//!	Callback to be called when the link fails. Signature:
+//! 	@expr{void error(MMP.Packet p, function set_password);@}.
+//!
+//! 	Signature of set_password is @expr{void set_password(string pw, string|void hash);@},
+//! 	with hash beeing the name of the hash method the password was hashed in.
+//!
+//! 	If you didn't get it yet: Linking will obviously fail if there isn't
+//! 	a password given and the @expr{person@} expects one.
+//! @param query_password
+//! 	Will be called when a password is needed during the linking process.
+//! 	Basically the same as @expr{error@}.
+void create(MMP.Uniform person, object server, MMP.Uniform unl,
 	    function error, function query_password, string|void password) {
-    link_to = uni_;
+    link_to = person;
 
     ::create(unl, server, PSYC.Storage.Remote(this, sendmmp, uni, link_to)); 
     // there will be dragons here
@@ -33,14 +63,17 @@ void create(MMP.Uniform uni_, object server, MMP.Uniform unl,
     sendmmp(link_to, MMP.Packet(request));
 }
 
+//! Attach an object to the client.
 void attach(object o) {
     attachee = o;
 }
 
+//! Detach the object.
 void detach() {
     attachee = UNDEFINED;
 }
 
+//! Distribute a @[MMP.Packet] to the attached object, calling @expr{msg()@}.
 void distribute(MMP.Packet p) {
     if (attachee) {
 	attachee->msg(p);
@@ -50,6 +83,13 @@ void distribute(MMP.Packet p) {
     PT(("PSYC.Client", "Noone using %O. Dropping %O.\n", this, p->data->data))
 }
 
+//! Same as standard @[PSYC.Unl()->sendmmp()] but it identifies
+//! as the person we linked to using PSYC.Authentication. It
+//! is therefore a way to send packets @i{from@} the client @i{as@} the 
+//! user.
+//! @note
+//! 	All packets are queued until the Client is successfully linked to
+//! 	the person.
 void client_sendmmp(MMP.Uniform target, MMP.Packet p) {
 
     if (!has_index(p->vars, "_source_identification")) {
@@ -76,6 +116,7 @@ void unroll() {
     }
 }
 
+//! Generate a Person uniform from a local nickname or a full uniform string.
 MMP.Uniform user_to_uniform(string l) {
     MMP.Uniform address;
     if (search(l, ":") == -1) {
@@ -86,6 +127,7 @@ MMP.Uniform user_to_uniform(string l) {
     return address;
 }
 
+//! Generate a Place uniform from a local nickname or a full uniform string.
 MMP.Uniform room_to_uniform(string l) {
     MMP.Uniform address;
     if (search(l, ":") == -1) {

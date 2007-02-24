@@ -1,6 +1,8 @@
 // vim:syntax=lpc
 #include <debug.h>
 
+//! An implementation of a minimal user to which clients can be linked.
+
 inherit PSYC.Unl;
 multiset clients = (< >);
 object user; // euqivalent to the _idea_ of "user.c" in psycmuve
@@ -60,7 +62,16 @@ void distribute(MMP.Packet p) {
     }
 }
 
-// vielleicht ist das nicht gut
+//! @param nick
+//! 	Nickname of the user.
+//! @param uni
+//! 	Uniform of the user.
+//! @param server
+//! 	A server object providing mmp message delivery.
+//! @param storage
+//! 	An instance of a @[PSYC.Storage] Storage subclass.
+//! @seealso
+//! 	@[PSYC.Storage.File], @[PSYC.Storage.Remote], @[PSYC.Storage.Dummy]
 void create(string nick, MMP.Uniform uni, object server, object storage) {
     ::create(uni, server, storage);
 

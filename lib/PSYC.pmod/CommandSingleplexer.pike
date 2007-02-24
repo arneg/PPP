@@ -1,8 +1,14 @@
 // vim:syntax=lpc
 #include <debug.h>
 
-mapping commands = ([]);
+//! This provides a neat framework for working with user commands.
+//! Even has storage support. You'll like it!
 
+mapping commands = ([ ]);
+
+//! Adds command handler(s) to the 'environment'.
+//! @param args
+//! 	The command handlers to add.
 void add_commands(PSYC.Commands.Base ... args) {
     
     foreach(args;;PSYC.Commands.Base handler) {
@@ -28,6 +34,10 @@ void add_commands(PSYC.Commands.Base ... args) {
     }
 }
 
+//! Entry point for command parsing.
+//! @param input
+//! 	The command the user entered, but without "command chars", like a
+//! 	preceeding slash.
 void cmd(string input) {
     P3(("PSYC.CommandSingleplexer", "cmd(%O)\n", input))
 	

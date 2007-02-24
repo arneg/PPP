@@ -1,6 +1,18 @@
 // vim:syntax=lpc
 #include <debug.h>
 
+//! This class provides an amazingly sweet PSYC processing framework.
+//! PSYC functionality can be added to an entity by
+//! adding Handlers using @[add_handlers()].
+//! @note
+//! 	This class is designed for being inherited by PSYC entities.
+//!	@[PSYC.Unl] already does that for you. Should you want to use it 
+//!	differenly, remember to pass on incoming @[MMP.Packet]s to the @[msg()] 
+//!	function.
+//!
+//! 	Better have a look at the source code, if you intend to use it without
+//!	using @[PSYC.Unl]. @b{WE MEAN IT!@}.
+
 PSYC.StageHandler prefilter, filter, postfilter;
 mapping(string:function) exports = ([]);
 
@@ -25,9 +37,16 @@ void create(object storage) {
 				  throw, storage);
 }
 
+
+//! Add handlers.
 void add_handlers(PSYC.Handler.Base ... handlers) { 
     foreach (handlers;; PSYC.Handler.Base handler) {
 	mapping temp = handler->_;
+
+	if (has_index(temp, "_")) {
+	    call_init(handler, PSYC.handler_parser(temp["_"]));
+	}
+
 	if (has_index(temp, "prefilter")) 
 	foreach (temp["prefilter"]; string mc; mapping|array(string) wvars) {
 	    prefilter->add(mc, handler, wvars);
@@ -60,6 +79,12 @@ mixed `->(string fun) {
     return UNDEFINED;
 }
 
+void call_init(object handler, PSYC.AR o) {
+    P3(("StageHandler", "Calling %O for %O with misc: %O.\n", o->handler, p, _m))
+    PSYC.Storage.multifetch(this->storage, o->lvars && (multiset)o->lvars, o->wvars && (multiset)o->wvars, 
+			    handler->init,0); 
+}
+
 void do_import(PSYC.Handler.Base ... handlers) {
     foreach (handlers;; PSYC.Handler.Base handler) {
 	if (has_index(handler, "export")) {
@@ -70,6 +95,11 @@ void do_import(PSYC.Handler.Base ... handlers) {
     }
 }
 
+//! Entry point for processing PSYC messages through this handler framework.
+//! @param p
+//! 	An @[MMP.Packet] containing parseable PSYC as a string or @[PSYC.Packet].
+//!
+//! 	This will do everything from throwing to nothing if you provide something else.
 void msg(MMP.Packet p) {
     P3(("MethodMultiplexer", "%O: msg(%O)\n", this, p))
     

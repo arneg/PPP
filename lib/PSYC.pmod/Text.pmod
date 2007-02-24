@@ -58,21 +58,37 @@ string psyctext(string fmt, mapping|void vars) {
 #define unless(x)	if(!(x))
 #define member	has_index
 
+//! Base TextDB class.
 class TextDB {
     mapping fmts = ([ ]);
 
+    //! Get the (already fetched) template from the TextDB.
+    //! @seealso
+    //! 	@[FileTextDB.fetch()]
     string `[](string mc) {
 	return fmts[mc];
     }
 
+    //! Asynchronously fetch a template from the TextDB.
+    //! @param mc
+    //! 	Message Class of the wanted template.
+    //! @param cb
+    //! 	callback to be called once the template has been successfully fetched from the template-DB
+    //! @note
+    //! 	Abstract in this class, needs to be overloaded.
     void fetch(string mc, function cb, mixed ... extra);
 }
 
+//! Standard TextDB class that reads templates from the classical psycmuve template directories.
 class FileTextDB {
     inherit TextDB;
 
     string tdbpath;
 
+    //! @param path
+    //! 	Path to the TextDB folder.
+    //! @note
+    //! 	You usually won't have to create your own @[FileTextDB]s, but use @[FileTextDBFactoryFactory()]
     void create(string path) {
 	P3(("FileTextDB", "create(%O)\n", path))
 	tdbpath = path;
@@ -82,6 +98,14 @@ class FileTextDB {
 	}
     }
 
+    //! Asynchronously fetch a template from the TextDB.
+    //! @param mc
+    //! 	Message Class of the wanted template.
+    //! @param cb
+    //! 	callback to be called once the template has been successfully fetched from the template-DB.
+    //! 	The arguments to the callback will be an @expr{int(0..1) success@}, followed by expanded @expr{extra@}.
+    //! @param extra
+    //! 	Arguments to be passed on to the callback.
     void fetch(string mc, function cb, mixed ... extra) {
 	PT(("text", "fetch(%O, %O, %O)\n", mc, cb, extra))
 	string filename, fmt, before, match, after;
@@ -127,6 +151,12 @@ class FileTextDB {
     }
 }
 
+//! Creates a factory which will return @[TextDB] objects for the then-given @expr{lang@} and @expr{scheme@}.
+//! @param basepath
+//! 	The basepath of the PSYCMuve-like classical TextDB.
+//!
+//! 	Such directories need to contain subdirectories @expr{$lang/$scheme@}.
+//! 	A DB lookup then looks for @expr{$baseurl/$lang/$scheme/ + replace($mc, "_", "/") + .fmt@}.
 function(string, string : FileTextDB) FileTextDBFactoryFactory(string basepath) {
     FileTextDB _fun(string scheme, string lang) {
 	return FileTextDB(basepath + "/" + Stdio.simplify_path(lang) + "/" + Stdio.simplify_path(scheme));

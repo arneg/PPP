@@ -48,8 +48,6 @@ class Signaling {
     // 	     place.
 
     inherit PSYC.Handler.Base;
-    int _init = 1;
-    array init_callbacks = ({});
 
     constant _ = ([
 	"_" : ({ "groups" }),
@@ -65,24 +63,13 @@ class Signaling {
 	]),
     ]);
 
-    int is_inited() {
-	return _init;	
-    }
-
-    int init_cb_add(mixed ... args) {
-	init_callbacks += ({ args });
-    }
-
-    int init(mapping _v, function callback) {
+    int init(mapping _v) {
 
 	int count;
 
 	void _cb(int error, MMP.Uniform group, MMP.Uniform guy) {
 	    if (!--count) {
-		_init = 1;
-		foreach (init_callbacks; ; mixed temp) {
-		    temp[0](@temp[1..]);
-		}
+		set_inited(1);
 	    }
 
 	    if (error) {
@@ -90,19 +77,21 @@ class Signaling {
 	    }
 	};
 	
-	foreach (_v["groups"]; MMP.Uniform group; mapping members) {
-	    object context = parent->server->get_context(group);
+	if (mappingp(_v["groups"])) {
+	    foreach (_v["groups"]; MMP.Uniform group; mapping members) {
+		object context = parent->server->get_context(group);
 
-	    count += sizeof(members);
-	    foreach (members; MMP.Uniform guy; int d) {
-		call_out(context->insert, 0, guy, _cb, group, guy);
+		count += sizeof(members);
+		foreach (members; MMP.Uniform guy; int d) {
+		    call_out(context->insert, 0, guy, _cb, group, guy);
+		}
 	    }
+	} else {
+	    parent->storage->set("groups", ([ ]));
 	}
 
 	if (!count) {
-	    call_out(callback, 0, PSYC.Handler.GOON);
-	} else {
-	    init_cb_add(callback);
+	    set_inited(1);
 	}
     }
 
@@ -143,7 +132,7 @@ class Signaling {
 
 	void callback(MMP.Packet reply, mapping _v) {
 	    PSYC.Packet m = reply->data;
-	    mapping groups = _v["_groups"];
+	    mapping groups = _v["groups"];
 
 	    P0(("Root", "%O: reply to _request is %O.\n", parent, m))
 
@@ -154,17 +143,18 @@ class Signaling {
 		}
 		groups[group][member] = 1;
 		sendmsg(p->source(), t->reply("_notice_context_enter", ([ "_group" : group ])));
-		parent->storage->set_unlock("_groups", groups);
+		parent->storage->set_unlock("groups", groups);
 	    } else {
 		sendmsg(p->source(), t->reply("_notice_context_discord", ([ "_group" : group ])));
-		parent->storage->unlock("_groups");
+		parent->storage->unlock("groups");
 	    }
+	    parent->storage->save();
 
 	};
 
 
 	send_tagged_v(target, PSYC.Packet("_request_context_enter", ([ "_group" : group, "_supplicant" : member ])), 
-				    ([ "lock" : (< "_groups" >) ]), callback);
+				    ([ "lock" : (< "groups" >) ]), callback);
 
 	return PSYC.Handler.STOP;
     }
@@ -204,7 +194,7 @@ class Signaling {
 
 	void callback(MMP.Packet reply, mapping _v) {
 	    PSYC.Packet m = reply->data;
-	    mapping groups = _v["_groups"];
+	    mapping groups = _v["groups"];
 
 	    P0(("Root", "%O: reply to _request is %O.\n", parent, m))
 
@@ -213,15 +203,16 @@ class Signaling {
 
 		if (!has_index(groups, group)) {
 		    P0(("Root", "inconsistency of storage and context.\n"))
-		    parent->storage->unlock("_groups");
+		    parent->storage->unlock("groups");
 		} else {
 		    if (has_index(groups[group], member)) {
 			m_delete(groups[group], member);
-			parent->storage->set_unlock("_groups", groups);
+			parent->storage->set_unlock("groups", groups);
 		    } else {
-			parent->storage->unlock("_groups");
+			parent->storage->unlock("groups");
 		    }
 		}
+		parent->storage->save();
 	    }
 
 	    sendmsg(p->source(), t->reply("_notice_context_leave", ([ "_group" : group, "_supplicant" : member ])));
@@ -233,7 +224,7 @@ class Signaling {
 	}
 
 	send_tagged_v(target, PSYC.Packet("_request_context_leave", ([ "_group" : group, "_supplicant" : member ])), 
-				    ([ "lock" : (< "_groups" >) ]), callback);
+				    ([ "lock" : (< "groups" >) ]), callback);
 
 	return PSYC.Handler.STOP;
     }
@@ -274,7 +265,7 @@ class Signaling {
 	
 	if (!has_index(groups, channel)) {
 	    P0(("Root", "inconsistency of storage and context.\n"))
-	    parent->storage->unlock("_groups");
+	    parent->storage->unlock("groups");
 	     
 	    return PSYC.Handler.STOP;
 	}
@@ -289,6 +280,7 @@ class Signaling {
 	sendmsg(target, m);
 	m_delete(groups[channel], member);
 	parent->storage->set_unlock("groups", groups);
+	parent->storage->save();
 	return PSYC.Handler.STOP;
     }
 
@@ -354,6 +346,7 @@ class Signaling {
 	c->insert(member);
 	sendmsg(target, m);
 	parent->storage->set_unlock("groups", groups);
+	parent->storage->save();
 	return PSYC.Handler.STOP;
     }
 

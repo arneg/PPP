@@ -1,8 +1,17 @@
 // vim:syntax=lpc
 inherit PSYC.Unl;
+//! A minimal implementation of a chatroom.
 
 object context;
 
+//! @param uni
+//! 	Uniform of the room.
+//! @param server
+//! 	A server object providing mmp message delivery.
+//! @param storage
+//! 	An instance of a @[PSYC.Storage] Storage subclass.
+//! @seealso
+//! 	@[PSYC.Storage.File], @[PSYC.Storage.Remote], @[PSYC.Storage.Dummy]
 void create(MMP.Uniform uniform, object server, object storage) {
     
     ::create(uniform, server, storage);
