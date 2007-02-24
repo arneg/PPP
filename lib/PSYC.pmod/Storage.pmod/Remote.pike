@@ -3,15 +3,47 @@
 inherit PSYC.HandlingTools;
 import .module;
 
+//! A storage class that uses storage from a (possibly) remote entity using PSYC.
+//! @seealso
+//! 	@[Volatile] for method documentation, as this class is API compatible
+//! 	to it (except for the methods explicitely documented here).
+
 MMP.Uniform link_to;
 int linked = 0;
 MMP.Utils.Queue queue = MMP.Utils.Queue();
 
+//! @param parent
+//! 	The entity we provide storage for. @expr{parent@} needs to link to the
+//!	 remote entity. As soon as the link is successful, @[link()] has to be called.
+//! @param sendmmp
+//! 	Usually @expr{parent->sendmmp@}.
+//! @param u
+//! 	The parent's uniform.
+//! @param link_to_
+//! 	The uniform of the entity to 'link' to.
 void create(object parent, function sendmmp, MMP.Uniform u, MMP.Uniform link_to_) {
     link_to = link_to_;
     ::create(parent, sendmmp, u);
 }
 
+void save() {
+    if (!linked) {
+	queue->push(({ _save }));
+	return;
+    }
+    
+    call_out(_save, 0);
+}
+
+void _save() {
+    P2(("PSYC.Storage.Remote", "Sending _request_save.\n"))
+    sendmsg(link_to, PSYC.Packet("_request_save")); 
+}
+
+//! Callback to signal that the @expr{parent@} has linked to the entity
+//! providing the storage for us.
+//!
+//! Until this is invoked, all requests are queued in a private queue.
 void link() {
     linked = 1;
     while (!queue->isEmpty()) {

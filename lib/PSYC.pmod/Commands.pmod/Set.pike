@@ -2,6 +2,14 @@
 #include <debug.h>
 inherit PSYC.Commands.Base;
 
+//! Provides the following commands for setting and retrieving storage variables.
+//! @ul
+//! 	@item
+//!		@expr{"set" . Commands.String . Commands.String|Commands.Sentence@}
+//! 	@item
+//!		@expr{"get" . Commands.String@}
+//! @endul
+
 constant _ = ([
     "get" : ({ 
 	({ "get", 

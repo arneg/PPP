@@ -1,6 +1,7 @@
 // vim:syntax=lpc
 #include <debug.h>
 
+//! Constants for the success argument to storage callbacks.
 constant OK = 0;
 constant ERROR = 1;
 constant TEMP_ERROR = 2;
@@ -12,6 +13,8 @@ void multifetch(object storage, multiset locked_vars, multiset vars, function ca
     void fetched(string key, mixed value, multiset locked_vars, multiset vars, mapping(string:mixed) new, function callback, function fail, mixed args) {
 
 	PT(("Storage", "fetched(%O,%O,%O,%O,%O,%O,%O)\n", key, value, locked_vars, vars, new, callback, args))
+
+	// check for failure!! TODO
 		
 	if (has_index(new, key)) {
 	    THROW(sprintf("key %O received twice. duh.\n", key));

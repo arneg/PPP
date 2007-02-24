@@ -14,3 +14,5 @@ void create() {
 
     ::create(data);
 }
+
+void save() { }

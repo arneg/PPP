@@ -2,6 +2,16 @@
 #include <debug.h>
 inherit PSYC.Commands.Base;
 
+//! Provides the following commands for entering, leaving and speaking in rooms.
+//! @ul
+//! 	@item
+//!		@expr{"enter" . Commands.Uniform|PSYC.Commands.Place@}
+//! 	@item
+//!		@expr{"leave" . Commands.Uniform|PSYC.Commands.Place@}
+//! 	@item
+//!		@expr{"say" . Commands.Uniform|PSYC.Commands.Place . Comands.String|Commands.Sentence@}
+//! @endul
+
 constant _ = ([
     "enter" : ({ 
 	({ "enter", 

@@ -2,10 +2,16 @@
 #include <debug.h>
 inherit PSYC.Commands.Base;
 
+//! Provides the tell command to talk to users privately.
+//! @ul
+//! 	@item
+//!		@expr{"tell" . Commands.Uniform|PSYC.Commands.User . Comands.String|Commands.Sentence@}
+//! @endul
+
 constant _ = ([
     "tell" : ({ 
 	({ "tell", 
-	    ({ PSYC.Commands.Uniform, "user", 
+	    ({ PSYC.Commands.Uniform|PSYC.Commands.User, "user", 
 	       PSYC.Commands.String|PSYC.Commands.Sentence, "text" }),
 	 }),
     }),

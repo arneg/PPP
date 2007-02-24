@@ -1,3 +1,9 @@
+//! This class provides lots of mapping like operators.
+//! Is inherited by for exampke @[FlatFile]. Provides basic mapping
+//! operations, set, delete, indices, but not more vague things like
+//! @[`+()] or @[`&()], since storage classes don't (need to) make use of
+//! those.
+
 mapping data;
 
 array _indices() {
@@ -46,6 +52,10 @@ mixed cast(string type) {
     }
 }
 
+//! Resets the mapping to an empty one.
+//! @note
+//! 	Keep in mind to overwrite these in subclasses that operate on
+//! 	mapping-like structures.
 void clear() {
     data = ([ ]);
 }

@@ -1,10 +1,19 @@
 #include <assert.h>
 
+//! Factory for @[PSYC.Storage.File] storage objects.
+
 inherit .Factory;
 
 string basepath;
 function namify = aggregate;
 
+//! @param basepath
+//! 	The path where serialized storage should be stored in.
+//! @param namify
+//! 	A function that may add an aditional layer to the full filename of
+//! 	the resulting file, for avoiding overpopulated directories. Signature:
+//! 	@expr{array(string) namify(string name)@}.
+//! 	@expr{basepath + result * "/"@} will then be the path of the file.
 void create(string basepath, function|void namify) {
     this->basepath = basepath + "/";
     if (namify) this->namify = namify;
@@ -58,7 +67,7 @@ object createStorage(MMP.Uniform storagee) {
     if (storagee->resource && sizeof(storagee->resource)) {
 	buf->add(char_to_unrelated_word(storagee->resource[0]));
 	buf->add("/");
-	buf->add(namify(hexhex(storagee->resource[1..])));
+	buf->add(namify(hexhex(storagee->resource[1..]))*"/");
 	buf->add(".o");
     } else {
 	buf->add("root.o");
