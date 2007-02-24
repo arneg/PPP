@@ -1,0 +1,23 @@
+@make_variables@
+VPATH=@srcdir@#:@srcdir@/../..:../..
+
+# things we should define.
+
+OBJS=
+MODDIR=
+MODNAME=PSYC
+MODULE_PMOD_IN=module.pmod.in
+AUTODOC_SRC_IN=
+MODULE_NAME=
+MODULE_DIR_NAME=
+MODULE_LICENSE=GPL/LGPL/MPL
+
+CFLAGS=@CMOD_CFLAGS@
+LDFLAGS=@CMOD_LIBS@
+
+MODULE_LDFLAGS=@LDFLAGS@
+CONFIG_HEADERS=@CONFIG_HEADERS@
+
+
+@dynamic_module_makefile@
+@dependencies@

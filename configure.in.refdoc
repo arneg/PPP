@@ -1,0 +1,5 @@
+AC_INIT()
+
+AC_MODULE_INIT()
+
+AC_OUTPUT(Makefile)
