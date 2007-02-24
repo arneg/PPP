@@ -1,6 +1,16 @@
 // vim:syntax=lpc
 #include <debug.h>
 
+//! This handler takes care of prefetching @[PSYC.Text.TextDB] entries,
+//! so that @expr{sometextdb[mc]@} returns the template (if existing) once
+//! the packet is approved for further processing.
+//!
+//! This handler will handle every method in stage prefilter.
+//!
+//! Requires no variables from storage whatsoever.
+//!
+//! Accesses: @expr{parent->attache->textdb@}.
+
 inherit PSYC.Handler.Base;
 
 constant _ = ([

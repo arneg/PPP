@@ -2,6 +2,10 @@
 
 inherit PSYC.Handler.Base;
 
+//! Simple handler providing @expr{_message_private@} echoes.
+//!
+//! Requires no variables from storage whatsoever.
+
 constant _ = ([
     "postfilter" : ([
 	"_message_private" : 0,

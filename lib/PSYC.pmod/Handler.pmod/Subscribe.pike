@@ -3,6 +3,28 @@
 
 inherit PSYC.Handler.Base;
 
+//! Client side (in respect to member<->channel) implementation of channel
+//! communications.
+//!
+//! Handles the following Message Classes:
+//! @ul
+//! 	@item
+//! 		_notice_context_enter_channel
+//! 	@item
+//! 		_notice_context_leave
+//! @endul
+//! Additionally filters out all messages from a group we are not in.
+//!
+//! Open-heartedly uses the "places" storage variable.
+//!
+//! Exports:
+//! @ul
+//! 	@item
+//! 		@expr{enter()@}
+//! 	@item
+//! 		@expr{leave()@}
+//! @endul
+
 #define REQUESTED(x)	(x&1)
 #define SUBSCRIBED(x)	(x&2)
 
@@ -14,6 +36,7 @@ inherit PSYC.Handler.Base;
  */
 
 constant _ = ([
+    "_" : ({ "places" }),
     "filter" : ([ 
 	"" : ([ 
 	    "lock" : ({ "places" }),
@@ -41,6 +64,13 @@ constant _ = ([
 constant export = ({
     "enter", "leave", "really_unsubscribe"
 });
+
+void init(mapping vars) {
+    if (!mappingp(vars["places"])) {
+	parent->storage->set("places", ([]));
+	set_inited(1);
+    }
+}
 
 int has_context(MMP.Packet p, mapping _m) {
     return has_index(p->vars, "_context");
@@ -134,6 +164,15 @@ void postfilter_notice_context_enter_channel(MMP.Packet p, mapping _v, mapping _
 
 // ==================================
 
+//! Enters a channel.
+//! @param channel
+//! 	The channel to enter.
+//! @param error_cb
+//! 	Callback to be called when the place can not be entered. Signature:
+//! 	@expr{void error_cb(mixed ... args);@}.
+//! 	Retring may work here.
+//! @param args
+//! 	Arguments to be passed on to the @expr{error_cb@}.
 void enter(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 
     // TODO: check if we subscribed to the corresponding context
@@ -149,16 +188,19 @@ void enter(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 
 	mapping sub = _v["places"];
 
+	void fun(int s, string key, function error_cb, array(mixed) args) {
+	    error_cb(@args);
+	};
 	if (PSYC.abbrev(m->mc, "_notice_context_enter")) {
 	    if (has_index(sub, group)) {
 		P3(("Handler.Subscribe", "%O: Double joined %O.\n", parent, group))
-		parent->storage->unlock("places", error_cb, @args);
+		parent->storage->unlock("places", fun, args);
 	    } else {
 		sub[group] = 1;
-		parent->storage->set_unlock("places", sub, error_cb, @args);
+		parent->storage->set_unlock("places", sub, fun, args);
 	    }
 	} else if (PSYC.abbrev(m->mc, "_notice_context_discord")) {
-	    parent->storage->unlock("places", error_cb, @args);
+	    parent->storage->unlock("places", fun, args);
 	}
 
 	parent->display(p);
@@ -169,6 +211,20 @@ void enter(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 		       ([ "lock" : (< "places" >) ]), callback);
 }
 
+//! Leaves a channel.
+//! @param channel
+//! 	The channel to leave.
+//! @param error_cb
+//! 	Callback to be called when the place can not be left. 
+//!	If this is not a local storage error, messages from the @expr{channel@} 
+//! 	will be blocked henceforward.
+//!	Signature:
+//! 	@expr{void error_cb(mixed ... args);@}.
+//! 	Retring may work here.
+//! @param args
+//! 	Arguments to be passed on to the @expr{error_cb@}.
+//! @fixme
+//! 	Make an error output for local storage errors.
 void leave(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 
     void callback(MMP.Packet p, mapping _v) {
@@ -181,6 +237,9 @@ void leave(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 	    group = channel; 
 	}
 	    
+	void fun(int s, string key, function error_cb, array(mixed) args) {
+	    error_cb(@args);
+	};
 	if (PSYC.abbrev(m->mc, "_notice_context_leave")) {
 	    // TODO think about really_leave
 #if 0
@@ -189,13 +248,15 @@ void leave(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 		return;
 	    }
 #endif
-
 	    if (has_index(sub, channel)) {
 		m_delete(sub, channel);
-		parent->storage->set_unlock("places", sub, error_cb, @args);
+		parent->storage->set_unlock("places", sub, fun, args);
 	    } else {
-		parent->storage->unlock("places", error_cb, @args);
+		parent->storage->unlock("places", fun, args);
 	    }
+	} else if (has_index(sub, channel)) {
+	    m_delete(sub, channel);
+	    parent->storage->set_unlock("places", sub, fun, args);
 	}
 
 	parent->display(p);

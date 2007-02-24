@@ -3,12 +3,39 @@
 #define MAX_TRUST	9
 #define MIN_TRUST	5	// level of trust below nothing really happens
 #define NO_TRUST	0
+//! Implementation of PSYC remote trust. This module uses the "friends" 
+//! variable from storage to find out in whom we trust and in whom we do
+//! not trust.
+//! Remote trust values are temporary and get lost whenever the Handler 
+//! is destructed.
+//! 
+//! Exports: @[get_trust()]
 
-/* TODO: fix the _friends mapping, not to use strings for the uniforms
- * 	 anymore.. that sux noodles..
- */
-
-int get_trust(mapping friends, MMP.Uniform guy, MMP.Uniform|void trustee) {
+//! @param friends
+//! 	Mapping of friends (from storage).
+//! @param guy
+//! 	Entity to get trust for.
+//! @param trustee
+//! 	Trusted authority. Should be a friend of us and @expr{guy@}. 
+//! 	@expr{trustee@} is required to have a trust level of @expr{5@} 
+//! 	or more to be accepted as an authority.
+//! @returns
+//! 	An integer value indicating how much we trust in @expr{guy@} with 
+//! 	@expr{trustee@} as authority.
+//! 	@int
+//! 		@value 0
+//! 			No trust
+//! 		@value 1..4
+//! 			...
+//! 		@value 5
+//! 			Minimal trust required to be trusted authority
+//! 			for someone else
+//! 		@value 6..8
+//! 			...
+//! 		@value 9
+//! 			Maximum trust
+//! 	@endint
+int(0..9) get_trust(mapping friends, MMP.Uniform guy, MMP.Uniform|void trustee) {
     int trust;
 
     if (has_index(friends, guy)) {
@@ -30,6 +57,7 @@ int get_trust(mapping friends, MMP.Uniform guy, MMP.Uniform|void trustee) {
 
 inherit PSYC.Handler.Base;
 
+
 // how much does someone trust others...
 // trustee -> guy -> trust
 mapping(MMP.Uniform:mapping(MMP.Uniform:int)) trusted = ([]);
@@ -41,18 +69,37 @@ constant export = ({
 
 // we have to make a decision whether we keep the trust for ever or not.
 constant _ = ([
+    "_" : ({ "friends" }),
     "filter" : ([
 	"" : ([
 	    "async" : 1,
-	    "wvars" : ({ "_friends" }),
+	    "wvars" : ({ "friends" }),
 	]),
     ]),
     "postfilter" : ([
-	"_request_trustiness" : ({ "_friends" }),
-	"_notice_trustiness" : ({ "_friends" }),
-	"_failure_trustiness" : ({ "_friends" }),
+	"_request_trustiness" : ({ "friends" }),
+	"_notice_trustiness" : ({ "friends" }),
+	"_failure_trustiness" : ({ "friends" }),
     ]),
 ]);
+
+void init(mapping vars) {
+    P0(("Trustiness", "Initing trustiness.\n"))
+    if (!mappingp(vars["friends"])) {
+	void _cb(int err) {
+	    if (err) {
+		// TODO:: make fatal
+		error("could not set friends\n");
+	    }
+
+	    set_inited(1);
+	};
+
+	parent->storage->set("friends", ([ ]), _cb);
+    } else {
+	set_inited(1);
+    }
+}
 
 int postfilter_request_trustiness(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data, reply;
@@ -66,8 +113,8 @@ int postfilter_request_trustiness(MMP.Packet p, mapping _v, mapping _m) {
 
     location = (m->vars["_location"] = m->vars["_location"]);
 
-    if (MIN_TRUST <= get_trust(_v["_friends"], source)) {
-	trust = get_trust(_v["_friends"], location);
+    if (MIN_TRUST <= get_trust(_v["friends"], source)) {
+	trust = get_trust(_v["friends"], location);
 	reply = m->reply("_notice_trustiness", ([
 					    "_location" : location,
 					    "_trustiness" : trust,
@@ -141,7 +188,7 @@ void postfilter_notice_trustiness(MMP.Packet p, mapping _v, mapping _m) {
 	return PSYC.Handler.STOP;
     }
 
-    if (get_trust(_v["_friends"], trustee) < MIN_TRUST) {
+    if (get_trust(_v["friends"], trustee) < MIN_TRUST) {
 	P2(("Handler.Trustiness", "%O: Got trustiness for %O from %O (whom we dont trust enough to keep that information).\n", parent, location, trustee))
 	deliver(trustee, location, NO_TRUST); 
 	return PSYC.Handler.STOP;
@@ -153,7 +200,7 @@ void postfilter_notice_trustiness(MMP.Packet p, mapping _v, mapping _m) {
 	trusted[trustee][location] = trust;
     }
 
-    deliver(trustee, location, get_trust(_v["_friends"], location, trustee));
+    deliver(trustee, location, get_trust(_v["friends"], location, trustee));
 
     return PSYC.Handler.STOP;
 }
@@ -178,8 +225,8 @@ void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
     MMP.Uniform source = p->source();
 
     // we should change _trust here in any case! later TODO
-    if (has_index(_v["_friends"], source)) {
-	trust = _v["_friends"][source];
+    if (has_index(_v["friends"], source)) {
+	trust = _v["friends"][source];
     } else if (has_index(m->vars, "_trustee")) {
 	MMP.Uniform trustee;
 

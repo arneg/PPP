@@ -1,6 +1,11 @@
 #include <debug.h>
 inherit PSYC.Handler.Base;
 
+//! This handler calls @expr{parent->distribute(mmppacket);@} for every
+//! message received.
+//!
+//! Requires no variables from storage whatsoever.
+
 constant _ = ([
     "postfilter" : ([
 	"" : 0

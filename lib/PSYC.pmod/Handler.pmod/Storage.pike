@@ -2,11 +2,16 @@
 inherit PSYC.Handler.Base;
 #include <debug.h>
 
-/* TODO: doesnt check if someone is allowed to store or retrieve data ,)
- * 	 information about linked clients should go with the misc mapping
- * 	
- * 	 replace p["_source"] by p->source() ???
- */
+//! An Implementation of PSYC storage. Handles @expr{get@}, @expr{set@} and
+//! @expr{lock@} operations, namely:
+//! @pre{
+//! _request_store[_lock|_unlock]
+//! _request_retrieve[_lock|_unlock]
+//! _request_lock
+//! _request_unlock@}
+//! Needs a storage object to work on. Also, only incoming packets from linked
+//! clients are accepted ("itsme" has to be set in the misc mapping as done by
+//! @[Handler.Link]).
 
 object storage;
 
@@ -20,6 +25,7 @@ constant _ = ([
 	"_request_retrieve_unlock" : 0,
 	"_request_lock" : 0,
 	"_request_unlock" : 0,
+	"_request_save" : 0,
     ]),
 ]);
 
@@ -70,6 +76,7 @@ int _set(MMP.Packet p, mapping _v, mapping _m, string mc, function set) {
 int postfilter_request_retrieve_lock(MMP.Packet p, mapping _v, mapping _m) {
     return _get(p, _v, _m, "_retrieve_lock", storage->get_lock);
 }
+
 
 int postfilter_request_retrieve_unlock(MMP.Packet p, mapping _v, mapping _m) {
     return _get(p, _v, _m, "_retrieve_unlock", storage->get_unlock);
@@ -164,6 +171,26 @@ int postfilter_request_unlock(MMP.Packet p, mapping _v, mapping _m) {
     return PSYC.Handler.STOP;
 }
 
+int postfilter_request_save(MMP.Packet p, mapping _v, mapping _m) {
+    PSYC.Packet m = p->data;
+
+    if (!_m["itsme"]) {
+	sendmsg(p->source(), m->reply("_failure_save"));
+	return PSYC.Handler.STOP;
+    }
+
+    if (catch { storage->save(); }) {
+	sendmsg(p->source(), m->reply("_error_save"));
+    } else {
+	sendmsg(p->source(), m->reply("_notice_save"));
+    }
+}
+
+//! @param s
+//! 	The storage object.
+//! @seealso
+//! 	@[PSYC.HandlingTools()->create()] for documentation of the other
+//! 	arguments.
 void create(object uni, function f, MMP.Uniform u, object s) {
     storage = s;
     ::create(uni, f, u);

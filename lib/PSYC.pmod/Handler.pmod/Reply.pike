@@ -15,7 +15,7 @@ constant _ = ([
 ]);
 
 constant export = ({
-    "add_reply", "make_reply"
+    "add_reply", "make_reply", "send_tagged", "send_tagges_v"
 });
 
 mapping(string:array) reply = ([ ]);
@@ -99,4 +99,3 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
 
     return PSYC.Handler.GOON;
 }
-

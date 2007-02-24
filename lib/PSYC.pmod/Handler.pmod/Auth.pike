@@ -1,6 +1,17 @@
 // vim:syntax=lpc
 #include <debug.h>
 
+//! Handler implementing remote PSYC Authentication.
+//! 
+//! The handler filters all incoming packet that have @expr{_source_identification@}
+//! set and asks that given uniform for authentification of the @expr{_source@}.
+//! See the link for a detailed description of PSYC Authentication.
+//! 
+//! Requires no variables from storage whatsoever.
+//! 
+//! @seealso
+//! 	http://about.psyc.eu/Authentication
+
 inherit PSYC.Handler.Base;
 
 constant _ = ([

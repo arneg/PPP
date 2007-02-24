@@ -3,14 +3,40 @@
 
 inherit PSYC.Handler.Base;
 
+//! This handler provides entities with capabilities to be linked to.
+//!
+//! Expects @expr{parent@} to provide
+//! @ul
+//! 	@item
+//! 		@expr{void attach(MMP.Uniform client)@}
+//! 	@item
+//! 		@expr{void detach(MMP.Uniform client)@}
+//! 	@item
+//! 		@expr{int(0..1) attached(MMP.Uniform client)@}
+//! @endul
+//!
+//! Handles the following Message Classes
+//! @ul
+//! 	@item
+//! 		@expr{_request_link@}
+//! 	@item
+//! 		@expr{_request_unlink@}
+//! 	@item
+//! 		@expr{_set_password@}
+//! @endul
+//! Also this handler will set @expr{"itsme"@} in the misc mapping to
+//! @expr{1@} if the sender of an incoming packet is a linked client.
+//!
+//! Openheartedly uses the "password" storage variable.
+
 constant _ = ([
     "prefilter" : ([
 	"" : 0,
     ]),
     "postfilter" : ([
-	"_request_link" : ({ "_password" }),
+	"_request_link" : ({ "password" }),
 	"_request_unlink" : 0,
-	"_set_password" : ({ "_password" }),
+	"_set_password" : ({ "password" }),
     ]),
 ]);
 
@@ -29,23 +55,26 @@ int postfilter_request_link(MMP.Packet p, mapping _v, mapping _m) {
 
     PSYC.Packet m = p->data;
 
-    if (!has_index(m->vars, "_password")) {
-	sendmsg(p["_source"], m->reply("_query_password"));
-	return PSYC.Handler.STOP;
+    if (stringp(_v["password"])) {
+	if (!has_index(m->vars, "_password")) {
+	    sendmsg(p["_source"], m->reply("_query_password"));
+	    return PSYC.Handler.STOP;
+	}
+
+	P3(("PSYC.Handler.Link", "comparing %O and %O.\n", _v["password"], m->vars["_password"]))
+	if (_v["password"] != m->vars["_password"]) {
+	    sendmsg(p["_source"], m->reply("_error_invalid_password"));
+	    return PSYC.Handler.STOP;
+	}
     }
 
-    P3(("PSYC.Handler.Link", "comparing %O and %O.\n", _v["_password"], m->vars["_password"]))
-
-    if (_v["_password"] == m->vars["_password"]) {
-	parent->attach(p["_source"]);
-	sendmsg(p["_source"], m->reply("_notice_link"));	
-    } else {
-	sendmsg(p["_source"], m->reply("_error_invalid_password"));
-    }
+    parent->attach(p["_source"]);
+    sendmsg(p["_source"], m->reply("_notice_link"));	
     return PSYC.Handler.STOP;
 }
 
 int postfilter_set_password(MMP.Packet p, mapping _v, mapping _m) {
+    // rewrite!!
     return postfilter_request_link(p, _v, _m); 
 }
 
