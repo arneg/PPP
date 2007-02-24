@@ -11,7 +11,7 @@
 #  define assertr(x,r)	(0)
 # endif
 
-# define enforce(x)	(!(x) && error("Assertion (" #x ") failed.\n"))
+# define enforce(x)	(!(x) && throw(({ "Assertion (" #x ") failed.\n", backtrace() })))
 // r for reason
-# define enforcer(x,r)	(!(x) && error(r + "\n"))
+# define enforcer(x,r)	(!(x) && throw(({ r + "\n", backtrace() })))
 #endif
