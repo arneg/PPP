@@ -70,7 +70,7 @@ array parse(int|program type, string data, object ui, void|array(mixed) args) {
     case Integer:
 	{
 	    array temp;
-	    temp = PSYC.Commands.Word.parse(data, ui);
+	    temp = PSYC.Commands.Word(data, ui);
 
 	    if (!temp[0]) return temp;
 
@@ -85,7 +85,7 @@ array parse(int|program type, string data, object ui, void|array(mixed) args) {
 	{
 	    MMP.Uniform u;
 	    array temp;
-	    temp = PSYC.Commands.Word.parse(data, ui);
+	    temp = PSYC.Commands.Word(data, ui);
 	    PT(("Commands", "got %O\n", temp))
 
 	    if (!temp[0]) return temp;
@@ -103,12 +103,12 @@ array parse(int|program type, string data, object ui, void|array(mixed) args) {
 	    return ({ 0, "Exceeds my definition of Uniforms by years "
 		         "of science!" });
 	}
-    } else if (programp(type)) {
+    } else if (programp(type) || objectp(type)) {
 	PT(("Commands", "%O has %O\n", type, indices(type)))
 	if (args) {
-	    return type->parse(data, ui, @args);	
+	    return type(data, ui, @args);	
 	} else {
-	    return type->parse(data, ui);
+	    return type(data, ui);
 	}
     } else {
 	THROW(sprintf("Illegal Command definition type %t (%O).\n", type, type));

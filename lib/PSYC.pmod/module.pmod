@@ -104,8 +104,8 @@ class Packet {
     //! 	The packet's payload.
     void create(string|void m, mapping(string:mixed)|void v, string|void d) {
 	if (m) mc = m;
-	data = d || "";
 	vars = v || ([ ]);
+	data = d || "";
     }
 
     //! Casts the packet to different types.
@@ -133,8 +133,10 @@ class Packet {
     string _sprintf(int format) {
 	switch (format) {
 	    case 'O':
-#if defined(DEBUG) && DEBUG > 3
-		return sprintf("PSYC.Packet(%O, %O)", mc, vars);
+#if defined(DEBUG) && DEBUG > 10
+		return sprintf("PSYC.Packet(%O, %O, %O)", mc, vars, data);
+#elif defined(DEBUG) && DEBUG > 3
+		return sprintf("PSYC.Packet(%O, %O)", mc, vars, data);
 #else
 		return sprintf("PSYC.Packet(%O)", mc);
 #endif
