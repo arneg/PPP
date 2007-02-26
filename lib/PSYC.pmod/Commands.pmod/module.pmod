@@ -1,11 +1,9 @@
 // vim:syntax=lpc
-constant String 	= 1 << __LINE__;
 constant Integer 	= 1 << __LINE__;
 constant Uniform 	= 1 << __LINE__;
 constant BEGIN_MODIFIERS = (1 << __LINE__) - 1;
-constant Sentence 	= 1 << __LINE__;
 constant Place 		= 1 << __LINE__;
-constant User 		= 1 << __LINE__;
+constant Person		= 1 << __LINE__;
 //! Type-constants for Command specifications.
 //! @expr{BEGIN_MODIFIERS@} obviously is not a type but a hack. Beware of!
 //!
@@ -14,28 +12,31 @@ constant User 		= 1 << __LINE__;
 //! bitwise fashion.
 //!
 //! @int
-//! 	@value String
-//! 		A string consisting of non whitespace characters. 
 //! 	@value Integer
 //! 		A string consting of a decimal number is expected and will
 //! 		be parsed to @expr{int@} accordingly.
 //! 	@value Uniform
 //! 		A string consting of a uniform is expected and will
 //! 		be parsed to @[MMP.Uniform] accordingly.
-//! 	@value Sentence
-//! 		A string consisting of arbitrary characters, e.g. until the end
-//!		of the input.
 //! 	@value Place
 //! 		A uniform of a Place. Will be parsed as the nickname or
 //! 		uniform of a Place and 'return' @[MMP.Uniform].
-//! 	@value User
+//! 	@value Person
 //! 		A uniform of a Person. Will be parsed as the nickname or
 //! 		uniform of a Person and 'return' @[MMP.Uniform].
 //! @endint
-//! @fixme
-//! 	Rename String to Word and implement true strings (of a certain length).
-//! 	Rename User to Person.
-// ^^ no comments here! there will be dragons
+//! 
+//! Additional commands may be implemented using programs. 
+//! A few built-in types are:
+//! 
+//! @int
+//! 	@value Word
+//! 		Parses a String of non-whitespace characters. Trailing white-spaces are 
+//! 		consumed aswell. A fixed length may be specified as an argument.
+//! 	@value String
+//! 		A string. You may specify a fixed length as an argument, otherwise
+//! 		this type will consume the rest of the input.
+//! @endint
 
 //! @b{General Information@}
 //! 
@@ -49,53 +50,68 @@ constant User 		= 1 << __LINE__;
 //! @fixme
 //! 	finish howto section
 
-mapping _ = ([ ]);
+#include <debug.h>
 
 //! Parse the next argument from the list of arguments. 
 //! @param type
 //! 	Type of the argument.
 //! @param data
-//! 	List of arguments.
+//! 	String starting with the next argument of type @expr{type@}.
 //! @param ui
 //! 	Client object to perform nickname to uniform translations.
 //! @returns
-//! 	Returns a list consisting of the number of consumed elments in the array,
+//! 	Returns a list consisting of the number of consumed characters in the input,
 //!	followed by all parsed arguments.
 //! 	In case the given command string does not fit the specification of the
 //! 	command, an array consisting of @expr{0@} and an error string is returned. 
-//! @fixme
-//! 	Start using a string instead of already split arguments in a list.
-mixed parse(int type, array(string) data, object ui) {
-    switch(type & BEGIN_MODIFIERS) {
-    case String:
-	if (type & Sentence) {
-	    return ({ sizeof(data), data * " " });
-	}
-
-	return ({ 1, data[0] });
+array parse(int|program type, string data, object ui, void|array(mixed) args) {
+    PT(("Commands", "parse(%O, %O, %O, %O)\n", type, data, ui, args))
+    if (intp(type)) switch(type & BEGIN_MODIFIERS) {
     case Integer:
-	if ((string)((int)data[0]) == data[0]) {
-	    return ({ 1, (int)data[0] });
-	}
+	{
+	    array temp;
+	    temp = PSYC.Commands.Word.parse(data, ui);
 
-	return ({ 0, "It's not an Integer, baby." });
+	    if (!temp[0]) return temp;
+
+	    if ((string)((int)temp[1]) == temp[1]) {
+		temp[1] = (int)temp[1];
+		return temp;
+	    }
+
+	    return ({ 0, "It's not an Integer, baby." });
+	}
     case Uniform:
 	{
 	    MMP.Uniform u;
+	    array temp;
+	    temp = PSYC.Commands.Word.parse(data, ui);
+	    PT(("Commands", "got %O\n", temp))
+
+	    if (!temp[0]) return temp;
 
 	    if (type & Place) {
-		u = ui->client->room_to_uniform(data[0]);
+		u = ui->client->room_to_uniform(temp[1]);
 	    } else {
-		u = ui->client->user_to_uniform(data[0]);	
+		u = ui->client->user_to_uniform(temp[1]);	
 	    }
 
 	    if (u) {
-		return ({ 1, u });
+		return ({ temp[0], u });
 	    }
 
 	    return ({ 0, "Exceeds my definition of Uniforms by years "
 		         "of science!" });
 	}
+    } else if (programp(type)) {
+	PT(("Commands", "%O has %O\n", type, indices(type)))
+	if (args) {
+	    return type->parse(data, ui, @args);	
+	} else {
+	    return type->parse(data, ui);
+	}
+    } else {
+	THROW(sprintf("Illegal Command definition type %t (%O).\n", type, type));
     }
 }
 

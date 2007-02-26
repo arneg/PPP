@@ -9,7 +9,7 @@ inherit PSYC.Commands.Base;
 //! 	@item
 //!		@expr{"leave" . Commands.Uniform|PSYC.Commands.Place@}
 //! 	@item
-//!		@expr{"say" . Commands.Uniform|PSYC.Commands.Place . Comands.String|Commands.Sentence@}
+//!		@expr{"say" . Commands.Uniform|PSYC.Commands.Place . Comands.String@}
 //! @endul
 
 constant _ = ([
@@ -26,7 +26,7 @@ constant _ = ([
     "say" : ({
 	({ "say",
 	    ({ PSYC.Commands.Uniform|PSYC.Commands.Place, "channel",
-	       PSYC.Commands.Sentence|PSYC.Commands.String, "text" }),
+	       PSYC.Commands.String, "text" }),
 	}),
      }),
 ]);
