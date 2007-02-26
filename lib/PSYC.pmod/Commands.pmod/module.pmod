@@ -64,7 +64,7 @@ constant Person		= 1 << __LINE__;
 //!	followed by all parsed arguments.
 //! 	In case the given command string does not fit the specification of the
 //! 	command, an array consisting of @expr{0@} and an error string is returned. 
-array parse(int|program type, string data, object ui, void|array(mixed) args) {
+array parse(int|object|program type, string data, object ui, void|array(mixed) args) {
     PT(("Commands", "parse(%O, %O, %O, %O)\n", type, data, ui, args))
     if (intp(type)) switch(type & BEGIN_MODIFIERS) {
     case Integer:

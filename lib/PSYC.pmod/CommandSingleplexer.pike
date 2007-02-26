@@ -60,7 +60,7 @@ void cmd(string input) {
 COMMAND: foreach (commands[command];;array pair) {
 	    function fun;
 	    array specs;
-	    int i = 1;
+	    int i = 0;
 	    mixed results = ({ });
 
 	    [fun, specs] = pair;

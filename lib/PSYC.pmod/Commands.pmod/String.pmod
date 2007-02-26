@@ -1,4 +1,4 @@
-array parse(string data, object ui, int|void length) {
+array `()(string data, object ui, int|void length) {
     if (!length) {
 	return ({ sizeof(data), data });
     }

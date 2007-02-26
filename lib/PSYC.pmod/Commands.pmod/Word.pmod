@@ -1,7 +1,7 @@
 //! Parse a Word, e.g. a non-whitespace string. Consumes all trailing spaces.
 //! Argument may be an Integer for fixed length words. 
 
-array parse(string data, object ui, int|void length) {
+mixed `()(string data, object ui, int|void length) {
     if (length) {
 
 	if (length > sizeof(data)) {
