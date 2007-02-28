@@ -62,7 +62,7 @@ class Uniform {
     //! @note
     //!	    The root Uniform is not automatically set. In case you are using 
     //!	    @[PSYC.Server] this is taken care of.
-    MMP.Uniform root
+    MMP.Uniform root;
 
     //! The object associated with this Uniform. As @expr{root@} this variable is not set by default but
     //! may be used to store such information. In contrast to @expr{root@} it must not be exprected to
