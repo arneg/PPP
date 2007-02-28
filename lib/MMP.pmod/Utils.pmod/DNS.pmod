@@ -108,6 +108,9 @@ class SRVReply {
     //!		@member int "weight"
     //!		    The entries weight.
     //!	    @endmapping
+    //! @throws
+    //!     If @[next()] is called without an available next entry.
+    //!     Check @[has_next()]!
     mapping next() {
 	mapping res;
 

@@ -1,3 +1,10 @@
+//! This module is home to several small utils that are used by MMP and PSYC.
+
+//! A classical fifo-queue. Uses a linked list internally.
+//! @note
+//! 	@expr{({ })@}-queues have shown to be faster (at least on linux-2.4.*,
+//!	athlon). However, we stick to this module since it has clear operations
+//!	and can easily be shared without being wrapped somewhere.
 class Queue {
     array|int head, tail;
     int size = 0;
@@ -15,18 +22,23 @@ class Queue {
     }
 #endif
 
+    //! @returns
+    //!	    The number of entries in the @[Queue].
     int _sizeof() {
 	return size;
     }
 
     int isEmpty() {
-        return !head;
+	return is_empty();
     }
 
-    int is_empty() { // move to pike style eventually
-	return isEmpty();
+    //! @returns
+    //!	    True when there are no more entries in the Queue.
+    int is_empty() {
+	return !head;
     }
 
+    //! Pushes an element to the @[Queue].
     void push(mixed data) {
         if (isEmpty()) {
             head = tail = allocate(2);
@@ -39,6 +51,9 @@ class Queue {
 	size++;
     }
 
+    //! Shifts an argument from the @[Queue].
+    //! @returns
+    //!	    The element longest in the @[Queue], or @expr{UNDEFINED@}.
     mixed shift() {
         mixed data;
 
@@ -54,12 +69,19 @@ class Queue {
         return data;
     }
 
+    //! Peeks into the queue, like @[shift()], but doesn't delete the
+    //! 'shifted' element.
+    //! @returns
+    //!	    The element longest in the @[Queue], or @expr{UNDEFINED@}.
     mixed shift_() {
 	if (isEmpty()) return UNDEFINED;
 
 	return head[DATA];
     }
 
+    //! Unshifts an element, i.e. like @[push()], but at the other end of the
+    //! @[Queue]. Therefore @expr{(q->push(x), q->shift() == x)@} will always
+    //! be true.
     void unshift(mixed data) {
         if (isEmpty()) {
             push(data);
@@ -84,6 +106,13 @@ class Queue {
 	return UNDEFINED;
     }
 
+    //! Cast operator.
+    //! @param type
+    //!	    @string
+    //!		@value "array"
+    //!		    Will return an array containing the @[Queue]'s elements,
+    //!		    in order.
+    //!	    @endstring
     mixed cast(string type) {
 	if (type == "array") {
 	    array out = allocate(sizeof(this));

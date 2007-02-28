@@ -1,3 +1,12 @@
+//! @returns
+//! 	@int
+//! 		@value 0
+//! 			@expr{candidate@} is not an IP.
+//! 		@value 1
+//! 			@expr{candidate@} is an IP.
+//! 	@endint
+//! @fixme
+//! 	Support IPv6.
 int(0..1) is_ip(string candidate) {
     array(string) parts = candidate / ".";
 

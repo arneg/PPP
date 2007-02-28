@@ -12,15 +12,80 @@ void debug(string cl, string format, mixed ... args) {
 # define THROW(s)        throw(({ (s), 0 }))
 #endif
 
+//! Implementation of Uniform (similar to UNLs) as described in
+//! @[http://about.psyc.eu/Uniform].
+//! 
+//! @note
+//!	Parsing of the Uniform is done automatically when variables
+//!	are being accessed for the first time using @[`->()].
 class Uniform {
-    string scheme, transport, host, user, resource, slashes, query, body,
-	   userAtHost, pass, hostPort, circuit, unl, channel, obj;
-    MMP.Uniform root, super;
-    int port, parsed, islocal = UNDEFINED, reconnectable = 1;
+
+    //! The Uniforms scheme. Could be @expr{"psyc"@} or @expr{"xmpp"@}.
+    string scheme;
+
+    //! The domain name or ip adress of the Uniform.
+    string host;
+
+    //! The (optional) port. Will be 0 if none is given which will
+    //! then be used as 4404, the standard PSYC port.
+    int port;
+
+    string transport;
+
+    //! The user (if preceding host, delimeted by @@, e.g.
+    //! @expr{protocol://user@@host@}).
+    string user;
+
+    //! The resource, excluding the first @expr{/@}.
+    //! @example
+    //!	    MMP.Uniform("http://ppp.psyc.eu/foo#babar")->resource; // is "foo#babar"
+    string resource;
+
+    //! The full unl.
+    string unl;
+
+    //! The channel. See @[http://about.psyc.eu/Channels].
+    //! @example
+    //!	    MMP.Uniform("http://ppp.psyc.eu/foo#babar")->channel; // is "babar"
+    //!	    MMP.Uniform("http://ppp.psyc.eu/foo")->channel; // is UNDEFINED
+    string channel;
+
+    //! The address of the entity a given channel resides on. Is @expr{UNDEFINED@} if the Uniform
+    //! is not a channel.
+    //! @example
+    //!	    MMP.Uniform("http://ppp.psyc.eu/foo#babar")->super; // is MMP.Uniform("http://ppp.psyc.eu/foo")
+    MMP.Uniform super;
+
+    //! The Uniform of the root entity.
+    //! @example
+    //!	    MMP.Uniform("http://ppp.psyc.eu/foo#babar")->root; // is MMP.Uniform("http://ppp.psyc.eu/")
+    //! @note
+    //!	    The root Uniform is not automatically set. In case you are using 
+    //!	    @[PSYC.Server] this is taken care of.
+    MMP.Uniform root
+
+    //! The object associated with this Uniform. As @expr{root@} this variable is not set by default but
+    //! may be used to store such information. In contrast to @expr{root@} it must not be exprected to
+    //! contain the object when using @[PSYC.Server].
     object handler;
 
-    void create(string u, object|void o) {
-	unl = u;
+    string slashes;
+    string query;
+    string body;
+    string userAtHost;
+    string pass;
+    string hostPort;
+    string circuit;
+    string obj;
+    int parsed, islocal = UNDEFINED, reconnectable = 1;
+
+    //! @param uniform
+    //!	    The string representation of the Uniform.
+    //! @param o
+    //!	    The object to be associated with @expr{u@}. Will be stored in
+    //!	    the variable @expr{handler@}.
+    void create(string uniform, object|void o) {
+	unl = uniform;
 	if (o) {
 	    handler = o;
 	}
@@ -189,6 +254,15 @@ string|String.Buffer render_vars(mapping(string:mixed) vars,
     }
 }
 
+//! Render a @[Packet] into its string representation according to the
+//! definition in @[http://psyc.pages.de/mmp.html].
+//! @param packet
+//!	The Packet to be rendered.
+//! @param to
+//!	A @[String.Buffer] to render @expr{packet@} into.
+//! @returns
+//!	Depending on whether a @[String.Buffer] was specified either
+//!	a string or the @[String.Buffer] is returned.
 string|String.Buffer render(Packet packet, void|String.Buffer to) {
     String.Buffer p;
 
@@ -266,9 +340,19 @@ array(object) renderRequestChain(array(object) modules, string hook) {
     return reverse(ret);
 }
 
+//! Implementation of an MMP Packet as descibed in 
+//! @[http://about.psyc.eu/MMP].
 class Packet {
+    //! MMP Variables of the Packet. These variables are routing information.
+    //! You can find a description of all variables and their meaning in
+    //! @[http://psyc.pages.de/mmp.html].
     mapping(string:mixed) vars;
+
+    //! Data contained in the Packet. Could be a @expr{string@} of arbitrary
+    //! data or an object. Objects are expected to be subclasses of 
+    //! @[PSYC.Packet] in many parts of the @[PSYC] code.
     string|object data;
+
     function parsed = 0, sent = 0; 
 #ifdef LOVE_TELNET
     string newline;
@@ -297,6 +381,9 @@ class Packet {
 	return 0;
     }
 
+    //! @returns
+    //!	    A string representation of the unique Packet identification
+    //!	    as described in @[http://www.psyc.eu/mmp.html].
     string id() {
 	if (has_index(vars, "_context")) {
 	    return (string)vars["_context"] + (string)vars["_counter"];
@@ -326,6 +413,10 @@ class Packet {
 	return UNDEFINED;
     }
     
+    //! @returns
+    //!	    The value of the variable @expr{id@}. In case the packet contains
+    //!	    an object e.g., a @[PSYC.Packet], variables of the object may be
+    //!	    accessed this way aswell.
     mixed `[](string id) {
 	if (has_index(vars, id)) {
 	    return vars[id];
@@ -339,6 +430,12 @@ class Packet {
 	return UNDEFINED;
     }
 
+    //! Assign MMP variable @expr{id@} to @expr{val@}.
+    //! @returns
+    //!	    @expr{val@}
+    //! @throws
+    //!	    This method throws if @expr{id@} is not a MMP variable and the packet
+    //!	    does not contain an object.
     mixed `[]=(string id, mixed val) {
 
 	if (is_mmpvar(id)) {
@@ -377,6 +474,12 @@ class Packet {
     }
 #endif
 
+    //! @returns
+    //!	    The source of this packet i.e., the Uniform of the entity this 
+    //!	    Packet originates from. This is not to be confused with the 
+    //!	    technical source.
+    //! @note
+    //!	    @expr{_source_identification || _source@}
     MMP.Uniform source() {
 	if (has_index(vars, "_source_identification")) {
 	    return vars["_source_identification"];
@@ -385,12 +488,24 @@ class Packet {
 	return vars["_source"];
     }
 
+    //! @returns
+    //!	    The reply adress of this packet i.e., the Uniform of the entity
+    //!	    that is meant to receive any reply to this Packet.
+    //! @note
+    //!	    @expr{_source_identification_reply || _source_reply || _source@}
+    //! @seealso
+    //!	    @[PSYC.Packet()->reply()]
+    //! @example
+    //!	    PSYC.Packet m = p->data; 
+    //!	    sendmsg(p->reply(), m->reply("_notice_version"));
     MMP.Uniform reply() {
 	return vars["_source_identification_reply"]
 	    || vars["_source_reply"]
 	    || vars["_source"];
     }
 
+    //! @returns
+    //!	    Returns the relay source of this packet, @[source()] otherwise.
     MMP.Uniform lsource() {
 	if (has_index(vars, "_source_relay")) {
 	    mixed s = vars["_source_relay"];
@@ -410,6 +525,19 @@ class Packet {
 // 1 means yes and merge it into psyc
 // 2 means yes but do not merge
 
+//! @returns
+//!	@int
+//!	    @value 0
+//!		@expr{var@} is not an MMP variable.
+//!	    @value 1
+//!		@expr{var@} is an MMP variable that should be seen
+//!		by the application layer.
+//!	    @value 2
+//!		@expr{var@} is an MMP variable that should be used
+//!		by the routing layer of your program only.
+//!	@endint
+//! @seealso
+//!	For a description of MMP variables see @[http://psyc.pages.de/mmp.html].
 int(0..2) is_mmpvar(string var) {
     switch (var) {
     case "_target":
@@ -423,9 +551,9 @@ int(0..2) is_mmpvar(string var) {
     case "_counter":
     case "_reply":
     case "_trace":
-	return 1;
     case "_amount_fragments":
     case "_fragment":
+	return 1;
     case "_encoding":
     case "_list_require_modules":
     case "_list_require_encoding":
@@ -440,6 +568,7 @@ int(0..2) is_mmpvar(string var) {
     return 0;
 }
 
+//! Implementation of MMP Circuits as described nowhere really.
 class Circuit {
     inherit MMP.Utils.Queue;
 
@@ -474,6 +603,18 @@ class Circuit {
     // closecb(0); if connections gets closed,
     // 	 --> DISCUSS: closecb(string logmessage); on error? <--
     // 	 maybe: closecb(object dings, void|string error)
+    //! @param so
+    //!	    Socket to use. 
+    //! @param cb
+    //!	    Callback to call for incoming @[MMP.Packet]s. Expected signature is:
+    //!	    @expr{void cb(MMP.Packet packet, MMP.Circuit connection);@}
+    //! @param closecb
+    //!	    Callback to be called when the @expr{so@} is being closed.
+    //!	    Expected signature is: 
+    //!	    @expr{void cb(MMP.Circuit connection);@}
+    //! @param parse_uni
+    //!	    Function to use to parse Uniforms. This is used in @[PSYC.Server] to
+    //!	    keep the Uniform cache consistent.
     void create(Stdio.File|Stdio.FILE so, function cb, function closecb,
 		void|function parse_uni) {
 	P2(("MMP.Circuit", "create(%O, %O, %O)\n", so, cb, closecb))
@@ -534,21 +675,37 @@ class Circuit {
 #endif
     }	
 
+    //! Start actually sending packets.
+    //! @note
+    //!	    This will be called for you by @[Server].
     void activate() {
 	PT(("MMP.Circuit", "%O->activate()\n", this))
 	write_okay = 1;
 	if (write_ready) write();
     }
 
-    void send_neg(Packet mmp) {
-	P3(("MMP.Circuit", "%O->send_neg(%O)\n", this, mmp))
-	q_neg->push(mmp);
+    //! Send a negotiation packet. @expr{packet@} will be send even
+    //! if the @[Circuit] has not been activated using @[activate()].
+    //! @note
+    //!	    Use this with care and for negotiation only!
+    void send_neg(Packet packet) {
+	P3(("MMP.Circuit", "%O->send_neg(%O)\n", this, packet))
+	q_neg->push(packet);
 
 	if (write_ready) {
 	    write();
 	}
     }
 
+    //! Register a packet for sending.
+    //! @param holder
+    //!	    A @[MMP.Utils.Queue] which holds the @[MMP.Packet] to be sent.
+    //! @note
+    //!	    Better do @b{not use this directly@}, but use a @[VirtualCircuit]
+    //!	    (or something similar you build) to send packets.
+    //! @seealso
+    //!	    Remember to @[activate()] the Circuit, otherwise no packet
+    //!	    will be sent.
     void msg(MMP.Utils.Queue holder) {
 	P3(("MMP.Circuit", "%O->msg(%O)\n", this, holder))
 	push(holder);
@@ -747,6 +904,7 @@ class Circuit {
 
     // works quite similar to the psyc-parser. we may think about sharing some
     // source-code. 
+    //! @ignore
 #define RETURN(x)	ret = (x); stop = -1
 #define INBUF	((string)inbuf)
 #ifdef LOVE_TELNET
@@ -921,6 +1079,7 @@ LINE:	while(-1 < stop &&
 
 	return ret;
     }
+    //! @endignore
 
     void add_close_cb(function cb, mixed ... args) {
 	close_cbs[cb] = args;
@@ -935,6 +1094,7 @@ LINE:	while(-1 < stop &&
 #undef LL
 #undef LD
 
+//! A @[Circuit] that is active (i.e. an outgoing connection).
 class Active {
     inherit Circuit;
 
@@ -949,11 +1109,14 @@ class Active {
 	peeraddr->islocal = 0;
     }
 
-    void start_read(mixed id, string data) {
-	::start_read(id, data);
-    }
+    //void start_read(mixed id, string data) {
+    //	::start_read(id, data);
+    //}
 }
 
+//! A @[Circuit] that is passive (i.e. an inbound connection). Use this for 
+//! already @[Stdio.Port()->accept()]ed sockets (sockets ready to transport
+//! MMP).
 class Server {
     inherit Circuit;
 
@@ -974,6 +1137,7 @@ class Server {
 	return -1;
     }
 
+    //! @ignore
 #ifdef LOVE_TELNET
     int parse(void|string ld) {
 	int ret = ::parse(ld);
@@ -990,15 +1154,15 @@ class Server {
 
 	return ret;
     }
+    //! @endignore
 }
 
 
-// this is an intermediate object which tries to keep a circuit to a certain
-// target open.
-// multiple of this adapters may share the same circuit.
-// however, if a circuit breaks and can't be reestablished, 
-// adapters that once shared a circuit may end up in using different circuits
-// (to different servers).
+//! This is an intermediate object which tries to keep a @[Circuit] to a certain
+//! target open. Multiple of this adapters may share the same @[Circuit].
+//! However, if a @[Circuit] breaks and can't be reestablished, adapters that 
+//! once shared a @[Circuit] may end up in using different ones (potentially 
+//! to different servers).
 class VirtualCircuit {
     inherit MMP.Utils.Queue; // me hulk! me can queue!
 
@@ -1018,10 +1182,29 @@ class VirtualCircuit {
 	}
     }
 
-    void create(MMP.Uniform target, object srv, function|void co,
+    //! @param peer
+    //!	    Uniform of the peer to connect to.
+    //! @param srv
+    //!	    @[PSYC.Server] or similar object, which offers
+    //!	    @ul
+    //!		@item
+    //!		    @expr{void connect_to(MMP.Uniform to_root, function(MMP.Circuit : void) cb);@}
+    //!		@item
+    //!		    @expr{MMP.Uniform get_uniform(string uniform);@}
+    //!
+    //!		    (See @[PSYC.Server()->get_uniform()]).
+    //!	    @endul
+    //! @param co
+    //!	    A callback the @[VirtualCircuit] calls to check out from the server.
+    //!	    Currently unused.
+    //! @param c
+    //!	    If a suiting @[Circuit] should be at hand, pass this as @expr{c@}.
+    //!	    No resolving and/or connection action will then be taken until @expr{c@}
+    //!	    "breaks".
+    void create(MMP.Uniform peer, object srv, function|void co,
 		MMP.Circuit|void c) {
-	targethost = target->host;
-	targetport = target->port;
+	targethost = peer->host;
+	targetport = peer->port;
 
 	server = srv;
 	check_out = co;
@@ -1130,6 +1313,9 @@ class VirtualCircuit {
 	MMP.Utils.DNS.async_srv("psyc-server", "tcp", targethost, srvcb);
     }
 
+    //! Sends a @[Packet] to this @[VirtualCircuit]'s target.
+    //! If delivery fails, eventually opening new circuits to other
+    //! (responsible) servers will be opened.
     void msg(MMP.Packet p) {
 	push(p);
 

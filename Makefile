@@ -43,5 +43,5 @@ refdoc:
 	rm -rf refdoc_tmp
 
 refdoc-publish: refdoc
-	- rm -r /www/main/k/refdoc
-	cp -R refdoc /www/main/k
+	- rm -r /roxen/ppp.psyc.eu/refdoc/modref
+	cp -R refdoc/modref /roxen/ppp.psyc.eu/refdoc
