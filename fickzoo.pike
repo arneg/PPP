@@ -58,81 +58,6 @@ int main(int argc, array(string) argv) {
 
     dumms = PSYC.Storage.FileFactory(DATA_PATH); 
 
-    string smtime() {
-	string wday, month;
-	mapping t = localtime(time()),
-		t2 = gmtime(sgn(t->timezone) * t->timezone);
-
-	switch (t->wday) {
-	case 0:
-	    wday = "Sun";
-	    break;
-	case 1:
-	    wday = "Mon";
-	    break;
-	case 2:
-	    wday = "Tue";
-	    break;
-	case 3:
-	    wday = "Wed";
-	    break;
-	case 4:
-	    wday = "Thu";
-	    break;
-	case 5:
-	    wday = "Fri";
-	    break;
-	case 6:
-	    wday = "Sat";
-	    break;
-	}
-
-	switch (t->mon) {
-	case 0:
-	    month = "Jan";
-	    break;
-	case 1:
-	    month = "Feb";
-	    break;
-	case 2:
-	    month = "Mar";
-	    break;
-	case 3:
-	    month = "Apr";
-	    break;
-	case 4:
-	    month = "May";
-	    break;
-	case 5:
-	    month = "Jun";
-	    break;
-	case 6:
-	    month = "Jul";
-	    break;
-	case 7:
-	    month = "Aug";
-	    break;
-	case 8:
-	    month = "Sep";
-	    break;
-	case 9:
-	    month = "Oct";
-	    break;
-	case 10:
-	    month = "Nov";
-	    break;
-	case 11:
-	    month = "Dec";
-	    break;
-	}
-
-	return sprintf("%s, %d %s %d %02d:%02d:%02d %c%02d%02d",
-		       wday, t->mday, month, 1900 + t->year,
-		       t->hour, t->min, t->sec,
-		       sgn(t->timezone) < 0 ? '+' : '-',
-		       t2->hour, t2->min);
-    };
-
     dings = PSYC.Server(([
 	     "ports" : ({ 
 #ifdef BIND
@@ -179,7 +104,7 @@ int main(int argc, array(string) argv) {
 	     "textdb" : textdb,
 			]));
 
-    write("220 %s ESMTP Sendmail 8.13.7/8.13.7; %s\n", LOCALHOST, smtime());
+    write("220 %s ESMTP Sendmail 8.13.7/8.13.7; %s\n", LOCALHOST, Calendar.ISO.now()->format_smtp());
     return -1;
 }
 
