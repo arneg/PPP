@@ -97,7 +97,7 @@ char *_parse_JSON_string(char* p, char* pe,
     mapping_start = '{';
     string_start = '"';
     value_start = number_start | array_start | mapping_start | string_start;
-    myspace = ' ';
+    myspace = [ \n\r\t];
 
     main := myspace* . (number_start >parse_number |
 			string_start >parse_string |

@@ -71,7 +71,7 @@
 	fexec i;
     }
 
-    myspace = ' ';
+    myspace = [ \n\r\t];
     value_start = ["[{\-+.tf] | digit;
 
     main := '{' . myspace* . (

@@ -107,6 +107,8 @@ PIKEFUN object parse(string data) {
     // length n can be alot but is certainly enough.
     init_string_builder(&s, 1);
 
+    pop_stack();
+
     push_text("PSYC.Packet");
     SAFE_APPLY_MASTER("resolv", 1);
 
@@ -135,8 +137,8 @@ PIKEFUN object parse(string data) {
 
     stack_swap(); // its mc, vars, data
 
-    if (pe - p - 1 > 0) {
-	push_n_text(p + 1, pe - p - 1);
+    if (pe - p > 0) {
+	push_n_text(p, pe - p);
     } else {
 	push_string(empty_pike_string);
     }
