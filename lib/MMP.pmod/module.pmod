@@ -1163,6 +1163,8 @@ class Server {
 //! However, if a @[Circuit] breaks and can't be reestablished, adapters that 
 //! once shared a @[Circuit] may end up in using different ones (potentially 
 //! to different servers).
+//! 
+//! Supports SRV records in domain resolution.
 class VirtualCircuit {
     inherit MMP.Utils.Queue; // me hulk! me can queue!
 
@@ -1183,7 +1185,8 @@ class VirtualCircuit {
     }
 
     //! @param peer
-    //!	    Uniform of the peer to connect to.
+    //!	    Uniform of the peer to connect to. If the port is omitted service 
+    //!	    discovery is done using SRV Records.
     //! @param srv
     //!	    @[PSYC.Server] or similar object, which offers
     //!	    @ul
