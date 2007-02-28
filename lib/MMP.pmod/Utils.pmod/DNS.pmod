@@ -2,6 +2,22 @@
 #define client	Protocols.DNS->global_async_client
 //#define MVC(MAP, VAL)	#VAL : MAP->VAL
 
+//! @fixme
+//! 	Make this module a child of @[MMP.Utils.Net]?
+
+//! Makes an asynchronous DNS SRV request.
+//! @param service
+//! 	The service (without preceeding underscore), e.g. @expr{"psyc"@}.
+//! @param protocol
+//! 	The protocol (without preceeding underscore), e.g. @expr{"tcp"@}
+//! @param name
+//! 	The domainname the SRV record should be requested from, e.g
+//! 	@expr{"psyc.eu"@}.
+//! @param cb
+//! 	Callback to be called with the resulting @[SRVReply]. Signature of
+//! 	the callback: @expr{void cb(SRVReply result, mixed ... cba);@}.
+//! @param cba
+//! 	Additional arguments to the callback.
 void async_srv(string service, string protocol, string name, function cb,
 	       mixed ... cba) {
     void sort_srv(string query, mapping result) {
@@ -33,6 +49,8 @@ void async_srv(string service, string protocol, string name, function cb,
                         Protocols.DNS.T_SRV, sort_srv);
 }
 
+//! SRV Records are quite complex, especially getting their prefrences right,
+//! so there is this class to represent them.
 class SRVReply {
     array(mapping) result;
     mapping(int:array(mapping)) _tmp;
@@ -54,6 +72,8 @@ class SRVReply {
 	result = res;
     }
 
+    //! @returns
+    //!	    1 if there are more entries.
     int(0..1) has_next() {
 	return !!sizeof(_tmp || result);
     }
@@ -76,6 +96,18 @@ class SRVReply {
 	return current;
     }
 
+    //! @returns
+    //!	    A mapping with
+    //!	    @mapping
+    //!		@member string "target"
+    //!		    The target hostname.
+    //!		@member int "port"
+    //!		    The target port.
+    //!		@member int "priority"
+    //!		    The entries priority.
+    //!		@member int "weight"
+    //!		    The entries weight.
+    //!	    @endmapping
     mapping next() {
 	mapping res;
 
