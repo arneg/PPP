@@ -6,8 +6,19 @@
 
 //! This module contanins modules and classes for participating in the PSYC world.
 //! See http://about.psyc.eu/ for more information about PSYC.
-//! @seealso
-//!	@[PSYC.Server]
+//! 
+//! PSYC is a messaging protocol that handles communication of PSYC entities 
+//! i.e., persons and chatrooms. There are other entities currently in use 
+//! which will be talked about later. 
+//! 
+//! PSYC entities are identified with their unique uniform. These uniforms are 
+//! adresses similar to URLs. A detailed description of uniforms can be found 
+//! at @[http://www.psyc.eu/unl.html]. For convenience we use objects internally
+//! instead of string representations of uniforms. That way its much easier to
+//! access certain parts of uniforms. See @[MMP.Uniform] for a documentation
+//! on those object representations.
+//!
+//! Communication of PSYC entities is managed by one central object. 
 
 class AR(function handler, array(string) wvars, int async, array(string) lvars,
 	 function|string check) {
