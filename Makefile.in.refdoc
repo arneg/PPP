@@ -5,7 +5,7 @@ VPATH=@srcdir@#:@srcdir@/../..:../..
 
 OBJS=
 MODDIR=
-MODNAME=PSYC
+MODNAME=
 MODULE_PMOD_IN=module.pmod.in
 AUTODOC_SRC_IN=
 MODULE_NAME=

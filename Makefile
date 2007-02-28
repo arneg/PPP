@@ -31,14 +31,16 @@ ppp:
 	pike -DSTILLE_DULDUNG -DLOVE_JSON $(TN) -Ilib -Mlib $(BIND) $(DEBUG) $(LOCALHOST) $(TDB) $(DPP) $(S).pike
 
 refdoc:
-	- rm -r refdoc refdoc_tmp
+	- rm -rf refdoc refdoc_tmp
 	mkdir refdoc_tmp
 	cp Makefile.in.refdoc refdoc_tmp/Makefile.in
 	cp configure.in.refdoc refdoc_tmp/configure.in
-	cp -R lib/PSYC.pmod refdoc_tmp/module.pmod.in
-	- cd refdoc_tmp ; pike -x module ; pwd ; pike -x module module_modref
+	cp -R lib refdoc_tmp/module.pmod.in
+	- cd refdoc_tmp ; pike -x module
+	patch -p0 < Makefile.diff.refdoc
+	- cd refdoc_tmp ; pwd ; pike -x module module_modref
 	mv refdoc_tmp/refdoc .
-	rm -r refdoc_tmp
+	rm -rf refdoc_tmp
 
 refdoc-publish: refdoc
 	- rm -r /www/main/k/refdoc

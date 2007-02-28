@@ -1,0 +1,11 @@
+--- refdoc_tmp/Makefile.old	2007-02-28 13:16:48.000000000 +0100
++++ refdoc_tmp/Makefile	2007-02-28 13:16:44.000000000 +0100
+@@ -289,7 +289,7 @@
+ 	@rm .gdbinit
+ 
+ extract_autodoc: $(PIKE_EXTERNAL_MODULE) plib/refdoc plib/doc_build/images
+-	$(RUNPIKE) -x extract_autodoc --builddir=plib/refdoc --srcdir=plib/modules
++	$(RUNPIKE) -x extract_autodoc --builddir=plib/refdoc --srcdir=plib/modules/.pmod
+ 	if test "X$(AUTODOC_SRC_IN)" != "X"; then \
+ 	$(RUNPIKE) -x extract_autodoc --builddir=plib/refdoc $(AUTODOC_SRC_IN); \
+ 	fi
