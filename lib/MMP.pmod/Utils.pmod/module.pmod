@@ -2,9 +2,9 @@
 
 //! A classical fifo-queue. Uses a linked list internally.
 //! @note
-//! 	@expr{({ })@}-queues have shown to be faster (at least on linux-2.4.*,
-//!	athlon). However, we stick to this module since it has clear operations
-//!	and can easily be shared without being wrapped somewhere.
+//! 	@expr{({ })@}-"queues" have showed to be faster (at least on linux-2.4.*,
+//!	athlon). Yet, we stick to this module since it has clear operations
+//!	and can easily be shared without the need for wrapping.
 class Queue {
     array|int head, tail;
     int size = 0;
@@ -80,7 +80,7 @@ class Queue {
     }
 
     //! Unshifts an element, i.e. like @[push()], but at the other end of the
-    //! @[Queue]. Therefore @expr{(q->push(x), q->shift() == x)@} will always
+    //! @[Queue]. Therefore @expr{(q->unshift(x), q->shift() == x)@} will always
     //! be true.
     void unshift(mixed data) {
         if (isEmpty()) {
