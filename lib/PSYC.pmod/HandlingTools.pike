@@ -55,6 +55,8 @@ void sendmsg(MMP.Uniform target, PSYC.Packet m) {
 //!@endcode
 //! @param args
 //!	Optional arguments that will be passed on to the callback.
+//! @returns
+//! 	The tag that the packet got assigned.
 
 string send_tagged(MMP.Uniform target, PSYC.Packet m, 
 		   function callback, mixed ... args) {
