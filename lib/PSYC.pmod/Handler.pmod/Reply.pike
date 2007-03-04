@@ -15,7 +15,7 @@ constant _ = ([
 ]);
 
 constant export = ({
-    "add_reply", "make_reply", "send_tagged", "send_tagges_v"
+    "add_reply", "make_reply", /*"send_tagged", "send_tagged_v"*/
 });
 
 mapping(string:array) reply = ([ ]);
