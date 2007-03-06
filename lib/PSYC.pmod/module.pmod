@@ -4,8 +4,8 @@
 #include <debug.h>
 #include <assert.h>
 
-//! This module contanins modules and classes for participating in the PSYC world.
-//! See http://about.psyc.eu/ for more information about PSYC.
+//! This module contains modules and classes for participating in the PSYC!
+//! world. See http://about.psyc.eu/ for more information about PSYC.
 //! 
 //! PSYC is a messaging protocol that handles communication of PSYC entities 
 //! i.e., persons and chatrooms. There are other entities currently in use 
