@@ -2,6 +2,7 @@
 #include <stdio.h>
 %%{
     machine JSON_number;
+    alphtype int;
     write data;
 
     # we could be much less specific here.. but i guess its ok to ensure the format not
@@ -9,65 +10,48 @@
     main := '-'? . ( '0' | ([1-9] . digit*) )? . '.' >{ d = 1; } . digit+ . ([eE] . [+\-] . digit+ )? %*{ fbreak; };
 }%%
 
-char *_parse_JSON_number(char *p, char *pe, 
-#ifndef USE_PIKE_STACK
-			 struct svalue *var, 
-#endif
-			 struct string_builder *s) {
-    char *i = p;
+p_wchar2 *_parse_JSON_number(p_wchar2 *p, p_wchar2 *pe) {
+    p_wchar2 *i = p;
     int cs;
     int d = 0;
-#ifdef USE_PIKE_STACK
     double f;
-#endif
 
     %% write init;
     %% write exec;
 
     if (cs >= JSON_number_first_final) {
+	
+	ptrdiff_t len = (ptrdiff_t)(i - p); 
+
+	char *temp = (char*)malloc(len+1);
+
+	if (temp == NULL) {
+	    Pike_error("Not enough memory while parsing a number from JSON!");
+	}
+
+	*(temp + len--) = '\0';
+	
+	do {
+	    *(temp + len) = (char)(*(i + len));
+	} while(len-- > 0);
+
+	len = (ptrdiff_t)(i - p);
+
 	if (d == 1) {
-#ifndef USE_PIKE_STACK
-	    var->type = PIKE_T_FLOAT;
-#endif
-	    if (1 != sscanf(i, "%lf", 
-#ifndef USE_PIKE_STACK
-			    &(var->u.float_number)
-#else
-			    &f
-#endif
-			    )) 
-#ifdef USE_PIKE_STACK
-		Pike_error("Error parsing float (%.*s) in JSON.", MINIMUM((int)(p - i), 10), i);
+	    if (1 != sscanf(temp, "%lf", &f)) {
+		Pike_error("Error parsing float (%.*s) in JSON.", MINIMUM(len, 10), temp);
+	    }
 	    push_float(f);
-#else
-		return NULL;
-#endif
 	} else {
-#ifndef USE_PIKE_STACK
-	    var->type = PIKE_T_INT;
-#endif
-	    if (1 != sscanf(i, "%d", 
-#ifndef USE_PIKE_STACK
-			    &(var->u.integer)
-#else
-			    &d
-#endif
-			    )) 
-#ifdef USE_PIKE_STACK
-		Pike_error("Error parsing integer (%.*s) in JSON.", MINIMUM((int)(p - i), 10), i);
+	    if (1 != sscanf(temp, "%d", &d)) {
+		Pike_error("Error parsing integer (%.*s) in JSON.", MINIMUM(len, 10), temp);
+	    }
 	    push_int(d);
-#else
-		return NULL;
-#endif
 	}
 	return p;
     }
 
-#ifdef USE_PIKE_STACK
-    Pike_error("Error parsing number (%.*s) in JSON.\n", MINIMUM((int)(pe - i), 10), i);
+    Pike_error("Error parsing number at '%c' in JSON.\n", (char)*i);
     return NULL; // make gcc happy
-#else
-    return NULL;
-#endif
 }
 

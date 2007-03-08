@@ -30,7 +30,10 @@ json_number.c: json_number.rl
 	$(RAGEL) json_number.rl | $(RLCODEGEN) -o json.cmod/json_number.c
 
 json.cmod: json_string.c json_mapping.c json_array.c json_number.c
-	$(RAGEL) -e json.rl | $(RLCODEGEN) -o json.cmod/json.cmod && (cd json.cmod/ && pike -x module)
+	$(RAGEL) -e json.rl | $(RLCODEGEN) -o json.cmod/json.cmod
+
+json.o: json.cmod 
+	(cd json.cmod/ && pike -x module)
 
 json.ps: json.rl json_string.rl json_mapping.rl json_array.rl json_number.rl
 	$(RAGEL) json.rl | $(RLCODEGEN) -Vp | dot -Tps > json.ps

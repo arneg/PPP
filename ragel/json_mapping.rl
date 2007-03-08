@@ -1,73 +1,19 @@
 // vim:syntax=ragel
 %%{
     machine JSON_mapping;
+    alphtype int;
     write data;
 
     action parse_value {
-#ifndef USE_PIKE_STACK
-	value = (struct svalue*)malloc(sizeof(struct svalue));
+	i = _parse_JSON(fpc, pe);
 
-	if (value == NULL) {
-	    free(key);
-	    i = NULL;
-	    fbreak;
-	}
-
-	memset(value, 0, sizeof(struct svalue));
-#endif
-	i = _parse_JSON(fpc, pe, 
-#ifndef USE_PIKE_STACK
-			value, 
-#endif
-			s);
-# ifdef DEBUG
-	printf("value: %p. null: %p\n", i, NULL);
-# endif
-
-#ifdef USE_PIKE_STACK
 	c++;
-#else
-	if (i == NULL) {
-	    free(key);
-	    free(value);
-	    fbreak;
-	}
-# ifdef DEBUG
-	printf("adding key:\n");
-	print_svalue(stdout, key);
-	printf("and value:\n");
-	print_svalue(stdout, value);
-	printf("\n");
-# endif
-	mapping_insert(var->u.mapping, key, value);
-#endif
 	fexec i;
     }
 
     action parse_key {
-#ifndef USE_PIKE_STACK
-	key = (struct svalue*)malloc(sizeof(struct svalue));
-
-	if (key == NULL) {
-	    i = NULL;
-	    fbreak;
-	}
-
-	memset(key, 0, sizeof(struct svalue));
-#endif
-	i = _parse_JSON_string(fpc, pe, 
-#ifndef USE_PIKE_STACK
-			       key, 
-#endif
-			       s);
-#ifdef USE_PIKE_STACK
+	i = _parse_JSON_string(fpc, pe);
 	c++;
-#else
-	if (i == NULL) {
-	    free(key);
-	    fbreak;
-	}
-#endif
 	fexec i;
     }
 
@@ -89,21 +35,10 @@
 		       ) %*{ fbreak; };
 }%%
 
-char *_parse_JSON_mapping(char *p, char *pe, 
-#ifndef USE_PIKE_STACK
-			  struct svalue *var, 
-#endif
-			  struct string_builder *s) {
-    char *i = p;
+p_wchar2 *_parse_JSON_mapping(p_wchar2 *p, p_wchar2 *pe) {
+    p_wchar2 *i = p;
     int cs;
-#ifndef USE_PIKE_STACK
-    struct svalue *key, *value; 
-
-    var->type = PIKE_T_MAPPING;
-    var->u.mapping = debug_allocate_mapping(8);
-#else
     int c = 0;
-#endif
 
 #ifdef DEBUG
     printf(">> MAPPING \n");
@@ -117,23 +52,12 @@ char *_parse_JSON_mapping(char *p, char *pe,
 #endif
 
 
-    if (
-#ifndef USE_PIKE_STACK
-	i != NULL && 
-#endif
-	cs >= JSON_mapping_first_final) {
-#ifdef USE_PIKE_STACK
+    if (cs >= JSON_mapping_first_final) {
 	f_aggregate_mapping(c);
-#endif
 	return p;
     }
-#ifdef USE_PIKE_STACK
     pop_n_elems(c);
-
-    Pike_error("Error parsing mapping at '%.*s'.\n", MINIMUM(pe - p, 10), p);
-#else
-    do_free_mapping(var->u.mapping);
-#endif
+    Pike_error("Error parsing mapping at '%c'.\n", (char)*p);
     // error
     return NULL;
 }
