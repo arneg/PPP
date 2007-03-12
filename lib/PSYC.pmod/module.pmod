@@ -9,16 +9,18 @@
 //! 
 //! PSYC is a messaging protocol that handles communication of PSYC entities 
 //! i.e., persons and chatrooms. There are other entities currently in use 
-//! which will be talked about later. 
+//! which will be talked about later. See @[PSYC.Person] and @[PSYC.Place].
 //! 
-//! PSYC entities are identified with their unique uniform. These uniforms are 
+//! PSYC entities are identified using their unique uniform. These uniforms are 
 //! adresses similar to URLs. A detailed description of uniforms can be found 
 //! at @[http://www.psyc.eu/unl.html]. For convenience we use objects internally
-//! instead of string representations of uniforms. That way its much easier to
+//! instead of string representations of uniforms. That way it is much easier to
 //! access certain parts of uniforms. See @[MMP.Uniform] for a documentation
-//! on those object representations.
+//! on those.
 //!
-//! Communication of PSYC entities is managed by one central object. 
+//! Communication of PSYC entities is managed by one central object. Currently 
+//! there exists only one such class, namely @[PSYC.Server]. There are plans to
+//! implement more lightweight ones for simple applications.
 
 class AR(function handler, array(string) wvars, int async, array(string) lvars,
 	 function|string check) {
@@ -158,7 +160,7 @@ class Packet {
 
     //! Generates a reply packet to @expr{m@}. Basically copies the packet's _tag to _tag_reply in the new packet.
     //! @returns
-    //!	The new packet containing the correct tag to be recognized as a reply to @expr{m@}.
+    //!	    The new packet containing the correct tag to be recognized as a reply to @expr{m@}.
     PSYC.Packet reply(string|void mc, mapping(string:mixed)|void v, string|void d) {
 	PSYC.Packet m = PSYC.Packet(mc, v, d);
 
