@@ -28,7 +28,7 @@
 			     ) %*{ fbreak; };
 }%%
 
-p_wchar2 *_parse_JSON_array(p_wchar2 *p, p_wchar2 *pe) {
+p_wchar2 *_parse_JSON_array(p_wchar2 *p, p_wchar2 *pe, short validate) {
     p_wchar2 *i = p;
     int cs;
     int c = 0;

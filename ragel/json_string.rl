@@ -66,7 +66,7 @@
 		  ) >mark %*{ fbreak; };
 }%%
 
-p_wchar2 *_parse_JSON_string(p_wchar2 *p, p_wchar2 *pe) {
+p_wchar2 *_parse_JSON_string(p_wchar2 *p, p_wchar2 *pe, short validate) {
     p_wchar2 temp = 0;
     p_wchar2 *mark = 0;
     struct string_builder s;

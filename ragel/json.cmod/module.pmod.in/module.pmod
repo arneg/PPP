@@ -1,36 +1,39 @@
 
+//! @ignore
 inherit @module@;
+//! @endignore
 
 constant __author = "Arne Goedeke <pike@laramies.com>";
-constant __version = "0.1";
+constant __version = "0.2";
 
+constant ASCII_ONLY = 1;
+constant ASCII_LESS = 3;
+constant HUMAN_READABLE = 4;
 //! May be passed to @[render()] as the second argument. Multiple
-//! Options may be used ORing them bitwise (ASCII_LESS includes
+//! flags may be used by ORing them bitwise (ASCII_LESS includes
 //! ASCII_ONLY).
 //! 
-//! @integer
+//! @int
 //! 	@value ASCII_ONLY
 //! 		Render all Unicode characters in strings with value
 //! 		bigger than 255 using the \u escape.
 //! 	@value ASCII_LESS
-//! 		Renders all Unicode character in string with value outside
+//! 		Renders all Unicode character in strings with value outside
 //! 		of 32 - 126 using the \u escape.
 //! 	@value HUMAN_READABLE
-//! 		Uses spaces and tags to create easy to read output.
-constant ASCII_ONLY = 1;
-constant ASCII_LESS = 3;
-constant HUMAN_READABLE = 4;
+//! 		Uses spaces and tabs to create easy to read output.
+//! @endint
 
-/*! @decl string render(mixed data, int flags)
- *! @decl String.Buffer render(mixed data, int flags, String.Buffer buf)
- *!
- *! Takes a native pike data structure (no multisets allowed and all mappings
- *! need strings as keys) and renders it into a string/String.Buffer.
- *! 
- *! @throws
- *! 	Throws an exception in case the data contains multisets or a
- *! 	mapping has non-string keys.
- */
+//! @decl string render(mixed data, int flags)
+//! @decl String.Buffer render(mixed data, int flags, String.Buffer buf)
+//!
+//! Takes a native pike data structure (no multisets allowed and all mappings
+//! need strings as keys) and renders it into a string/String.Buffer.
+//! 
+//! @throws
+//! 	Throws an exception in case the data contains multisets or a
+//! 	mapping with non-string keys.
+//! 
 object|string render(mixed data, int flags, void|object buf, void|int level) {
     int r = 0;
     

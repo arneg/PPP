@@ -24,6 +24,7 @@
 #include "stralloc.h"
 #include "mapping.h"
 #include "svalue.h"
+#include "operators.h"
 #include "array.h"
 #include "builtin_functions.h"
 #include "module.h"
@@ -122,11 +123,7 @@ p_wchar2 *_parse_JSON(p_wchar2 *p, p_wchar2 *pe, short validate) {
  *! in c using ragel (@[http://www.cs.queensu.ca/~thurston/ragel/]).
  *! The parser is supposed to handle Unicode strings (internally 8, 16 and 32 bit wide strings that is).
  *! 
- *! Have a look at 
- *! 
- *! @[http://www.json.org] or 
- *! 
- *! @[http://www.ietf.org/rfc/rfc4627.txt?number=4627] for
+ *! Have a look at @[http://www.json.org] or @[http://www.ietf.org/rfc/rfc4627.txt?number=4627] for
  *! information about what JSON is.
  */
 
@@ -135,7 +132,7 @@ p_wchar2 *_parse_JSON(p_wchar2 *p, p_wchar2 *pe, short validate) {
  *! Takes a string and checks if it is valid JSON.
  *! 
  *! @returns
- *! 	In case the string contains valid JSON. It is then guarenteed to be parsed
+ *! 	In case the string contains valid JSON @expr{-1@} is returned. It is then guarenteed to be parsed
  *! 	without errors by @[parse()].
  *! 	In case the string is not valid JSON, the integer position inside the string
  *! 	where the error occures is returned.

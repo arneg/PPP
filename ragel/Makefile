@@ -55,7 +55,7 @@ distclean clean:
 	rm -Rf *.o psyc.c psyc psyc.ps
 test:
 	pike -I../lib -M../lib test_json.pike
-release:
+release: json.cmod
 	mkdir Public_Parser_JSON2-$(VERSION)
 	cp json.cmod/Makefile.in Public_Parser_JSON2-$(VERSION)/
 	cp json.cmod/configure.in Public_Parser_JSON2-$(VERSION)/
