@@ -1,10 +1,11 @@
 
 //! @ignore
 inherit @module@;
-//! @endignore
 
 constant __author = "Arne Goedeke <pike@laramies.com>";
 constant __version = "0.2";
+constand __components = ({ "Public.pmod/Parser.pmod/JSON2.pmod/module.pmod", "Public.pmod/Parser.pmod/__JSON2.so" });
+//! @endignore
 
 constant ASCII_ONLY = 1;
 constant ASCII_LESS = 3;
