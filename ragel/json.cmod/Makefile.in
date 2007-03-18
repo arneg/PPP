@@ -4,6 +4,7 @@ OBJS=json.o
 MODDIR=Public.pmod/Parser.pmod/
 MODNAME=JSON2
 AUTODOC_SRC_IN=json.c
+MODULE_PMOD_IN=module.pmod.in
 
 MODULE_LDFLAGS = @LDFLAGS@ @LIBS@ 
 MODULE_CFLAGS = -std=gnu99 

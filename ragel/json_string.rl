@@ -7,20 +7,22 @@
     write data;
 
     action hex0 {
-	temp = HEX2DEC(fc);
+	if (!validate) temp = HEX2DEC(fc);
     }
 
     action hex1 {
-	temp *= 16;
-	temp += HEX2DEC(fc);
+	if (!validate) {
+	    temp *= 16;
+	    temp += HEX2DEC(fc);
+	}
     }
 
     action hex2 {
-	string_builder_putchar(&s, temp);
+	if (!validate) string_builder_putchar(&s, temp);
     }
 
     action add_unquote {
-	switch(fc) {
+	if (!validate) switch(fc) {
         case '"':
         case '\\':      string_builder_putchar(&s, fc); break;
         case 'b':       string_builder_putchar(&s, '\b'); break;
@@ -43,7 +45,8 @@
 
 	    // looking for the lowest possible magnitude here may be worth it. i am not entirely
 	    // sure if i want to do the copying here.
-	    string_builder_append(&s, MKPCHARP(mark, 2), (ptrdiff_t)(fpc - mark));
+	    if (!validate)
+		string_builder_append(&s, MKPCHARP(mark, 2), (ptrdiff_t)(fpc - mark));
 #ifdef DEBUG
 	    //printf("parsed string: '%.*s'\n", (int)(fpc - mark), mark);
 #endif
@@ -69,29 +72,25 @@ p_wchar2 *_parse_JSON_string(p_wchar2 *p, p_wchar2 *pe) {
     struct string_builder s;
     int cs;
 
-    init_string_builder(&s, 1);
-
-#ifdef DEBUG
-    printf(">> STRING\nstarting to parse string at %c\n", (char)*p);
-#endif
+    if (!validate)
+	init_string_builder(&s, 1);
 
     %% write init;
     %% write exec;
 
     if (cs < JSON_string_first_final) {
-#ifdef DEBUG
-	printf("failed parsing string at %.*s in state %d.\n", MINIMUM(pe - p, 10),p, cs);
-#endif
-	free_string_builder(&s);
-
-	Pike_error("Failed to parse string at '%c'.\n", (char)*p);
+	if (validate) {
+	    push_int((int)p);
+	    return NULL;
+	} else {
+	    free_string_builder(&s);
+	    Pike_error("Failed to parse string at '%c'.\n", (char)*p);
+	}
     }
 
-    push_string(finish_string_builder(&s));
+    if (!validate)
+	push_string(finish_string_builder(&s));
 
-#ifdef DEBUG
-    printf("stopping parsing string at %c in state %d.\n<< STRING\n", (char)*p, cs);
-#endif
     return p;
 }
 

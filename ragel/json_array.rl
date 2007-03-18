@@ -5,9 +5,11 @@
     write data;
 
     action parse_value {
-	i = _parse_JSON(fpc, pe);
+	i = _parse_JSON(fpc, pe, validate);
+	if (validate) {
+	    if (i == NULL) return NULL;
+	} else c++;
 
-	c++;
 	fexec i;
     }
 
@@ -35,12 +37,15 @@ p_wchar2 *_parse_JSON_array(p_wchar2 *p, p_wchar2 *pe) {
     %% write exec;
 
     if (cs >= JSON_array_first_final) {
-	f_aggregate(c);
+	if (!validate) f_aggregate(c);
 	return p;
     }
-    // error
-    pop_n_elems(c);
-    Pike_error("Error parsin array at '%c'\n", (char)*p);
+
+    if (!validate) {
+	pop_n_elems(c);
+	Pike_error("Error parsin array at '%c'\n", (char)*p);
+    }
+
+    push_int((int)p);
     return NULL;
 }
-
