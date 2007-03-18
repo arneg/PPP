@@ -3,7 +3,7 @@ VPATH=@srcdir@
 OBJS=json.o
 MODDIR=Public.pmod/Parser.pmod/
 MODNAME=JSON2
-AUTODOC_SRC_IN=json.cmod
+AUTODOC_SRC_IN=json.c
 
 MODULE_LDFLAGS = @LDFLAGS@ @LIBS@ 
 MODULE_CFLAGS = -std=gnu99 

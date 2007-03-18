@@ -5,3 +5,7 @@ to install this module run:
 
 in the module directory.
 
+---
+
+the ragel sources from which the c code was generated can be found
+in the subdirectory 'ragel'.

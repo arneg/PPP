@@ -1,4 +1,4 @@
-AC_INIT()
+AC_INIT(json_mapping.c)
 
 
 AC_MODULE_INIT()
