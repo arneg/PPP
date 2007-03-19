@@ -77,6 +77,17 @@ p_wchar2 *_parse_JSON_string(p_wchar2* p, p_wchar2* pe, short validate);
 	fexec i;
     }
 
+    action push_null {
+	do {
+	    struct svalue null;
+	    struct object o;
+	    null.type = T_OBJECT;
+	    o.prog = 0;
+	    null.u.object = &o;
+	    push_svalue(null);
+	} while (0);
+    }
+
     number_start = [\-+.] | digit;
     array_start = '[';
     mapping_start = '{';
@@ -90,7 +101,7 @@ p_wchar2 *_parse_JSON_string(p_wchar2* p, p_wchar2* pe, short validate);
 			array_start >parse_array |
 			'true' @{ if (!validate) push_int(1); } |
 			'false' @{ if (!validate) push_undefined(); } |
-			'null' @{ if (!validate) push_int(0); } ) . myspace* %*{ fbreak; };
+			'null' @push_null ) . myspace* %*{ fbreak; };
 }%%
 
 p_wchar2 *_parse_JSON(p_wchar2 *p, p_wchar2 *pe, short validate) {

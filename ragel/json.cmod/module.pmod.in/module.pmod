@@ -119,11 +119,16 @@ object|string render(mixed data, int flags, void|object buf, void|int level) {
 	if (flags & HUMAN_READABLE && level) add(("\t" * level));
 	put(']');
     } else if (intp(data)) {
-	add((string)data);
+	if (1 == zero_type(data)) {
+	    add("false");
+	} else add((string)data);
     } else if (floatp(data)) {
 	add((string)data);
     } else {
-	throw(({ "This type cannot be rendered into JSON." }));
+	if (zero_type(data) == 2)
+	    add("null");
+	else 
+	    throw(({ "This type cannot be rendered into JSON." }));
     }
 
     if (r) {
