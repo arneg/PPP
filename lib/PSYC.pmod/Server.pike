@@ -77,6 +77,7 @@ void insert(MMP.Uniform context, MMP.Uniform guz) {
 }
 
 void add_route(MMP.Uniform target, object circuit) {
+    P1(("PSYC.Server", "add_route(%O, %O) as %O.\n", target, circuit, target->root))
 
     if (!has_index(vcircuits, target->root)) {
 	vcircuits[target->root] = MMP.VirtualCircuit(target, this, 0, circuit);
@@ -186,11 +187,12 @@ void create(mapping(string:mixed) config) {
 // CALLBACKS
 void accept(Stdio.Port lsocket) {
     Stdio.File socket;
-    MMP.Server con;
+    MMP.Circuit con;
 
     socket = lsocket->accept();
     con = MMP.Server(socket, route, close, get_uniform);
     circuits[con->peeraddr] = con;
+    add_route(con->peeraddr, con);
     con->send_neg(MMP.Packet(circuit_established, ([ "_source" : root->uni, "_target" : con->peeraddr ])) );
 }
 
