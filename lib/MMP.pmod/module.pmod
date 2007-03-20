@@ -863,10 +863,14 @@ class Circuit {
 		    // TODO: HOOK
 		    if (inpacket->parsed)
 			inpacket->parsed();
-		    if (pcount < 3) {
-			if (!inpacket["_target"]->reconnectable) inpacket["_target"]->islocal = 1;
+		    if (objectp(inpacket["_target"])) {
+			if (pcount < 3) {
+			    if (!inpacket["_target"]->reconnectable) inpacket["_target"]->islocal = 1;
+			}
+			msg_cb(inpacket, this);
+		    } else {
+			P1(("MMP.Circuit", "dropped packet from %O without _target.\n", peeraddr))
 		    }
-		    msg_cb(inpacket, this);
 		    reset(); // watch out. this may produce strange bugs...
 		} else {
 		    P2(("MMP.Circuit", "Got a ping.\n"))
@@ -1107,6 +1111,7 @@ class Active {
 	peerhost = so->query_address();
 	peeraddr = get_uniform("psyc://"+((peerhost / " ") * ":"));
 	peeraddr->islocal = 0;
+	peeraddr->handler = this;
     }
 
     //void start_read(mixed id, string data) {
@@ -1129,6 +1134,7 @@ class Server {
 	peerhost = so->query_address();
 	peeraddr = get_uniform("psyc://"+((peerhost / " ") * ":-"));
 	peeraddr->islocal = 0;
+	peeraddr->handler = this;
 
 	activate();
     }
