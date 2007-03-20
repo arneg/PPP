@@ -80,7 +80,7 @@ mixed `->(string fun) {
 }
 
 void call_init(object handler, PSYC.AR o) {
-    P3(("StageHandler", "Calling %O for %O with misc: %O.\n", o->handler, p, _m))
+    P3(("StageHandler", "Calling %O for init.\n", o->handler))
     PSYC.Storage.multifetch(this->storage, o->lvars && (multiset)o->lvars, o->wvars && (multiset)o->wvars, 
 			    handler->init,0); 
 }

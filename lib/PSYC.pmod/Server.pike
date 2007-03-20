@@ -40,7 +40,7 @@ void activate(MMP.Uniform croot) { // croot == circuit root
     // not sure. activate does not really make sense without
     // a circuit. we might even throw! ... or exit(12).
     // TODO:: throw or exit. ,)
-    P0(("PSYC.Server", "%O->activate(%s) failed because the circuit was non-existing??!", this, croot))
+    P0(("PSYC.Server", "%O->activate(%s) failed because the circuit was non-existing??!\n", this, croot))
 }
 
 // we could make the verbosity of this putput debug-level dependent

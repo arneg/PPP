@@ -7,7 +7,7 @@ inherit PSYC.Unl;
 
 void create(MMP.Uniform uniform, object server, object storage) {
     ::create(uniform, server, storage);
-    P3(("PSYC.Root", "new PSYC.Root(%O, %O, %O)\n", parent, server, storage))
+    P3(("PSYC.Root", "new PSYC.Root(%O, %O, %O)\n", uniform, server, storage))
 
     add_handlers(Circuit(this, sendmmp, uni),
 		 Signaling(this, sendmmp, uni));
