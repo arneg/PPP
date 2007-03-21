@@ -1,11 +1,52 @@
-
+// vim:syntax=lpc
 //! @ignore
-inherit @module@;
+inherit Public.Parser@module@;
 
 constant __author = "Arne Goedeke <pike@laramies.com>";
 constant __version = "0.2";
-constand __components = ({ "Public.pmod/Parser.pmod/JSON2.pmod/module.pmod", "Public.pmod/Parser.pmod/__JSON2.so" });
+constant __components = ({ "Public.pmod/Parser.pmod/JSON2.pmod/module.pmod", "Public.pmod/Parser.pmod/___JSON2.so" });
 //! @endignore
+
+//! Objects representing the three JSON literals @expr{null@}, @expr{false@} 
+//! and @expr{true@}. They should behave as exprected in boolean context.
+//! @expr{null@} can be used as the Integer value @expr{0@} in addition and
+//! multiplication.
+object null = Null();
+object true = True();
+object false = False();
+
+class Null {
+    int(0..1) `!() {
+	return 1;
+    }
+
+    int(0..1) `+(mixed a) {
+	return a;
+    }
+
+    int `*(mixed a) {
+	return 0;
+    }
+
+}
+class False {
+    int(0..1) `!() {
+	return 1;
+    }
+
+    mixed `~() {
+	return true;
+    }
+}
+class True {
+    int(0..1) `!() {
+	return 0;
+    }
+
+    mixed `~() {
+	return false;
+    }
+}
 
 constant ASCII_ONLY = 1;
 constant ASCII_LESS = 3;
@@ -67,14 +108,14 @@ object|string render(mixed data, int flags, void|object buf, void|int level) {
 	    case 14 .. 31:
 	    case 127 .. 255:
 		if (flags & ASCII_LESS) {
-		    add(sprintf("\\u%04x", char);	    
+		    add(sprintf("\\u%04x", char));	    
 		} else {
 		    put(char);	    
 		}
 		break;
 	    default:
 		if (char > 255 && flags & ASCII_ONLY) {
-		    add(sprintf("\\u%04x", char);	    
+		    add(sprintf("\\u%04x", char));
 		} else {
 		    put(char);
 		}
@@ -119,16 +160,20 @@ object|string render(mixed data, int flags, void|object buf, void|int level) {
 	if (flags & HUMAN_READABLE && level) add(("\t" * level));
 	put(']');
     } else if (intp(data)) {
-	if (1 == zero_type(data)) {
-	    add("false");
-	} else add((string)data);
+	add((string)data);
     } else if (floatp(data)) {
 	add((string)data);
-    } else {
-	if (zero_type(data) == 2)
+    } else if (objectp(data)) {
+	if (object_program(data) == .Null) {
 	    add("null");
-	else 
+	} else if (object_program(data) == .False) {
+	    add("false");
+	} else if (object_program(data) == .True) {
+	    add("true");
+	} else 
 	    throw(({ "This type cannot be rendered into JSON." }));
+    } else {
+	throw(({ "This type cannot be rendered into JSON." }));
     }
 
     if (r) {

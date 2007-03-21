@@ -4,10 +4,17 @@
     machine JSON_number;
     alphtype int;
     write data;
+    # we could be much less specific here.. but i guess its ok to ensure the 
+    # format not correctness in the sense of sscanf 
+    # 
+    action break {
+	fbreak;
+    }
 
-    # we could be much less specific here.. but i guess its ok to ensure the format not
-    # correctness in the sense of sscanf 
-    main := '-'? . ( '0' | ([1-9] . digit*) )? . '.' >{ d = 1; } . digit+ . ([eE] . [+\-] . digit+ )? %*{ fbreak; };
+    end = [\]},: ];
+    exp = [eE] >{d = 1;}. [+\-]? . digit+ . (end >break)?;
+    float = '.' >{d = 1;} . digit+ . (end >break | exp)?;
+    main := '-' ? . (('0' | ([1-9] . digit*)) . (end >break | float | exp)?) | float; 
 }%%
 
 p_wchar2 *_parse_JSON_number(p_wchar2 *p, p_wchar2 *pe, short validate) {
@@ -22,7 +29,7 @@ p_wchar2 *_parse_JSON_number(p_wchar2 *p, p_wchar2 *pe, short validate) {
     if (cs >= JSON_number_first_final) {
 	
 	if (!validate) {
-	    ptrdiff_t len = (ptrdiff_t)(i - p); 
+	    ptrdiff_t len = (ptrdiff_t)(p - i); 
 
 	    char *temp = (char*)malloc(len+1);
 
@@ -36,7 +43,7 @@ p_wchar2 *_parse_JSON_number(p_wchar2 *p, p_wchar2 *pe, short validate) {
 		*(temp + len) = (char)(*(i + len));
 	    } while(len-- > 0);
 
-	    len = (ptrdiff_t)(i - p);
+	    len = (ptrdiff_t)(p - i);
 
 	    if (d == 1) {
 		if (1 != sscanf(temp, "%lf", &f)) {
@@ -54,7 +61,9 @@ p_wchar2 *_parse_JSON_number(p_wchar2 *p, p_wchar2 *pe, short validate) {
 	return p;
     }
 
+#ifdef JUMP
     if (!validate) Pike_error("Error parsing number at '%c' in JSON.\n", (char)*i);
+#endif
 
     push_int((int)p);
     return NULL; // make gcc happy

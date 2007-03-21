@@ -1,31 +1,140 @@
 // vim:syntax=lpc
 // all examples are taken from www.json.org
 //
-
-{"menu": {
+test_true(programp(Public.Parser.JSON2.True))
+test_true(programp(Public.Parser.JSON2.False))
+test_true(programp(Public.Parser.JSON2.Null))
+test_true(functionp(Public.Parser.JSON2.parse))
+test_true(functionp(Public.Parser.JSON2.render))
+test_true(functionp(Public.Parser.JSON2.validate))
+// test the special types
+test_true(Public.Parser.JSON2.true == Public.Parser.JSON2.parse("true"))
+test_true(Public.Parser.JSON2.false == Public.Parser.JSON2.parse("false"))
+test_true(Public.Parser.JSON2.null == Public.Parser.JSON2.parse("null"))
+test_true(Public.Parser.JSON2.parse("true") == ~Public.Parser.JSON2.parse("false"))
+// test numbers
+test_true(Public.Parser.JSON2.parse("0E4") == 0.0)
+// test examples from json.org
+test_true(equal(Public.Parser.JSON2.parse(
+"{\
+    \"glossary\": {\
+        \"title\": \"example glossary\",\
+	\"GlossDiv\": {\
+            \"title\": \"S\",\
+	    \"GlossList\": {\
+                \"GlossEntry\": {\
+                    \"ID\": \"SGML\",\
+		    \"SortAs\": \"SGML\",\
+		    \"GlossTerm\": \"Standard Generalized Markup Language\",\
+		    \"Acronym\": \"SGML\",\
+		    \"Abbrev\": \"ISO 8879:1986\",\
+		    \"GlossDef\": {\
+                        \"para\": \"A meta-markup language, used to create markup languages such as DocBook.\",\
+			\"GlossSeeAlso\": [\"GML\", \"XML\"]\
+                    },\
+		    \"GlossSee\": \"markup\"\
+                }\
+            }\
+        }\
+    }\
+}\
+"),([
+    "glossary": ([
+        "title": "example glossary",
+	"GlossDiv": ([
+            "title": "S",
+	    "GlossList": ([
+                "GlossEntry": ([
+                    "ID": "SGML",
+		    "SortAs": "SGML",
+		    "GlossTerm": "Standard Generalized Markup Language",
+		    "Acronym": "SGML",
+		    "Abbrev": "ISO 8879:1986",
+		    "GlossDef": ([
+                        "para": "A meta-markup language, used to create markup languages such as DocBook.",
+			"GlossSeeAlso": ({"GML", "XML"})
+                    ]),
+		    "GlossSee": "markup"
+                ])
+            ])
+        ])
+    ])
+])))
+test_true(equal(Public.Parser.JSON2.parse(
+"{\"menu\": {\
+  \"id\": \"file\",\
+  \"value\": \"File\",\
+  \"popup\": {\
+    \"menuitem\": [\
+      {\"value\": \"New\", \"onclick\": \"CreateNewDoc()\"},\
+      {\"value\": \"Open\", \"onclick\": \"OpenDoc()\"},\
+      {\"value\": \"Close\", \"onclick\": \"CloseDoc()\"}\
+    ]\
+  }\
+}}\
+"), (["menu": ([
+  "id": "file",
+  "value": "File",
+  "popup": ([
+    "menuitem": ({
+      (["value": "New", "onclick": "CreateNewDoc()"]),
+      (["value": "Open", "onclick": "OpenDoc()"]),
+      (["value": "Close", "onclick": "CloseDoc()"])
+    })
+  ])
+])])))
+test_true(equal(Public.Parser.JSON2.parse(
+"{\"menu\": {\
+    \"header\": \"SVG Viewer\",\
+    \"items\": [\
+        {\"id\": \"Open\"},\
+        {\"id\": \"OpenNew\", \"label\": \"Open New\"},\
+        null,\
+        {\"id\": \"ZoomIn\", \"label\": \"Zoom In\"},\
+        {\"id\": \"ZoomOut\", \"label\": \"Zoom Out\"},\
+        {\"id\": \"OriginalView\", \"label\": \"Original View\"},\
+        null,\
+        {\"id\": \"Quality\"},\
+        {\"id\": \"Pause\"},\
+        {\"id\": \"Mute\"},\
+        null,\
+        {\"id\": \"Find\", \"label\": \"Find...\"},\
+        {\"id\": \"FindAgain\", \"label\": \"Find Again\"},\
+        {\"id\": \"Copy\"},\
+        {\"id\": \"CopyAgain\", \"label\": \"Copy Again\"},\
+        {\"id\": \"CopySVG\", \"label\": \"Copy SVG\"},\
+        {\"id\": \"ViewSVG\", \"label\": \"View SVG\"},\
+        {\"id\": \"ViewSource\", \"label\": \"View Source\"},\
+        {\"id\": \"SaveAs\", \"label\": \"Save As\"},\
+        null,\
+        {\"id\": \"Help\"},\
+        {\"id\": \"About\", \"label\": \"About Adobe CVG Viewer...\"}\
+    ]\
+}}\
+"), (["menu": ([
     "header": "SVG Viewer",
-    "items": [
-        {"id": "Open"},
-        {"id": "OpenNew", "label": "Open New"},
-        null,
-        {"id": "ZoomIn", "label": "Zoom In"},
-        {"id": "ZoomOut", "label": "Zoom Out"},
-        {"id": "OriginalView", "label": "Original View"},
-        null,
-        {"id": "Quality"},
-        {"id": "Pause"},
-        {"id": "Mute"},
-        null,
-        {"id": "Find", "label": "Find..."},
-        {"id": "FindAgain", "label": "Find Again"},
-        {"id": "Copy"},
-        {"id": "CopyAgain", "label": "Copy Again"},
-        {"id": "CopySVG", "label": "Copy SVG"},
-        {"id": "ViewSVG", "label": "View SVG"},
-        {"id": "ViewSource", "label": "View Source"},
-        {"id": "SaveAs", "label": "Save As"},
-        null,
-        {"id": "Help"},
-        {"id": "About", "label": "About Adobe CVG Viewer..."}
-    ]
-}}
+    "items": ({
+        (["id": "Open"]),
+        (["id": "OpenNew", "label": "Open New"]),
+        Public.Parser.JSON2.null,
+        (["id": "ZoomIn", "label": "Zoom In"]),
+        (["id": "ZoomOut", "label": "Zoom Out"]),
+        (["id": "OriginalView", "label": "Original View"]),
+        Public.Parser.JSON2.null,
+        (["id": "Quality"]),
+        (["id": "Pause"]),
+        (["id": "Mute"]),
+        Public.Parser.JSON2.null,
+        (["id": "Find", "label": "Find..."]),
+        (["id": "FindAgain", "label": "Find Again"]),
+        (["id": "Copy"]),
+        (["id": "CopyAgain", "label": "Copy Again"]),
+        (["id": "CopySVG", "label": "Copy SVG"]),
+        (["id": "ViewSVG", "label": "View SVG"]),
+        (["id": "ViewSource", "label": "View Source"]),
+        (["id": "SaveAs", "label": "Save As"]),
+        Public.Parser.JSON2.null,
+        (["id": "Help"]),
+        (["id": "About", "label": "About Adobe CVG Viewer..."])
+    })
+])]) ))

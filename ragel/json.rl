@@ -28,6 +28,7 @@
 #include "array.h"
 #include "builtin_functions.h"
 #include "module.h"
+#include "gc.h"
 
 p_wchar2 *_parse_JSON(p_wchar2* p, p_wchar2* pe, short validate); 
 p_wchar2 *_parse_JSON_mapping(p_wchar2* p, p_wchar2* pe, short validate); 
@@ -39,54 +40,12 @@ p_wchar2 *_parse_JSON_string(p_wchar2* p, p_wchar2* pe, short validate);
 #include "json_number.c"
 #include "json_array.c"
 #include "json_mapping.c"
+#include "json.h"
 
 %%{
     machine JSON;
     alphtype int;
     write data;
-
-    action parse_string {
-	i = _parse_JSON_string(fpc, pe, validate);
-	if (validate && i == NULL) {
-	    return NULL;
-	}
-	fexec i;
-    }
-
-    action parse_mapping {
-	i = _parse_JSON_mapping(fpc, pe, validate);
-	if (validate && i == NULL) {
-	    return NULL;
-	}
-	fexec i;
-    }
-
-    action parse_array {
-	i = _parse_JSON_array(fpc, pe, validate);
-	if (validate && i == NULL) {
-	    return NULL;
-	}
-	fexec i;
-    }
-
-    action parse_number {
-	i = _parse_JSON_number(fpc, pe, validate);
-	if (validate && i == NULL) {
-	    return NULL;
-	}
-	fexec i;
-    }
-
-    action push_null {
-	do {
-	    struct svalue null;
-	    struct object o;
-	    null.type = T_OBJECT;
-	    o.prog = 0;
-	    null.u.object = &o;
-	    push_svalue(null);
-	} while (0);
-    }
 
     number_start = [\-+.] | digit;
     array_start = '[';
@@ -95,18 +54,19 @@ p_wchar2 *_parse_JSON_string(p_wchar2* p, p_wchar2* pe, short validate);
     value_start = number_start | array_start | mapping_start | string_start;
     myspace = [ \n\r\t];
 
-    main := myspace* . (number_start >parse_number |
-			string_start >parse_string |
-			mapping_start >parse_mapping |
-			array_start >parse_array |
-			'true' @{ if (!validate) push_int(1); } |
-			'false' @{ if (!validate) push_undefined(); } |
-			'null' @push_null ) . myspace* %*{ fbreak; };
+    main := myspace* . (number_start >{ PARSE(number, fpc); c++; fexec i; } |
+			string_start >{ PARSE(string, fpc); c++; fexec i; } |
+			mapping_start >{ PARSE(mapping, fpc); c++; fexec i; } |
+			array_start >{ PARSE(array, fpc); c++; fexec i; } |
+			'true' @{ PUSH_SPECIAL("true"); c++; } |
+			'false' @{ PUSH_SPECIAL("false"); c++; } |
+			'null' @{ PUSH_SPECIAL("null"); c++; } ) . myspace* %*{ fbreak; };
 }%%
 
 p_wchar2 *_parse_JSON(p_wchar2 *p, p_wchar2 *pe, short validate) {
     p_wchar2 *i = p;
     int cs;
+    int c = 0;
 
     %% write init;
     %% write exec;
@@ -115,9 +75,13 @@ p_wchar2 *_parse_JSON(p_wchar2 *p, p_wchar2 *pe, short validate) {
 	return p;
     }
 
+    if (!validate && c > 0) pop_n_elems(c);
+
+#ifdef JUMP
     if (!validate) {
 	Pike_error("Error parsing JSON at '%c'\n", (char)*p);
     }
+#endif
 
     push_int((int)p);
     return NULL;
@@ -149,37 +113,22 @@ p_wchar2 *_parse_JSON(p_wchar2 *p, p_wchar2 *pe, short validate) {
  *! 	where the error occures is returned.
  */
 PIKEFUN int validate(string data) {
-    struct pike_string *b;
     p_wchar2 *ret;
     // we wont be building more than one string at once.
 
-    switch (data->size_shift != 0) {
-    case 0:
-	b=begin_wide_shared_string(data->len,2);
-        convert_0_to_2(STR2(b),(p_wchar0 *)data->str,data->len);
-	free_string(data);
-	end_shared_string(b);
-	break;
-    case 1:
-	b=begin_wide_shared_string(data->len,2);
-        convert_1_to_2(STR2(b),STR1(data),data->len);
-	free_string(data);
-	end_shared_string(b);
-	break;
-    case 2:
-	b = data;
-	break;
-    }
+    JSON_CONVERT(data, ret);
 
     pop_stack();
-    ret = STR2(b);
-    if (_parse_JSON(ret, ret + b->len, 1) == NULL) {
+    if (_parse_JSON(ret, ret + data->len, 1) == NULL) {
 	push_int((int)ret);
-	stack_swap();
 	f_minus(2);
+	push_int(4);
+	o_divide();
     } else {
 	push_int(-1);
     }
+
+    free(ret);
     return;
 }
 
@@ -192,31 +141,37 @@ PIKEFUN int validate(string data) {
  *! 	JSON.
  */
 PIKEFUN mixed parse(string data) {
-    struct pike_string *b;
     p_wchar2 *ret;
     // we wont be building more than one string at once.
+    JSON_CONVERT(data, ret);
 
-    switch (data->size_shift != 0) {
-    case 0:
-	b=begin_wide_shared_string(data->len,2);
-        convert_0_to_2(STR2(b),(p_wchar0 *)data->str,data->len);
-	free_string(data);
-	end_shared_string(b);
-	break;
-    case 1:
-	b=begin_wide_shared_string(data->len,2);
-        convert_1_to_2(STR2(b),STR1(data),data->len);
-	free_string(data);
-	end_shared_string(b);
-	break;
-    case 2:
-	b = data;
-	break;
+    if (_parse_JSON(ret, ret + data->len, 0) == NULL) {
+	push_int((int)ret);
+	// calculate offset in string where parsing failed
+	f_minus(2);
+	push_int(4);
+	// divide by 4 to get offset in chars
+	o_divide();
+	push_int(((struct svalue*)(Pike_sp - 1))->u.integer);
+	push_int(10);
+	// we want 10 chars..
+	f_add(2);
+	f_index(3);
+	free(ret);
+	if (((struct svalue*)(Pike_sp - 1))->type != PIKE_T_STRING) {
+	    Pike_error("Parsing JSON failed and I dont know where.\n");
+	} else {
+	    push_text("Parsing JSON failed at '%s'.\n");
+	    stack_swap();
+	    f_sprintf(2);
+	    f_aggregate(1);
+	    f_throw(1);
+	}
     }
 
-    pop_stack();
-    ret = STR2(b);
-    ret = _parse_JSON(ret, ret + b->len, 0);
+    free(ret);
+    stack_pop_keep_top();
+
     return;
 }
 

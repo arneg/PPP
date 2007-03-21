@@ -79,13 +79,15 @@ p_wchar2 *_parse_JSON_string(p_wchar2 *p, p_wchar2 *pe, short validate) {
     %% write exec;
 
     if (cs < JSON_string_first_final) {
-	if (validate) {
-	    push_int((int)p);
-	    return NULL;
-	} else {
+	if (!validate) {
 	    free_string_builder(&s);
+#ifdef JUMP
 	    Pike_error("Failed to parse string at '%c'.\n", (char)*p);
+#endif
 	}
+
+	push_int((int)p);
+	return NULL;
     }
 
     if (!validate)
