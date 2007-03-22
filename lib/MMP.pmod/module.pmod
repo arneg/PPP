@@ -1111,7 +1111,6 @@ class Active {
 	peerhost = so->query_address();
 	peeraddr = get_uniform("psyc://"+((peerhost / " ") * ":"));
 	peeraddr->islocal = 0;
-	peeraddr->handler = this;
     }
 
     //void start_read(mixed id, string data) {
@@ -1134,7 +1133,6 @@ class Server {
 	peerhost = so->query_address();
 	peeraddr = get_uniform("psyc://"+((peerhost / " ") * ":-"));
 	peeraddr->islocal = 0;
-	peeraddr->handler = this;
 
 	activate();
     }
@@ -1329,5 +1327,20 @@ class VirtualCircuit {
 	push(p);
 
 	if (circuit) circuit->msg(this);
+    }
+}
+
+//! @returns
+//! @int
+//! 	@value 1
+//! 		@expr{o@} is a @[Uniform].
+//! 	@value 0
+//! 		@expr{o@} is not a @[Uniform].
+//! @endint
+int(0..1) is_uniform(object o) {
+    if (objectp(o) && Program.inherits(object_program(o), Uniform)) {
+	return 1;
+    } else {
+	return 0;
     }
 }
