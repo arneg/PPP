@@ -21,9 +21,7 @@ int postfilter_request_do_tell(MMP.Packet p, mapping _v, mapping _m) {
 	return PSYC.Handler.STOP;
     }
 
-    // we assume here that the only objects coming in are
-    // MMP.Uniforms or similar
-    if (has_index(m->vars, "_person") && objectp(m["_person"])) {
+    if (MMP.is_uniform(m["_person"])) {
 	sendmsg(m["_person"], PSYC.Packet("_message_private", 0, m->data));
     } else {
 	sendmsg(p->source(), m->reply("_failure"+m->mc));
