@@ -49,8 +49,10 @@ int(0..1) check(mixed var, mixed spec) {
 	} else {
 	    return 0;
 	}
-    } else if (callablep(spec)) {
+    } else if (functionp(spec)) {
 	return spec(var);
+    } else if (objectp(spec)) {
+	return spec->check(var);
     } else {
 	throw(({"bad spec!"}));
     }
