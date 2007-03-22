@@ -1344,3 +1344,11 @@ int(0..1) is_uniform(object o) {
 	return 0;
     }
 }
+
+int(0..1) is_person(object o) {
+    return is_uniform(o) && stringp(o->resource) && sizeof(o->resource) && o->resource[0] == '~';
+}
+
+int(0..1) is_place(object o) {
+    return is_uniform(o) && stringp(o->resource) && sizeof(o->resource) && o->resource[0] == '@';
+}

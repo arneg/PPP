@@ -31,7 +31,7 @@ constant _ = ([
     ]),
 ]);
 
-function postfilter_request_do_set = posfilter_request_store;
+function postfilter_request_do_set = postfilter_request_store;
 
 int postfilter_request_store_lock(MMP.Packet p, mapping _v, mapping _m) {
 
