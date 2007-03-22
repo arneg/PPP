@@ -26,8 +26,12 @@ constant _ = ([
 	"_request_lock" : 0,
 	"_request_unlock" : 0,
 	"_request_save" : 0,
+	// client stuff goes here
+	"_request_do_set" : 0,
     ]),
 ]);
+
+function postfilter_request_do_set = posfilter_request_store;
 
 int postfilter_request_store_lock(MMP.Packet p, mapping _v, mapping _m) {
 
