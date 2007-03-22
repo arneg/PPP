@@ -174,7 +174,7 @@ void create(mapping(string:mixed) config) {
     //set_weak_flag(unlcache, Pike.WEAK_VALUES);
 
     circuit_established = PSYC.Packet("_notice_circuit_established", 
-			  ([ "_implementation" : "better than wurstbrote" ]),
+			  ([ "_implementation" : "PPP" ]),
 			  "You got connected to [_source].");
     MMP.Uniform t = get_uniform("psyc://" + def_localhost);
     t->islocal = 1;
