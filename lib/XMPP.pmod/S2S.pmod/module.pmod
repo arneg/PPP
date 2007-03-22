@@ -12,7 +12,7 @@ string dialback_key(string secret, string streamid,
     string t = h(streamid + receiving + originating);
     string t16 = "";
     for (int i = 0; i < sizeof(t); i++) {
-	t16 += sprintf("%x", t[i]);
+	t16 += sprintf("%0x", t[i]);
     }
     return t16;
 }
