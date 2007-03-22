@@ -39,7 +39,7 @@ int postfilter_request_input(MMP.Packet p, mapping _v, mapping _m) {
 
 	    if (is_place(target)) {
 		packet = PSYC.Packet("_message_public", 0, m->data);
-	    } else if (is_person(target))
+	    } else if (is_person(target)) {
 		packet = PSYC.Packet("_message_private", 0, m->data);
 	    } else {
 		sendmsg(p->source(), m->reply("_failure"+m->mc));
