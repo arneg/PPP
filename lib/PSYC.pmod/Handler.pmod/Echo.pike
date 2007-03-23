@@ -1,6 +1,7 @@
 // vim:syntax=lpc
-
+#include <debug.h>
 inherit PSYC.Handler.Base;
+
 
 //! Simple handler providing @expr{_message_private@} echoes.
 //!
