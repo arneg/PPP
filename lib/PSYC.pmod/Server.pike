@@ -204,15 +204,18 @@ void accept(Stdio.Port lsocket) {
 }
 
 void connect(int success, Stdio.File so, MMP.Uniform id) {
-    MMP.Circuit c = MMP.Active(so, route, close, get_uniform);
-    MMP.Utils.Queue q = m_delete(wf_circuits, id);
-
     if (success) {
-	circuits[id] = c;
-    }
+	MMP.Circuit c = MMP.Active(so, route, close, get_uniform);
+	MMP.Utils.Queue q = m_delete(wf_circuits, id);
 
-    while (!q->is_empty()) {
-	call_out(q->shift(), 0, c);
+	circuits[id] = c;
+
+	while (!q->is_empty()) {
+	    call_out(q->shift(), 0, c);
+	}
+    } else {
+	// Handle failre here!
+	P0(("PSYC.Server", "Connection to %O failed.\n", so))
     }
 }
 
@@ -399,7 +402,10 @@ void circuit_to(MMP.Uniform target, function(MMP.Circuit:void) cb) {
 
 	so = Stdio.File();
 
-	if (bind_to) so->open_socket(UNDEFINED, bind_to);
+	if (bind_to) {
+	    enforcer(so->open_socket(UNDEFINED, bind_to),
+		     sprintf("Binding to %O failed.\n"));
+	}
 
 	so->async_connect(target->host, target->port, connect, so, target);
     }
