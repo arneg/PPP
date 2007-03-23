@@ -75,7 +75,7 @@ void detach() {
 
 //! Distribute a @[MMP.Packet] to the attached object, calling @expr{msg()@}.
 void distribute(MMP.Packet p) {
-    if (attachee) {
+    if (attachee && attachee->msg) {
 	attachee->msg(p);
 	return;
     } 
