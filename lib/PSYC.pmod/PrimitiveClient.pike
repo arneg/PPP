@@ -34,13 +34,13 @@ void create(MMP.Uniform client_u, object server, MMP.Uniform person, string|void
     client->attach(this);
     t->handler = client;
 
-    client->add_handlers(PSYC.Handler.Execute(client, client->sendmmp, client->uni));
-    client->add_handlers(PSYC.Handler.PrimitiveLink(client, client->sendmmp, client->uni, client_uniform));
+    client->add_handlers(PSYC.Handler.Execute(client, client->client_sendmmp, client->uni));
+    client->add_handlers(PSYC.Handler.PrimitiveLink(client, client->client_sendmmp, client->uni, client_uniform));
 
-    add_commands(PSYC.Commands.Tell(client, client->sendmmp, client->uni));
+    add_commands(PSYC.Commands.Tell(client, client->client_sendmmp, client->uni));
 //add_commands(PSYC.Commands.Subscribe(this));
-    add_commands(PSYC.Commands.Enter(client, client->sendmmp, client->uni));
-    add_commands(PSYC.Commands.Set(client, client->sendmmp, client->uni));
+    add_commands(PSYC.Commands.Enter(client, client->client_sendmmp, client->uni));
+    add_commands(PSYC.Commands.Set(client, client->client_sendmmp, client->uni));
 }
 
 void msg(MMP.Packet p) {
