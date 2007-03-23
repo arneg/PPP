@@ -307,8 +307,10 @@ string|String.Buffer render(Packet o, void|String.Buffer to) {
 #endif
 
     add(o->mc);
-    putchar('\n');
-    if (o->data) add(o->data);
+    if (sizeof(o->data)) {
+	putchar('\n');
+	add(o->data);
+    }
 
     if (to) return p; 
     return p->get();
@@ -422,9 +424,16 @@ LINE:while (-1 < stop &&
 
     // in case the packet contains 0 data
     if (packet->mc == 0) {
-	if (strlen(data) > 1 && data[0] == '_') { 
-	    packet->mc = data;
+	if (strlen(data) > start+1 && data[start] == '_') { 
+	    packet->mc = data[start .. ];
 	    packet->data = "";
+#ifdef LOVE_JSON
+	    // long term plan is to make that on demand inside the packet..
+	    if (stringp(lastval))
+		lastval = parse_JSON(lastval);
+#endif
+	    if (lastmod != ':') lastkey = String.int2char(lastmod) + lastkey;
+	    packet->vars += ([ lastkey : lastval ]);
 	} else THROW("Method is missing.");
     } else packet->data = data;  
 

@@ -898,6 +898,7 @@ class Circuit {
     }
 
     int close(mixed id) {
+	P0(("MMP.Circuit", "%O: Connection closed.\n", this))
 	// TODO: error message
 	close_cb(this);
 
@@ -1111,6 +1112,7 @@ class Active {
 	peerhost = so->query_address();
 	peeraddr = get_uniform("psyc://"+((peerhost / " ") * ":"));
 	peeraddr->islocal = 0;
+	//peeraddr->handler = this;
     }
 
     //void start_read(mixed id, string data) {
