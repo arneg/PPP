@@ -44,7 +44,8 @@ void create(MMP.Uniform client_u, object server, MMP.Uniform person, string|void
 }
 
 void msg(MMP.Packet p) {
-    P0(("PrimitiveClient", "Forwarding %O to dump client.\n", client_uniform))
+    P0(("PrimitiveClient", "Forwarding %O to dump client (%O).\n", p, client_uniform))
     p["_target"] = client_uniform;
+    p["_source_relay"] = p->lsource();
     client->sendmmp(client_uniform, p);
 }

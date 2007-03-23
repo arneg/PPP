@@ -179,10 +179,10 @@ class Session {
 	client->add_handlers(GroovyTelnetPromptChangeHandler(client, client->sendmmp, client->uni),
 			     test);
 
-	add_commands(PSYC.Commands.Tell(client, client->sendmmp, client->uni));
+	add_commands(PSYC.Commands.Tell(client, client->client_sendmmp, client->uni));
 	//add_commands(PSYC.Commands.Subscribe(this));
-	add_commands(PSYC.Commands.Enter(client, client->sendmmp, client->uni));
-	add_commands(PSYC.Commands.Set(client, client->sendmmp, client->uni));
+	add_commands(PSYC.Commands.Enter(client, client->client_sendmmp, client->uni));
+	add_commands(PSYC.Commands.Set(client, client->client_sendmmp, client->uni));
 
 	input_to();
     }

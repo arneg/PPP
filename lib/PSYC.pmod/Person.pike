@@ -56,7 +56,7 @@ void distribute(MMP.Packet p) {
 
     foreach(clients; MMP.Uniform target;) {
 	sendmmp(target, MMP.Packet(m, ([
-			    "_source_relay" : p->lsource(),
+			    "_source_relay" : p->source(),
 			    "_source" : uni,
 				       ])));
     }
