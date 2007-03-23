@@ -20,6 +20,7 @@ string bind_to;
 string def_localhost;
 PSYC.Root root;
 object storage_factory;
+function textdb_factory;
 
 function create_local, create_remote, external_deliver_remote, external_deliver_local, create_context;
 
@@ -148,6 +149,12 @@ void create(mapping(string:mixed) config) {
     } else {
 	external_deliver_local = deliver_local; 
     }
+
+#ifdef PRIMITIVE_CLIENT
+    enforcer(functionp(textdb_factory = config["textdb"]),
+	     "Textdb factory missing (setting: 'textdb') but needed for PRIMITIVE_CLIENT. ");
+#endif
+
 
     enforcer(arrayp(config["ports"]), 
 	     "List of ports missing. (setting: 'ports')");

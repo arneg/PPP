@@ -72,6 +72,7 @@ int main(int argc, array(string) argv) {
     "deliver_remote" : deliver_remote,
     "module_factory" : create_module,
  "default_localhost" : HOSTNAME,
+	    "textdb" : textdb,
 	 ]));
 #ifdef HAS_XMPP
     XMPP.S2S.Client flumms;

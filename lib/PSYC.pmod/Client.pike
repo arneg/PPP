@@ -39,7 +39,7 @@ function subscribe, unsubscribe;
 //! 	Will be called when a password is needed during the linking process.
 //! 	Basically the same as @expr{error@}.
 void create(MMP.Uniform person, object server, MMP.Uniform unl,
-	    function error, function query_password, string|void password) {
+	    function error, function query_password, string|void|int password) {
     link_to = person;
 
     ::create(unl, server, PSYC.Storage.Remote(this, sendmmp, uni, link_to)); 
@@ -49,7 +49,7 @@ void create(MMP.Uniform person, object server, MMP.Uniform unl,
     // might be a pike bug.
     PSYC.Handler.Base t = PSYC.Handler.Subscribe(this, client_sendmmp, link_to); 
     add_handlers(Linker(this, sendmmp, uni, error, query_password, link_to), 
-		 //PSYC.Handler.Forward(this, sendmmp), 
+		 PSYC.Handler.Forward(this, sendmmp, uni), 
 		 PSYC.Handler.Textdb(this, sendmmp, uni),
 		 t
 		 );

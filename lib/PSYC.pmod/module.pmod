@@ -148,8 +148,8 @@ class Packet {
 	    case 'O':
 #if defined(DEBUG) && DEBUG > 10
 		return sprintf("PSYC.Packet(%O, %O, %O)", mc, vars, data);
-#elif defined(DEBUG) && DEBUG > 3
-		return sprintf("PSYC.Packet(%O, %O)", mc, vars, data);
+#elif defined(DEBUG) && DEBUG > 1
+		return sprintf("PSYC.Packet(%O, %O)", mc, vars);
 #else
 		return sprintf("PSYC.Packet(%O)", mc);
 #endif

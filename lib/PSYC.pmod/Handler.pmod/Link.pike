@@ -68,17 +68,18 @@ int postfilter_request_link(MMP.Packet p, mapping _v, mapping _m) {
 	}
     }
 
-    if (has_index(m->vars, "_type")) {
-	if (m["_type"] == "dump") {
-	    // TODO: this will add multiple handlers. not fatal, wont produce bugs. but we
-	    // need some way to check if some handler has been added already. same stuff
-	    // is needed for removal
-	    parent->add_handler(PSYC.Handler.Execute(parent, parent->sendmmp, parent->uni));
-	}
-    }
+#ifdef PRIMITIVE_CLIENT
+    if (has_index(m->vars, "_type") && m["_type"] == "dumb") {
+	// TODO: this will add multiple handlers. not fatal, wont produce bugs. but we
+	// need some way to check if some handler has been added already. same stuff
+	// is needed for removal
+	object o = PSYC.PrimitiveClient(p->source(), parent->server, uni, stringp(_v["_password"]) && m["_password"]);
+    } else 
+#endif
+	parent->attach(p->source());
+    
 
-    parent->attach(p["_source"]);
-    sendmsg(p["_source"], m->reply("_notice_link"));	
+    sendmsg(p->source(), m->reply("_notice_link"));	
     return PSYC.Handler.STOP;
 }
 

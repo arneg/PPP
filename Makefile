@@ -27,8 +27,12 @@ ifdef DP
     DPP = -DDATA_PATH="\"$(DP)\""
 endif
 
+ifdef P
+    DPRIMITIVE = -DPRIMITIVE_CLIENT
+endif
+
 ppp:
-	pike -DSTILLE_DULDUNG -DLOVE_JSON $(TN) -Ilib -Mlib $(BIND) $(DEBUG) $(LOCALHOST) $(TDB) $(DPP) $(S).pike
+	pike -DSTILLE_DULDUNG -DLOVE_JSON $(TN) $(DPRIMITIVE) -Ilib -Mlib $(BIND) $(DEBUG) $(LOCALHOST) $(TDB) $(DPP) $(S).pike
 
 refdoc:
 	- rm -rf refdoc refdoc_tmp

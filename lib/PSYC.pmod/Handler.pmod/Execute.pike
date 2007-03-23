@@ -17,7 +17,7 @@ int postfilter_request_execute(MMP.Packet p, mapping _v, mapping _m) {
 	return PSYC.Handler.STOP;
     }
     
-    parent->cmd(m->data[1..]);
+    parent->attachee->cmd(m->data);
     return PSYC.Handler.STOP;
 }
 
@@ -31,11 +31,18 @@ int postfilter_request_input(MMP.Packet p, mapping _v, mapping _m) {
 
     // ugly code here:
     if (m->data[0] == '/') {
-	parent->cmd(m->data[1..]);
-    } else {
-	if (has_index(m->vars, "_focus") && MMP.is_uniform(m["_focus"])) {
+	parent->attachee->cmd(m->data[1..]);
+    } else if (has_index(m->vars, "_focus")) {
+	MMP.Uniform target;
+
+	if (stringp(m["_focus"])) {
+	    target = parent->user_to_uniform(m["_focus"]);
+	} else if (objectp(m["_focus"])) {
+	    target = m["_focus"];
+	}
+	
+	if (MMP.is_uniform(target)) {
 	    PSYC.Packet packet;
-	    MMP.Uniform target = m["_focus"];
 
 	    if (MMP.is_place(target)) {
 		packet = PSYC.Packet("_message_public", 0, m->data);
@@ -46,7 +53,7 @@ int postfilter_request_input(MMP.Packet p, mapping _v, mapping _m) {
 		return PSYC.Handler.STOP;
 	    }
 
-	    sendmsg(m["_focus"], packet);
+	    sendmsg(target, packet);
 	}
     }
    
