@@ -62,17 +62,6 @@ class XMLNode {
     }
 }
 
-class Packet {
-    XMLNode node;
-    void create(MMP.Uniform from, MMP.Uniform to, XMLNode|void val) {
-    }
-}
-
-/* request response packet which installs a callback */
-class Query {
-    inherit Packet;
-}
-
 class MySocket {
     mapping(string:mixed) config;
 
