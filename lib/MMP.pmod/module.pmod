@@ -2,11 +2,11 @@
 //
 #include <debug.h>
 // generating a backtrace for a _normal_ throw is a bit too much...
-#if DEBUG
 void debug(string cl, string format, mixed ... args) {
     // erstmal nix weiter
     predef::werror("(%s)\t"+format, cl, @args);
 }
+#if DEBUG
 # define THROW(s)        throw(({ (s), backtrace() }))
 #else
 # define THROW(s)        throw(({ (s), 0 }))
