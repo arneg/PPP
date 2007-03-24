@@ -58,9 +58,6 @@ class Server {
     mapping(string:mapping) allowed_peers = ([ ]);
     string streamid;
 
-    void msg(MMP.Packet packet, void|object connection) {
-    }
-
     int rawp(string what) {
 	socket->write(what);
     }
@@ -232,7 +229,7 @@ class Client {
 
     void create(mapping(string:mixed) _config) {
 	outQ = MMP.Utils.Queue();
-	SRVConnector::create(_config, _config["domain"], "xmpp-server", "tcp");
+	::create(_config, _config["domain"], "xmpp-server", "tcp");
     }
 
     string _sprintf(int type) {
@@ -244,18 +241,10 @@ class Client {
     }
 
     void msg(MMP.Packet packet, void|object connection) {
-	werror("%O called with %O\n", this_object(), packet->data);
-	switch(object_program(packet->data)) {
-	case XMPP.XMLNode:
-	    packet->data->to = packet["_target"]->userAtHost;
-	    packet->data->from = packet["_source"]->userAtHost;
-	    push(packet->data->renderXML());
-	    break;
-	default:
-	    werror("unknown type\n");
-	    werror("%O\n", object_program(packet->data));
-	    break;
-	}
+	PT(("XMPP.S2S.Client", "msg() with %O\n", packet->data))
+	PSYC.Packet m = packet->data;
+	string thexml = transform(node);
+	if (thexml) push(thexml);
     }
 
     void push(string msg) {
@@ -344,7 +333,7 @@ class Client {
 	    }
 	    break;
 	default:
-	    werror("%O not handling %O\n", this_object(), node->getName());
+	    ::handle();
 	    break;
 	}
     }

@@ -135,7 +135,30 @@ class MySocket {
 }
 
 
+class Transformation {
+    mapping handlers;
+    void create(mapping(string:mixed) _handlers) {
+	handlers = _handlers;
+    }
+    void add_handler(string method, mixed handler) {
+	handlers[method] = handler;
+    }
+    mixed transform(MMP.Packet packet) {
+    }
+}
+
+class PSYC2XMPP{
+    inherit Transformation;
+    string transform(MMP.Packet packet) {
+	PSYC.Packet p = packet->data;
+	PT(("PSYC2XMPP", "mc is %O\n", p->mc))
+	return "";
+    }
+}
+
+
 class XMPPSocket {
+    inherit PSYC2XMPP;
     inherit MySocket;
     Parser.HTML xmlParser;
 
@@ -150,8 +173,13 @@ class XMPPSocket {
 	xmlParser->_set_tag_callback(onTag);
 	xmlParser->_set_data_callback(onData);
 
-	::create(config);
+	PSYC2XMPP::create(([ ]));
+	MySocket::create(config);
     }
+
+    void msg(MMP.Packet packet, void|object connection) {
+    }
+
 #ifdef SSL_WORKS
     void tls_logon(mixed ... args) {
 	mixed t;
