@@ -26,7 +26,7 @@ string char_to_unrelated_word(int c) {
 	    return "person";
 	case '@':
 	    return "place";
-	case '$':
+	case '!':
 	    return "service";
 	default:
 	    return String.int2hex(c);
