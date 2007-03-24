@@ -121,9 +121,16 @@ void create(mapping(string:mixed) config) {
     enforcer(stringp(def_localhost = config["default_localhost"]), 
 	    "Default localhost for the PSYC Server missing. (setting: 'default_localhost')");
 
-    if (!arrayp(localhosts = config["localhosts"])) {
+    if (arrayp(config["localhosts"])) {
+	localhosts = ([]);
+	foreach (config["localhosts"];;string host) {
+	    localhosts[host] = 1; 
+	}
+	localhosts[def_localhost] = 1;
+    } else
 	localhosts = ([ def_localhost : 1]);
-    }
+
+
 
     enforcer(functionp(create_local = config["create_local"]),
 	    "Function to create local objects missing. (setting: 'create_local')");
@@ -199,7 +206,9 @@ void accept(Stdio.Port lsocket) {
     socket = lsocket->accept();
     con = MMP.Server(socket, route, close, get_uniform);
     circuits[con->peeraddr] = con;
+    // create VCircuit for the given peeraddr
     add_route(con->peeraddr, con);
+    con->peeraddr->handler = vcircuits[con->peeraddr];
     con->send_neg(MMP.Packet(circuit_established, ([ "_source" : root->uni, "_target" : con->peeraddr ])) );
 }
 
@@ -377,6 +386,7 @@ void deliver(MMP.Uniform target, MMP.Packet packet) {
     PT(("PSYC.Server", "%O->deliver(%O, %O)\n", this, target, packet))
 
     if (target->handler) {
+	PT(("PSYC.Server", "Found handler in %O. calling %O.\n", target, target->handler->msg))
 	call_out(target->handler->msg, 0, packet);
 	return;
     }
