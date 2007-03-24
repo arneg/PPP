@@ -243,7 +243,7 @@ class Client {
     void msg(MMP.Packet packet, void|object connection) {
 	PT(("XMPP.S2S.Client", "msg() with %O\n", packet->data))
 	PSYC.Packet m = packet->data;
-	string thexml = transform(node);
+	string thexml = transform(packet);
 	if (thexml) push(thexml);
     }
 
