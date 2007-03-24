@@ -9,7 +9,7 @@ string dialback_key(string secret, string streamid,
     werror("dialback_key(%O, %O, %O, %O)\n",
 	   secret, streamid,receiving, originating);
     mixed h = Crypto.HMAC(Crypto.SHA256)(secret);
-    string t = h(streamid + receiving + originating);
+    string t = h(streamid + " " + receiving + " " + originating);
     string t16 = "";
     for (int i = 0; i < sizeof(t); i++) {
 	t16 += sprintf("%0x", t[i]);
