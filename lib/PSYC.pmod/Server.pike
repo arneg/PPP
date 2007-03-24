@@ -304,8 +304,8 @@ void if_localhost(MMP.Uniform candidate, function if_cb, function else_cb,
 void _if_localhost(MMP.Uniform candidate, function if_cb, function else_cb,
 		  int port, array args) {
     // this is rather blöde
-    PT(("PSYC.Server", "if_localhost(%s, %O, %O, ...)\n", candidate, if_cb, 
-	else_cb))
+    PT(("PSYC.Server", "if_localhost(%s, %O, %O, ...) looking in %O\n", candidate, if_cb, 
+	else_cb, localhosts))
     void callback(string host, mixed ip) {
 	// TODO: we need error_handling here!
 	if (!ip) {
@@ -361,12 +361,10 @@ void _if_localhost(MMP.Uniform candidate, function if_cb, function else_cb,
 
     if (!port) port = candidate->port;
 
-    if (MMP.Utils.Net.is_ip(candidate->host)) {
-	if (has_index(localhosts, candidate->host + ":" + (port ? port : 4404))) {
-	    if_cb(@args);
-	} else {
-	    else_cb(@args);
-	}
+    if (has_index(localhosts, candidate->host + ":" + (port ? port : 4404))) {
+	if_cb(@args);
+    } else if (MMP.Utils.Net.is_ip(candidate->host)) {
+	else_cb(@args);
     } else if (!port) {
 	MMP.Utils.DNS.async_srv("psyc-server", "tcp", candidate->host, handle_srv);
     } else {
