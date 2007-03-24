@@ -72,6 +72,9 @@ int main(int argc, array(string) argv) {
     "deliver_remote" : deliver_remote,
     "module_factory" : create_module,
  "default_localhost" : HOSTNAME,
+#if DEFINED(BIND) && BIND != HOSTNAME
+	"localhosts" : ({ BIND }),
+#endif
 	    "textdb" : textdb,
 	 ]));
 #ifdef HAS_XMPP
