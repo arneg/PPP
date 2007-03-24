@@ -124,11 +124,11 @@ void create(mapping(string:mixed) config) {
     if (arrayp(config["localhosts"])) {
 	localhosts = ([]);
 	foreach (config["localhosts"];;string host) {
-	    localhosts[host] = 1; 
+	    localhosts[host+":4404"] = 1; 
 	}
-	localhosts[def_localhost] = 1;
+	localhosts[def_localhost + ":4404"] = 1;
     } else
-	localhosts = ([ def_localhost : 1]);
+	localhosts = ([ def_localhost + ":4404" : 1]);
 
 
 
@@ -180,7 +180,6 @@ void create(mapping(string:mixed) config) {
 	}
 
 	p = Stdio.Port(port, accept, ip);
-	localhosts[port] = 1;
 	bind_to = ip;
 	p->set_id(p);
     }
