@@ -52,7 +52,7 @@ class ServerManager {
 }
 
 class Server {
-    inherit XMPP.XMPPSocket;
+    inherit XMPP.PSYCXMPPSocket;
 
     mapping(string:mixed) localhosts;
     mapping(string:mapping) allowed_peers = ([ ]);
@@ -62,7 +62,7 @@ class Server {
 	socket->write(what);
     }
 
-    void handle() {
+    void handle(XMPP.XMLNode node) {
 	switch(node->getName()) {
 #ifdef SSL_WORKS
 	case "starttls":
@@ -125,8 +125,7 @@ class Server {
 	    break;
 #endif
 	default:
-	    werror("%O not handling %O\nXML: %O\n", 
-		   this_object(), node->getName(), node->renderXML());
+	    ::handle(node);
 	    break;
 	}
     }
@@ -171,7 +170,7 @@ class Server {
 }
 
 class Connector {
-    inherit XMPP.XMPPSocket;
+    inherit XMPP.PSYCXMPPSocket;
     int connecting;
     void resolved(string host, string ip, int port) {
 	werror("resolved %O to %O\n", host, ip);
@@ -294,7 +293,7 @@ class Client {
 	     "</db:result>");
     }
 
-    void handle() {
+    void handle(XMPP.XMLNode node) {
 	switch(node->getName()) {
 	case "stream:features":
 	    foreach(node->getChildren(), XMPP.XMLNode x) {
@@ -333,7 +332,7 @@ class Client {
 	    }
 	    break;
 	default:
-	    ::handle();
+	    ::handle(node);
 	    break;
 	}
     }
@@ -362,7 +361,7 @@ class DialbackClient {
 	}
 	return "XMPP.S2S.DialbackClient()";
     }
-    void handle() {
+    void handle(XMPP.XMLNode node) {
 	switch(node->getName()) {
 	case "stream:features":
 	    // we're not interested in doing tls, etc

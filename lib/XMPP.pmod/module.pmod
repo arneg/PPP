@@ -256,13 +256,12 @@ class XMPP2PSYC {
 }
 
 class XMPPSocket {
-    inherit PSYC2XMPP;
     inherit MySocket;
     Parser.HTML xmlParser;
 
     mapping streamattributes;
     string innerxml;
-    XMLNode node;
+    XMLNode currentnode;
     array(XMLNode) stack;
 
     void create(mapping(string:mixed) config) {
@@ -271,7 +270,6 @@ class XMPPSocket {
 	xmlParser->_set_tag_callback(onTag);
 	xmlParser->_set_data_callback(onData);
 
-	PSYC2XMPP::create(([ ]));
 	MySocket::create(config);
     }
 
@@ -344,12 +342,12 @@ class XMPPSocket {
 	    if (name[1..] == "stream:stream") {
 		close_stream();
 	    }
-	    else if (node->getName() == name[1..]) {
+	    else if (currentnode->getName() == name[1..]) {
 		if (sizeof(stack) == 0) {
-		    handle();
-		    node = 0;
+		    handle(currentnode);
+		    currentnode = 0;
 		} else {
-		    node = stack[-1];
+		    currentnode = stack[-1];
 		    stack = stack[..sizeof(stack) - 2];
 		}
 	    } else {
@@ -360,28 +358,26 @@ class XMPPSocket {
 	    XMLNode t = XMLNode(name, attr);
 	    m_delete(attr, "/");
 
-	    if (!node) {
-		node = t;
-		handle();
-		node = 0;
+	    if (!currentnode) {
+		handle(t);
 	    } else 
-		node->append(t);
+		currentnode->append(t);
 	} else {
 	    XMLNode t = XMLNode(name, attr);
-	    if (node) {
-		node->append(t);
-		stack += ({ node });
+	    if (currentnode) {
+		currentnode->append(t);
+		stack += ({ currentnode });
 	    }
-	    node = t;
+	    currentnode = t;
 	}
     }
 
-    int onData(Parser.HTML p, string data) {
-	if (node) node->append(data);
+    void handle(XMLNode node) {
+	/* implement your logic here */
     }
 
-    void handle() {
-	werror("handling %O\n", node);
+    int onData(Parser.HTML p, string data) {
+	if (currentnode) currentnode->append(data);
     }
 
     void open_stream(mapping attr) {
@@ -394,5 +390,19 @@ class XMPPSocket {
 
     void disconnect(void|mixed reason) {
 	// </stream:stream>
+    }
+}
+
+class PSYCXMPPSocket {
+    inherit XMPPSocket;
+    inherit XMPP2PSYC;
+    inherit PSYC2XMPP;
+    void create(mapping(string:mixed) config) {
+	XMPPSocket::create(config);
+//	XMPP2PSYC::create(config);
+	PSYC2XMPP::create(config);
+    }
+    void handle(XMLNode node) {
+	XMPP2PSYC::handle(node);
     }
 }
