@@ -40,7 +40,7 @@ class XMLNode {
     XMLNode firstChild() {
 	for (int i = 0; i < sizeof(children); i++)
 	    if (objectp(children[i])) return children[i];
-	return (XMLNode) 0;
+	return 0;
     }
     string|array(string) getData() {
 	array (string) d = filter(children, stringp);
@@ -194,6 +194,13 @@ class PSYC2XMPP {
 class XMPP2PSYC {
     void handle(XMLNode node) {
 	XMLNode fc;
+	int typeflag;
+
+	/* as semantic is different depending on what the target is 
+	 * (like person/room) we need to know this
+	 */
+	switch(node["to"][0]) {
+	}
 	switch(node->getName()) {
 	case "message":
 	    switch(node["type"]) {
