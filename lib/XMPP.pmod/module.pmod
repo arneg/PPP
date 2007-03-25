@@ -2,71 +2,6 @@
 // 
 #include <debug.h>
 
-class XMLNode {
-    string name;
-    mapping attributes;
-    array(string|XMLNode) children;
-
-    void create(string _name, mapping|void _attributes, 
-		array(string|XMLNode)|void _children) {
-	name = _name;
-	if (_attributes)
-	    attributes = _attributes;
-	else 
-	    attributes = ([ ]);
-	if (_children)
-	    children = _children;
-	else 
-	    children = ({ });
-    }
-    void append(string|XMLNode node) {
-	children += ({ node });
-    }
-
-    mixed `->(string dings) {
-	if (attributes[dings]) {
-	    return attributes[dings];
-	}
-	return ::`->(dings);
-    }
-    mixed `->=(string key, mixed val) {
-	attributes[key] = val;
-    }
-
-    string getName() { return name; }
-    array(XMLNode) getChildren() { 
-	return filter(children, objectp); 
-    }
-    XMLNode firstChild() {
-	for (int i = 0; i < sizeof(children); i++)
-	    if (objectp(children[i])) return children[i];
-	return 0;
-    }
-    string|array(string) getData() {
-	array (string) d = filter(children, stringp);
-	return sizeof(d) == 1 ? d[0] : d; 
-    }
-
-    string renderXML() {
-	string s = "<" + name;
-	foreach(attributes; string key; string val) {
-	    s += " " + key + "='" + val + "'"; 
-	}
-
-	if (!sizeof(children)) 
-	    return s + "/>";
-	s += ">";
-
-	foreach(children;; mixed item) {
-	    if (objectp(item))
-		s += item->renderXML();
-	    else
-		s += item;
-	}
-	return s + "</" + name + ">";
-    }
-}
-
 class MySocket {
     mapping(string:mixed) config;
 
@@ -192,8 +127,8 @@ class PSYC2XMPP {
 }
 
 class XMPP2PSYC {
-    void handle(XMLNode node) {
-	XMLNode fc;
+    void handle(XMPP.Node node) {
+	XMPP.Node fc;
 	int typeflag;
 
 	/* as semantic is different depending on what the target is 
@@ -261,8 +196,8 @@ class XMPPSocket {
 
     mapping streamattributes;
     string innerxml;
-    XMLNode currentnode;
-    array(XMLNode) stack;
+    XMPP.Node currentnode;
+    array(XMPP.Node) stack;
 
     void create(mapping(string:mixed) config) {
 	stack = ({ });
@@ -271,9 +206,6 @@ class XMPPSocket {
 	xmlParser->_set_data_callback(onData);
 
 	MySocket::create(config);
-    }
-
-    void msg(MMP.Packet packet, void|object connection) {
     }
 
 #ifdef SSL_WORKS
@@ -355,7 +287,7 @@ class XMPPSocket {
 	    }
 
 	} else if (attr["/"] == "/") {
-	    XMLNode t = XMLNode(name, attr);
+	    XMPP.Node t = XMPP.Node(name, attr);
 	    m_delete(attr, "/");
 
 	    if (!currentnode) {
@@ -363,7 +295,7 @@ class XMPPSocket {
 	    } else 
 		currentnode->append(t);
 	} else {
-	    XMLNode t = XMLNode(name, attr);
+	    XMPP.Node t = XMPP.Node(name, attr);
 	    if (currentnode) {
 		currentnode->append(t);
 		stack += ({ currentnode });
@@ -372,7 +304,7 @@ class XMPPSocket {
 	}
     }
 
-    void handle(XMLNode node) {
+    void handle(XMPP.Node node) {
 	/* implement your logic here */
     }
 
@@ -402,7 +334,7 @@ class PSYCXMPPSocket {
 //	XMPP2PSYC::create(config);
 	PSYC2XMPP::create(config);
     }
-    void handle(XMLNode node) {
+    void handle(XMPP.Node node) {
 	XMPP2PSYC::handle(node);
     }
 }

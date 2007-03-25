@@ -62,7 +62,7 @@ class Server {
 	socket->write(what);
     }
 
-    void handle(XMPP.XMLNode node) {
+    void handle(XMPP.Node node) {
 	switch(node->getName()) {
 #ifdef SSL_WORKS
 	case "starttls":
@@ -240,6 +240,8 @@ class Client {
     }
 
     void msg(MMP.Packet packet, void|object connection) {
+	/* TODO: use method multiplexer instead!
+	 */
 	PT(("XMPP.S2S.Client", "msg() with %O\n", packet->data))
 	PSYC.Packet m = packet->data;
 	string thexml = transform(packet);
@@ -293,10 +295,10 @@ class Client {
 	     "</db:result>");
     }
 
-    void handle(XMPP.XMLNode node) {
+    void handle(XMPP.Node node) {
 	switch(node->getName()) {
 	case "stream:features":
-	    foreach(node->getChildren(), XMPP.XMLNode x) {
+	    foreach(node->getChildren(), XMPP.Node x) {
 		string name = x->getName();
 #ifdef SSL_WORKS
 		if (name == "starttls" && config["tls"]) {
@@ -361,7 +363,7 @@ class DialbackClient {
 	}
 	return "XMPP.S2S.DialbackClient()";
     }
-    void handle(XMPP.XMLNode node) {
+    void handle(XMPP.Node node) {
 	switch(node->getName()) {
 	case "stream:features":
 	    // we're not interested in doing tls, etc
