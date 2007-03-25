@@ -204,19 +204,27 @@ class XMPP2PSYC {
 	    }
 	    break;
 	case "iq":
-	    switch(node["type"]) {
-	    case "get":
-		break;
-	    case "set":
-		break;
-	    case "result":
-		break;
-	    case "error":
-		/* must be able to deal with no child - tag reply only */
-		break;
+	    fc = node->firstChild();
+	    if (fc) {
+		/* wenn du nen handler fuer den xmlns hast, dann hau rein */
+	    } else {
+		switch(node["type"]) {
+		case "result":
+		case "error":
+		    /* achtung, callback anhand von _tag in id aufrufen*/
+		default: 
+		    /* die spec sagt, dass ein iq get/setein kind haben muss
+		     * also kommt hier ein fehler hin
+		     */
+		}
 	    }
 	    break;
 	case "presence":
+	    /* tollerweise ist die semantik teilweise dadurch bestimmt was 
+	     * das ziel ist - z.b. kann normale presence sowohl
+	     * notice friend present als auch request enter sein
+	     * oder im fall von raeumen auch ein statuschange an den rau
+	     */
 	    switch(node["type"]) {
 	    case 0: /* no type */
 		break;
