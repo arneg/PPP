@@ -203,7 +203,7 @@ class XMPP2PSYC {
 	}
 	switch(node->getName()) {
 	case "message":
-	    switch(node["type"]) {
+	    switch(node->type) {
 	    case 0: /* no type */
 		break;
 	    case "error":
@@ -215,7 +215,7 @@ class XMPP2PSYC {
 	    if (fc) {
 		/* wenn du nen handler fuer den xmlns hast, dann hau rein */
 	    } else {
-		switch(node["type"]) {
+		switch(node->type) {
 		case "result":
 		case "error":
 		    /* achtung, callback anhand von _tag in id aufrufen*/
