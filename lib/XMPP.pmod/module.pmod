@@ -247,6 +247,10 @@ class XMPP2PSYC {
 		break;
 	    }
 	    break;
+	default:
+	    /* look if there is a stanza handler for this
+	     * call unknown stanza handler if everything else fails
+	     */
 	}
     }
 }
