@@ -37,6 +37,11 @@ class XMLNode {
     array(XMLNode) getChildren() { 
 	return filter(children, objectp); 
     }
+    XMLNode firstChild() {
+	for (int i = 0; i < sizeof(children); i++)
+	    if (objectp(children[i])) return children[i];
+	return (XMLNode) 0;
+    }
     string|array(string) getData() {
 	array (string) d = filter(children, stringp);
 	return sizeof(d) == 1 ? d[0] : d; 
@@ -140,22 +145,96 @@ class Transformation {
     void create(mapping(string:mixed) _handlers) {
 	handlers = _handlers;
     }
-    void add_handler(string method, mixed handler) {
-	handlers[method] = handler;
+    //! @param mc
+    //	    The mc for which the handler will be called.
+    //
+    //! @param handler
+    //	    The handler which will be called for the mc.
+    void add_handler(string mc, mixed handler) {
+	handlers[mc] = handler;
     }
+    //! @param packet
+    //!     The @[MMP.Packet] to be transformed 
+    //	this does common things (like source/target conversion) and then
+    //	call the handler
     mixed transform(MMP.Packet packet) {
     }
 }
 
-class PSYC2XMPP{
+class PSYC2XMPP {
     inherit Transformation;
     string transform(MMP.Packet packet) {
+	string from, to;
+	mixed source, target;
 	PSYC.Packet p = packet->data;
-	PT(("PSYC2XMPP", "mc is %O\n", p->mc))
+
+#if 0
+	source = packet->source();
+	target = packet["_target"];
+
+	from = source->user || source->resource[1..];
+	from+= "@" + source->host;
+
+	to = target->user;
+	to+= "@" + target->host;
+
+	switch(p->mc) {
+	case "_message_private":
+	    return "<message from='" + from + "' to='" + to + "'>" 
+		+ "<body>" + p->data + "</body></message>";
+	    break;
+	default:
+	    PT(("PSYC2XMPP", "mc %O not handled.\n", p->mc))
+	}
+#endif
 	return "";
     }
 }
 
+class XMPP2PSYC {
+    void handle(XMLNode node) {
+	XMLNode fc;
+	switch(node->getName()) {
+	case "message":
+	    switch(node["type"]) {
+	    case 0: /* no type */
+		break;
+	    case "error":
+		break;
+	    }
+	    break;
+	case "iq":
+	    switch(node["type"]) {
+	    case "get":
+		break;
+	    case "set":
+		break;
+	    case "result":
+		break;
+	    case "error":
+		/* must be able to deal with no child - tag reply only */
+		break;
+	    }
+	    break;
+	case "presence":
+	    switch(node["type"]) {
+	    case 0: /* no type */
+		break;
+	    case "probe":
+		break;
+	    case "subscribe":
+		break;
+	    case "unsubscribe":
+		break;
+	    case "subscribed":
+		break;
+	    case "unsubscribed":
+		break;
+	    }
+	    break;
+	}
+    }
+}
 
 class XMPPSocket {
     inherit PSYC2XMPP;
