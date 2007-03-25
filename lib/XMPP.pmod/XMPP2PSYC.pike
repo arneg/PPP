@@ -1,6 +1,8 @@
 /* 
  * translate XMPP to PSYC - whenever possible
  */
+#include <debug.h>
+
 void handle(XMPP.Node node) {
     XMPP.Node fc;
     int typeflag;

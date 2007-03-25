@@ -18,6 +18,7 @@ void create(string _name, mapping|void _attributes,
     else 
 	children = ({ });
 }
+
 void append(string|XMPP.Node node) {
     children += ({ node });
 }
@@ -34,14 +35,17 @@ mixed `->=(string key, mixed val) {
 }
 
 string getName() { return name; }
+
 array(XMPP.Node) getChildren() { 
     return filter(children, objectp); 
 }
+
 XMPP.Node firstChild() {
     for (int i = 0; i < sizeof(children); i++)
 	if (objectp(children[i])) return children[i];
     return 0;
 }
+
 string|array(string) getData() {
     array (string) d = filter(children, stringp);
     return sizeof(d) == 1 ? d[0] : d; 
