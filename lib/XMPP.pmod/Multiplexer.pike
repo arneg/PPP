@@ -1,6 +1,11 @@
 // vim:syntax=lpc
 #include <debug.h>
 #include <assert.h>
+// needs bugnums!!! at least for a certain amoung of keywords.. (31)
+//
+// i will put in defines and exceptions for that.. we could even use
+// strings as a workaround.. or come up with an internal type .. or use 
+// any generic bitvector.. 
 
 constant Person = 0;
 constant Room   = 1;
@@ -38,12 +43,61 @@ void add_handler(object o) {
 
 	if (has_index(spec, "to")) {
 	    int to = spec["to"];
-	    enforcer(intp(to) && to <= Any && >= Person,
+	    enforcer(intp(to) && to <= Any && to >= Person,
 		     "specification 'to' must be of type integer.\n");
 
 	} else to = Any;
 
 	handlers[type][to]->add_handler(fun, spec["attributes"]);
+    }
+
+    void handle(Node node) {
+	array(function) ret = ({ });
+	string name = node->getName();
+	mapping attributes = node->attributes;
+	MMP.Uniform to = attributes["to"];
+	int to_type;
+
+
+	if (has_index(attributes, "to")) {
+	    to = attributes["to"];
+	    attributes -= ([ "to" : 1 ]);
+
+	    to_type = Any; // check here for the type of to
+			   // .. someone please build that.
+	} else {
+	    to_type = Any;
+	}
+
+	if (has_index(handlers, name)) {
+	    if (has_index(handlers[name], to_type)) {
+		ret += handlers[name][to_type]->match(attributes);	
+	    }
+
+	    if (to_type != Any && has_index(handlers[name], Any)) {
+		ret += handlers[name][Any]->match(attributes);	
+	    }
+	}
+
+	if (name != Any && has_index(handlers, Any)) {
+	    if (has_index(handlers[Any], to_type)) {
+		ret += handlers[Any][to_type]->match(attributes);	
+	    }
+
+	    if (to_type != Any && has_index(handlers[Any], Any)) {
+		ret += handlers[Any][Any]->match(attributes);	
+	    }
+	}
+
+	if (!sizeof(ret)) {
+	    // did not find ANY! match.
+	    return;
+	}
+
+	foreach (ret;;function fun) {
+	    if (fun(node) == 0) return;
+	}
+
     }
 }
 
