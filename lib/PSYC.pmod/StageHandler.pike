@@ -183,8 +183,8 @@ void call_handler(mapping _v, MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 	    case PSYC.Handler.DISPLAY:
 		display(p, _m);
 		break;
-	    case default:
-		THROW("Illegal return type from Handler function %O.\n", o->handler);
+	    default:
+		THROW(sprintf("Illegal return type from Handler function %O.\n", o->handler));
 	    }
 	};
 
@@ -204,8 +204,8 @@ void call_handler(mapping _v, MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 	case PSYC.Handler.DISPLAY:
 	    display(p, _m);
 	    break;
-	case default:
-	    THROW("Illegal return type from Handler function %O.\n", o->handler);
+	default:
+	    THROW(sprintf("Illegal return type from Handler function %O.\n", o->handler));
 	}
     }
 
