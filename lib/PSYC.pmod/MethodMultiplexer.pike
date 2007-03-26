@@ -13,7 +13,7 @@
 //! 	Better have a look at the source code, if you intend to use it without
 //!	using @[PSYC.Unl]. @b{WE MEAN IT!@}.
 
-PSYC.StageHandler prefilter, filter, postfilter;
+PSYC.StageHandler prefilter, filter, postfilter, display;
 mapping(string:function) exports = ([]);
 
 void stop(MMP.Packet p) {
