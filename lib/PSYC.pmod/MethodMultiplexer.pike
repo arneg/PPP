@@ -31,10 +31,14 @@ void throw(mixed ... x) {
 #endif
 
 void create(object storage) {
-    postfilter = PSYC.StageHandler("postfilter", finish, finish, throw, storage);
-    filter = PSYC.StageHandler("filter", postfilter->handle, stop, throw, storage);
-    prefilter = PSYC.StageHandler("prefilter", filter->handle, filter->handle, 
-				  throw, storage);
+    // display is sortof isolated from the rest.. 
+    //
+    // we should think about introducing a different api.. one closure which gets called
+    // with the returntype.. (for STOP and DISPLAY). 
+    display = PSYC.StageHandler("display", finish, finish, finish, throw, storage);
+    postfilter = PSYC.StageHandler("postfilter", finish, stop, display->handle, throw, storage);
+    filter = PSYC.StageHandler("filter", postfilter->handle, stop, display->handle, throw, storage);
+    prefilter = PSYC.StageHandler("prefilter", filter->handle, filter->handle, display->handle, throw, storage);
 }
 
 
@@ -60,6 +64,11 @@ void add_handlers(PSYC.Handler.Base ... handlers) {
 	if (has_index(temp, "postfilter")) 
 	foreach (temp["postfilter"]; string mc; mapping|array(string) wvars) {
 	    postfilter->add(mc, handler, wvars);
+	}
+
+	if (has_index(temp, "display")) 
+	foreach (temp["display"]; string mc; mapping|array(string) wvars) {
+	    display->add(mc, handler, wvars);
 	}
     }
 
