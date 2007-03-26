@@ -8,15 +8,16 @@
 object storage;
 mapping table = ([]);
 mapping requested = ([]);
-function go_on, stop, error;
+function go_on, stop, error, display;
 string prefix;
 
-void create(string foo, function go_on_, function stop_, function error_, object s) {
+void create(string foo, function go_on_, function stop_, function display_, function error_, object s) {
     prefix = foo;
 
     go_on = go_on_;
     stop = stop_;
     error = error_;
+    display = display_;
 
     storage = s;
 }
@@ -171,10 +172,19 @@ void call_handler(mapping _v, MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 			 "use call_out, stupid!", backtrace() }));
 	    }
 
-	    if (i == PSYC.Handler.GOON) {
+	    // copied code comes here.
+	    switch (i) {
+	    case PSYC.Handler.GOON:
 		progress(stack, p, _m);
-	    } else {
+		break;
+	    case PSYC.Handler.STOP:
 		stop(p, _m);
+		break;
+	    case PSYC.Handler.DISPLAY:
+		display(p, _m);
+		break;
+	    case default:
+		THROW("Illegal return type from Handler function %O.\n", o->handler);
 	    }
 	};
 
@@ -183,10 +193,19 @@ void call_handler(mapping _v, MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 	o->handler(p, _v, _m, callback);
 	in_progress = 0;
     } else {
-	if (o->handler(p, _v, _m) == PSYC.Handler.GOON) {
+	int ret = o->handler(p, _v, _m);
+	switch (ret) {
+	case PSYC.Handler.GOON:
 	    progress(stack, p, _m);
-	} else {
+	    break;
+	case PSYC.Handler.STOP:
 	    stop(p, _m);
+	    break;
+	case PSYC.Handler.DISPLAY:
+	    display(p, _m);
+	    break;
+	case default:
+	    THROW("Illegal return type from Handler function %O.\n", o->handler);
 	}
     }
 
