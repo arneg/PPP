@@ -278,7 +278,7 @@ class BufferedStream {
 	    what = what * "";
 	}
 
-	if (fmt) {
+	if (sizeof(fmt)) {
 	    outqueue->push(what = sprintf([string]what, @fmt));
 	} else {
 	    outqueue->push(what);
