@@ -75,10 +75,12 @@ void detach() {
 
 //! Distribute a @[MMP.Packet] to the attached object, calling @expr{msg()@}.
 void distribute(MMP.Packet p) {
+#if 0
     if (attachee && attachee->msg) {
 	attachee->msg(p);
 	return;
     } 
+#endif
 
     PT(("PSYC.Client", "Noone using %O. Dropping %O.\n", this, p->data->data))
 }

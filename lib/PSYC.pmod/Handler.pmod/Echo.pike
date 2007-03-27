@@ -14,8 +14,9 @@ constant _ = ([
 ]);
 
 int postfilter_message_private(MMP.Packet p, mapping _v, mapping _m) {
+    PSYC.Packet m = p->data;
    
-    PSYC.Packet echo = p->data->reply("_echo" + p->data->mc, p->data->vars, p->data->data);
+    PSYC.Packet echo = m->reply("_echo" + m->mc, m->vars, m->data);
     sendmsg(p->source(), echo);
 
     return PSYC.Handler.GOON;

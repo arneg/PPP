@@ -37,7 +37,7 @@ void save() {
 
 void _save() {
     P2(("PSYC.Storage.Remote", "Sending _request_save.\n"))
-    sendmsg(link_to, PSYC.Packet("_request_save")); 
+    send_tagged(link_to, PSYC.Packet("_request_save"), stopper);
 }
 
 //! Callback to signal that the @expr{parent@} has linked to the entity
@@ -52,8 +52,12 @@ void link() {
     }
 }
 
+int stopper(mixed ... args) {
+    return PSYC.Handler.STOP;
+}
+
 // Genereal Retrieve CallBack
-void grcb(MMP.Packet p, function callback, string key, string mc, array args) {
+int grcb(MMP.Packet p, function callback, string key, string mc, array args) {
     PSYC.Packet m = p->data;
 
     PT(("Storage.Remote", "grcb(%O, %O, %O, %O, %O)\n", p, callback, key, mc, args))
@@ -65,10 +69,12 @@ void grcb(MMP.Packet p, function callback, string key, string mc, array args) {
 	// to be a failure/error
 	call_out(callback, 0, key, UNDEFINED, @args);
     }
+
+    return PSYC.Handler.STOP;
 }
 
-// Generæl Store CallBack
-void gscb(MMP.Packet p, function callback, string key, string mc, array args) {
+// General Store CallBack
+int gscb(MMP.Packet p, function callback, string key, string mc, array args) {
     PSYC.Packet m = p->data;
 
     P3(("Storage.Remote", "gscb(%O, %O, %O, %O, %O)\n", p, callback, key, mc, args))
@@ -78,6 +84,8 @@ void gscb(MMP.Packet p, function callback, string key, string mc, array args) {
     } else {
 	call_out(callback, 0, ERROR, key, @args);
     }
+
+    return PSYC.Handler.STOP;
 }
 
 void get(string key, function callback, mixed ... args) {
@@ -173,7 +181,7 @@ void _lock(string key, function callback, array(mixed) args,
     if (callback) {
 	send_tagged(link_to, request, gscb, callback, key, mc, args);
     } else { // maybe we should still send a tagged message.. but have dummy callback. not sure.
-	sendmsg(link_to, request);
+	send_tagged(link_to, request, stopper);
     }
 }
 
@@ -187,7 +195,7 @@ void _set(string key, mixed value, function callback,
     if (callback) {
 	send_tagged(link_to, request, gscb, callback, key, mc, args);
     } else {
-	sendmsg(link_to, request);
+	send_tagged(link_to, request, stopper);
     }
 }
 
@@ -198,7 +206,7 @@ void _get(string key, function callback, array(mixed) args, string mc) {
     if (callback) {
 	send_tagged(link_to, request, grcb, callback, key, mc, args);
     } else {
-	sendmsg(link_to, request);
+	send_tagged(link_to, request, stopper);
     }
 }
 

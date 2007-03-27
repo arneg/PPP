@@ -1,16 +1,18 @@
 // vim:syntax=lpc
 #include <random.h>
 #include <debug.h>
+#include <assert.h>
 #define CB	0
 #define ARGS	1
 #define WVARS	2
 #define LVARS	3
+#define ASYNC	4
 
 inherit PSYC.Handler.Base;
 
 constant _ = ([
     "filter" : ([
-	"" : ([ ]),
+	"" : ([ "async" : 1 ]),
     ]),
 ]);
 
@@ -23,6 +25,7 @@ mapping(string:array) reply = ([ ]);
 int add_reply(function cb, string tag, multiset(string)|mapping vars, mixed ... args) {
     if (has_index(reply, tag)) return 0;
     multiset wvars, lvars;
+    int async = 0;
 
     P2(("Handler.Reply", "%O: added tag(%s) with %O for %O.\n", parent, tag, vars, cb))
 
@@ -44,9 +47,10 @@ int add_reply(function cb, string tag, multiset(string)|mapping vars, mixed ... 
 		THROW(sprintf("set of variables has to be an array.\n"));
 	    }
 	}
+	async = has_index(vars, "async") && vars["async"];
     }
 
-    reply[tag] = ({ cb, args, wvars, lvars });
+    reply[tag] = ({ cb, args, wvars, lvars, async });
     return 1;
 }
 
@@ -61,7 +65,7 @@ string make_reply(function cb, multiset(string)|mapping vars, mixed ... args) {
     return tag;
 }
 
-int filter(MMP.Packet p, mapping _v, mapping _m) {
+void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
     PSYC.Packet m = p->data;
 
     P3(("Handler.Reply", "%O: prefilter(%O)\n", parent, p))
@@ -74,28 +78,40 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
 
 	    P3(("Handler.Reply", "%O: ca: %O\n", parent, ca))
 	    // callback for storage
-	    void got_data(mapping _v, MMP.Packet, function callback, mixed args) {
+	    void got_data(mapping _v, MMP.Packet p, function callback, int async, mixed args) {
+		array temp;
+
 		if (sizeof(_v)) {
-		    call_out(callback, 0, p, _v, @args); 
+		    temp = ({ p, _v });
 		} else {
-		    call_out(callback, 0, p, @args); 
+		    temp = ({ p });
+		}
+
+		if (!async) {
+		    void _cb(mixed ... args) {
+			cb(callback(@args));
+		    };
+		    call_out(_cb, 0, @temp, @args);
+		} else {
+		    call_out(callback, 0, @temp, cb, @args);
 		}
 	    };
 
-	    void fail(MMP.Packet, function callback, mixed args) {
+	    void fail(mixed ... args) {
 		P0(("PSYC.Handler.Reply", "fetching data failed for someone.. %O\n", args))
 		// TODO: das alles toller
 	    };
+	    enforcer(functionp(ca[CB]), "oups.. \n");
+	    enforcer(functionp(cb), "!!oups.. \n");
 	    // still some vars missing/supposed to come from storage
-	    PSYC.Storage.multifetch(parent->storage, ca[LVARS], ca[WVARS], got_data, fail, p, ca[CB], ca[ARGS]);
+	    PSYC.Storage.multifetch(parent->storage, ca[LVARS], ca[WVARS], got_data, fail, p, ca[CB], ca[ASYNC], ca[ARGS]);
 	    m_delete(reply, tag);
-	    return PSYC.Handler.STOP;
+	    return;
 	} else {
 	    P0(("Handler.Reply", "packet %O is tagged with an unknown tag.", p))
 	    // bad reply.. complain
-	    return PSYC.Handler.GOON;
 	}
     }
 
-    return PSYC.Handler.GOON;
+    call_out(cb, 0, PSYC.Handler.GOON);
 }

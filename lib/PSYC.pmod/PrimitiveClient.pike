@@ -33,41 +33,56 @@ void create(MMP.Uniform client_u, object server, MMP.Uniform person, string|void
     client->attach(this);
     t->handler = client;
 
-    client->add_handlers(PSYC.Handler.Execute(client, client->client_sendmmp, client->uni));
-    client->add_handlers(PSYC.Handler.PrimitiveLink(client, client->client_sendmmp, client->uni, client_uniform));
-    client->add_handlers(PSYC.Handler.Subscribe(client, client->client_sendmmp, client->uni));
+    client->add_handlers(
+	PSYC.Handler.Execute(client, client->client_sendmmp, client->uni),
+	PSYC.Handler.PrimitiveLink(client, client->client_sendmmp, client->uni, client_uniform),
+	//PSYC.Handler.Subscribe(client, client->client_sendmmp, client->uni),
+	DisplayForward(client, client->client_sendmmp, client->uni),
+    );
 
-    add_commands(PSYC.Commands.Tell(client, client->client_sendmmp, client->uni));
-//add_commands(PSYC.Commands.Subscribe(client));
-    add_commands(PSYC.Commands.Enter(client, client->client_sendmmp, client->uni));
-    add_commands(PSYC.Commands.Set(client, client->client_sendmmp, client->uni));
+//add_commands(PSYC.Commands.Subscribe(this));
+    add_commands(
+	PSYC.Commands.Tell(client, client->client_sendmmp, client->uni),
+	PSYC.Commands.Enter(client, client->client_sendmmp, client->uni),
+	PSYC.Commands.Set(client, client->client_sendmmp, client->uni),
+    );
 }
 
-void msg(MMP.Packet p) {
-    P0(("PrimitiveClient", "Forwarding %O to dumb client (%O).\n", p, client_uniform))
+class DisplayForward {
+    constant _ = ([
+	"display" : ([
+	    "" : 0,
+	]),
+    ]);
 
-    p = p->clone();
+    int display(MMP.Packet p, mapping _v, mapping _m) {
+	P0(("PrimitiveClient", "Forwarding %O to dumb client (%O).\n", p, client_uniform))
 
-    p["_target"] = client_uniform;
-    p["_source_relay"] = p->lsource();
+	p = p->clone();
 
-    m_delete(p->vars, "_source");
-    m_delete(p->vars, "_counter");
+	p["_target"] = client_uniform;
+	p["_source_relay"] = p->lsource();
 
-    if (PSYC.is_packet(p->data)) {
-	PSYC.Packet m = p->data->clone();
-	p->data = m;
-	string tmp;
+	m_delete(p->vars, "_source");
+	m_delete(p->vars, "_counter");
 
-	// m->data should never be !stringp
-	// could use enforce for that instead..
-	if (!m->data || !sizeof(m->data)) {
-	    tmp = textdb[m->mc];
+	if (PSYC.is_packet(p->data)) {
+	    PSYC.Packet m = p->data->clone();
+	    p->data = m;
+	    string tmp;
 
-	    if (tmp && sizeof(tmp)) 
-		m->data = tmp;
+	    // m->data should never be !stringp
+	    // could use enforce for that instead..
+	    if (!m->data || !sizeof(m->data)) {
+		tmp = textdb[m->mc];
+
+		if (tmp && sizeof(tmp)) 
+		    m->data = tmp;
+	    }
 	}
-    }
 
-    client->sendmmp(client_uniform, p);
+	client->sendmmp(client_uniform, p);
+
+	return PSYC.Handler.STOP;
+    }
 }

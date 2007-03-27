@@ -7,12 +7,12 @@ inherit PSYC.Handler.Base;
 //! Requires no variables from storage whatsoever.
 
 constant _ = ([
-    "postfilter" : ([
+    "display" : ([
 	"" : 0
     ])
 ]);
 
-int postfilter(MMP.Packet p, mapping _v, mapping _m) {
+int display(MMP.Packet p, mapping _v, mapping _m) {
     PT(("Handler.Forward", "postfilter(%O)\n", p))
 
     call_out(parent->distribute, 0 ,p);
