@@ -162,7 +162,7 @@ class Packet {
     //! @returns
     //!	    The new packet containing the correct tag to be recognized as a reply to @expr{m@}.
     this_program reply(string|void mc, mapping(string:mixed)|void v, string|void d) {
-	this_program m = clone();
+	this_program m = this_program(mc, v, d);
 
 	if (has_index(vars, "_tag") && sizeof(vars["_tag"])) {
 	    m["_tag_reply"] = vars["_tag"]; 
