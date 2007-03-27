@@ -47,7 +47,9 @@ void msg(MMP.Packet p) {
     P0(("PrimitiveClient", "Forwarding %O to dump client (%O).\n", p, client_uniform))
     p["_target"] = client_uniform;
     p["_source_relay"] = p->lsource();
-    if (!sizeof(p->data->data) && sizeof(textdb[p->data->mc])) {
+    if (!sizeof(p->data->data) 
+        && textdb[p->data->mc] 
+	&& sizeof(textdb[p->data->mc])) {
 	p->data->data = textdb[p->data->mc];
     }
     client->sendmmp(client_uniform, p);
