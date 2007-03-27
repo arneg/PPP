@@ -115,11 +115,11 @@ class Uniform {
 	if (type == 's') {
 	    return sprintf("MMP.Uniform(%s)", unl);
 	} else if (type = 'O') {
-#if defined(DEBUG) && DEBUG < 10
-	    return sprintf("MMP.Uniform(%s, %s)", unl, is_local() ? "local" : "remote");
-#else 
+#if defined(DEBUG) && DEBUG >= 10
 	    return sprintf("MMP.Uniform(%O)", 
 			   aggregate_mapping(@Array.splice(indices(this), values(this))));
+#else 
+	    return sprintf("MMP.Uniform(%s, %s)", unl, is_local() ? "local" : "remote");
 #endif
 	}
 
