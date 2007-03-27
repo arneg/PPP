@@ -161,8 +161,8 @@ class Packet {
     //! Generates a reply packet to @expr{m@}. Basically copies the packet's _tag to _tag_reply in the new packet.
     //! @returns
     //!	    The new packet containing the correct tag to be recognized as a reply to @expr{m@}.
-    PSYC.Packet reply(string|void mc, mapping(string:mixed)|void v, string|void d) {
-	PSYC.Packet m = PSYC.Packet(mc, v, d);
+    this_program reply(string|void mc, mapping(string:mixed)|void v, string|void d) {
+	this_program m = clone();
 
 	if (has_index(vars, "_tag") && sizeof(vars["_tag"])) {
 	    m["_tag_reply"] = vars["_tag"]; 
@@ -185,6 +185,10 @@ class Packet {
     //! Accesses a packet variable.
     mixed `[](mixed id) {
 	return vars[id];
+    }
+
+    this_program clone() {
+	return this_program(mc, vars + ([ ]), data);
     }
 }
 
@@ -233,6 +237,17 @@ string psyctext(PSYC.Packet m) {
     return buf->get();
 }
 #endif
+
+//! @returns
+//! @int
+//! 	@value 1
+//! 		@expr{thing@} is a @[Packet].
+//! 	@value 0
+//! 		@expr{thing@} is not a @[Packet].
+//! @endint
+int(0..1) is_packet(mixed thing) {
+    return objectp(thing) && Program.inherits(object_program(thing), Packet);
+}
 
 //! Renders packets into neat strings based on templates either provided by the @[Packet] or the @[Text.TextDB].
 string psyctext(MMP.Packet p, PSYC.Text.TextDB db) {

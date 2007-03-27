@@ -69,7 +69,9 @@ int _set(MMP.Packet p, mapping _v, mapping _m, string mc, function set) {
 					  ([ "_key" : key ])));
 	} else {
 	    sendmsg(target, m->reply("_notice"+mc,
-				      ([ "_key" : key ])));
+				      ([ "_key" : key ,
+				         "_value" : value // is there any reason we didn't send this?
+				      ])));
 	}
     };
 

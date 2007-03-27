@@ -22,7 +22,6 @@ void create(MMP.Uniform client_u, object server, MMP.Uniform person, string|void
     void query_password() {
 	P0(("PrimitiveClient", "query_password() called... \n"))
 	client->client_sendmsg(client_uniform, PSYC.Packet("_query_password"));
-	destruct(client); // for now, evil hacklike thing.
     };
 
     textdb = server->textdb_factory("plain", "en");
@@ -36,21 +35,39 @@ void create(MMP.Uniform client_u, object server, MMP.Uniform person, string|void
 
     client->add_handlers(PSYC.Handler.Execute(client, client->client_sendmmp, client->uni));
     client->add_handlers(PSYC.Handler.PrimitiveLink(client, client->client_sendmmp, client->uni, client_uniform));
+    client->add_handlers(PSYC.Handler.Subscribe(client, client->client_sendmmp, client->uni));
 
     add_commands(PSYC.Commands.Tell(client, client->client_sendmmp, client->uni));
-//add_commands(PSYC.Commands.Subscribe(this));
+//add_commands(PSYC.Commands.Subscribe(client));
     add_commands(PSYC.Commands.Enter(client, client->client_sendmmp, client->uni));
     add_commands(PSYC.Commands.Set(client, client->client_sendmmp, client->uni));
 }
 
 void msg(MMP.Packet p) {
-    P0(("PrimitiveClient", "Forwarding %O to dump client (%O).\n", p, client_uniform))
+    P0(("PrimitiveClient", "Forwarding %O to dumb client (%O).\n", p, client_uniform))
+
+    p = p->clone();
+
     p["_target"] = client_uniform;
     p["_source_relay"] = p->lsource();
-    if (!sizeof(p->data->data) 
-        && textdb[p->data->mc] 
-	&& sizeof(textdb[p->data->mc])) {
-	p->data->data = textdb[p->data->mc];
+
+    m_delete(p->vars, "_source");
+    m_delete(p->vars, "_counter");
+
+    if (PSYC.is_packet(p->data)) {
+	PSYC.Packet m = p->data->clone();
+	p->data = m;
+	string tmp;
+
+	// m->data should never be !stringp
+	// could use enforce for that instead..
+	if (!m->data || !sizeof(m->data)) {
+	    tmp = textdb[m->mc];
+
+	    if (tmp && sizeof(tmp)) 
+		m->data = tmp;
+	}
     }
+
     client->sendmmp(client_uniform, p);
 }

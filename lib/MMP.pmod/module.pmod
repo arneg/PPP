@@ -228,9 +228,9 @@ string|String.Buffer render_vars(mapping(string:mixed) vars,
 	else mod = key[0..0];
 	
 
-	// we have to decide between deletions.. and "".. or 0.. or it
-	// a int zero not allowed?
-	if (val) {
+	// should be possible to transport int 0. this should do. 
+	// other zero_types (e.g. UNDEFINED) for empty vars.
+	if (val || zero_type(val) == 0) {
 	    if (key[0] == '_') putchar(':');
 	    add(key);
 	    putchar('\t');
@@ -519,6 +519,23 @@ class Packet {
 
 	return source();
     }
+
+    // why do we need this? copy_value doesn't copy objects.
+    this_program clone() {
+	this_program n = this_program(data, vars + ([ ]));
+
+	// do we need to copy parsed, sent, newline?
+#if 0
+	n->parsed = parsed;
+	n->sent = sent;
+# ifdef LOVE_TELNET
+	n->newline = newline;
+# endif
+#endif
+
+	return n;
+    }
+
 }
 
 // 0
@@ -971,7 +988,8 @@ LINE:	while(-1 < stop &&
 		P2(("MMP.Parse", "%s => %O \n", key, val))
 
 		if (num == 1) {
-		    val = 0;
+		    val = UNDEFINED; // undefined is zero_type != 0 and becomes
+				     // an empty variable again. 
 		} else {
 		    string k = (key == "") ? lastkey : key;		    
 
@@ -1339,7 +1357,7 @@ class VirtualCircuit {
 //! 	@value 0
 //! 		@expr{o@} is not a @[Uniform].
 //! @endint
-int(0..1) is_uniform(object o) {
+int(0..1) is_uniform(mixed o) {
     if (objectp(o) && Program.inherits(object_program(o), Uniform)) {
 	return 1;
     } else {
@@ -1347,10 +1365,10 @@ int(0..1) is_uniform(object o) {
     }
 }
 
-int(0..1) is_person(object o) {
+int(0..1) is_person(mixed o) {
     return is_uniform(o) && stringp(o->resource) && sizeof(o->resource) && o->resource[0] == '~';
 }
 
-int(0..1) is_place(object o) {
+int(0..1) is_place(mixed o) {
     return is_uniform(o) && stringp(o->resource) && sizeof(o->resource) && o->resource[0] == '@';
 }
