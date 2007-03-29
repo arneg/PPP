@@ -67,8 +67,8 @@ void unregister_context(MMP.Uniform c) {
 //! Return the Context Distribution object that does handle @expr{c@} locally.
 //! If there is no object at the moment for the given context, one is 
 //! automatically created using the "create_context" callback given on 
-//! @expr{create()@}. If none has been specified in @expr{create()@} by 
-//! default @expr{PSYC.Context@} objects are created.
+//! @[create()]. If none has been specified in @[create()] by 
+//! default @[PSYC.Context] objects are created.
 //! @param c
 //! 	The address of the Context.
 object get_context(MMP.Uniform c) {
@@ -84,7 +84,7 @@ void insert(MMP.Uniform context, MMP.Uniform guz) {
 }
 
 //! This method basically creates a @[MMP.VirtualCircuit] for the given address. It will try
-//! to reconnect if the connection @expr{circuit@} is closed. Therefore it is not wise to
+//! to reconnect if @expr{circuit@} is closed. Therefore it is not wise to
 //! use a circuit that does not actually point to the Root of @expr{target@} as the
 //! @[MMP.VirtualCircuit] will connect to a different one after close.
 //! @param target
@@ -92,8 +92,8 @@ void insert(MMP.Uniform context, MMP.Uniform guz) {
 //! @param circuit
 //! 	The MMP.Circuit (or something implementing the same API) which should be used
 //! 	for the route. 
-//! @warning
-//! 	Use this method only if you know what you are doing. really.
+//! @note
+//! 	Warning: Use this method only if you know what you are doing. really.
 void add_route(MMP.Uniform target, object circuit) {
     P1(("PSYC.Server", "add_route(%O, %O) as %O.\n", target, circuit, target->root))
 
