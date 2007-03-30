@@ -57,28 +57,19 @@ class Session {
 	object textdb;
 
 	constant _ = ([
-	    "postfilter" : ([
+	    "display" : ([
 		"" : 0,
 	    ]),
 	]);
-
-	constant export = ({ "display" });
 
 	void create(object u, function sendmmp, MMP.Uniform un, object tdb) {
 	    textdb = tdb;
 	    ::create(u, sendmmp, un);
 	}
 
-	void display(MMP.Packet p) {
+	void display(MMP.Packet p, mapping _v, mapping _m) {
 	    P0(("TELNET.UngroovyTelnetDisplayHandler", "display(%O)\n", p))
-	    writeln(PSYC.psyctext(p, textdb));
-	    writeln("just outputted for: " + (objectp(p->data) ? p->data->mc : "an mc-less packet") + ".");
-	}
-
-	int postfilter(MMP.Packet p, mapping _v, mapping _m) {
-	    display(p);
-	    
-	    return PSYC.Handler.GOON;
+	    writeln((objectp(p->data) ? p->data->mc : "an mc-less packet") + "\t" + PSYC.psyctext(p, textdb));
 	}
     }
 

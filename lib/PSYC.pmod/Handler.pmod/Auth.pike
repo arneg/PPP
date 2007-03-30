@@ -89,7 +89,7 @@ int filter_notice_authentication(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
 
     if (!has_index(m->vars, "_location")) {
-	P3(("PSYC.Handler.Auth", "incomplete _notice_authentication (_location is missing)\n"))
+	P0(("PSYC.Handler.Auth", "incomplete _notice_authentication (_location is missing)\n"))
 	return PSYC.Handler.STOP;
     }
 
@@ -108,7 +108,7 @@ int filter_notice_authentication(MMP.Packet p, mapping _v, mapping _m) {
     } else uni2unl[source] = location;
 
     if (has_index(pending, location) && has_index(pending[location], source)) {
-	m_delete(pending[location], source)(1);
+	m_delete(pending[location], source)(PSYC.Handler.GOON);
     }
 
     return PSYC.Handler.STOP;
