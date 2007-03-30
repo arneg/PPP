@@ -32,8 +32,9 @@ string readfile() {
 	in->close();
 	autosave = 1;
 	};
-	if (err)
+	if (err) {
 	    P0(("FlatFile", "Reading %O failed: %O.\n", filename, err))
+	}
     }
 
     return ret;
