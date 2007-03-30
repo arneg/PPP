@@ -37,7 +37,7 @@ void create(MMP.Uniform client_u, object server, MMP.Uniform person, string|void
 	PSYC.Handler.Execute(client, client->client_sendmmp, client->uni),
 	PSYC.Handler.PrimitiveLink(client, client->client_sendmmp, client->uni, client_uniform),
 	//PSYC.Handler.Subscribe(client, client->client_sendmmp, client->uni),
-	DisplayForward(client, client->client_sendmmp, client->uni),
+	DisplayForward(client, client->client_sendmmp, client->uni, client_uniform),
     );
 
 //add_commands(PSYC.Commands.Subscribe(this));
@@ -52,15 +52,48 @@ class DisplayForward {
     constant _ = ([
 	"display" : ([
 	    "" : 0,
+	    "_notice_context_enter" : 0,
 	]),
     ]);
 
+    inherit PSYC.Handler.Base;
+
+    MMP.Uniform to;
+
+    void create(object c, function s, MMP.Uniform uni, MMP.Uniform client_uni) {
+	P0(("PrimitiveClient", "\n\n\nHERE!!!\n\n\n"))
+	to = client_uni;
+	::create(c, s, uni);
+    }
+
+    int display_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
+	PT(("PrimitiveClient", "_notice_context_enter here %O\n", p))
+
+	if (has_index(p->vars, "_source_relay")) {
+	    MMP.Uniform sr = p["_source_relay"];
+
+	    if (sr == parent->link_to) {
+		PSYC.Packet m = PSYC.Packet("_echo_context_enter");
+		mixed group;
+
+		if (group = p->data["_group"] && MMP.is_place(group)) {
+		    MMP.Packet pt = MMP.Packet(m, ([ "_source_relay" : group ]));
+		    sendmmp(to, pt);
+		}
+
+		return PSYC.Handler.STOP;
+	    }
+	}
+
+	return PSYC.Handler.GOON;
+    }
+
     int display(MMP.Packet p, mapping _v, mapping _m) {
-	P0(("PrimitiveClient", "Forwarding %O to dumb client (%O).\n", p, client_uniform))
+	PT(("PrimitiveClient", "Forwarding %O to dumb client (%O).\n", p, to))
 
 	p = p->clone();
 
-	p["_target"] = client_uniform;
+	p["_target"] = to;
 	p["_source_relay"] = p->lsource();
 
 	m_delete(p->vars, "_source");
@@ -81,7 +114,7 @@ class DisplayForward {
 	    }
 	}
 
-	client->sendmmp(client_uniform, p);
+	sendmmp(to, p);
 
 	return PSYC.Handler.STOP;
     }
