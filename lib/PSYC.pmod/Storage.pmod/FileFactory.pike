@@ -6,6 +6,7 @@ inherit .Factory;
 
 string basepath;
 function namify = aggregate;
+object codec_object;
 
 //! @param basepath
 //! 	The path where serialized storage should be stored in.
@@ -14,9 +15,12 @@ function namify = aggregate;
 //! 	the resulting file, for avoiding overpopulated directories. Signature:
 //! 	@expr{array(string) namify(string name)@}.
 //! 	@expr{basepath + result * "/"@} will then be the path of the file.
-void create(string basepath, function|void namify) {
+//! @param codec
+//! 	Codec object to use for serialization.
+void create(string basepath, function|void namify, void|object codec) {
     this->basepath = basepath + "/";
     if (namify) this->namify = namify;
+    codec_object = codec;
     ::create();
 }
 
@@ -73,5 +77,5 @@ object createStorage(MMP.Uniform storagee) {
 	buf->add("root.o");
     }
 
-    return PSYC.Storage.File(buf->get());
+    return PSYC.Storage.File(buf->get(), codec_object);
 }

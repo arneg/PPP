@@ -7,27 +7,34 @@ inherit .MappingBased;
 
 string filename;
 int autosave;
+object codec;
 
 string encode(mixed stuff) {
-    return encode_value(stuff);
+    return encode_value(stuff, codec);
 }
 
 mixed decode(string stuff) {
-    catch {
-	return decode_value(stuff);
-    };
+    if (stuff)
+	return decode_value(stuff, codec);
+    else 
+	return 0;
 }
 
 string readfile() {
     Stdio.File in;
     string ret;
+    mixed err;
 
-    catch {
+    if (Stdio.is_file(filename)) {
+	mixed err = catch {
 	in = Stdio.File(filename, "r");
 	ret = in->read();
 	in->close();
 	autosave = 1;
-    };
+	};
+	if (err)
+	    P0(("FlatFile", "Reading %O failed: %O.\n", filename, err))
+    }
 
     return ret;
 }
@@ -43,8 +50,12 @@ void writefile(string stuff) {
 
 //! @param file
 //! 	Path to the file to write to.
-void create(string file) {
+//! @param codec_object
+//! 	Codec object to use for serialization. Is used for
+//! 	@[MMP.Uniform] object only right now.
+void create(string file, object codec_object) {
     filename = Stdio.simplify_path(file);
+    codec = codec_object;
 
     if (filename[0] != '/') filename = "./" + filename;
 

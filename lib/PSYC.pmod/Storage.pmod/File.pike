@@ -8,8 +8,10 @@ inherit .Volatile;
 //! 	Name of the file that contains the serialized mappinglike structure.
 //! 	If the file is empty, this storage class operates on @expr{([ ])@}.
 //! 	The file will then be created when data is saved.
-void create(string filename) {
-    ::create(.FlatFile(filename));
+//! @param codec
+//! 	Codec object to use for serialization of @[MMP.Uniform] objects.
+void create(string filename, object codec) {
+    ::create(.FlatFile(filename, codec));
 }
 
 void save() {

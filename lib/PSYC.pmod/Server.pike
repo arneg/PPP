@@ -162,6 +162,10 @@ void create(mapping(string:mixed) config) {
     enforcer(objectp(storage_factory = config["storage"]), 
 	    "Storage factory missing (setting: 'storage')");
 
+    if (!storage_factory->codec_object) {
+	storage_factory->codec_object = PSYC.Codec(this);
+    }
+
     if (has_index(config, "deliver_remote")) {
 	external_deliver_remote = config["deliver_remote"];
     } else {
@@ -178,7 +182,6 @@ void create(mapping(string:mixed) config) {
     enforcer(functionp(textdb_factory = config["textdb"]),
 	     "Textdb factory missing (setting: 'textdb') but needed for PRIMITIVE_CLIENT. ");
 #endif
-
 
     enforcer(arrayp(config["ports"]), 
 	     "List of ports missing. (setting: 'ports')");
@@ -210,7 +213,7 @@ void create(mapping(string:mixed) config) {
     t->islocal = 1;
     root = PSYC.Root(t, this, storage_factory->getStorage(t));
     t->handler = root;
-    PT(("PSYC.Server", "created a new PSYC.Server(%s) with root object %O.\n", root->uni, root))
+    P1(("PSYC.Server", "created a new PSYC.Server(%s) with root object %O.\n", root->uni, root))
     // not good for nonstandard port?
 }
 
@@ -321,7 +324,7 @@ void if_localhost(MMP.Uniform candidate, function if_cb, function else_cb,
 void _if_localhost(MMP.Uniform candidate, function if_cb, function else_cb,
 		  int port, array args) {
     // this is rather blöde
-    PT(("PSYC.Server", "if_localhost(%s, %O, %O, ...) looking in %O\n", candidate, if_cb, 
+    P3(("PSYC.Server", "if_localhost(%s, %O, %O, ...) looking in %O\n", candidate, if_cb, 
 	else_cb, localhosts))
     void callback(string host, mixed ip) {
 	// TODO: we need error_handling here!
@@ -397,10 +400,10 @@ void _if_localhost(MMP.Uniform candidate, function if_cb, function else_cb,
 //! 	If you use convenient @[PSYC.Person] and the like, you most probably 
 //! 	don't need to use this directly.
 void deliver(MMP.Uniform target, MMP.Packet packet) {
-    PT(("PSYC.Server", "%O->deliver(%O, %O)\n", this, target, packet))
+    P2(("PSYC.Server", "%O->deliver(%O, %O)\n", this, target, packet))
 
     if (target->handler) {
-	PT(("PSYC.Server", "Found handler in %O. calling %O.\n", target, target->handler->msg))
+	P3(("PSYC.Server", "Found handler in %O. calling %O.\n", target, target->handler->msg))
 	call_out(target->handler->msg, 0, packet);
 	return;
     }
