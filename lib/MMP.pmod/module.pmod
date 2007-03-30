@@ -401,7 +401,7 @@ class Packet {
 		return sprintf("MMP.Packet(%O, '%.15s..' )\n", vars, data);
 	    } else {
 #if defined(DEBUG) && DEBUG > 2
-		return sprintf("MMP.Packet(\n\t_target: %s\n\t_source: %s\n\t_context: %s)\n", vars["_target"]||"0", vars["_source"]||"0", vars["_context"]||"0");
+		return sprintf("MMP.Packet(\n\t_target: %s\n\t_source: %s\n\t_context: %s | %O)\n", vars["_target"]||"0", vars["_source"]||"0", vars["_context"]||"0", data);
 #else
 		return sprintf("MMP.Packet(%O, %O)\n", vars, data);
 #endif
@@ -725,6 +725,7 @@ class Circuit {
     //!	    will be sent.
     void msg(MMP.Utils.Queue holder) {
 	P3(("MMP.Circuit", "%O->msg(%O)\n", this, holder))
+	PT(("MMP.Circuit", "%O->msg(%O) where write_ok: %O, write_ready: %O\n", this, sizeof(holder), write_okay, write_ready))
 	push(holder);
 
 	if (write_ready) {
