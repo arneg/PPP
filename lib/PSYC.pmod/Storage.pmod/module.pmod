@@ -12,7 +12,7 @@ void multifetch(object storage, multiset locked_vars, multiset vars, function ca
 
     void fetched(string key, mixed value, multiset locked_vars, multiset vars, mapping(string:mixed) new, function callback, function fail, mixed args) {
 
-	PT(("Storage", "fetched(%O,%O,%O,%O,%O,%O,%O)\n", key, value, locked_vars, vars, new, callback, args))
+	P3(("Storage", "fetched(%O,%O,%O,%O,%O,%O,%O)\n", key, value, locked_vars, vars, new, callback, args))
 
 	// check for failure!! TODO
 		

@@ -65,7 +65,7 @@ constant Person		= 1 << __LINE__;
 //! 	In case the given command string does not fit the specification of the
 //! 	command, an array consisting of @expr{0@} and an error string is returned. 
 array parse(int|object|program type, string data, object ui, void|array(mixed) args) {
-    PT(("Commands", "parse(%O, %O, %O, %O)\n", type, data, ui, args))
+    P3(("Commands", "parse(%O, %O, %O, %O)\n", type, data, ui, args))
     if (intp(type)) switch(type & BEGIN_MODIFIERS) {
     case Integer:
 	{
@@ -86,7 +86,7 @@ array parse(int|object|program type, string data, object ui, void|array(mixed) a
 	    MMP.Uniform u;
 	    array temp;
 	    temp = PSYC.Commands.Word(data, ui);
-	    PT(("Commands", "got %O\n", temp))
+	    P3(("Commands", "got %O\n", temp))
 
 	    if (!temp[0]) return temp;
 
@@ -104,7 +104,7 @@ array parse(int|object|program type, string data, object ui, void|array(mixed) a
 		         "of science!" });
 	}
     } else if (programp(type) || objectp(type)) {
-	PT(("Commands", "%O has %O\n", type, indices(type)))
+	P3(("Commands", "%O has %O\n", type, indices(type)))
 	if (args) {
 	    return type(data, ui, @args);	
 	} else {

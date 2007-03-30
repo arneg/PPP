@@ -26,6 +26,7 @@ class Circuit {
 
     int postfilter_notice_circuit_established(MMP.Packet p, mapping _v, mapping _m) {
 	// TODO: is a _source_identification valid here _at all_ ? doesnt make too much sense.
+	P3(("Root", "Got _notice_circuit_established on %O.\n", p->source()->handler))
 	if (p->source()->handler) {
 	    server->add_route(p->source(), p->source()->handler->circuit);
 	}
@@ -100,6 +101,7 @@ class Signaling {
     // 	master here means a top router.
     int postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m) {
 	PSYC.Packet t = p->data;
+	PT(("Root.Signaling", "%O\n", t))
 
 	if (!(has_index(t->vars, "_group") && objectp(t["_group"]) 
 	      && has_index(t->vars, "_supplicant") && objectp(t["_supplicant"]))) {
@@ -115,6 +117,7 @@ class Signaling {
 	// more complex settings. would make some kind of trust necessary
 	if (p->source() != (member->is_local() ? member : member->root)) {
 	    sendmsg(p->source(), t->reply("_error_context_enter_trust"));
+	    return PSYC.Handler.STOP;
 	}
 
 	MMP.Uniform target;
@@ -134,7 +137,7 @@ class Signaling {
 	    PSYC.Packet m = reply->data;
 	    mapping groups = _v["groups"];
 
-	    P0(("Root", "%O: reply to _request is %O.\n", parent, m))
+	    P2(("Root", "%O: reply to _request is %O.\n", parent, m))
 
 	    if (PSYC.abbrev(m->mc, "_notice_context_enter")) {
 		parent->server->get_context(group)->insert(member);
@@ -195,8 +198,6 @@ class Signaling {
 	void callback(MMP.Packet reply, mapping _v) {
 	    PSYC.Packet m = reply->data;
 	    mapping groups = _v["groups"];
-
-	    P0(("Root", "%O: reply to _request is %O.\n", parent, m))
 
 	    if (c->contains(member)) {
 		c->remove(member);

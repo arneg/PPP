@@ -33,7 +33,7 @@ static void create(object o, function fun, MMP.Uniform uniform) {
 //! @param m
 //!	@[PSYC.Packet] to be sent.
 void sendmsg(MMP.Uniform target, PSYC.Packet m) {
-    P3(("PSYC.Unl", "sendmsg(%O, %O)\n", target, m))
+    P2(("PSYC.Unl", "sendmsg(%O, %O)\n", target, m))
     MMP.Packet p = MMP.Packet(m);
     sendmmp(target, p);    
 }

@@ -39,7 +39,7 @@ void check_authentication(MMP.Uniform t, function cb, mixed ... args) {
 //! 	callbacks to the @[PSYC.Server] that will get called if someone
 //! 	tries to reach a non-present entity.
 void create(MMP.Uniform u, object s, object stor) {
-    PT(("PSYC.Unl", "created object for %s.\n", u))
+    P2(("PSYC.Unl", "created object for %s.\n", u))
     uni = u;
     server = s;
     storage = stor;
@@ -58,7 +58,7 @@ void create(MMP.Uniform u, object s, object stor) {
 //! @param packet
 //! 	The @[MMP.Packet] to send.
 void sendmmp(MMP.Uniform target, MMP.Packet packet) {
-    P0(("PSYC.Unl", "%O->sendmmp(%O, %O)\n", this, target, packet))
+    P2(("PSYC.Unl", "%O->sendmmp(%O, %O)\n", this, target, packet))
     
     if (!has_index(packet->vars, "_context")) {
 	if (!has_index(packet->vars, "_target")) {

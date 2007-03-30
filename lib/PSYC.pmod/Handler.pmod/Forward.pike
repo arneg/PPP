@@ -13,7 +13,7 @@ constant _ = ([
 ]);
 
 int display(MMP.Packet p, mapping _v, mapping _m) {
-    PT(("Handler.Forward", "postfilter(%O)\n", p))
+    P3(("Handler.Forward", "display(%O)\n", p))
 
     call_out(parent->distribute, 0 ,p);
     return PSYC.Handler.GOON;

@@ -18,6 +18,6 @@ constant _ = ([
 ]);
 
 void tell(MMP.Uniform user, string text) {
-    PT(("PSYC.Commands.Tell", "tell(%O, %O)\n", user, text))
+    P3(("PSYC.Commands.Tell", "tell(%O, %O)\n", user, text))
     sendmsg(user, PSYC.Packet("_message_private", 0, text)); 
 }

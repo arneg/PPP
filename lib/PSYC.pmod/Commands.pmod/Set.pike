@@ -25,7 +25,7 @@ constant _ = ([
 ]);
 
 void get(string key) {
-    PT(("PSYC.Commands.Set", "get(%O)\n", key))
+    P3(("PSYC.Commands.Set", "get(%O)\n", key))
     void cb(string key, mixed value) {
 	if (value != UNDEFINED) {
 	    parent->display(MMP.Packet(PSYC.Packet("_notice_retrieve", ([ "_key" : key, "_value" : value ]))));
@@ -37,7 +37,7 @@ void get(string key) {
 }
 
 void set(string key, string value) {
-    PT(("PSYC.Commands.Set", "set(%O, %O)\n", key, value))
+    P3(("PSYC.Commands.Set", "set(%O, %O)\n", key, value))
     //sendmsg(user, PSYC.Packet("_request_store", 0, text)); 
     void cb(int err, string key, string value) {
 	if (err == PSYC.Storage.OK) {

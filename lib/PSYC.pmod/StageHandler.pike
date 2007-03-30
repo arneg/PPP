@@ -34,7 +34,7 @@ string _sprintf(int type) {
 void add(string mc, object handler, void|mapping|array(string) d) {
     PSYC.AR result;
 
-    P3(("PSYC.StageHandler", "add(%O)\n", handler))
+    P3(("PSYC.StageHandler", "%O->add(%O)\n", prefix, handler))
 
     if (!has_index(table, mc)) table[mc] = ({ }); 
 
@@ -72,9 +72,9 @@ void handle(MMP.Packet p, mapping _m) {
 
 #if DEBUG > 1
     if (!sizeof(liste)) {
-	P1(("StageHandler", "%O: no stack for method %s.\n", function_object(go_on), p->data->mc))
+	P1(("StageHandler", "%O: no stack for method %s.\n", prefix, p->data->mc))
     } else {
-	P3(("StageHandler", "%O: stack for %s is %O\n", function_object(go_on), p->data->mc, (array)liste))
+	P3(("StageHandler", "%O: stack for %s is %O\n", prefix, p->data->mc, (array)liste))
     }
 #endif
     progress(liste, p, _m);
@@ -97,7 +97,7 @@ void fetched(string key, mixed value, MMP.Utils.Queue stack, MMP.Packet p,
 #endif
 
 void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
-    P3(("StageHandler", "progressing %O.\n", stack))
+    P3(("StageHandler", "%O: progressing %O.\n", prefix, stack))
 
     if (stack->isEmpty()) {
 	call_out(go_on, 0, p, _m);
@@ -108,7 +108,7 @@ void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
     PSYC.AR o = stack->shift_();
 
     if (o->check && !o->check(p, _m)) {
-	P1(("StageHandler", "%O->check() returned Null.\n", o))
+	P1(("StageHandler", "%O: %O->check() returned Null.\n", prefix, o))
 	stack->shift();
 	call_out(progress, 0, stack, p, _m);
 	return;

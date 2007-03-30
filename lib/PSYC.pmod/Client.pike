@@ -82,7 +82,7 @@ void distribute(MMP.Packet p) {
     } 
 #endif
 
-    PT(("PSYC.Client", "Noone using %O. Dropping %O.\n", this, p->data->data))
+    P3(("PSYC.Client", "Noone using %O. Dropping %O.\n", this, p->data->data))
 }
 
 //! Same as standard @[PSYC.Unl()->sendmmp()] but it identifies

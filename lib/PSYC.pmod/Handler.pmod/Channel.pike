@@ -40,6 +40,7 @@
 inherit PSYC.Handler.Base;
 
 mapping callbacks = ([ ]);
+mapping requests = ([ ]);
 
 constant _ = ([
     "postfilter" : ([
@@ -153,7 +154,7 @@ void postfilter_request_context_enter_subscribe(MMP.Packet p, mapping _v, mappin
 void castmsg(MMP.Uniform channel, PSYC.Packet m, MMP.Uniform source_relay) {
 
     if (!has_index(callbacks, channel)) {
-	THROW(("Handlers.Channel", "%O is very unlikely to contain anyone as you never created them.\n", channel));
+	THROW(("Handlers.Channel", "%O is very unlikely to contain anyone as you never created it.\n", channel));
     }
 
     MMP.Packet p = MMP.Packet(m, ([ "_context" : channel, 

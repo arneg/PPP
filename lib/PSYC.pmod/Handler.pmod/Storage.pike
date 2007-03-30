@@ -63,7 +63,7 @@ int _set(MMP.Packet p, mapping _v, mapping _m, string mc, function set) {
     mixed value = m->vars["_value"];
 
     void callback(int error, string key, MMP.Uniform target, PSYC.Packet m) {
-	PT(("Handler.Storage", "callback(%O, %O, %O)\n", error, target, m))
+	P3(("Handler.Storage", "callback(%O, %O, %O)\n", error, target, m))
 	if (error) {
 	    sendmsg(target, m->reply("_error"+mc,
 					  ([ "_key" : key ])));

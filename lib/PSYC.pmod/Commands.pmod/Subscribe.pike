@@ -16,12 +16,12 @@ constant _ = ([
 ]);
 
 void subscribe(MMP.Uniform channel) {
-    PT(("PSYC.Commands.Subscribe", "subscribe(%O)\n", channel))
+    P3(("PSYC.Commands.Subscribe", "subscribe(%O)\n", channel))
     parent->client->subscribe(channel);
 }
 
 void unsubscribe(MMP.Uniform channel) {
-    PT(("PSYC.Commands.Subscribe", "unsubscribe(%O)\n", channel))
+    P3(("PSYC.Commands.Subscribe", "unsubscribe(%O)\n", channel))
     parent->client->unsubscribe(channel);
 }
 

@@ -57,7 +57,7 @@ void get(string key, function cb, mixed ... args) {
     assert(functionp(cb));
 
     if (has_index(locks, key)) {
-	P0(("Volatile", "%O: %s is locked. scheduling get.\n", this, key))
+	P3(("Volatile", "%O: %s is locked. scheduling get.\n", this, key))
 	locks[key] += ({ ({ GET, key, cb, args }) });	
 	return;
     }
@@ -95,7 +95,7 @@ void get_lock(string key, function cb, mixed ... args) {
     P3(("Volatile", "%O: get_lock(%s, %O, %O)\n", this, key, cb, args))
 
     if (has_index(locks, key)) {
-	P0(("Volatile", "%O: %s is locked. scheduling get_lock.\n", this, key))
+	P3(("Volatile", "%O: %s is locked. scheduling get_lock.\n", this, key))
 	locks[key] += ({ ({ GET|LOCK, key, cb, args }) });	
 	return;
     }
