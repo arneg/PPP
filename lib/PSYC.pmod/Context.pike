@@ -14,7 +14,7 @@ void create(object s) {
     server = s;
 }
 
-void insert(MMP.Uniform u) {
+void insert(MMP.Uniform u, function cb, mixed ... args) {
 
     if (u->is_local()) {
 	members[u] = 1;
@@ -24,6 +24,7 @@ void insert(MMP.Uniform u) {
 	routes[u->root]++;
     }
 
+    call_out(cb, 0, @args);
 }
 
 int contains(MMP.Uniform u) {

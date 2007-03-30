@@ -69,6 +69,7 @@ class Signaling {
 	int count;
 
 	void _cb(int error, MMP.Uniform group, MMP.Uniform guy) {
+	    PT(("PSYC.Root", "Inserting %O into %O\n", guy, group))
 	    if (!--count) {
 		set_inited(1);
 	    }
