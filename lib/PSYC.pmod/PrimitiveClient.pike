@@ -53,6 +53,7 @@ class DisplayForward {
 	"display" : ([
 	    "" : 0,
 	    "_notice_context_enter" : 0,
+	    "_message" : 0,
 	]),
     ]);
 
@@ -63,6 +64,25 @@ class DisplayForward {
     void create(object c, function s, MMP.Uniform uni, MMP.Uniform client_uni) {
 	to = client_uni;
 	::create(c, s, uni);
+    }
+
+    int display_message(MMP.Packet p, mapping _v, mapping _m) {
+	MMP.Uniform source = p->lsource();
+
+
+	if (MMP.is_person(source)) {
+	    p = p->clone();
+
+	    PSYC.Packet m = p->data->clone();
+	    p->data = m;
+
+	    m["_nick"] = source->resource[1..];
+
+	    forward(p);
+	    return PSYC.Handler.STOP;
+	}
+
+	return PSYC.Handler.GOON;
     }
 
     int display_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
@@ -92,8 +112,12 @@ class DisplayForward {
     int display(MMP.Packet p, mapping _v, mapping _m) {
 	PT(("PrimitiveClient", "Forwarding %O to primitive client (%O).\n", p, to))
 
-	p = p->clone();
+	forward(p->clone());
 
+	return PSYC.Handler.STOP;
+    }
+
+    void forward(MMP.Packet p) {
 	p["_target"] = to;
 	p["_source_relay"] = p->lsource();
 
@@ -116,7 +140,5 @@ class DisplayForward {
 	}
 
 	sendmmp(to, p);
-
-	return PSYC.Handler.STOP;
     }
 }
