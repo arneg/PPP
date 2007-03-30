@@ -39,7 +39,7 @@ constant _ = ([
     "_" : ({ "places" }),
     "filter" : ([ 
 	"" : ([ 
-	    "lock" : ({ "places" }),
+	    "wvars" : ({ "places" }),
 	    "check" : "has_context",
 	]),
     ]),
