@@ -61,24 +61,25 @@ class DisplayForward {
     MMP.Uniform to;
 
     void create(object c, function s, MMP.Uniform uni, MMP.Uniform client_uni) {
-	P0(("PrimitiveClient", "\n\n\nHERE!!!\n\n\n"))
 	to = client_uni;
 	::create(c, s, uni);
     }
 
     int display_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
-	PT(("PrimitiveClient", "_notice_context_enter here %O\n", p))
+	 PSYC.Packet m = p->data;
 
 	if (has_index(p->vars, "_source_relay")) {
-	    MMP.Uniform sr = p["_source_relay"];
+	    MMP.Uniform sr = p["_source"];
 
 	    if (sr == parent->link_to) {
-		PSYC.Packet m = PSYC.Packet("_echo_context_enter");
-		mixed group;
+		PSYC.Packet echo = PSYC.Packet("_echo_context_enter");
+		mixed group = m["_group"];
 
-		if (group = p->data["_group"] && MMP.is_place(group)) {
-		    MMP.Packet pt = MMP.Packet(m, ([ "_source_relay" : group ]));
+		if (group && MMP.is_place(group)) {
+		    MMP.Packet pt = MMP.Packet(echo, ([ "_source_relay" : group ]));
 		    sendmmp(to, pt);
+		} else {
+		    P0(("PrimitiveClient", "Want to fake an _echo_context_enter but thats no context %O.\n", m["_group"]))
 		}
 
 		return PSYC.Handler.STOP;
@@ -89,7 +90,7 @@ class DisplayForward {
     }
 
     int display(MMP.Packet p, mapping _v, mapping _m) {
-	PT(("PrimitiveClient", "Forwarding %O to dumb client (%O).\n", p, to))
+	PT(("PrimitiveClient", "Forwarding %O to primitive client (%O).\n", p, to))
 
 	p = p->clone();
 

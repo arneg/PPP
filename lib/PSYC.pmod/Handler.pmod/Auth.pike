@@ -109,6 +109,9 @@ int filter_notice_authentication(MMP.Packet p, mapping _v, mapping _m) {
 
     if (has_index(pending, location) && has_index(pending[location], source)) {
 	m_delete(pending[location], source)(PSYC.Handler.GOON);
+	if (!sizeof(pending[location])) {
+	    m_delete(pending, location);
+	}
     }
 
     return PSYC.Handler.STOP;

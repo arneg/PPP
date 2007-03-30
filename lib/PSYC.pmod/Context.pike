@@ -24,7 +24,7 @@ void insert(MMP.Uniform u, function cb, mixed ... args) {
 	routes[u->root]++;
     }
 
-    call_out(cb, 0, @args);
+    call_out(cb, 0, 0, @args);
 }
 
 int contains(MMP.Uniform u) {
