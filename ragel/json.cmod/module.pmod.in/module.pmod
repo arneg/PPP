@@ -86,9 +86,9 @@ object|string render(mixed data, int flags, void|object buf, void|int level) {
     if (!level) level = 0;
     if (!buf) {
 	buf = String.Buffer();
-    } else {
 	r = 1;
     }
+
     function add = buf->add;
     function put = buf->putchar;
 
@@ -178,8 +178,8 @@ object|string render(mixed data, int flags, void|object buf, void|int level) {
     }
 
     if (r) {
-	return buf;
+	return buf->get();
     }
 
-    return buf->get();
+    return buf;
 }
