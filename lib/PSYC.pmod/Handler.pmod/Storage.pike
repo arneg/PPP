@@ -138,7 +138,7 @@ int postfilter_request_lock(MMP.Packet p, mapping _v, mapping _m) {
 
     string key = m->vars["_key"];
 
-    void callback(int error, MMP.Uniform target, PSYC.Packet m) {
+    void callback(int error, string key, MMP.Uniform target, PSYC.Packet m) {
 	if (error) {
 	    sendmsg(target, m->reply("_error_lock", ([ "_key" : key ])));
 	} else {
@@ -165,7 +165,7 @@ int postfilter_request_unlock(MMP.Packet p, mapping _v, mapping _m) {
 
     string key = m->vars["_key"];
 
-    void callback(int error, MMP.Uniform target, PSYC.Packet m) {
+    void callback(int error, string key, MMP.Uniform target, PSYC.Packet m) {
 	if (error) {
 	    sendmsg(target, m->reply("_error_unlock", ([ "_key" : key ])));
 	} else {
