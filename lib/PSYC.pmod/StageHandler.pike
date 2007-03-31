@@ -118,7 +118,24 @@ void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 	P0(("StageHandler", "fetching data for %O failed in stack %O.\n", p, stack))
     };
 
-    PSYC.Storage.multifetch(storage, o->lvars && (multiset)o->lvars, o->wvars && (multiset)o->wvars, call_handler, fail, stack, p, _m);
+    array(mixed) args = ({ storage, o->lvars && (multiset)o->lvars, o->wvars && (multiset)o->wvars, call_handler, fail, stack, p, _m });
+
+    // we have to check prior to fetching!!! otherwise we will fetch broken stuff prior to initialization.
+    // alternative: lock init vars.. ,)
+    // better: do both
+    if (has_index(function_object(o->handler)->_, "_")) {
+	object handler = function_object(o->handler);
+
+	if (!handler->is_inited()) {
+	    PT(("Stagehandler", "%O not inited yet. queueing %O.\n", handler, p->data))
+	    handler->init_cb_add(PSYC.Storage.multifetch, @args);
+	    return;
+	}
+    }
+
+    PSYC.Storage.multifetch(@args);
+
+}
 
 #if 0
     array wvars = o->wvars;
@@ -148,20 +165,10 @@ void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
     }
 #endif
 
-}
-
 void call_handler(mapping _v, MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
     PSYC.AR o = stack->shift();
     P3(("StageHandler", "Calling %O for %O with misc: %O.\n", o->handler, p, _m))
 
-    if (has_index(function_object(o->handler)->_, "_")) {
-	object handler = function_object(o->handler);
-
-	if (!handler->is_inited()) {
-	    handler->init_cb_add(call_handler, _v, stack, p, _m);
-	    return;
-	}
-    }
 
     int in_progress = 1;
     
