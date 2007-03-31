@@ -12,7 +12,6 @@
 //! PSYC Packets to be processed are those of type:
 //! @pre{ 
 //! _request_context_enter
-//! _request_context_enter_subscribe
 //! _request_context_leave
 //! @}
 //! 
@@ -33,9 +32,8 @@
 //
 // requirements to channels:
 // * subscription by the user
-#define SUBSCRIBE 	0
-#define ENTER		1
-#define LEAVE		2
+#define ENTER		0
+#define LEAVE		1
 
 inherit PSYC.Handler.Base;
 
@@ -45,9 +43,6 @@ mapping requests = ([ ]);
 constant _ = ([
     "postfilter" : ([
 	"_request_context_enter" : ([
-	    "async" : 1,
-	]),
-	"_request_context_enter_subscribe" : ([
 	    "async" : 1,
 	]),
 	"_request_context_leave" : 0,
@@ -62,15 +57,13 @@ constant export = ({
 //! @param channel
 //! 	The uniform of the channel to be created. Must be a channel of the 
 //! 	entity's uniform (or the uniform itself to create the default channel).
-//! @param subscribe
+//! @param enter
 //! 	Is called whenever someone requested to enter a channel. Signature:
-//! 	@expr{void subscribe(MMP.Uniform guy, function callback, mixed ... args);@}
+//! 	@expr{void enter(MMP.Uniform guy, function callback, mixed ... args);@}
 //! 	
 //! 	@expr{callback@} should then be called with an integer (@expr{1@} to 
-//!	allow the subscribe, @expr{0@} to deny it) as the first argument followed 
+//!	allow the enter, @expr{0@} to deny it) as the first argument followed 
 //!	by expanded args.
-//! @param enter
-//! 	Same as @expr{subscribe@} but for requests to enter the channel.
 //! @param leave
 //! 	Callback to be called in case someone wants to leave the channel. There
 //! 	is no way to keep someone from leaving, therefore the expected signature is:
@@ -78,18 +71,21 @@ constant export = ({
 //! 	@expr{void leave(MMP.Uniform guy);@}
 //! @throws
 //! 	Throws a exception if the given @expr{channel@} does not fit the requirements. 
-void create_channel(MMP.Uniform channel, function|void subscribe, function|void enter, void|function leave) {
+void create_channel(MMP.Uniform channel, function|void enter, void|function leave) {
 
     if (channel->channel ? (channel->super != uni) : (channel != uni)) {
 	THROW(sprintf("cannot create channel %O in %O because it doesnt belong there.\n", channel, uni));
     }
-    callbacks[channel] = ({ subscribe, enter, leave });
+    callbacks[channel] = ({ enter, leave });
 }
 
 void postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m, function cb) {
     MMP.Uniform source = p->source();
     PSYC.Packet m = p->data;
     MMP.Uniform group = m["_group"];
+    MMP.Uniform supplicant = m["_supplicant"];
+
+    PT(("Handler.Channel", "%O: request to enter %O from %O.\n", parent, group, source))
 
     if (!has_index(callbacks, group)) {
 	// blub
@@ -101,21 +97,21 @@ void postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m, func
 
     void callback(int may, MMP.Packet p) {
 	if (may) {
-	    sendmsg(p->source(), m->reply("_notice_context_enter", ([ "_supplicant" : m["_supplicant"], "_group" : group ])));
+	    sendmsg(p->source(), m->reply("_notice_context_enter", ([ "_supplicant" : supplicant, "_group" : group ])));
 	} else {
-	    sendmsg(p->source(), m->reply("_notice_context_discord", ([ "_supplicant" : m["_supplicant"], "_group" : group ])));
+	    sendmsg(p->source(), m->reply("_notice_context_discord", ([ "_supplicant" : supplicant, "_group" : group ])));
 	}
     };
 
-    if (!callbacks[group][1]) {
-	sendmsg(p->source(), m->reply("_notice_context_enter", ([ "_supplicant" : m["_supplicant"], "_group" : group ])));
+    if (!callbacks[group][ENTER]) {
+	sendmsg(p->source(), m->reply("_notice_context_enter", ([ "_supplicant" : supplicant, "_group" : group ])));
 	sendmsg(p->source(), PSYC.Packet("_status_context_open", ([ "_group" : group ])));
 	call_out(cb, 0, PSYC.Handler.STOP);
 	return;
     }
 
-    // maybe wrong!! should be supplicant not _source_relay.
-    callbacks[group][1](p->lsource(), callback, p);
+    PT(("Handlers.Channel", "cb: %O. sup: %O, callb: %O\n", callbacks[group][ENTER], supplicant, callback))
+    callbacks[group][ENTER](supplicant, callback, p);
 
     call_out(cb, 0, PSYC.Handler.STOP);
 }
@@ -133,11 +129,6 @@ int postfilter_request_context_leave(MMP.Packet p, mapping _v, mapping _m) {
 
     return PSYC.Handler.STOP;
 }
-
-void postfilter_request_context_enter_subscribe(MMP.Packet p, mapping _v, mapping _m, function cb) {
-    return PSYC.Handler.STOP;
-}
-
 
 //! Casts a message to a channel (or the group).
 //! @param channel
