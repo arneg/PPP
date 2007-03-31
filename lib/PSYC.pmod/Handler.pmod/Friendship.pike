@@ -71,7 +71,13 @@ int postfilter_notice_friendship_offered(MMP.Packet p, mapping _v, mapping _m) {
 void request_friend(MMP.Uniform guy, function callback, mixed ... args)	{
     PT(("Handler.Friendship", "%O: Friend request from %O.\n", parent, guy))
     
-    void cb(string key, mixed peers) {
+    void cb(int error, string key, mixed peers) {
+
+	if (error != PSYC.Storage.OK) {
+	    P0(("Handler.Friendship", "fetching the peer-data failed.\n"))
+	    return;
+	}
+
 	PT(("Handler.Friendship", "peer data structure: %O\n", peers))
 	PT(("Handler.Friendship", "extra args: %O\n", args))
 
@@ -101,5 +107,5 @@ void request_friend(MMP.Uniform guy, function callback, mixed ... args)	{
 }
 
 void request_unfriend(MMP.Uniform guy) {
-    PT(("Person", "%O: %O removes his friendship.", this, guy))  
+    PT(("Person", "%O: %O removes his friendship.\n", this, guy))  
 }

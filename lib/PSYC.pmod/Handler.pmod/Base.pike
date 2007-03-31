@@ -1,6 +1,8 @@
 // vim:syntax=lpc
 // probably the most efficient/bugfree class in the whole program
 
+#include <debug.h>
+
 //! This is the base class for all handlers to enable things handlers need, and to grant a type to all those classes who want to
 //! participate in the handling of PSYC.
 //! @fixme
@@ -26,6 +28,7 @@ int is_inited() {
 void set_inited(int i) {
     _init = i;
     if (i) {
+	PT(("Handler.Base", "INITED %O. Calling %O.\n", this, _init_cb_queue))
 	call_init_callbacks();
     }
 }
@@ -50,7 +53,7 @@ void init_cb_add(mixed ... cb) {
 void call_init_callbacks() {
     if (_init_cb_queue) {
 	foreach (_init_cb_queue;; array tmp) {
-	    tmp[0](@tmp[1..]);
+	    call_out(tmp[0], 0, @tmp[1..]);
 	}
 
 	_init_cb_queue = 0;

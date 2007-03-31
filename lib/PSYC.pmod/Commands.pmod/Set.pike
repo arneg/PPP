@@ -26,8 +26,8 @@ constant _ = ([
 
 void get(string key) {
     P3(("PSYC.Commands.Set", "get(%O)\n", key))
-    void cb(string key, mixed value) {
-	if (value != UNDEFINED) {
+    void cb(int error, string key, mixed value) {
+	if (error == PSYC.Storage.OK) {
 	    parent->display(MMP.Packet(PSYC.Packet("_notice_retrieve", ([ "_key" : key, "_value" : value ]))));
 	} else {
 	    parent->display(MMP.Packet(PSYC.Packet("_failure_retrieve", ([ "_key" : key ]))));

@@ -108,8 +108,8 @@ void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
 	    m_delete(reply, tag);
 	    return;
 	} else {
-	    P0(("Handler.Reply", "packet %O is tagged with an unknown tag.", p))
-	    // bad reply.. complain
+	    P0(("Handler.Reply", "packet %O (%O) is tagged with an unknown tag.\n", p, m))
+	    // Not to bad. the packet may goon
 	}
     }
 
