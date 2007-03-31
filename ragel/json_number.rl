@@ -11,7 +11,8 @@
 	fbreak;
     }
 
-    end = [\]},: ];
+    myspace = [ \n\r\t];
+    end = [\]},:]|myspace;
     exp = [eE] >{d = 1;}. [+\-]? . digit+ . (end >break)?;
     float = '.' >{d = 1;} . digit+ . (end >break | exp)?;
     main := '-' ? . (('0' | ([1-9] . digit*)) . (end >break | float | exp)?) | float; 
