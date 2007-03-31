@@ -3,12 +3,12 @@
 object server;
 
 void create(object server_object) {
-    PT(("Codec", "create(%O)\n", server_object))
+    P4(("Codec", "create(%O)\n", server_object))
     server = server_object;
 }
 
 mixed nameof(function|program|object o) {
-    PT(("Codec", "nameof(%O)\n", o))
+    P4(("Codec", "nameof(%O)\n", o))
 
     if (MMP.is_uniform(o)) {
 	return (string)o;
@@ -18,7 +18,7 @@ mixed nameof(function|program|object o) {
 }
 
 mixed objectof(string data) {
-    PT(("Codec", "objectof(%O)\n", data))
+    P4(("Codec", "objectof(%O)\n", data))
     return server->get_uniform(data); 
 }
 

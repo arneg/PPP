@@ -37,7 +37,8 @@ void _set(string key, mixed val) {
 }
 
 void _lock(string key) {
-    
+    P4(("Volatile", "%O: Locking key %s.\n", this, key))
+
     if (has_index(locks, key)) {
 	P0(("Volatile", "%O: Locking already locked key %s.\n", this, key))
 	return;
@@ -53,7 +54,7 @@ void _lock(string key) {
 //!	Callback to be called when the variable has been fetched. Signature: 
 //! 	@expr{ void cb(string key, mixed value, mixed ... args)@}.
 void get(string key, function cb, mixed ... args) {
-    P3(("Volatile", "%O: get(%s, %O, %O)\n", this, key, cb, args))
+    P4(("Volatile", "%O: get(%s, %O, %O)\n", this, key, cb, args))
     assert(functionp(cb));
 
     if (has_index(locks, key)) {
@@ -74,9 +75,10 @@ void get(string key, function cb, mixed ... args) {
 //! 	Callback to be called when the variable has been set. Signature: 
 //! 	@expr{void cb(int success, string key, mixed ... args)@}.
 void set(string key, mixed value, function|void cb, mixed ... args) {
-    P3(("Volatile", "%O: set(%s, %O, %O, %O)\n", this, key, value, cb, args))
+    P4(("Volatile", "%O: set(%s, %O, %O, %O)\n", this, key, value, cb, args))
 
     if (has_index(locks, key)) {
+	P3(("Volatile", "%O: %s is locked. scheduling set.\n", this, key))
 	locks[key] += ({ ({ SET, key, value, cb, args }) });	
 	return;
     }
@@ -92,7 +94,7 @@ void set(string key, mixed value, function|void cb, mixed ... args) {
 //!	Callback to be called when the variable has been fetched. Signature:
 //! 	@expr{ void cb(string key, mixed value, mixed ... args)@}.
 void get_lock(string key, function cb, mixed ... args) {
-    P3(("Volatile", "%O: get_lock(%s, %O, %O)\n", this, key, cb, args))
+    P4(("Volatile", "%O: get_lock(%s, %O, %O)\n", this, key, cb, args))
 
     if (has_index(locks, key)) {
 	P3(("Volatile", "%O: %s is locked. scheduling get_lock.\n", this, key))
@@ -113,7 +115,7 @@ void get_lock(string key, function cb, mixed ... args) {
 //! 	Callback to be called when the variable has been set. Signature:
 //! 	@expr{void cb(int success, string key, mixed ... args)@}.
 void set_lock(string key, mixed value, function|void cb, mixed ... args) {
-    P3(("Volatile", "%O: set_lock(%s, %O, %O, %O)\n", this, key, value, cb, args))
+    P4(("Volatile", "%O: set_lock(%s, %O, %O, %O)\n", this, key, value, cb, args))
 
     if (has_index(locks, key)) {
 	locks[key] += ({ ({ SET|LOCK, key, value, cb, args }) });	
@@ -132,7 +134,7 @@ void set_lock(string key, mixed value, function|void cb, mixed ... args) {
 //! 	Callback to be called when the variable has been locked. Signature:
 //! 	@expr{void cb(int success, string key, mixed ... args)@}.
 void lock(string key, function|void cb, mixed ... args) {
-    P3(("Volatile", "%O: lock(%s, %O, %O)\n", this, key, cb, args))
+    P4(("Volatile", "%O: lock(%s, %O, %O)\n", this, key, cb, args))
     
     if (has_index(locks, key)) {
 	locks[key] += ({ ({ LOCK, key, cb, args }) });	
@@ -151,7 +153,7 @@ void lock(string key, function|void cb, mixed ... args) {
 //! 	Callback to be called when the variable has been fetched. Signature:
 //! 	@expr{void cb(int success, string key, mixed ... args)@}.
 void get_unlock(string key, function cb, mixed ... args) {
-    P3(("Volatile", "%O: get_unlock(%s, %O, %O)\n", this, key, cb, args))
+    P4(("Volatile", "%O: get_unlock(%s, %O, %O)\n", this, key, cb, args))
     call_out(cb, 0, key, _get(key), @args);
     _unlock(key);
 }
@@ -167,16 +169,18 @@ void get_unlock(string key, function cb, mixed ... args) {
 //! 	Callback to be called when the variable has been set. Signature:
 //! 	@expr{void cb(int success, string key, mixed ... args)@}.
 void set_unlock(string key, mixed value, function|void cb, mixed ... args) {
-    P3(("Volatile", "%O: set_unlock(%s, %O, %O, %O)\n", this, key, value, cb, args))
+    P4(("Volatile", "%O: set_unlock(%s, %O, %O, %O)\n", this, key, value, cb, args))
     if (cb) call_out(cb, 0, OK, key, @args);
     _set(key, value);
     _unlock(key);
 }
 
 void _unlock(string key) {
+    P4(("Volatile", "%O: Unlocking key %s.\n", this, key))
 
     if (!has_index(locks, key)) {
 	P0(("Volatile", "%O: Trying to unlock %s even though it is _not_ locked!\n", this, key))
+	return;
     }
 
     int num = sizeof(locks[key]);
@@ -216,7 +220,7 @@ void _unlock(string key) {
 //! 	Callback to be called when the variable has been unlocked. Signature:
 //! 	@expr{void cb(int success, string key, mixed ... args)@}.
 void unlock(string key, function|void cb, mixed ... args) {
-    P3(("Volatile", "%O: unlock(%s, %O, %O)\n", this, key, cb, args))
+    P4(("Volatile", "%O: unlock(%s, %O, %O)\n", this, key, cb, args))
     _unlock(key);
     if (cb) call_out(cb, 0, OK, key, @args);
 }
