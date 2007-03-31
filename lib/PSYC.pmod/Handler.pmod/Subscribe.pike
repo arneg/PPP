@@ -142,8 +142,8 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
 	}
     } else if (!has_index(sub, channel)) {
 	P0(("Handler.Subscribe", "%O: we never joined %O but are getting messages.\n", parent, channel))
-	sendmsg(channel, PSYC.Packet("_notice_context_leave"));
-	//parent->leave(channel);
+	//sendmsg(channel, PSYC.Packet("_notice_context_leave"));
+	parent->leave(channel);
 
 	return PSYC.Handler.STOP;
     }
