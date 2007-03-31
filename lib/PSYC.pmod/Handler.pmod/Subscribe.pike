@@ -48,16 +48,18 @@ constant _ = ([
 	"_notice_context_enter_channel" : ([
 	    "lock" : ({ "places" }),
 	    "async" : 1,
+	    "check" : "not_us",
        ]),
 	"_notice_context_leave" : ([
 	    "lock" : ({ "places" }),
 	    "async" : 1,
+	    "check" : "not_us",
 	]),
     ]),
 ]);
 
 constant export = ({
-    "enter", "leave", "really_unsubscribe", "subscribe", "unsubscribe"
+    "enter", "leave", "subscribe", "unsubscribe"
 });
 
 void init(mapping vars) {
@@ -80,6 +82,21 @@ void init(mapping vars) {
 
 int has_context(MMP.Packet p, mapping _m) {
     return has_index(p->vars, "_context");
+}
+
+int not_us(MMP.Packet p, mapping _m) {
+    mapping vars = p->data->vars;
+
+    if (has_index(vars, "_group")) {
+	MMP.Uniform group = vars["_group"];
+	if (group->channel ? group->super : group == uni) {
+	    PT(("Handler.Subscribe", "not_us check in %O false.\n", vars))
+	    return 0;
+	}
+    }
+    
+    PT(("Handler.Subscribe", "not_us check in %O is true.\n", vars))
+    return 1;
 }
 
 void postfilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m, function cb) {
@@ -143,7 +160,7 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
     } else if (!has_index(sub, channel)) {
 	P0(("Handler.Subscribe", "%O: we never joined %O but are getting messages.\n", parent, channel))
 	//sendmsg(channel, PSYC.Packet("_notice_context_leave"));
-	parent->leave(channel);
+	leave(channel);
 
 	return PSYC.Handler.STOP;
     }
@@ -192,7 +209,7 @@ void postfilter_notice_context_enter_channel(MMP.Packet p, mapping _v, mapping _
 
 void unsubscribe(MMP.Uniform channel) {
     parent->unfriend(channel);
-    parent->leave(channel);
+    leave(channel);
 }
 
 void subscribe(MMP.Uniform channel) {
@@ -263,6 +280,7 @@ void enter(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 		       ([ "lock" : (< "places" >), "async" : 1 ]), callback);
 }
 
+#if 0
 //! Leaves a channel.
 //! @param channel
 //! 	The channel to leave.
@@ -326,29 +344,43 @@ void leave(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 	call_out(cb, 0, PSYC.Handler.DISPLAY);
     };
 
-    send_tagged_v(uni->root, PSYC.Packet("_request_context_leave", ([ "_group" : channel, "_supplicant" : uni ])), 
+    send_tagged_v(uni->root, , 
 		       ([ "lock" : (< "places" >), "async" : 1 ]), callback);
 }
+#endif
 
-void really_unsubscribe(MMP.Uniform channel) {
-    string mc = "_notice_context_leave" + (channel->channel) ? "_channel" : "" + "_subscribe"; 
+//! Leaves a channel.
+//! @param channel
+//! 	The channel to leave.
+//! @param args
+//! 	Arguments to be passed on to the @expr{error_cb@}.
+void leave(MMP.Uniform channel) {
+    string mc = "_notice_context_leave" + (channel->channel) ? "_channel" : ""; 
 
     void callback(int error, string key, mapping sub) {
 	if (error != PSYC.Storage.OK) {
-	    // errrr...or
-	    call_out(really_unsubscribe, 2, channel);
+	    P0(("Handler.Subscribe", "leave(%O) failed because of storage.\n"))
 	    return;
 	}
+
+	void cb(int error, string key) {
+	    if (error != PSYC.Storage.OK) {
+		P0(("Handler.Subscribe", "leave(%O) failed because of storage.\n"))
+	    }
+	};
 
 	if (has_index(sub, channel)) {
 	    m_delete(sub, channel);
 	    parent->storage->set_unlock("places", sub);
 	} else {
 	    parent->storage->unlock("places");
+	    // could warn about desync here.. but it should be selfhealing anyways
 	}
+
+	PSYC.Packet notice = PSYC.Packet("_notice_context_leave", ([ "_group" : channel, "_supplicant" : uni ]));
+	sendmsg(uni->root, notice);
     };
 
     parent->storage->get_lock("places", callback);
-    sendmsg(channel, PSYC.Packet(mc));
 }
 

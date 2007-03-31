@@ -80,6 +80,7 @@ class Signaling {
 	};
 	
 	if (mappingp(_v["groups"])) {
+	    PT(("PSYC.Root", "groups: %O.\n", _v["groups"]))
 	    foreach (_v["groups"]; MMP.Uniform group; mapping members) {
 		object context = parent->server->get_context(group);
 
@@ -164,6 +165,8 @@ class Signaling {
     }
 
     // bottom up leave request. top down just sends a notice.. not politeness needed
+    //
+    // DEPRECATED!!!
     int postfilter_request_context_leave(MMP.Packet p, mapping _v, mapping _m) {
 	PSYC.Packet t = p->data;
 
@@ -210,11 +213,11 @@ class Signaling {
 		    if (has_index(groups[group], member)) {
 			m_delete(groups[group], member);
 			parent->storage->set_unlock("groups", groups);
+			parent->storage->save();
 		    } else {
 			parent->storage->unlock("groups");
 		    }
 		}
-		parent->storage->save();
 	    }
 
 	    sendmsg(p->source(), t->reply("_notice_context_leave", ([ "_group" : group, "_supplicant" : member ])));
@@ -232,10 +235,15 @@ class Signaling {
     }
 
     // master kicks someone out.
+    // user leaves himself.
     int postfilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m) {
 	PSYC.Packet m = p->data;	
 	MMP.Uniform member = m["_supplicant"];
 	MMP.Uniform channel = m["_group"];
+	MMP.Uniform target; // who gets the _notice??
+
+	PT(("PSYC.Root", "LEAVE: %O\n", p))
+	PT(("PSYC.Root", "_notice_context_leave of %O in channel %O.\n", member, channel))
 
 	if (!objectp(member) || !objectp(channel)) {
 	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
@@ -243,10 +251,18 @@ class Signaling {
 	    return PSYC.Handler.STOP;
 	}
 
-	if (p->source() != (channel->is_local() 
+	if (p->source() == (channel->is_local() 
 			    ? (channel->channel ? channel->super : channel) 
 			    : channel->root)) {
-	    P1(("Root", "%O: Got channel leave for context %O from %O. denied.\n", uni, channel, p->source()))
+	    // TOP_DOWN
+	    PT(("Root", "TOP-DOWN leave!\n"))
+	    target = member->is_local() ? member : member->root;
+	} else if (p->source() == (member->is_local() ? member : member->root)) {
+	    // BOTTOM_UP
+	    PT(("Root", "BOTTOM-UP leave!\n"))
+	    target = channel->is_local() ? (channel->channel ? channel->super : channel) : channel->root;
+	} else {
+	    P0(("Root", "%O: Got channel leave for context %O from %O. denied.\n", uni, channel, p->source()))
 	    // TODO: fix the mc here.. depending on the incoming one
 	    sendmsg(p->source(), m->reply("_error_context_leave"));
 	    parent->storage->unlock("groups");
@@ -256,33 +272,23 @@ class Signaling {
 	object c = parent->server->get_context(channel);
 
 	if (!c->contains(member)) {
-	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
-	    parent->storage->unlock("groups");
-	    return PSYC.Handler.STOP;
+	    P0(("Root", "out of sync. %O not member of %O.\n", member, channel))
+	} else {
+	    c->remove(member);
 	}
 
 	mapping groups = _v["groups"];
 
-	c->remove(member);
-	
 	if (!has_index(groups, channel)) {
 	    P0(("Root", "inconsistency of storage and context.\n"))
 	    parent->storage->unlock("groups");
-	     
-	    return PSYC.Handler.STOP;
+	} else {
+	    m_delete(groups[channel], member);
+	    parent->storage->set_unlock("groups", groups);
+	    parent->storage->save();
 	}
 
-	MMP.Uniform target;
-	if (member->is_local()) {
-	    target = member; 
-	} else {
-	    target = member->root;
-	}
-	
 	sendmsg(target, m);
-	m_delete(groups[channel], member);
-	parent->storage->set_unlock("groups", groups);
-	parent->storage->save();
 	return PSYC.Handler.STOP;
     }
 

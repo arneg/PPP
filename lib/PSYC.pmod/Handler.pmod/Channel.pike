@@ -12,7 +12,7 @@
 //! PSYC Packets to be processed are those of type:
 //! @pre{ 
 //! _request_context_enter
-//! _request_context_leave
+//! _notice_context_leave
 //! @}
 //! 
 //! Exports: @[create_channel()], @[castmsg()]
@@ -44,14 +44,32 @@ constant _ = ([
     "postfilter" : ([
 	"_request_context_enter" : ([
 	    "async" : 1,
+	    "check" : "is_us",
 	]),
-	"_request_context_leave" : 0,
+	"_notice_context_leave" : ([
+	    "check" : "is_us",
+	]),
     ]),
 ]);
 
 constant export = ({
     "castmsg", "create_channel"
 });
+
+int is_us(MMP.Packet p, mapping _m) {
+    mapping vars = p->data->vars;
+
+    if (has_index(vars, "_group")) {
+	MMP.Uniform group = vars["_group"];
+	if (group->channel ? group->super : group == uni) {
+	    PT(("Handler.Channel", "is_us check in %O true.\n", vars))
+	    return 1;
+	}
+    }
+    
+    PT(("Handler.Channel", "is_us check in %O is false.\n", vars))
+    return 0;
+}
 
 //! Creates a channel.
 //! @param channel
@@ -116,13 +134,11 @@ void postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m, func
     call_out(cb, 0, PSYC.Handler.STOP);
 }
 
-int postfilter_request_context_leave(MMP.Packet p, mapping _v, mapping _m) {
+int postfilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m) {
     MMP.Uniform source = p->source();
     PSYC.Packet m = p->data;
     MMP.Uniform group = m["_group"];
     
-    sendmsg(p->source(), m->reply("_notice_context_leave", ([ "_supplicant" : m["_supplicant"], "_group" : group ])));
-
     if (callbacks[group][LEAVE]) {
 	callbacks[group][LEAVE](m["_supplicant"]);
     }
@@ -143,6 +159,7 @@ int postfilter_request_context_leave(MMP.Packet p, mapping _v, mapping _m) {
 //! @throws
 //! 	If the @expr{channel@} has never been created.
 void castmsg(MMP.Uniform channel, PSYC.Packet m, MMP.Uniform source_relay) {
+    PT(("Handler.Channel", "%O->castmsg(%O, %O)\n", channel, m, source_relay))
 
     if (!has_index(callbacks, channel)) {
 	THROW(("Handlers.Channel", "%O is very unlikely to contain anyone as you never created it.\n", channel));
