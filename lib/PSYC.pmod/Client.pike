@@ -48,10 +48,13 @@ void create(MMP.Uniform person, object server, MMP.Uniform unl,
     // dragons appear.
     // might be a pike bug.
     PSYC.Handler.Base t = PSYC.Handler.Subscribe(this, client_sendmmp, link_to); 
-    add_handlers(Linker(this, sendmmp, uni, error, query_password, link_to), 
+    add_handlers(
+		 Linker(this, sendmmp, uni, error, query_password, link_to), 
 		 PSYC.Handler.Forward(this, sendmmp, uni), 
 		 PSYC.Handler.Textdb(this, sendmmp, uni),
 		 t
+		 );
+    add_handlers(PSYC.Handler.ClientFriendship(this, sendmmp, uni),
 		 );
 
     PSYC.Packet request = PSYC.Packet("_request_link");

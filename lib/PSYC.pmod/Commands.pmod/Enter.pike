@@ -33,12 +33,12 @@ constant _ = ([
 
 void enter(MMP.Uniform channel) {
     P3(("PSYC.Commands.Subscribe", "enter(%O)\n", channel))
-    parent->enter(channel);
+    parent->subscribe(channel);
 }
 
 void leave(MMP.Uniform channel) {
     P3(("PSYC.Commands.Subscribe", "leave(%O)\n", channel))
-    parent->leave(channel);
+    parent->unsubscribe(channel);
 }
 
 void say(MMP.Uniform channel, string text) {
