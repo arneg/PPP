@@ -52,7 +52,7 @@ void _lock(string key) {
 //! 	Name of the variable that should be fetched.
 //! @param cb
 //!	Callback to be called when the variable has been fetched. Signature: 
-//! 	@expr{ void cb(string key, mixed value, mixed ... args)@}.
+//! 	@expr{ void cb(int error, string key, mixed value, mixed ... args)@}.
 void get(string key, function cb, mixed ... args) {
     P4(("Volatile", "%O: get(%s, %O, %O)\n", this, key, cb, args))
     assert(functionp(cb));
@@ -63,7 +63,7 @@ void get(string key, function cb, mixed ... args) {
 	return;
     }
 
-    call_out(cb, 0, key, _get(key), @args);
+    call_out(cb, 0, OK, key, _get(key), @args);
 }
 
 //! Set a variable.
@@ -73,7 +73,7 @@ void get(string key, function cb, mixed ... args) {
 //! 	The value to set the variable to.
 //! @param cb
 //! 	Callback to be called when the variable has been set. Signature: 
-//! 	@expr{void cb(int success, string key, mixed ... args)@}.
+//! 	@expr{void cb(int error, string key, mixed ... args)@}.
 void set(string key, mixed value, function|void cb, mixed ... args) {
     P4(("Volatile", "%O: set(%s, %O, %O, %O)\n", this, key, value, cb, args))
 
@@ -92,7 +92,7 @@ void set(string key, mixed value, function|void cb, mixed ... args) {
 //! 	Name of the variable that should be fetched.
 //! @param cb
 //!	Callback to be called when the variable has been fetched. Signature:
-//! 	@expr{ void cb(string key, mixed value, mixed ... args)@}.
+//! 	@expr{ void cb(int error, string key, mixed value, mixed ... args)@}.
 void get_lock(string key, function cb, mixed ... args) {
     P4(("Volatile", "%O: get_lock(%s, %O, %O)\n", this, key, cb, args))
 
@@ -103,7 +103,7 @@ void get_lock(string key, function cb, mixed ... args) {
     }
 
     _lock(key);
-    call_out(cb, 0, key, _get(key), @args);
+    call_out(cb, 0, OK, key, _get(key), @args);
 }
 
 //! Set and lock a variable.
@@ -113,7 +113,7 @@ void get_lock(string key, function cb, mixed ... args) {
 //! 	The value to set the variable to.
 //! @param cb
 //! 	Callback to be called when the variable has been set. Signature:
-//! 	@expr{void cb(int success, string key, mixed ... args)@}.
+//! 	@expr{void cb(int error, string key, mixed ... args)@}.
 void set_lock(string key, mixed value, function|void cb, mixed ... args) {
     P4(("Volatile", "%O: set_lock(%s, %O, %O, %O)\n", this, key, value, cb, args))
 
@@ -132,7 +132,7 @@ void set_lock(string key, mixed value, function|void cb, mixed ... args) {
 //! 	Name of the variable that should be locked.
 //! @param cb
 //! 	Callback to be called when the variable has been locked. Signature:
-//! 	@expr{void cb(int success, string key, mixed ... args)@}.
+//! 	@expr{void cb(int error, string key, mixed ... args)@}.
 void lock(string key, function|void cb, mixed ... args) {
     P4(("Volatile", "%O: lock(%s, %O, %O)\n", this, key, cb, args))
     
@@ -151,10 +151,10 @@ void lock(string key, function|void cb, mixed ... args) {
 //! 	Name of the variable that should be fetched.
 //! @param cb
 //! 	Callback to be called when the variable has been fetched. Signature:
-//! 	@expr{void cb(int success, string key, mixed ... args)@}.
+//! 	@expr{void cb(int error, string key, mixed ... args)@}.
 void get_unlock(string key, function cb, mixed ... args) {
     P4(("Volatile", "%O: get_unlock(%s, %O, %O)\n", this, key, cb, args))
-    call_out(cb, 0, key, _get(key), @args);
+    call_out(cb, 0, OK, key, _get(key), @args);
     _unlock(key);
 }
 
@@ -167,7 +167,7 @@ void get_unlock(string key, function cb, mixed ... args) {
 //! 	The value to set the variable to.
 //! @param cb
 //! 	Callback to be called when the variable has been set. Signature:
-//! 	@expr{void cb(int success, string key, mixed ... args)@}.
+//! 	@expr{void cb(int error, string key, mixed ... args)@}.
 void set_unlock(string key, mixed value, function|void cb, mixed ... args) {
     P4(("Volatile", "%O: set_unlock(%s, %O, %O, %O)\n", this, key, value, cb, args))
     if (cb) call_out(cb, 0, OK, key, @args);
@@ -189,7 +189,7 @@ void _unlock(string key) {
 	int type = a[0];
 
 	if (type&GET) {
-	    call_out(a[2], 0, a[1], _get(a[1]), @(a[3]));
+	    call_out(a[2], 0, OK, a[1], _get(a[1]), @(a[3]));
 	} else if (type&SET) {
 	    _set(a[1], a[2]);
 	    call_out(a[3], 0, OK, a[1], @(a[4]));
@@ -218,7 +218,7 @@ void _unlock(string key) {
 //! 	The name of the variable to be unlocked.
 //! @param cb
 //! 	Callback to be called when the variable has been unlocked. Signature:
-//! 	@expr{void cb(int success, string key, mixed ... args)@}.
+//! 	@expr{void cb(int error, string key, mixed ... args)@}.
 void unlock(string key, function|void cb, mixed ... args) {
     P4(("Volatile", "%O: unlock(%s, %O, %O)\n", this, key, cb, args))
     _unlock(key);

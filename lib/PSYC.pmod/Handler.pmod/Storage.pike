@@ -107,9 +107,9 @@ int _get(MMP.Packet p, mapping _v, mapping _m, string mc, function get) {
 
     string key = m->vars["_key"];
 
-    void callback(string key, string value, MMP.Uniform target, 
+    void callback(int error, string key, string value, MMP.Uniform target, 
 		  PSYC.Packet m) {
-	if (value != UNDEFINED) {
+	if (error == PSYC.Storage.OK) {
 	    sendmsg(target, m->reply("_notice"+mc,
 					  ([ "_key" : key,
 					     "_value" : value ])));

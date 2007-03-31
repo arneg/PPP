@@ -10,11 +10,13 @@ constant PERMANENT_ERROR = 3;
 void multifetch(object storage, multiset locked_vars, multiset vars, function callback, function fail, mixed ... args) {
     P3(("Storage", "multifetch(%O, %O, %O, %O, %O, %O)\n", storage, locked_vars, vars, callback, fail, args))
 
-    void fetched(string key, mixed value, multiset locked_vars, multiset vars, mapping(string:mixed) new, function callback, function fail, mixed args) {
+    void fetched(int error, string key, mixed value, multiset locked_vars, multiset vars, mapping(string:mixed) new, function callback, function fail, mixed args) {
 
-	P3(("Storage", "fetched(%O,%O,%O,%O,%O,%O,%O)\n", key, value, locked_vars, vars, new, callback, args))
+	P3(("Storage", "fetched(%O, %O,%O,%O,%O,%O,%O,%O)\n", error, key, value, locked_vars, vars, new, callback, args))
 
-	// check for failure!! TODO
+	if (error) {
+	    THROW(sprintf("fetching %O failed in multifetch.\n", key));
+	}
 		
 	if (has_index(new, key)) {
 	    THROW(sprintf("key %O received twice. duh.\n", key));

@@ -63,11 +63,11 @@ int grcb(MMP.Packet p, function callback, string key, string mc, array args) {
     P3(("Storage.Remote", "grcb(%O, %O, %O, %O, %O)\n", p, callback, key, mc, args))
 
     if (key == m["_key"] && search(m->mc, "_notice"+mc) == 0) {
-	call_out(callback, 0, key, m["_value"], @args);
+	call_out(callback, 0, OK, key, m["_value"], @args);
     } else {
 	// this is somewhat blurry since we consider every !_notice_retrieve
 	// to be a failure/error
-	call_out(callback, 0, key, UNDEFINED, @args);
+	call_out(callback, 0, ERROR, key, UNDEFINED, @args);
     }
 
     return PSYC.Handler.STOP;
@@ -206,6 +206,7 @@ void _get(string key, function callback, array(mixed) args, string mc) {
     if (callback) {
 	send_tagged(link_to, request, grcb, callback, key, mc, args);
     } else {
+	// what is that for??
 	send_tagged(link_to, request, stopper);
     }
 }
