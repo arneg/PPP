@@ -88,6 +88,7 @@ void create(string nick, MMP.Uniform uni, object server, object storage) {
 		 PSYC.Handler.Storage(this, sendmmp, uni, storage),
 		 PSYC.Handler.Trustiness(this, sendmmp, uni),
 		 PSYC.Handler.Channel(this, sendmmp, uni),
+		 PSYC.Handler.Subscribe(this, sendmmp, uni),
 		 );
     add_handlers(
 		 PSYC.Handler.Friendship(this, sendmmp, uni),

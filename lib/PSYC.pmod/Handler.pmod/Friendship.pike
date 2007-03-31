@@ -108,4 +108,8 @@ void request_friend(MMP.Uniform guy, function callback, mixed ... args)	{
 
 void request_unfriend(MMP.Uniform guy) {
     PT(("Person", "%O: %O removes his friendship.\n", this, guy))  
+    if (MMP.is_place(guy)) {
+	// this is a reason to leave..
+	parent->leave(guy);
+    }
 }
