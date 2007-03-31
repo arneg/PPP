@@ -28,10 +28,13 @@ void init(mapping vars) {
 	};
 
 	parent->storage->set("peers", ([]), callback);
+    } else {
+	set_inited(1);
     }
 }
 
-void general_peer_callback(string key, mixed peers, MMP.Uniform entity, int flag, function callback, mixed args) {
+void general_peer_callback(int error, string key, mixed peers, MMP.Uniform entity, int flag, function callback, mixed args) {
+    enforcer(!error, "fetching peers from storage failed.\n");
     enforcer(mappingp(peers), "peers from storage not a mapping.\n");
 
     if (has_index(peers, entity)) {

@@ -73,6 +73,8 @@ void init(mapping vars) {
 	};
 
 	parent->storage->set("places", ([]), callback);
+    } else {
+	set_inited(1);
     }
 }
 
@@ -133,6 +135,7 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
 		P0(("Handler.Subscribe", "%O: we never joined %O but are getting messages from %O.\n", parent, context, channel))
 	    }
 
+	    // TODO: use leave()
 	    sendmsg(channel, PSYC.Packet("_notice_context_leave_channel"));
 
 	    return PSYC.Handler.STOP;
@@ -140,6 +143,7 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
     } else if (!has_index(sub, channel)) {
 	P0(("Handler.Subscribe", "%O: we never joined %O but are getting messages.\n", parent, channel))
 	sendmsg(channel, PSYC.Packet("_notice_context_leave"));
+	//parent->leave(channel);
 
 	return PSYC.Handler.STOP;
     }
@@ -286,8 +290,18 @@ void leave(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 	}
 	    
 	void fun(int s, string key, function error_cb, array(mixed) args) {
-	    error_cb(@args);
+	    PT(("Handler.Subscribe", "fun(%O, %O, %O, %O)\n", s, key, error_cb, args))
+	    if (error_cb) {
+		error_cb(@args);
+	    } else {
+		if (s) {
+		    P0(("Handler.Subscribe", "%O: leave of %O failed but noone noticed.\n", parent, channel))
+		} else {
+		    P0(("Handler.Subscribe", "%O: leave of %O was successful but noone noticed.\n", parent, channel))
+		}
+	    }
 	};
+
 	if (PSYC.abbrev(m->mc, "_notice_context_leave")) {
 	    // TODO think about really_leave
 #if 0
@@ -298,15 +312,15 @@ void leave(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 #endif
 	    if (has_index(sub, channel)) {
 		m_delete(sub, channel);
-		parent->storage->set_unlock("places", sub, fun, args);
+		parent->storage->set_unlock("places", sub, fun, error_cb, args);
 	    } else {
-		parent->storage->unlock("places", fun, args);
+		parent->storage->unlock("places", fun, error_cb, args);
 	    }
 	} else if (has_index(sub, channel)) {
 	    m_delete(sub, channel);
-	    parent->storage->set_unlock("places", sub, fun, args);
+	    parent->storage->set_unlock("places", sub, fun, error_cb, args);
 	} else {
-	    parent->storage->unlock("places", fun, args);
+	    parent->storage->unlock("places", fun, error_cb, args);
 	}
 
 	call_out(cb, 0, PSYC.Handler.DISPLAY);
@@ -319,8 +333,8 @@ void leave(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 void really_unsubscribe(MMP.Uniform channel) {
     string mc = "_notice_context_leave" + (channel->channel) ? "_channel" : "" + "_subscribe"; 
 
-    void callback(string key, mapping sub) {
-	if (!sub) {
+    void callback(int error, string key, mapping sub) {
+	if (error != PSYC.Storage.OK) {
 	    // errrr...or
 	    call_out(really_unsubscribe, 2, channel);
 	    return;
