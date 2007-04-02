@@ -211,7 +211,7 @@ void create(mapping(string:mixed) config) {
 			  "You got connected to [_source].");
     MMP.Uniform t = get_uniform("psyc://" + def_localhost);
     t->islocal = 1;
-    root = PSYC.Root(t, this, storage_factory->getStorage(t));
+    root = create_local(t, this, storage_factory);
     t->handler = root;
     P1(("PSYC.Server", "created a new PSYC.Server(%s) with root object %O.\n", root->uni, root))
     // not good for nonstandard port?
@@ -262,7 +262,7 @@ object get_local(string uni) {
     MMP.Uniform u = get_uniform(uni);
 
     if (u->handler) return u->handler;
-    return u->handler = create_local(u);
+    return u->handler = create_local(u, this, storage_factory);
 }
 
 //! @returns
@@ -461,7 +461,7 @@ void deliver_remote(MMP.Packet packet, MMP.Uniform root) {
 void deliver_local(MMP.Packet packet, MMP.Uniform target) {
     P3(("PSYC.Server", "%O->deliver_local(%O, %O)\n", this, packet, 
 	target))
-    object o = create_local(target);
+    object o = create_local(target, this, storage_factory);
     target->islocal = 1;
 
     if (!o) {
