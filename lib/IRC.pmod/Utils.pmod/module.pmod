@@ -254,8 +254,13 @@ class BufferedStream {
     }
 
     void unread(string data) {
-	string tmp = unfinished->get();
+	string tmp;
 
+	if (has_value(data, linesep)) {
+	    error("unread(%O) (includes linesep %O)\n");
+	}
+	
+	tmp = unfinished->get();
 	unfinished->add(data);
 	unfinished->add(tmp);
     }
