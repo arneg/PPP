@@ -253,6 +253,13 @@ class BufferedStream {
 	}
     }
 
+    void unread(string data) {
+	string tmp = unfinished->get();
+
+	unfinished->add(data);
+	unfinished->add(tmp);
+    }
+
     int peek(int|float|void timeout) {
 	if (sizeof(unfinished)) {
 	    return 1;
