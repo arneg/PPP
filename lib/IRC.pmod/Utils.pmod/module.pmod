@@ -253,14 +253,11 @@ class BufferedStream {
 	}
     }
 
+    // do not unread strings containig newlines if you expect to get
+    // _only_ lines passed to your readcb etc.
     void unread(string data) {
-	string tmp;
+	string tmp = unfinished->get();
 
-	if (has_value(data, linesep)) {
-	    error("unread(%O) (includes linesep %O)\n");
-	}
-	
-	tmp = unfinished->get();
 	unfinished->add(data);
 	unfinished->add(tmp);
     }
