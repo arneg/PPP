@@ -1,4 +1,14 @@
 // vim:syntax=lpc
+
+//! Handler implementing client functionality for friendship establishment.
+//! This handler accesses the @expr{peers@} data structure in storage to
+//! control the reaction of the Friendship handler inside the @[PSYC.Person].
+//! 
+//! @seealso
+//! 	@[PSYC.Handler.Friendship]
+//! @fixme
+//! 	implement @[unfriend_symmetric()].
+
 #include <debug.h>
 #include <assert.h>
 
@@ -55,10 +65,24 @@ void general_peer_callback(int error, string key, mixed peers, MMP.Uniform entit
     parent->storage->set_unlock("peers", peers, callback, @args);
 }
 
+//! Remove friendship with @expr{entity@}.
+//! 
+//! @note
+//! 	This method is not symmetric, therefore @expr{entity@} is not forced to
+//! 	leave your friendship channel.
+//! @fixme
+//! 	change the peers mapping, to not join the channel again if offered.
 void unfriend(MMP.Uniform entity) {
     parent->leave(entity);
 }
 
+//! Request membership in the presence channel of @expr{entity@}.
+//! 
+//! @note
+//! 	This method is not symmetric, therefore @expr{entity@} is not allowed to enter 
+//! 	your presence channel.
+//! @seealso
+//! 	@[friend_symmetric()]
 void friend(MMP.Uniform entity) {
 
     void callback(int error) {
@@ -73,6 +97,8 @@ void friend(MMP.Uniform entity) {
     parent->storage->get_lock("peers", general_peer_callback, entity, PENDING, callback, ({}));
 }
 
+//! Request membership in the presence channel of @expr{entity@} and at the same time grant
+//! membership in your own presence channel to @expr{entity@}.
 void friend_symmetric(MMP.Uniform entity) {
     enforcer(MMP.is_person(entity), "Rooms dont offer friendship. Thats something else.\n");
 
@@ -87,11 +113,17 @@ void friend_symmetric(MMP.Uniform entity) {
     offer_quiet(entity, cb);
 }
 
+//! Grant membership in your own presence channel to @expr{entity@}.
+//! 
+//! @note
+//! 	This function does not send any notice to @expr{entity@}, use @[offer()] for that.
 void offer_quiet(MMP.Uniform entity, void|function callback, mixed ... args) {
 
     parent->storage->get_lock("peers", general_peer_callback, entity, OFFERED, callback, args);
 }
 
+//! Grant membership in your own presence channel to @expr{entity@} and send a
+//! @expr{_notice_friendship_offered@} to @expr{entity@}.
 void offer(MMP.Uniform entity) {
     void cb(int error) {
 	if (error) {

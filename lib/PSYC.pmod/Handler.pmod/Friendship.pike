@@ -1,4 +1,14 @@
 // vim:syntax=lpc
+
+//! A Handler implementing friendship using channels and subscription. It
+//! is therefore dependent on both @[PSYC.Handler.Channel] and 
+//! @[PSYC.Handler.Subscribe] or equivalent implementations.
+//! 
+//! The functionality implemented inside this handler is only that needed
+//! inside a @[PSYC.Person] or similar objects representing a permanent 
+//! adress. Main function is to grant or deny access to the friendship channel
+//! based upon per person settings in the @expr{peers@} mapping in storage.
+
 #include <debug.h>
 #include <assert.h>
 
@@ -6,6 +16,7 @@
 #define	PENDING 2		// asked for friendship of
 #define	ISFRIEND	4	// foobarflags. dont needed
 #define AMFRIEND	8	// we are his friend
+
 
 inherit PSYC.Handler.Base;
 
