@@ -67,7 +67,8 @@ class Uniform {
     //! The object associated with this Uniform. As @expr{root@} this variable is not set by default but
     //! may be used to store such information. In contrast to @expr{root@} it must not be exprected to
     //! contain the object when using @[PSYC.Server].
-    array handler = set_weak_flag(({ 0 }), Pike.WEAK_VALUES);
+    //array handler = set_weak_flag(({ 0 }), Pike.WEAK_VALUES);
+    array handler = ({ 0 });
 
     string slashes;
     string query;
