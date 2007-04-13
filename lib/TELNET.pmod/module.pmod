@@ -25,13 +25,13 @@ class Session {
 	inherit PSYC.Handler.Base;
 
 	constant _ = ([
-	    "postfilter" : ([
+	    "display" : ([
 		"_notice_link" : 0,
 		"_notice_context_enter": 0,
 	    ]),
 	]);
 
-	int postfilter_notice_link(MMP.Packet p, mapping _v, mapping _m) {
+	int display_notice_link(MMP.Packet p, mapping _v, mapping _m) {
 	    socket->readline->set_prompt("> ");
 	    socket->readline->redisplay();
 	    socket->readline->set_echo(1);
@@ -40,10 +40,10 @@ class Session {
 	    return PSYC.Handler.GOON;
 	}
 
-	int postfilter_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
+	int display_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
 	    MMP.Uniform place = p["_group"];
 
-	    if (p["_supplicant"] == client->uni) {
+	    if (p["_supplicant"] == client->link_to) {
 		socket->readline->set_prompt((string)place->unl + "> ");
 	    }
 

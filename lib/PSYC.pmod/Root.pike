@@ -147,10 +147,10 @@ class Signaling {
 		    groups[group] = ([]);
 		}
 		groups[group][member] = 1;
-		sendmsg(p->source(), t->reply("_notice_context_enter", ([ "_group" : group ])));
+		sendmsg(p->source(), t->reply("_notice_context_enter", ([ "_group" : group, "_supplicant" : member ])));
 		parent->storage->set_unlock("groups", groups);
 	    } else {
-		sendmsg(p->source(), t->reply("_notice_context_discord", ([ "_group" : group ])));
+		sendmsg(p->source(), t->reply("_notice_context_discord", ([ "_group" : group, "_supplicant" : member ])));
 		parent->storage->unlock("groups");
 	    }
 	    parent->storage->save();

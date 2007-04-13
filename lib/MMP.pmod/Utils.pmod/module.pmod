@@ -93,9 +93,9 @@ class Queue {
             newhead[DATA] = data;
             newhead[NEXT] = head;
             head = newhead;
-        }
 
-	size++;
+	    size++;
+        }
     }
 
     string _sprintf(int t) {
