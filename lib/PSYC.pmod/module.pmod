@@ -187,6 +187,16 @@ class Packet {
 	return vars[id];
     }
 
+    //! Clones the @[Packet] - this basically means that a new @[Packet] with
+    //! identical data, mc and a first level copy of vars (@expr{vars + ([ ])@})
+    //! is created and returned.
+    //!
+    //! @[Packets] may not be modified once they have been sent (if you
+    //! received a @[Packet], someone else sent it to you...), so you need to
+    //! clone it before you do any modifications.
+    //!
+    //! @seealso
+    //!     @[MMP.Packet()->clone()]
     this_program clone() {
 	return this_program(mc, vars + ([ ]), data);
     }
