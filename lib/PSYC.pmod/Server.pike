@@ -223,7 +223,7 @@ void accept(Stdio.Port lsocket) {
     MMP.Circuit con;
 
     socket = lsocket->accept();
-    con = MMP.Server(socket, route, close, get_uniform);
+    con = MMP.Server(socket, check, close, get_uniform);
     circuits[con->peeraddr] = con;
     // create VCircuit for the given peeraddr
     add_route(con->peeraddr, con);
@@ -233,7 +233,7 @@ void accept(Stdio.Port lsocket) {
 
 void connect(int success, Stdio.File so, MMP.Uniform id) {
     if (success) {
-	MMP.Circuit c = MMP.Active(so, route, close, get_uniform);
+	MMP.Circuit c = MMP.Active(so, check, close, get_uniform);
 	MMP.Utils.Queue q = m_delete(wf_circuits, id);
 
 	circuits[id] = c;

@@ -34,7 +34,7 @@ void async_srv(string service, string protocol, string name, function cb,
 	    } else {
 		cb(query, -2, @cba);
 
-		if (stringp(err)) werror(err);
+		werror("%O\n", err);
 	    }
 	} else {
 	    cb(query, -1, @cba);
