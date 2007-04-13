@@ -1,6 +1,6 @@
 .PHONY: ppp refdoc refdoc-publish
 ifndef S
-    S = fickzoo
+    S = example
 endif
 
 ifdef TN
