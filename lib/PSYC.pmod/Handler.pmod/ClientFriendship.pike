@@ -4,17 +4,18 @@
 //! This handler accesses the @expr{peers@} data structure in storage to
 //! control the reaction of the Friendship handler inside the @[PSYC.Person].
 //! 
+//! Having frienship to someone is here equivalent to being subscribed to 
+//! someones presence channel.
+//! 
 //! @seealso
 //! 	@[PSYC.Handler.Friendship]
-//! @fixme
-//! 	implement @[unfriend_symmetric()].
 
 #include <debug.h>
 #include <assert.h>
 
 #define OFFERED	1		// offered friendship to 
 #define	PENDING 2		// asked for friendship of
-#define	ISFRIEND	4	// foobarflags. dont needed
+#define	ISFRIEND	4	// foobarflags. not needed
 #define AMFRIEND	8	// we are his friend
 
 inherit PSYC.Handler.Base;
@@ -23,7 +24,8 @@ constant _ = ([
     "_" : ({ "peers" }),
 ]);
 
-constant export = ({ "unfriend", "friend", "offer", "offer_quiet" });
+constant export = ({ "unfriend", "unfriend_symmetric", "friend", 
+		     "friend_symmetric", "offer", "offer_quiet" });
 
 void init(mapping vars) {
     PT(("Handler.ClientFriendship", "Init of %O. vars: %O\n", parent, vars))
@@ -46,34 +48,67 @@ void init(mapping vars) {
 void general_peer_callback(int error, string key, mixed peers, MMP.Uniform entity, int flag, function callback, mixed args) {
     enforcer(!error, "fetching peers from storage failed.\n");
     enforcer(mappingp(peers), "peers from storage not a mapping.\n");
+    enforcer(flag, "flag must be nonzero.\n");
 
     if (has_index(peers, entity)) {
 	mixed spec = peers[entity];
 
 	enforcer(mappingp(spec), "user spec from storage not a mapping.\n");
 
-	if (spec["fflags"] & flag) { // nullop
-	    parent->storage->unlock("peers");
-	    call_out(callback, 0, 0, @args);
+	int mask = spec["fflags"];
+
+	if ((flags > 0 && mask & flag == 0) || mask & -flag) {
+	    if (0 > flag) {
+		spec["fflags"] ^= -flag;
+	    } else {
+		spec["fflags"] |= flag;
+	    }
+	    parent->storage->set_unlock("peers", peers, callback, @args);
 	    return;
-	} else {
-	    spec["fflags"] |= flag;
 	}
-    } else {
+    } else if (flag > 0) {
 	peers[entity] = ([ "fflags" : flag ]); // we need to set extra default ones here. 
+	parent->storage->set_unlock("peers", peers, callback, @args);
+	return;
     }
-    parent->storage->set_unlock("peers", peers, callback, @args);
+    parent->storage->unlock("peers");
+    call_out(callback, 0, 0, @args);
 }
 
-//! Remove friendship with @expr{entity@}.
+//! Cancel friendship to @expr{entity@}.
 //! 
 //! @note
 //! 	This method is not symmetric, therefore @expr{entity@} is not forced to
 //! 	leave your friendship channel.
-//! @fixme
-//! 	change the peers mapping, to not join the channel again if offered.
+//! @seealso
+//! 	@[unfriend_symmetric()]
 void unfriend(MMP.Uniform entity) {
-    parent->leave(entity);
+
+    void callback(int error) {
+	if (error) {
+	    P0(("ClientFriendship", "%O: unfriend(%O) failed.\n", this, entity))
+	}
+
+	// leave anyhow.. not sure
+	parent->leave(entity);
+    };
+
+    parent->storage->get_lock("peers", general_peer_callback, entity, -OFFERED, callback, ({}));
+}
+
+//! Cancel friendship to @expr{entity@} and at the same time remove 
+//! @expr{entity@} from your presence channel.
+void unfriend_symmetric(MMP.Uniform entity) {
+    void callback(int error) {
+	if (error) {
+	    P0(("ClientFriendship", "%O: unfriend(%O) failed.\n", this, entity))
+	}
+
+	parent->leave(entity);
+	parent->remove(uni, entity);
+    };
+
+    parent->storage->get_lock("peers", general_peer_callback, entity, -OFFERED, callback, ({}));
 }
 
 //! Request membership in the presence channel of @expr{entity@}.
@@ -87,7 +122,7 @@ void friend(MMP.Uniform entity) {
 
     void callback(int error) {
 	if (error) {
-	    P0(("Person", "%O: friend(%O) failed.\n", this, entity))
+	    P0(("ClientFriendship", "%O: friend(%O) failed.\n", this, entity))
 	} else {
 	    // could use the error_cb here to ask again later.. or send an error to the clients.
 	    parent->enter(entity);
@@ -104,7 +139,7 @@ void friend_symmetric(MMP.Uniform entity) {
 
     void cb(int error) {
 	if (error) {
-	    P0(("Person", "offer_quiet failed in friend_symmetric(). very bad!!!!!!\n\n"))
+	    P0(("ClientFriendship", "offer_quiet failed in friend_symmetric(). very bad!!!!!!\n\n"))
 	} else {
 	    friend(entity);
 	}
@@ -127,7 +162,7 @@ void offer_quiet(MMP.Uniform entity, void|function callback, mixed ... args) {
 void offer(MMP.Uniform entity) {
     void cb(int error) {
 	if (error) {
-	    P0(("Person", "offer_quiet failed in offer(). very bad!!!!!!\n\n"))
+	    P0(("ClientFriendship", "offer_quiet failed in offer(). very bad!!!!!!\n\n"))
 	} else {
 	    sendmsg(entity, PSYC.Packet("_notice_friendship_offered"));
 	}

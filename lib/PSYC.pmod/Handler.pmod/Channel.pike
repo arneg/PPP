@@ -53,7 +53,7 @@ constant _ = ([
 ]);
 
 constant export = ({
-    "castmsg", "create_channel"
+    "castmsg", "create_channel", "remove"
 });
 
 int is_us(MMP.Packet p, mapping _m) {
@@ -144,6 +144,23 @@ int postfilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m) {
     }
 
     return PSYC.Handler.STOP;
+}
+
+//! Remove someone from the multicast channel. Does not and cannot check
+//! if @expr{entity@} is subscribes to @expr{channel@}. That information
+//! is kept only on routing level. However, if @expr{entity@} happens to
+//! be on the list of subscribers, it will be removed.
+//! 
+//! @note
+//! 	You should keep track of membership yourself. That can be done
+//! 	by using the callbacks to @[create_channel()].
+void remove(MMP.Uniform channel, MMP.Uniform entity) {
+    enforcer(has_index(callbacks, channel), 
+	     "Trying to remove someone from nonexisting channel.\n");
+
+    sendmsg(channel->root, PSYC.Packet("_notice_context_leave", 
+				       ([ "_group" : channel,
+				          "_supplicant" : entity ])));
 }
 
 //! Casts a message to a channel (or the group).
