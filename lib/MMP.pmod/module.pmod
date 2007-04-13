@@ -521,6 +521,16 @@ class Packet {
     }
 
     // why do we need this? copy_value doesn't copy objects.
+    //! Clones the @[Packet] - this basically means that a new @[Packet] with
+    //! identical data and a first level copy of vars (@expr{vars + ([ ])@})
+    //! is created and returned.
+    //!
+    //! @[Packets] may not be modified once they have been sent (if you
+    //! received a @[Packet], someone else sent it to you...), so you need to
+    //! clone it before you do any modifications.
+    //!
+    //! @seealso
+    //!	    @[PSYC.Packet()->clone()]
     this_program clone() {
 	this_program n = this_program(data, vars + ([ ]));
 
@@ -1366,10 +1376,43 @@ int(0..1) is_uniform(mixed o) {
     }
 }
 
-int(0..1) is_person(mixed o) {
-    return is_uniform(o) && stringp(o->resource) && sizeof(o->resource) && o->resource[0] == '~';
+//! @returns
+//! @int
+//! 	@value 1
+//! 		@expr{o@} is a MMP.Uniform designated by @expr{designator@}
+//! 	@value 0
+//! 		@expr{o@} is not a Person.
+//! @endint
+//!
+//! @seealso
+//!	@[is_person()], @[is_place()], @[is_uniform()]
+int(0..1) is_thing(mixed o, int designator) {
+    return is_uniform(o) && stringp(o->resource) && sizeof(o->resource) && o->resource[0] == designator;
 }
 
+//! @returns
+//! @int
+//! 	@value 1
+//! 		@expr{o@} is a Person (designated by an '~' in MMP/PSYC).
+//! 	@value 0
+//! 		@expr{o@} is not a Person.
+//! @endint
+//!
+//! @seealso
+//!	@[is_thing()], @[is_place()], @[is_uniform()]
+int(0..1) is_person(mixed o) {
+    return is_thing(o, '~');
+}
+
+//! @returns
+//! @int
+//! 	@value 1
+//! 		@expr{o@} is a Place (designated by an '@@' in MMP/PSYC).
+//! 	@value 0
+//! 		@expr{o@} is not a Place.
+//! @endint
+//! @seealso
+//!	@[is_thing()], @[is_person()], @[is_uniform()]
 int(0..1) is_place(mixed o) {
-    return is_uniform(o) && stringp(o->resource) && sizeof(o->resource) && o->resource[0] == '@';
+    return is_thing(o, '@');
 }
