@@ -1,7 +1,0 @@
-AC_INIT(json_mapping.c)
-
-
-AC_MODULE_INIT()
-
-
-AC_OUTPUT(Makefile)

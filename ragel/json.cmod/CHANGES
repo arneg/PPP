@@ -1,8 +1,0 @@
-0.1 
-    - initial version
-0.2 on 21.03.2007
-    - added render()
-    - added validate()
-    - fixed some issues in number parsing
-    - some more documentation
-    - internal types for true, false and null
