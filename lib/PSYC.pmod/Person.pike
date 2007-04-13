@@ -66,8 +66,6 @@ void distribute(MMP.Packet p) {
     }
 }
 
-//! @param nick
-//! 	Nickname of the user.
 //! @param uni
 //! 	Uniform of the user.
 //! @param server
@@ -76,7 +74,7 @@ void distribute(MMP.Packet p) {
 //! 	An instance of a @[PSYC.Storage] Storage subclass.
 //! @seealso
 //! 	@[PSYC.Storage.File], @[PSYC.Storage.Remote], @[PSYC.Storage.Dummy]
-void create(string nick, MMP.Uniform uni, object server, object storage) {
+void create(MMP.Uniform uni, object server, object storage) {
     ::create(uni, server, storage);
 
     forward = PSYC.Handler.Forward(this, sendmmp, uni);

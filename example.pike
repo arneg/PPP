@@ -133,7 +133,7 @@ object create_local(MMP.Uniform uni, object psyc_server, object storage_factory)
     if (uni->resource && sizeof(uni->resource) > 1) switch (uni->resource[0]) {
     case '~':
 	// TODO check for the path...
-	o = PSYC.Person(uni->resource[1..], uni, psyc_server, storage_factory->getStorage(uni));
+	o = PSYC.Person(uni, psyc_server, storage_factory->getStorage(uni));
 	return o;
 	break;
     case '@':
