@@ -49,7 +49,7 @@ void async_srv(string service, string protocol, string name, function cb,
                         Protocols.DNS.T_SRV, sort_srv);
 }
 
-//! SRV Records are quite complex, especially getting their prefrences right,
+//! SRV Records are quite complex, especially getting their preferences right,
 //! so there is this class to represent them.
 class SRVReply {
     array(mapping) result;
@@ -154,4 +154,48 @@ class SRVReply {
 	    return 0;
 	}
     }
+}
+
+void async_srv_to_all_ip /* ip means "Ips and Ports" here */ (string host, function cb, mixed ... args) {
+    void handle_srv(string query, MMP.Utils.DNS.SRVReply|int reply) {
+	array(mapping)|int result;
+	int amount;
+	mapping peers = ([ ]);
+
+	void h2ic /* host2ipcallback */ (string query, string ip, int port) {
+	    if (stringp(ip)) {
+		if (!peers[ip]) {
+		    peers[ip] = (< >);
+		}
+
+		peers[ip][port] = 1;
+	    }
+
+	    if (!--amount) {
+		call_out(cb, 0, peers, @args);
+	    }
+	};
+
+	result = objectp(reply) ? reply->result : reply;
+
+	if (arrayp(result) && sizeof(result)) {
+	    int count;
+
+	    foreach (result;; mapping answer) {
+		string target = answer->target;
+		int port = answer->port;
+
+		if (stringp(target) && sizeof(target)) {
+		    ++amount;
+		    Protocols.DNS.async_host_to_ip(target, h2ic /* host2ipcallback */, port);
+		}
+	    }
+	} else {
+	    ++amount;
+	    Protocols.DNS.async_host_to_ip(host, h2ic /* host2ipcallback */, 0);
+	    // fehler weitergeben, 0 statt array oder so
+	}
+    };
+
+    MMP.Utils.DNS.async_srv("psyc-server", "tcp", host, handle_srv);
 }

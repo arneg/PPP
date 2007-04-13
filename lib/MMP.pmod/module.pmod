@@ -599,7 +599,9 @@ int(0..2) is_mmpvar(string var) {
 class Circuit {
     inherit MMP.Utils.Queue;
 
+    //! The socket used.
     Stdio.File|Stdio.FILE socket;
+
     string|String.Buffer inbuf;
 #ifdef LOVE_TELNET
     string dl;
@@ -612,7 +614,15 @@ class Circuit {
     int lastmod, write_ready, write_okay; // sending may be forbidden during
 					  // certain parts of neg
     string lastkey;
+
+    //! @[MMP.Uniform] associated with this connection. @expr{localaddr@} and
+    //! and @expr{remoteaddr@} include the port, they are therefore not 
+    //! necessarily equal to the adresses of the two @[PSYC.Root] objects.
     MMP.Uniform peeraddr, localaddr;
+
+    //! Ip adress of the local- and peerhost of the tcp connection used.
+    string peerip, localip;
+
     function msg_cb, close_cb, get_uniform;
     mapping(function:array) close_cbs = ([ ]); // close_cb == server, close_cbs
 					       // contains the callbacks of
@@ -651,8 +661,12 @@ class Circuit {
 	close_cb = closecb;
 	get_uniform = parse_uni||MMP.parse_uniform;
 
+	localip = (socket->query_adress(1) / " ")[0];
+	peerip = (socket->query_adress() / " ")[0];
+
 	q_neg->push(Packet());
 	reset();
+
 	//::create();
     }
 
