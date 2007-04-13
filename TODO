@@ -1,4 +1,3 @@
 - fix MMP.Circuits to do negotiation of modules..
 - make TELNET do proper tagging and checking for tags
 - check for hosts of incoming mmp packets..
-- display stage and display handlers..
