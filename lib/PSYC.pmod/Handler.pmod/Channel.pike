@@ -1,5 +1,6 @@
 // vim:syntax=lpc
 #include <debug.h>
+#include <assert.h>
 
 //! Implementation of PSYC channels, e.g. multicast groups. Does not keep 
 //! track of its members on its own. That should be done persistently by

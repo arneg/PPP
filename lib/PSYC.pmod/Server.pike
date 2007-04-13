@@ -340,52 +340,57 @@ void _if_localhost(MMP.Uniform candidate, function if_cb, function else_cb,
 	    else_cb(@args);
     };
 
-    void handle_srv(string query, array(mapping)|int result) {
-	if (arrayp(result) && sizeof(result)) {
-	    int done, count;
-
-	    void _if_cb() {
-		if (!done) {
-		    done = 1;
-		    count--;
-		    if_cb(@args);
-		}
-	    };
-
-	    void _else_cb() {
-		if (!done && !--count) {
-		    else_cb(@args);
-		}
-	    };
-
-	    multiset seen = (<>);
-
-	    foreach (result;; mapping answer) {
-		string target = answer->target;
-		int port = answer->port;
-
-		if (stringp(target) && sizeof(target)) {
-		    if (!has_index(seen, target + ":" + port)) {
-			seen[target + ":" + port]++;
-			count++;
-
-			call_out(_if_localhost, 0, get_uniform("psyc://"+target+":"+port), _if_cb, _else_cb,
-				 port, ({ }));
-		    }
-		}
-	    }
-	} else {
-	    Protocols.DNS.async_host_to_ip(candidate->host, callback);
-	}
-    };
 
     if (!port) port = candidate->port;
 
-    if (has_index(localhosts, candidate->host + ":" + (port ? port : 4404))) {
+    if (has_index(localhosts, candidate->host + ":" + (port ? port : 4404)) 
+	    || candidate->is_local) {
 	if_cb(@args);
     } else if (MMP.Utils.Net.is_ip(candidate->host)) {
 	else_cb(@args);
     } else if (!port) {
+	void handle_srv(string query, array(mapping)|int reply) {
+	    array(mapping)|int result;
+
+	    result = objectp(reply) ? reply->result : reply;
+
+	    if (arrayp(result) && sizeof(result)) {
+		int done, count;
+
+		void _if_cb() {
+		    if (!done) {
+			done = 1;
+			count--;
+			if_cb(@args);
+		    }
+		};
+
+		void _else_cb() {
+		    if (!done && !--count) {
+			else_cb(@args);
+		    }
+		};
+
+		multiset seen = (<>);
+
+		foreach (result;; mapping answer) {
+		    string target = answer->target;
+		    int port = answer->port;
+
+		    if (stringp(target) && sizeof(target)) {
+			if (!has_index(seen, target + ":" + port)) {
+			    seen[target + ":" + port]++;
+			    count++;
+
+			    call_out(_if_localhost, 0, get_uniform("psyc://"+target+":"+port), _if_cb, _else_cb,
+				     port, ({ }));
+			}
+		    }
+		}
+	    } else {
+		Protocols.DNS.async_host_to_ip(candidate->host, callback);
+	    }
+	};
 	MMP.Utils.DNS.async_srv("psyc-server", "tcp", candidate->host, handle_srv);
     } else {
 	Protocols.DNS.async_host_to_ip(candidate->host, callback);
@@ -474,7 +479,89 @@ void deliver_local(MMP.Packet packet, MMP.Uniform target) {
     call_out(o->msg, 0, packet);
 }
 
-// actual routing...
+void check_source(MMP.Packet packet, object connection, function callback, mixed ... args) {
+    MMP.Uniform source;
+
+    void cb(mapping ips) {
+	if (ips && has_index(ips, connection->peerip)) {
+	    call_out(callback, 0, 1, @args);
+	} else {
+	    call_out(callback, 0, 0, @args);
+	}
+    };
+
+    if (!has_index(packet->vars, "_source")) {
+	source = connection->peeraddr;
+	// THIS IS REMOTE
+	packet["_source"] = source;
+	call_out(callback, 0, 1, @args);
+    } else {
+	source = packet["_source"];
+	MMP.Utils.DNS.async_srv_to_all_ip(source->host, cb);
+    }
+}
+
+void check_context(MMP.Packet packet, object connection, function callback, mixed ... args) {
+    MMP.Uniform context;
+
+    void cb(mapping ips) {
+	if (ips && has_index(ips, connection->peerip)) {
+	    call_out(callback, 0, 1, @args);
+	} else {
+	    call_out(callback, 0, 0, @args);
+	}
+    };
+
+    if (!has_index(packet->vars, "_context")) {
+	call_out(callback, 0, 1, @args);
+    } else {
+	context = packet["_context"];
+	MMP.Utils.DNS.async_srv_to_all_ip(context->host, cb);
+    }
+}
+
+void check_target(MMP.Packet packet, object connection, function callback, mixed ... args) {
+    MMP.Uniform target;
+
+    void if_cb() {
+	call_out(callback, 0, 1, @args);
+    };
+
+    void else_cb() {
+	call_out(callback, 0, 0, @args);
+    };
+
+    if (!has_index(packet->vars, "_target")) {
+	call_out(callback, 0, 1, @args);
+    } else {
+	target = packet["_target"];
+	if_localhost(target, if_cb, else_cb);
+    }
+}
+
+void check(MMP.Packet packet, object connection) {
+    
+    void _check(int ok, int stage) {
+	if (ok) switch(stage) {
+	case 0:
+	    call_out(check_source, 0, packet, connection, _check, ++stage);
+	    break;
+	case 1:
+	    call_out(check_target, 0, packet, connection, _check, ++stage);
+	    break;
+	case 2:
+	    call_out(check_context, 0, packet, connection, _check, ++stage);
+	    break;
+	case 3:
+	    call_out(route, 0, packet, connection);
+	} else {
+	    P0(("PSYC.Server", "Packet %O with invalid header information dropped in stage %O.\n", packet, stage))
+	}
+    };
+
+    _check(1, 0);
+}
+
 void route(MMP.Packet packet, object connection) {
     
     P3(("PSYC.Server", "%O->route(%O)\n", this, packet))
@@ -483,14 +570,7 @@ void route(MMP.Packet packet, object connection) {
     // this is maybe the most ... innovative piece of code on this planet
     target = packet["_target"];
     context = packet["_context"];
-
-    if (!has_index(packet->vars, "_source") && !context) {
-	source = connection->peeraddr;
-	// THIS IS REMOTE
-	packet["_source"] = source;
-    } else {
-	source = packet["_source"];
-    }
+    source = packet["_source"];
 
     // may be objects already if these are packets coming from a socket that
     // has been closed.

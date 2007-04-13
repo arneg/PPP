@@ -89,23 +89,18 @@ void request_friend(MMP.Uniform guy, function callback, mixed ... args)	{
 	    return;
 	}
 
+	enforcer(mappingp(peers), "peers from storage not a mapping.\n");
 	PT(("Handler.Friendship", "peer data structure: %O\n", peers))
 	PT(("Handler.Friendship", "extra args: %O\n", args))
 
 	if (has_index(peers, guy)) {
-	    enforcer(mappingp(peers), "peers from storage not a mapping.\n");
+	    mixed spec = peers[guy];
 
-	    if (has_index(peers, guy)) {
-		mixed spec = peers[guy];
-
-		enforcer(mappingp(spec), "user spec from storage not a mapping.\n");
-
-		if (spec["fflags"] & OFFERED) { // nullop
-		    call_out(callback, 0, 1, @args);
-		    return;
-		}
+	    if (mappingp(spec) && spec["fflags"] & OFFERED) {
+		call_out(callback, 0, 1, @args);
+		return;
 	    }
-	    call_out(callback, 0, 0, @args);
+
 	}
 
 	PSYC.Packet r = PSYC.Packet("_request_friendship");

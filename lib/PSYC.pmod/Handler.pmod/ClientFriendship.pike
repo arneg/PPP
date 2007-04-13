@@ -57,7 +57,7 @@ void general_peer_callback(int error, string key, mixed peers, MMP.Uniform entit
 
 	int mask = spec["fflags"];
 
-	if ((flags > 0 && mask & flag == 0) || mask & -flag) {
+	if ((flag > 0 && mask & flag == 0) || mask & -flag) {
 	    if (0 > flag) {
 		spec["fflags"] ^= -flag;
 	    } else {
