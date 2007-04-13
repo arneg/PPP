@@ -67,7 +67,7 @@ class Uniform {
     //! The object associated with this Uniform. As @expr{root@} this variable is not set by default but
     //! may be used to store such information. In contrast to @expr{root@} it must not be exprected to
     //! contain the object when using @[PSYC.Server].
-    object handler;
+    object handler = set_weak_flag(({ 0 }), Pike.WEAK_VALUES);
 
     string slashes;
     string query;
@@ -87,7 +87,7 @@ class Uniform {
     void create(string uniform, object|void o) {
 	unl = uniform;
 	if (o) {
-	    handler = o;
+	    handler[0] = o;
 	}
     }
 
@@ -126,7 +126,19 @@ class Uniform {
 	return UNDEFINED;
     }
 
+    mixed `->=(string key, mixed value) {
+	if (key == "handler") {
+	    return handler[0] = value;
+	}
+
+	return ::`->=(key, value);
+    }
+
     mixed `->(string dings) {
+	if (dings == "handler") {
+	    return handler[0];
+	}
+
 	if (!parsed) {
 	    switch (dings) {
 		case "scheme":
@@ -1255,6 +1267,8 @@ class VirtualCircuit {
     //!	    "breaks".
     void create(MMP.Uniform peer, object srv, function|void co,
 		MMP.Circuit|void c) {
+	P2(("VirtualCircuit", "create(%O, %O, %O)\n", peer, srv, c))
+
 	targethost = peer->host;
 	targetport = peer->port;
 
@@ -1347,6 +1361,7 @@ class VirtualCircuit {
 
     void connect_srv() {
 	void srvcb(string query, MMP.Utils.DNS.SRVReply|int result) {
+	    PT(("VirtualCircuit", "srvcb(%O, %O)\n", query, result))
 	    if (objectp(result)) {
 		if (result->has_next()) {
 		    if (has_value(result->result->target, ".")) {
