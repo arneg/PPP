@@ -344,7 +344,7 @@ void _if_localhost(MMP.Uniform candidate, function if_cb, function else_cb,
     if (!port) port = candidate->port;
 
     if (has_index(localhosts, candidate->host + ":" + (port ? port : 4404)) 
-	    || candidate->is_local) {
+	    || candidate->is_local()) {
 	if_cb(@args);
     } else if (MMP.Utils.Net.is_ip(candidate->host)) {
 	else_cb(@args);

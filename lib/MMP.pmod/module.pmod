@@ -661,8 +661,8 @@ class Circuit {
 	close_cb = closecb;
 	get_uniform = parse_uni||MMP.parse_uniform;
 
-	localip = (socket->query_adress(1) / " ")[0];
-	peerip = (socket->query_adress() / " ")[0];
+	localip = (socket->query_address(1) / " ")[0];
+	peerip = (socket->query_address() / " ")[0];
 
 	q_neg->push(Packet());
 	reset();
