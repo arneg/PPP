@@ -466,8 +466,8 @@ void deliver_remote(MMP.Packet packet, MMP.Uniform root) {
 void deliver_local(MMP.Packet packet, MMP.Uniform target) {
     P3(("PSYC.Server", "%O->deliver_local(%O, %O)\n", this, packet, 
 	target))
-    object o = create_local(target, this, storage_factory);
     target->islocal = 1;
+    object o = create_local(target, this, storage_factory);
 
     if (!o) {
 	P0(("PSYC.Server", "Could not summon a local object for %O.\n",
