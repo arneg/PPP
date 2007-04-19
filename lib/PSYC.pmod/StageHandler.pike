@@ -108,7 +108,7 @@ void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
     PSYC.AR o = stack->shift_();
 
     if (o->check && !o->check(p, _m)) {
-	P1(("StageHandler", "%O: %O->check() returned Null.\n", prefix, o))
+	P3(("StageHandler", "%O: %O->check() returned Null.\n", prefix, o))
 	stack->shift();
 	call_out(progress, 0, stack, p, _m);
 	return;
