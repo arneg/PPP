@@ -207,13 +207,29 @@ void postfilter_notice_context_enter_channel(MMP.Packet p, mapping _v, mapping _
 
 // ==================================
 
+//! Unsubscribe from a channel.
+//! @param channel
+//! 	Channel to cancel subscription of.
 void unsubscribe(MMP.Uniform channel) {
     parent->unfriend(channel);
     leave(channel);
 }
 
+//! Subscribe to a channel. This is a special term used for the request for 
+//! membership in a place. Use this if you want a person to subscribe to a
+//! chatroom (place). Friendship is offered to the place at the same time 
+//! to allow the place to react on status changes (e.g. remove someone from
+//! the talking channel in case he/she goes offline).
+//! @param channel
+//! 	Channel to subscribe. 	
+//! @note
+//! 	This subscription is permanent. It will last until it is canceled using
+//! 	@[unsubscribe()].
 void subscribe(MMP.Uniform channel) {
+    MMP.Uniform place;
     enforcer(MMP.is_place(channel), "Subscription is made for places.\n");
+
+    place = (channel->channel) ? channel->super : channel;
     
     void callback(int error) {
 	if (error) {
@@ -223,7 +239,7 @@ void subscribe(MMP.Uniform channel) {
 	}
     };
 
-    parent->offer_quiet(channel, callback);
+    parent->offer_quiet(place, callback);
 }
 
 //! Enters a channel.
@@ -235,6 +251,9 @@ void subscribe(MMP.Uniform channel) {
 //! 	Retring may work here.
 //! @param args
 //! 	Arguments to be passed on to the @expr{error_cb@}.
+//! @note 
+//! 	This is a low-level method. Use @[subscribe()] to let a person
+//! 	join a place.	
 void enter(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 
     void callback(MMP.Packet p, mapping _v, function cb) {
