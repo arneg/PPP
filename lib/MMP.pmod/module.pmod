@@ -6,6 +6,14 @@ void debug(string cl, string format, mixed ... args) {
     // erstmal nix weiter
     predef::werror("(%s)\t"+format, cl, @args);
 }
+
+void warn(string cl, string format, mixed ... args) {
+
+}
+
+void fatal(string cl, string format, mixed ... args) {
+
+}
 #if DEBUG
 # define THROW(s)        throw(({ (s), backtrace() }))
 #else
@@ -67,8 +75,8 @@ class Uniform {
     //! The object associated with this Uniform. As @expr{root@} this variable is not set by default but
     //! may be used to store such information. In contrast to @expr{root@} it must not be exprected to
     //! contain the object when using @[PSYC.Server].
-    //array handler = set_weak_flag(({ 0 }), Pike.WEAK_VALUES);
     array handler = ({ 0 });
+    //array handler = set_weak_flag(({ 0 }), Pike.WEAK_VALUES);
 
     string slashes;
     string query;
