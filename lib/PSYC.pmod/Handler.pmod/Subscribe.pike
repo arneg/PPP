@@ -302,8 +302,6 @@ void enter(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 //! Leaves a channel.
 //! @param channel
 //! 	The channel to leave.
-//! @param args
-//! 	Arguments to be passed on to the @expr{error_cb@}.
 void leave(MMP.Uniform channel) {
     string mc = "_notice_context_leave" + (channel->channel) ? "_channel" : ""; 
 
