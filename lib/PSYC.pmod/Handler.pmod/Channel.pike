@@ -88,8 +88,14 @@ int is_us(MMP.Packet p, mapping _m) {
 //! 	is no way to keep someone from leaving, therefore the expected signature is:
 //! 
 //! 	@expr{void leave(MMP.Uniform guy);@}
+//! @note
+//! 	Both callbacks @expr{enter@} and @expr{leave@} are not called when @[add()] or
+//! 	@[remove()] have been used. You are supposed to keep track of those changes 
+//! 	on your own.
 //! @throws
 //! 	Throws a exception if the given @expr{channel@} does not fit the requirements. 
+//! @fixme
+//! 	not entirely sure about the above note. look at what Root replys with.
 void create_channel(MMP.Uniform channel, function|void enter, void|function leave) {
 
     if (channel->channel ? (channel->super != uni) : (channel != uni)) {
@@ -160,6 +166,25 @@ void remove(MMP.Uniform channel, MMP.Uniform entity) {
 	     "Trying to remove someone from nonexisting channel.\n");
 
     sendmsg(channel->root, PSYC.Packet("_notice_context_leave", 
+				       ([ "_group" : channel,
+				          "_supplicant" : entity ])));
+}
+
+//! Add an entity to a channel. @expr{entity@} must already be subscribed
+//! to the default channel, otherwise this will not work.
+//! @throws
+//! 	This method will throw if @expr{channel@} is the default channel
+//! 	as entities cannot be forced into it.
+void add(MMP.Uniform channel, MMP.Uniform entity) {
+    PT(("Handler.Channel", "%O->add(%O)\n", channel, entity))
+
+    enforcer(has_index(callbacks, channel), 
+	     "Trying to add someone to nonexisting channel.\n");
+
+    enforcer(channel->channel, 
+	     "Trying to add someone to the default channel.\n");
+
+    sendmsg(channel->root, PSYC.Packet("_notice_context_enter_channel",
 				       ([ "_group" : channel,
 				          "_supplicant" : entity ])));
 }
