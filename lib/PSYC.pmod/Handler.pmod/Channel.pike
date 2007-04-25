@@ -62,7 +62,7 @@ int is_us(MMP.Packet p, mapping _m) {
 
     if (has_index(vars, "_group")) {
 	MMP.Uniform group = vars["_group"];
-	if (group->channel ? group->super : group == uni) {
+	if ((group->channel ? group->super : group) == uni) {
 	    PT(("Handler.Channel", "is_us check in %O true.\n", vars))
 	    return 1;
 	}
