@@ -1,5 +1,5 @@
 // vim:syntax=lpc
-// $Id: JSONTokener.pike,v 1.11 2006/12/27 17:05:44 p0rtage Exp $
+// $Id: JSONTokener.pike,v 1.12 2007/06/14 09:44:43 embee Exp $
 // 
 // I really hate those comments.
 //
@@ -609,7 +609,7 @@ PROTECTED mixed nextObject() {
 	} else if (s == "") {
 	    THROW("Missing value.\n");
 	} else {
-	    THROW("Invalid JSON.\n");
+	    THROW(sprintf("Invalid JSON:%O\n", s));
 	}
 
 	return s; // will never happen, but keeps lpc statisfied
