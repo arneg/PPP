@@ -134,6 +134,10 @@ object create_local(MMP.Uniform uni, object psyc_server, object storage_factory)
     case '~':
 	// TODO check for the path...
 	o = PSYC.Person(uni, psyc_server, storage_factory->getStorage(uni));
+
+//	o->add_handlers(PSYC.Handler.ClientFriendship(o, o->sendmmp, o->uni));
+//	o->add_handlers(PSYC.Handler.Do(o, o->sendmmp, o->uni));
+
 	return o;
 	break;
     case '@':

@@ -36,8 +36,11 @@ void create(MMP.Uniform client_u, object server, MMP.Uniform person, string|void
     client->add_handlers(
 	PSYC.Handler.Execute(client, client->client_sendmmp, client->uni),
 	PSYC.Handler.PrimitiveLink(client, client->client_sendmmp, client->uni, client_uniform),
-	//PSYC.Handler.Subscribe(client, client->client_sendmmp, client->uni),
+	// person uniform here to enter the uni.
+	PSYC.Handler.Subscribe(client, client->client_sendmmp, person),
 	DisplayForward(client, client->client_sendmmp, client->uni, client_uniform),
+	PSYC.Handler.ClientFriendship(client, client->client_sendmmp, client->uni),
+	PSYC.Handler.Do(client, client->client_sendmmp, client->uni),
     );
 
 //add_commands(PSYC.Commands.Subscribe(this));
@@ -60,6 +63,7 @@ class DisplayForward {
     inherit PSYC.Handler.Base;
 
     MMP.Uniform to;
+
 
     void create(object c, function s, MMP.Uniform uni, MMP.Uniform client_uni) {
 	to = client_uni;

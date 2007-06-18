@@ -22,7 +22,8 @@ PSYC.Root root;
 object storage_factory;
 function textdb_factory;
 
-function create_local, create_remote, external_deliver_remote, external_deliver_local, create_context;
+function create_local, create_remote, external_deliver_remote, external_deliver_local, create_context,
+	 debug;
 
 // to be moved farther down
 void activate(MMP.Uniform croot) { // croot == circuit root
