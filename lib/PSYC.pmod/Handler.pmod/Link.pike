@@ -42,7 +42,7 @@ constant _ = ([
 
 int prefilter(MMP.Packet p, mapping _v, mapping _m) {
     
-    if (parent->attached(p->source())) {
+    if (parent->attached(p->source()) || p->source() == uni) {
 	_m["itsme"] = 1;
     } else {
 	_m["itsme"] = 0;
