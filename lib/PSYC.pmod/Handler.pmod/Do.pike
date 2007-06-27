@@ -5,15 +5,14 @@ inherit PSYC.Handler.Base;
 
 // A handler implementing all kinds of client features.. in here only those 
 // that can be used with the standard api only (sendmsg)
-//
 
 constant _ = ([
     "postfilter" : ([
 	"_request_do_tell" : ([ "check" : "itsme" ]),
 	"_request_do_say" : ([ "check" : "itsme" ]),
-	"_request_do_register" : ([ "check" : "itsme" ]),
 	"_request_do_enter" : ([ "check" : "itsme" ]),
 	"_request_do_leave" : ([ "check" : "itsme" ]),
+	"_request_do_register" : ([ "check" : "itsme" ]),
     ]),
 ]);
 
@@ -90,6 +89,7 @@ int postfilter_request_do_leave(MMP.Packet p, mapping _v, mapping _m) {
 
     if (MMP.is_place(m["_group"])) {
 	sendmsg(p->source(), PSYC.Packet("_notice_leave", ([ "_group" : m["_group"] ])));
+	parent->unsubscribe(m["_group"]);
     } else {
 	sendmsg(p->source(), m->reply("_failure"+m->mc));
     }

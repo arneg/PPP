@@ -35,6 +35,7 @@
 // * subscription by the user
 #define ENTER		0
 #define LEAVE		1
+#define CAST		1
 
 inherit PSYC.Handler.Base;
 
@@ -88,6 +89,11 @@ int is_us(MMP.Packet p, mapping _m) {
 //! 	is no way to keep someone from leaving, therefore the expected signature is:
 //! 
 //! 	@expr{void leave(MMP.Uniform guy);@}
+//! @param on_castmsg
+//! 	Callback to be called whenever a @[MMP.Packet] is send by castmsg. Expected 
+//! 	signature:
+//! 
+//! 	@expr{void on_castmsg(MMP.Packet p);}
 //! @note
 //! 	Both callbacks @expr{enter@} and @expr{leave@} are not called when @[add()] or
 //! 	@[remove()] have been used. You are supposed to keep track of those changes 
@@ -95,13 +101,14 @@ int is_us(MMP.Packet p, mapping _m) {
 //! @throws
 //! 	Throws a exception if the given @expr{channel@} does not fit the requirements. 
 //! @fixme
-//! 	not entirely sure about the above note. look at what Root replys with.
-void create_channel(MMP.Uniform channel, function|void enter, void|function leave) {
+//! 	not entirely sure about the above note. look at what Root replys with. on_castmsg 
+//! 	feels like a hack..
+void create_channel(MMP.Uniform channel, function|void enter, void|function leave, void|function castmsg) {
 
     if (channel->channel ? (channel->super != uni) : (channel != uni)) {
 	THROW(sprintf("cannot create channel %O in %O because it doesnt belong there.\n", channel, uni));
     }
-    callbacks[channel] = ({ enter, leave });
+    callbacks[channel] = ({ enter, leave, on_castmsg });
 }
 
 void postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m, function cb) {
@@ -208,8 +215,14 @@ void castmsg(MMP.Uniform channel, PSYC.Packet m, MMP.Uniform source_relay) {
 	THROW(("Handlers.Channel", "%O is very unlikely to contain anyone as you never created it.\n", channel));
     }
 
+
     MMP.Packet p = MMP.Packet(m, ([ "_context" : channel, 
 				    "_source_relay" : source_relay,
 				    ]));
+
+    if (callbacks[channel][CAST]) {
+	callbacks[channel][CAST](p);
+    }
+
     parent->server->get_context(channel)->msg(p); 
 }
