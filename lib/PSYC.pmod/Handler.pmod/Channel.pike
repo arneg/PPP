@@ -35,7 +35,7 @@
 // * subscription by the user
 #define ENTER		0
 #define LEAVE		1
-#define CAST		1
+#define CAST		2
 
 inherit PSYC.Handler.Base;
 
