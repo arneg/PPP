@@ -103,7 +103,7 @@ int is_us(MMP.Packet p, mapping _m) {
 //! @fixme
 //! 	not entirely sure about the above note. look at what Root replys with. on_castmsg 
 //! 	feels like a hack..
-void create_channel(MMP.Uniform channel, function|void enter, void|function leave, void|function castmsg) {
+void create_channel(MMP.Uniform channel, function|void enter, void|function leave, void|function on_castmsg) {
 
     if (channel->channel ? (channel->super != uni) : (channel != uni)) {
 	THROW(sprintf("cannot create channel %O in %O because it doesnt belong there.\n", channel, uni));

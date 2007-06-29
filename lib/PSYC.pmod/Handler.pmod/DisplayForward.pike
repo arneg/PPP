@@ -1,3 +1,5 @@
+#include <debug.h>
+inherit PSYC.Handler.Base;
 
 constant _ = ([
     "display" : ([
@@ -6,8 +8,6 @@ constant _ = ([
 	"_message" : 0,
     ]),
 ]);
-
-inherit PSYC.Handler.Base;
 
 MMP.Uniform to;
 
@@ -50,7 +50,7 @@ int display_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
 		MMP.Packet pt = MMP.Packet(echo, ([ "_source_relay" : group ]));
 		sendmmp(to, pt);
 	    } else {
-		P0(("PrimitiveClient", "Want to fake an _echo_context_enter but thats no context %O.\n", m["_group"]))
+		P0(("PrimitiveClient", "Want to fake an _echo_context_enter but thats no context %O.\n", m["_group"]));
 	    }
 
 	    return PSYC.Handler.STOP;
@@ -61,7 +61,7 @@ int display_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
 }
 
 int display(MMP.Packet p, mapping _v, mapping _m) {
-    PT(("PrimitiveClient", "Forwarding %O to primitive client (%O).\n", p, to))
+    PT(("PrimitiveClient", "Forwarding %O to primitive client (%O).\n", p, to));
 
     forward(p->clone());
 
