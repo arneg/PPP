@@ -581,6 +581,14 @@ void route(MMP.Packet packet, object connection) {
     switch ((target ? 1 : 0)|
 	    (source ? 2 : 0)|
 	    (context ? 4 : 0)) {
+    case 5:
+	// unicast in context-state..
+	// TODO: we dont know how to handle different states right now..
+	// maybe it can be done in Uni.pmod but then we would have to 
+	// double check
+	
+	//P0(("PSYC.Server", "unimplemented routing scheme (%d)\n", 5))
+	//break;
     case 3:
     case 1:
 	P3(("PSYC.Server", "routing %O via unicast to %s\n", packet, 
@@ -626,13 +634,6 @@ void route(MMP.Packet packet, object connection) {
 	    P0(("PSYC.Server", "<F8>hzt noone distributing messages in %O\n", 
 		context))
 	}
-	break;
-    case 5:
-	// unicast in context-state..
-	// TODO: we dont know how to handle different states right now..
-	// maybe it can be done in Uni.pmod but then we would have to 
-	// double check
-	P0(("PSYC.Server", "unimplemented routing scheme (%d)\n", 5))
 	break;
     case 6:
 	P0(("PSYC.Server", "unimplemented routing scheme (%d)\n", 6))
