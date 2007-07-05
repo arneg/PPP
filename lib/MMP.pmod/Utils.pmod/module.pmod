@@ -130,7 +130,7 @@ class Queue {
     }
 }
 
-.Queue invoke_queue = .Queue();
+.Queue invoke_queue;
 
 void late_invoker() {
     array tmp = invoke_queue->shift();
@@ -138,7 +138,11 @@ void late_invoker() {
     tmp[0](@tmp[1]);
 }
 
+//! @fixme
+//! 	Document this function.
 void invoke_later(function|object|program f, mixed ... args) {
+    if (!invoke_queue) invoke_queue = .Queue();
+
     invoke_queue->push(({ f, args }));
     call_out(late_invoker, 0);
 }
