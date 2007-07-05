@@ -129,3 +129,16 @@ class Queue {
 	return UNDEFINED;
     }
 }
+
+.Queue invoke_queue = .Queue();
+
+void late_invoker() {
+    array tmp = invoke_queue->shift();
+
+    tmp[0](@tmp[1]);
+}
+
+void invoke_later(function|object|program f, mixed ... args) {
+    invoke_queue->push(({ f, args }));
+    call_out(late_invoker, 0);
+}
