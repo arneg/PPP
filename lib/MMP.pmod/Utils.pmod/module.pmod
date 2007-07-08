@@ -141,9 +141,9 @@ void late_invoker() {
 //! Calls @expr{f@} as soon as possible from the backend thread.
 //! @note
 //! 	This basically does the same as @expr{call_out(f, 0, ...)@}, but
-//! 	call_out does not keep the order of scheduled events (well, the
+//! 	@[call_out()] does not keep the order of scheduled events (well, the
 //! 	@expr{delay@} argument to @[call_out()] may of course induce some
-//! 	order)
+//! 	order).
 void invoke_later(function|object|program f, mixed ... args) {
     if (!invoke_queue) invoke_queue = .Queue();
 
