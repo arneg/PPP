@@ -133,9 +133,11 @@ class Queue {
 .Queue invoke_queue;
 
 void late_invoker() {
-    array tmp = invoke_queue->shift();
+    function f;
+    array args;
 
-    tmp[0](@tmp[1]);
+    [f, args] = invoke_queue->shift();
+    f(@args);
 }
 
 //! Calls @expr{f@} as soon as possible from the backend thread.
