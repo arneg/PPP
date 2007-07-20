@@ -240,7 +240,7 @@ void connect(int success, Stdio.File so, MMP.Uniform id) {
 	circuits[id] = c;
 
 	while (!q->is_empty()) {
-	    call_out(q->shift(), 0, c);
+	    MMP.Utils.invoke_later(q->shift(), c);
 	}
     } else {
 	// Handle failre here!
@@ -410,7 +410,7 @@ void deliver(MMP.Uniform target, MMP.Packet packet) {
 
     if (target->handler) {
 	P3(("PSYC.Server", "Found handler in %O. calling %O.\n", target, target->handler->msg))
-	call_out(target->handler->msg, 0, packet);
+	MMP.Utils.invoke_later(target->handler->msg, packet);
 	return;
     }
     
@@ -454,7 +454,7 @@ void deliver_remote(MMP.Packet packet, MMP.Uniform root) {
 	circuits, root))
 
     if (has_index(vcircuits, root)) {
-	call_out((root->handler = vcircuits[root])->msg, 0, packet);
+	MMP.Utils.invoke_later((root->handler = vcircuits[root])->msg, packet);
 	return;
     } else {
 	MMP.VirtualCircuit vc = MMP.VirtualCircuit(root, this);
@@ -477,7 +477,7 @@ void deliver_local(MMP.Packet packet, MMP.Uniform target) {
     }
 
     target->handler = o;
-    call_out(o->msg, 0, packet);
+    MMP.Utils.invoke_later(o->msg, packet);
 }
 
 void check_source(MMP.Packet packet, object connection, function callback, mixed ... args) {
