@@ -6,6 +6,7 @@ inherit PSYC.Unl;
 //! A minimal implementation of a chatroom.
 
 object context;
+array history = ({});
 
 string _sprintf(int type) {
     if (type == 'O') {
@@ -39,6 +40,12 @@ void _leave(MMP.Uniform someone) {
     this->castmsg(uni, PSYC.Packet("_notice_context_leave"), someone);
 }
 
+void _history(MMP.Packet p) {
+  MMP.Packet entry = p->clone();
+  entry->data->vars->_time_place = time();
+  history += ({ entry });
+}
+
 //! @param uni
 //! 	Uniform of the room.
 //! @param server
@@ -55,7 +62,7 @@ void create(MMP.Uniform uniform, object server, object storage) {
 		 Public(this, sendmmp, uniform),
 		 PSYC.Handler.Subscribe(this, sendmmp, uniform),
 		 );
-    this->create_channel(uniform, _enter, _leave);
+    this->create_channel(uniform, _enter, _leave, _history);
     context = server->get_context(uniform);
 }
 
