@@ -10,10 +10,12 @@ constant _ = ([
 ]);
 
 MMP.Uniform to;
+object textdb;
 
 
-void create(object c, function s, MMP.Uniform uni, MMP.Uniform client_uni) {
+void create(object c, function s, MMP.Uniform uni, MMP.Uniform client_uni, object tdb) {
     to = client_uni;
+    textdb = tdb;
     ::create(c, s, uni);
 }
 
@@ -61,7 +63,7 @@ int display_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
 }
 
 int display(MMP.Packet p, mapping _v, mapping _m) {
-    PT(("PrimitiveClient", "Forwarding %O to primitive client (%O).\n", p, to));
+    P2(("PrimitiveClient", "Forwarding %O to primitive client (%O).\n", p, to));
 
     forward(p->clone());
 
