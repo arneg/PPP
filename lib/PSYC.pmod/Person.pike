@@ -2,6 +2,7 @@
 #include <debug.h>
 
 //! An implementation of a minimal user to which clients can be linked.
+int(0..1) is_newbie = 0;
 
 inherit PSYC.Unl;
 multiset clients = (< >);
@@ -26,6 +27,30 @@ void detach(MMP.Uniform unl) {
     clients[unl] = 0;
 
     this->castmsg(uni, PSYC.Packet("_notice_presence_absent"));
+
+    if (isNewbie()) {
+
+	void callback(int error, string key, mapping sub) {
+	    if (error != PSYC.Storage.OK) {
+		P0(("Handler.Subscribe", "leave(%O) failed because of storage.\n"))
+		return;
+	    }
+
+	    P2(("Person", "leaving all places because we are a newbie: %O\n", sub))
+
+	    foreach (sub;MMP.Uniform channel;) {
+		MMP.Utils.invoke_later(this->leave, channel);
+	    }
+	};
+
+	storage->get("places", callback);
+
+	object context = server->get_context(uni);
+
+	foreach (context->members;MMP.Uniform member;) {
+	    MMP.Utils.invoke_later(this->remove, uni, member);
+	}
+    }
 }
 
 int attached(MMP.Uniform unl) {
@@ -44,9 +69,13 @@ void check_authentication(MMP.Uniform t, function cb, mixed ... args) {
     ::check_authentication(t, cb, @args);
 }
 
-int isNewbie() {
-    return 0;
-}
+int isNewbie(void|int(0..1) i) {
+    if (zero_type(i)) {
+	return is_newbie;
+    } else {
+	return is_newbie = i;
+    }
+} 
 
 void distribute(MMP.Packet p) {
     P3(("Person", "distribute(%O)\n", p))
@@ -61,6 +90,7 @@ void distribute(MMP.Packet p) {
 	if (has_index(p->vars, "_context")) {
 	    pt["_context"] = p["_context"];
 	}
+	pt["_target"] = target;
 		
 	sendmmp(target, pt);
     }
@@ -90,6 +120,7 @@ void create(MMP.Uniform uni, object server, object storage) {
 		 );
     add_handlers(
 		 PSYC.Handler.Friendship(this, sendmmp, uni),
+		 PSYC.Handler.ClientFriendship(this, sendmmp, uni),
 		 );
 }
 
