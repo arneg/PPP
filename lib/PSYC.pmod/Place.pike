@@ -83,7 +83,7 @@ class Public {
 
     int postfilter_message_public(MMP.Packet p, mapping _v, mapping _m) {
 	
-	if (!context->contains(p->source())) {
+	if (!parent->context->contains(p->source())) {
 	    sendmsg(p->reply(), p->data->reply("_failure_message_public")); 
 	}
 
