@@ -61,7 +61,7 @@ inherit PSYC.Handler.Base;
 // how much does someone trust others...
 // trustee -> guy -> trust
 mapping(MMP.Uniform:mapping(MMP.Uniform:int)) trusted = ([]);
-mapping(MMP.Uniform:mapping(MMP.Uniform:array(function))) pending = ([]);
+mapping(MMP.Uniform:mapping(MMP.Uniform:array(mixed))) pending = ([]);
 
 constant export = ({
     "get_trust"
