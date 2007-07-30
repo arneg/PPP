@@ -541,6 +541,13 @@ class Packet {
 	return source();
     }
 
+    //! @returns
+    //!	    Returns the technical source of this packet, which is either 
+    //!     _source or _context.
+    MMP.Uniform tsource() {
+	return vars["_source"] || vars["_context"];
+    }
+
     // why do we need this? copy_value doesn't copy objects.
     //! Clones the @[Packet] - this basically means that a new @[Packet] with
     //! identical data and a first level copy of vars (@expr{vars + ([ ])@})
@@ -741,7 +748,7 @@ class Circuit {
     //! @note
     //!	    This will be called for you by @[Server].
     void activate() {
-	PT(("MMP.Circuit", "%O->activate()\n", this))
+	P3(("MMP.Circuit", "%O->activate()\n", this))
 	write_okay = 1;
 	if (write_ready) write();
     }
@@ -770,7 +777,7 @@ class Circuit {
     //!	    will be sent.
     void msg(MMP.Utils.Queue holder) {
 	P3(("MMP.Circuit", "%O->msg(%O)\n", this, holder))
-	PT(("MMP.Circuit", "%O->msg(%O) where write_ok: %O, write_ready: %O\n", this, sizeof(holder), write_okay, write_ready))
+	P3(("MMP.Circuit", "%O->msg(%O) where write_ok: %O, write_ready: %O\n", this, sizeof(holder), write_okay, write_ready))
 	push(holder);
 
 	if (write_ready) {
@@ -930,10 +937,8 @@ class Circuit {
 			if (pcount < 3) {
 			    if (!inpacket["_target"]->reconnectable) inpacket["_target"]->islocal = 1;
 			}
-			msg_cb(inpacket, this);
-		    } else {
-			P1(("MMP.Circuit", "dropped packet from %O without _target.\n", peeraddr))
 		    }
+		    msg_cb(inpacket, this);
 		    reset(); // watch out. this may produce strange bugs...
 		} else {
 		    P2(("MMP.Circuit", "Got a ping.\n"))
@@ -1242,11 +1247,12 @@ class VirtualCircuit {
     MMP.Utils.DNS.SRVReply cres;
     object server; // duh. pike really needs a way to solve "recursive"
 		   // dependencies.
-    function check_out;
+    function check_out, failure_delivery;
     // following two will be needed when a circuit breaks and can't be
     // reestablished
     string targethost;
-    int targetport;
+    int targetport, dead = 0;
+    MMP.Uniform peer;
 
     string _sprinf(int type) {
 	if (type == 's' || type == 'O') {
@@ -1267,6 +1273,8 @@ class VirtualCircuit {
     //!
     //!		    (See @[PSYC.Server()->get_uniform()]).
     //!	    @endul
+    //! @param error
+    //!     Callback to be called for packets that could not be delivered successfully.
     //! @param co
     //!	    A callback the @[VirtualCircuit] calls to check out from the server.
     //!	    Currently unused.
@@ -1274,15 +1282,17 @@ class VirtualCircuit {
     //!	    If a suiting @[Circuit] should be at hand, pass this as @expr{c@}.
     //!	    No resolving and/or connection action will then be taken until @expr{c@}
     //!	    "breaks".
-    void create(MMP.Uniform peer, object srv, function|void co,
-		MMP.Circuit|void c) {
-	P2(("VirtualCircuit", "create(%O, %O, %O)\n", peer, srv, c))
+    void create(MMP.Uniform _peer, object srv, function|void error, 
+		function|void co, MMP.Circuit|void c) {
+	P2(("VirtualCircuit", "create(%O, %O, %O)\n", _peer, srv, c))
 
+	peer = _peer;
 	targethost = peer->host;
 	targetport = peer->port;
 
 	server = srv;
 	check_out = co;
+	failure_delivery = error;
 
 	if (!c) {
 	    init();
@@ -1324,14 +1334,17 @@ class VirtualCircuit {
 	    if (cres) {
 		srv_step();
 	    } else {
+		error_unroll();
+		// this error is here to catch the port < 0 case.
+
 		// TODO:: try alternatives (srv, multiple a rr), eventually
-		// error.
+		// error. move error_unroll to the end.
 	    }
 	}
     }
 
     void connect_ip(string ip, int port) {
-	server->circuit_to(server->get_uniform("psyc://" + ip + ":" + port), on_connect);
+	server->circuit_to(peer, on_connect);
     }
 
     void connect_host(string host, int port) {
@@ -1340,6 +1353,7 @@ class VirtualCircuit {
 		connect_ip(ip, port);
 	    } else {
 		// TODO:: error
+		error_unroll();
 	    }
 	};
 
@@ -1363,6 +1377,8 @@ class VirtualCircuit {
 	    connect_host(m->target, m->port);
 	} else {
 	    destruct(cres);
+
+	    error_unroll();
 	    // TODO:: there was at least one srv-host, not reachable, so we
 	    // can't reach the target and therefore need to error!
 	}
@@ -1370,7 +1386,7 @@ class VirtualCircuit {
 
     void connect_srv() {
 	void srvcb(string query, MMP.Utils.DNS.SRVReply|int result) {
-	    PT(("VirtualCircuit", "srvcb(%O, %O)\n", query, result))
+	    P3(("VirtualCircuit", "srvcb(%O, %O)\n", query, result))
 	    if (objectp(result)) {
 		if (result->has_next()) {
 		    if (has_value(result->result->target, ".")) {
@@ -1389,10 +1405,24 @@ class VirtualCircuit {
 	MMP.Utils.DNS.async_srv("psyc-server", "tcp", targethost, srvcb);
     }
 
+    void error_unroll() {
+	dead = 1;
+	while (sizeof(this)) {
+	    MMP.Packet p = shift();
+
+	    failure_delivery(p["_target"] || peer, p);
+	}
+    }
+
     //! Sends a @[Packet] to this @[VirtualCircuit]'s target.
     //! If delivery fails, eventually opening new circuits to other
     //! (responsible) servers will be opened.
     void msg(MMP.Packet p) {
+	P2(("VirtualCircuit", "%O->msg(%O)\n", peer, p))
+	if (dead) {
+	    failure_delivery(p["_target"] || peer, p);
+	    return;
+	}
 	push(p);
 
 	if (circuit) circuit->msg(this);
