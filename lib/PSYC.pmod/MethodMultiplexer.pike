@@ -44,7 +44,7 @@ void create(object storage) {
 
 //! Add handlers.
 void add_handlers(PSYC.Handler.Base ... handlers) { 
-    PT(("MethodMultiplexer", "add_handler(%O) in %O\n", handlers, this))
+    P2(("MethodMultiplexer", "add_handler(%O) in %O\n", handlers, this))
     foreach (handlers;; PSYC.Handler.Base handler) {
 	mapping temp = handler->_;
 

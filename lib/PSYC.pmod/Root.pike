@@ -80,7 +80,7 @@ class Signaling {
 	};
 	
 	if (mappingp(_v["groups"])) {
-	    PT(("PSYC.Root", "groups: %O.\n", _v["groups"]))
+	    P3(("PSYC.Root", "groups: %O.\n", _v["groups"]))
 	    foreach (_v["groups"]; MMP.Uniform group; mapping members) {
 		object context = parent->server->get_context(group);
 
@@ -103,7 +103,7 @@ class Signaling {
     // 	master here means a top router.
     int postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m) {
 	PSYC.Packet t = p->data;
-	PT(("Root.Signaling", "%O\n", t))
+	P3(("Root.Signaling", "%O\n", t))
 
 	if (!(has_index(t->vars, "_group") && objectp(t["_group"]) 
 	      && has_index(t->vars, "_supplicant") && objectp(t["_supplicant"]))) {
@@ -242,8 +242,8 @@ class Signaling {
 	MMP.Uniform channel = m["_group"];
 	MMP.Uniform target; // who gets the _notice??
 
-	PT(("PSYC.Root", "LEAVE: %O\n", p))
-	PT(("PSYC.Root", "_notice_context_leave of %O in channel %O.\n", member, channel))
+	P2(("PSYC.Root", "LEAVE: %O\n", p))
+	P2(("PSYC.Root", "_notice_context_leave of %O in channel %O.\n", member, channel))
 
 	if (!objectp(member) || !objectp(channel)) {
 	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
@@ -255,11 +255,11 @@ class Signaling {
 			    ? (channel->channel ? channel->super : channel) 
 			    : channel->root)) {
 	    // TOP_DOWN
-	    PT(("Root", "TOP-DOWN leave!\n"))
+	    P2(("Root", "TOP-DOWN leave!\n"))
 	    target = member->is_local() ? member : member->root;
 	} else if (p->source() == (member->is_local() ? member : member->root)) {
 	    // BOTTOM_UP
-	    PT(("Root", "BOTTOM-UP leave!\n"))
+	    P2(("Root", "BOTTOM-UP leave!\n"))
 	    target = channel->is_local() ? (channel->channel ? channel->super : channel) : channel->root;
 	} else {
 	    P0(("Root", "%O: Got channel leave for context %O from %O. denied.\n", uni, channel, p->source()))

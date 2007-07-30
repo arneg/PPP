@@ -34,7 +34,7 @@ void create(object o, function f, object u) {
 }
 
 void init(mapping vars) {
-    PT(("Handler.Friendship", "Init of %O. vars: %O\n", parent, vars))
+    P3(("Handler.Friendship", "Init of %O. vars: %O\n", parent, vars))
     
     if (!mappingp(vars["peers"])) {
 	void callback(int error, string key) {
@@ -80,7 +80,7 @@ int postfilter_notice_friendship_offered(MMP.Packet p, mapping _v, mapping _m) {
 }
 
 void request_friend(MMP.Uniform guy, function callback, mixed ... args)	{
-    PT(("Handler.Friendship", "%O: Friend request from %O.\n", parent, guy))
+    P3(("Handler.Friendship", "%O: Friend request from %O.\n", parent, guy))
     
     void cb(int error, string key, mixed peers) {
 
@@ -90,8 +90,8 @@ void request_friend(MMP.Uniform guy, function callback, mixed ... args)	{
 	}
 
 	enforcer(mappingp(peers), "peers from storage not a mapping.\n");
-	PT(("Handler.Friendship", "peer data structure: %O\n", peers))
-	PT(("Handler.Friendship", "extra args: %O\n", args))
+	P3(("Handler.Friendship", "peer data structure: %O\n", peers))
+	P3(("Handler.Friendship", "extra args: %O\n", args))
 
 	if (has_index(peers, guy)) {
 	    mixed spec = peers[guy];
@@ -113,7 +113,7 @@ void request_friend(MMP.Uniform guy, function callback, mixed ... args)	{
 }
 
 void request_unfriend(MMP.Uniform guy) {
-    PT(("Person", "%O: %O removes his friendship.\n", this, guy))  
+    P3(("Person", "%O: %O removes his friendship.\n", this, guy))  
     if (MMP.is_place(guy)) {
 	// this is a reason to leave..
 	parent->leave(guy);
