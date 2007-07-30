@@ -63,7 +63,7 @@ constant export = ({
 });
 
 void init(mapping vars) {
-    PT(("Handler.Subscribe", "Initing Handler.Subscribe of %O. vars: %O\n", parent, vars))
+    P3(("Handler.Subscribe", "Initing Handler.Subscribe of %O. vars: %O\n", parent, vars))
     
     if (!mappingp(vars["places"])) {
 	void callback(int error, string key) {
@@ -87,15 +87,20 @@ int has_context(MMP.Packet p, mapping _m) {
 int not_us(MMP.Packet p, mapping _m) {
     mapping vars = p->data->vars;
 
+    if (p["_source_relay"] != uni) {
+	// we did not leave!
+	return 0;
+    }
+
     if (has_index(vars, "_group")) {
 	MMP.Uniform group = vars["_group"];
 	if (group->channel ? group->super : group == uni) {
-	    PT(("Handler.Subscribe", "not_us check in %O false.\n", vars))
+	    P3(("Handler.Subscribe", "not_us check is false for %O.\n", p))
 	    return 0;
 	}
     }
     
-    PT(("Handler.Subscribe", "not_us check in %O is true.\n", vars))
+    P3(("Handler.Subscribe", "not_us check is true for %O.\n", p))
     return 1;
 }
 
@@ -271,7 +276,7 @@ void enter(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 	    } else if (error_cb) {
 		error_cb(0, @args);	
 	    } else {
-		PT(("Handler.Subscribe", "enter() was successfull. but noone realized.\n"))
+		P3(("Handler.Subscribe", "enter() was successfull. but noone realized.\n"))
 	    }
 	};
 

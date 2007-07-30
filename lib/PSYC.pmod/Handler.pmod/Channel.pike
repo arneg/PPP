@@ -61,15 +61,15 @@ constant export = ({
 int is_us(MMP.Packet p, mapping _m) {
     mapping vars = p->data->vars;
 
-    if (has_index(vars, "_group")) {
+    if (!has_index(p->vars, "_context") && has_index(vars, "_group")) {
 	MMP.Uniform group = vars["_group"];
 	if ((group->channel ? group->super : group) == uni) {
-	    PT(("Handler.Channel", "is_us check in %O true.\n", vars))
+	    P2(("Handler.Channel", "is_us check true for %O.\n", p))
 	    return 1;
 	}
     }
     
-    PT(("Handler.Channel", "is_us check in %O is false.\n", vars))
+    P2(("Handler.Channel", "is_us check is false for %O.\n", p))
     return 0;
 }
 
@@ -117,7 +117,7 @@ void postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m, func
     MMP.Uniform group = m["_group"];
     MMP.Uniform supplicant = m["_supplicant"];
 
-    PT(("Handler.Channel", "%O: request to enter %O from %O.\n", parent, group, source))
+    P2(("Handler.Channel", "%O: request to enter %O from %O.\n", parent, group, source))
 
     if (!has_index(callbacks, group)) {
 	// blub
@@ -142,7 +142,7 @@ void postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m, func
 	return;
     }
 
-    PT(("Handlers.Channel", "cb: %O. sup: %O, callb: %O\n", callbacks[group][ENTER], supplicant, callback))
+    P2(("Handlers.Channel", "cb: %O. sup: %O, callb: %O\n", callbacks[group][ENTER], supplicant, callback))
     callbacks[group][ENTER](supplicant, callback, p);
 
     call_out(cb, 0, PSYC.Handler.STOP);
@@ -183,7 +183,7 @@ void remove(MMP.Uniform channel, MMP.Uniform entity) {
 //! 	This method will throw if @expr{channel@} is the default channel
 //! 	as entities cannot be forced into it.
 void add(MMP.Uniform channel, MMP.Uniform entity) {
-    PT(("Handler.Channel", "%O->add(%O)\n", channel, entity))
+    P2(("Handler.Channel", "%O->add(%O)\n", channel, entity))
 
     enforcer(has_index(callbacks, channel), 
 	     "Trying to add someone to nonexisting channel.\n");
@@ -209,7 +209,7 @@ void add(MMP.Uniform channel, MMP.Uniform entity) {
 //! @throws
 //! 	If the @expr{channel@} has never been created.
 void castmsg(MMP.Uniform channel, PSYC.Packet m, MMP.Uniform source_relay) {
-    PT(("Handler.Channel", "%O->castmsg(%O, %O)\n", channel, m, source_relay))
+    P2(("Handler.Channel", "%O->castmsg(%O, %O)\n", channel, m, source_relay))
 
     if (!has_index(callbacks, channel)) {
 	THROW(("Handlers.Channel", "%O is very unlikely to contain anyone as you never created it.\n", channel));
