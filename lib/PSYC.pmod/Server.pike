@@ -99,7 +99,7 @@ void add_route(MMP.Uniform target, object circuit) {
     P1(("PSYC.Server", "add_route(%O, %O) as %O.\n", target, circuit, target->root))
 
     if (!has_index(vcircuits, target->root)) {
-	vcircuits[target->root] = MMP.VirtualCircuit(target, this, 0, circuit);
+	vcircuits[target->root] = MMP.VirtualCircuit(target, this, failure_delivery, 0, circuit);
     }
 }
 
@@ -233,24 +233,28 @@ void accept(Stdio.Port lsocket) {
 }
 
 void connect(int success, Stdio.File so, MMP.Uniform id) {
+    PT(("PSYC.Server", "connect(%O, %O, %O)\n", success, so, id))
+    MMP.Circuit c = 0;
+
     if (success) {
-	MMP.Circuit c = MMP.Active(so, check, close, get_uniform);
-	MMP.Utils.Queue q = m_delete(wf_circuits, id);
+	c = MMP.Active(so, check, close, get_uniform);
 
-	circuits[id] = c;
+	circuits[c->peeraddr] = c;
 
-	while (!q->is_empty()) {
-	    MMP.Utils.invoke_later(q->shift(), c);
-	}
     } else {
-	// Handle failre here!
 	P0(("PSYC.Server", "Connection to %O failed.\n", so))
+    }
+
+    MMP.Utils.Queue q = m_delete(wf_circuits, id);
+
+    while (!q->is_empty()) {
+	MMP.Utils.invoke_later(q->shift(), c);
     }
 }
 
 void close(MMP.Circuit c) {
     P0(("PSYC.Server", "%O->close(%O)\n", this, c))
-    m_delete(circuits, c->socket->peerhost);
+    m_delete(circuits, c->peeraddr);
     //c->peeraddr->handler = UNDEFINED;
 }
 
@@ -305,6 +309,7 @@ MMP.Uniform get_uniform(string unl) {
 
 	if (t->resource) {
 	    t->root = get_uniform(t->scheme+":"+t->slashes+t->hostPort);
+	    t->root->reconnectable = t->reconnectable;
 	} else { // cycle cycle cycle
 	    t->root = t;
 	}
@@ -344,8 +349,8 @@ void _if_localhost(MMP.Uniform candidate, function if_cb, function else_cb,
 
     if (!port) port = candidate->port;
 
-    if (has_index(localhosts, candidate->host + ":" + (port ? port : 4404)) 
-	    || candidate->is_local()) {
+    if (candidate->is_local() || 
+	has_index(localhosts, candidate->host + ":" + (port ? port : 4404))) {
 	if_cb(@args);
     } else if (MMP.Utils.Net.is_ip(candidate->host)) {
 	else_cb(@args);
@@ -421,26 +426,48 @@ void deliver(MMP.Uniform target, MMP.Packet packet) {
 
 void circuit_to(MMP.Uniform target, function(MMP.Circuit:void) cb) {
 
+    PT(("PSYC.Server", "circuit_to(%O, %O)\n", target, cb))
+    PT(("PSYC.Server", "circuits: %O, wf_circuits: %O\n", circuits, wf_circuits))
+
     if (has_index(circuits, target)) {
 	cb(circuits[target]);
     } else if (has_index(wf_circuits, target)) {
 	wf_circuits[target]->push(cb);
-    } else {
+    } else if (target->reconnectable) {
 	Stdio.File so;
 
 	wf_circuits[target] = MMP.Utils.Queue();
 	wf_circuits[target]->push(cb);
 
-	P2(("PSYC.Server", "Opening a connection to %O.\n", target))
+	PT(("PSYC.Server", "Opening a connection to %O.\n", target))
 
 	so = Stdio.File();
 
 	if (bind_to) {
 	    enforcer(so->open_socket(UNDEFINED, bind_to),
-		     sprintf("Binding to %O failed.\n"));
+		     sprintf("Binding to %O failed.\n", bind_to));
 	}
 
-	so->async_connect(target->host, target->port, connect, so, target);
+	so->async_connect(target->host, target->port ? target->port : 4404, connect, so, target);
+    } else { // negative port.. react
+	cb(0);	
+    }
+}
+
+
+void failure_delivery(MMP.Uniform target, MMP.Packet p, void|mixed reason) {
+    PT(("PSYC.Server", "failure_delivery(%O)\n", p))
+    if (objectp(p->data)) {
+	if (!PSYC.abbrev(p->data->mc, "_failure_delivery")) {
+	    PSYC.Packet reply = p->data->reply("_failure_delivery", 
+					       ([
+					"_id" : p->id(),
+					"_location" : target,
+						 ]));
+	    root->sendmmp(p->tsource(), MMP.Packet(reply));
+	} else {
+	    P0(("PSYC.Server", "a _failure_delivery could not be delivered: %O, %O\n", p, reason))
+	}
     }
 }
 
@@ -457,7 +484,7 @@ void deliver_remote(MMP.Packet packet, MMP.Uniform root) {
 	MMP.Utils.invoke_later((root->handler = vcircuits[root])->msg, packet);
 	return;
     } else {
-	MMP.VirtualCircuit vc = MMP.VirtualCircuit(root, this);
+	MMP.VirtualCircuit vc = MMP.VirtualCircuit(root, this, failure_delivery);
 
 	vcircuits[root] = vc;
 	vc->msg(packet);
@@ -473,6 +500,7 @@ void deliver_local(MMP.Packet packet, MMP.Uniform target) {
     if (!o) {
 	P0(("PSYC.Server", "Could not summon a local object for %O.\n",
 	    target))
+	failure_delivery(target, packet);	
 	return;
     }
 
@@ -484,6 +512,7 @@ void check_source(MMP.Packet packet, object connection, function callback, mixed
     MMP.Uniform source;
 
     void cb(mapping ips) {
+	PT(("Server", "ips: %O, ip: %O.\n", ips, connection->peerip))
 	if (ips && has_index(ips, connection->peerip)) {
 	    call_out(callback, 0, 1, @args);
 	} else {
@@ -496,8 +525,17 @@ void check_source(MMP.Packet packet, object connection, function callback, mixed
 	// THIS IS REMOTE
 	packet["_source"] = source;
 	call_out(callback, 0, 1, @args);
+	return;
+    }
+    
+    source = packet["_source"];
+    if (MMP.Utils.Net.is_ip(source->host)) {
+	if (source->host == connection->peerip) {
+	    call_out(callback, 0, 1, @args);
+	} else {
+	    call_out(callback, 0, 0, @args);
+	}
     } else {
-	source = packet["_source"];
 	MMP.Utils.DNS.async_srv_to_all_ip(source->host, cb);
     }
 }
@@ -515,8 +553,17 @@ void check_context(MMP.Packet packet, object connection, function callback, mixe
 
     if (!has_index(packet->vars, "_context")) {
 	call_out(callback, 0, 1, @args);
+	return;
+    }
+
+    context = packet["_context"];
+    if (MMP.Utils.Net.is_ip(context->host)) {
+	if (context->host == connection->peerip) {
+	    call_out(callback, 0, 1, @args);
+	} else {
+	    call_out(callback, 0, 0, @args);
+	}
     } else {
-	context = packet["_context"];
 	MMP.Utils.DNS.async_srv_to_all_ip(context->host, cb);
     }
 }
@@ -582,6 +629,7 @@ void route(MMP.Packet packet, object connection) {
 	    (source ? 2 : 0)|
 	    (context ? 4 : 0)) {
     case 5:
+    case 7:
 	// unicast in context-state..
 	// TODO: we dont know how to handle different states right now..
 	// maybe it can be done in Uni.pmod but then we would have to 
@@ -638,10 +686,6 @@ void route(MMP.Packet packet, object connection) {
     case 6:
 	P0(("PSYC.Server", "unimplemented routing scheme (%d)\n", 6))
 	// bullshit.. 
-	break;
-    case 7:
-	P0(("PSYC.Server", "unimplemented routing scheme (%d)\n", 7))
-	// even more bullshit
 	break;
     }
 }
