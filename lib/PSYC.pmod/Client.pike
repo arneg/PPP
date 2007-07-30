@@ -88,6 +88,11 @@ void distribute(MMP.Packet p) {
     P3(("PSYC.Client", "Noone using %O. Dropping %O.\n", this, p->data->data))
 }
 
+void unlink() {
+    detach();
+    sendmmp(link_to, MMP.Packet(PSYC.Packet("_request_unlink")));
+}
+
 //! Same as standard @[PSYC.Unl()->sendmmp()] but it identifies
 //! as the person we linked to using PSYC.Authentication. It
 //! is therefore a way to send packets @i{from@} the client @i{as@} the 
