@@ -30,6 +30,7 @@ inherit PSYC.Handler.Base;
 //! Openheartedly uses the "password" storage variable.
 
 constant _ = ([
+    "_" : ({ "_password" }),
     "prefilter" : ([
 	"" : 0,
     ]),
@@ -37,8 +38,15 @@ constant _ = ([
 	"_request_link" : ({ "password" }),
 	"_request_unlink" : 0,
 	"_set_password" : ({ "password" }),
+	"_failure_delivery" : 0,
     ]),
 ]);
+
+int init(mapping _v) {
+    parent->isNewbie(!stringp(_v["password"]));
+
+    set_inited(1);
+}
 
 int prefilter(MMP.Packet p, mapping _v, mapping _m) {
     
@@ -46,6 +54,17 @@ int prefilter(MMP.Packet p, mapping _v, mapping _m) {
 	_m["itsme"] = 1;
     } else {
 	_m["itsme"] = 0;
+    }
+
+    return PSYC.Handler.GOON;
+}
+
+int postfilter_failure_delivery(MMP.Packet p, mapping _v, mapping _m) {
+    PSYC.Packet m = p->data;
+
+    if (MMP.is_uniform(m["_location"]) && parent->attached(m["_location"])) {
+	parent->detach(m["_location"]);
+	PT(("Person", "%O unlinked from %O because of delivery_failure.", m["_location"], parent))
     }
 
     return PSYC.Handler.GOON;
