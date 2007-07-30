@@ -39,8 +39,7 @@ void create(MMP.Uniform client_u, object server, MMP.Uniform person, string|void
 				   client_uniform),
 	// person uniform here to enter the uni.
 	PSYC.Handler.Subscribe(client, client->client_sendmmp, person),
-	PSYC.Handler.DisplayForward(client, client->client_sendmmp, client->uni, 
-		       client_uniform),
+	PSYC.Handler.DisplayForward(client, client->client_sendmmp, client->uni, client_uniform, textdb),
 	PSYC.Handler.ClientFriendship(client, client->client_sendmmp, 
 				      client->uni),
 	PSYC.Handler.Do(client, client->client_sendmmp, client->uni),
