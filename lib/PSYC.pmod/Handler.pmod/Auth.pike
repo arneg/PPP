@@ -25,14 +25,61 @@ constant _ = ([
     ]),
     "postfilter" : ([
 	"_request_authentication" : 0,
+	"_request_authenticate" : 0,
+	"_request_authenticate_remove" : 0,
     ]),
 ]);
+
+constant export = ({ "authenticate" });
 
 mapping(MMP.Uniform:MMP.Uniform) unl2uni = ([ ]);
 // we may have several people representing the same .. guy. they all want some
 // piece of the cake
 mapping(MMP.Uniform:MMP.Uniform|array(MMP.Uniform)) uni2unl = ([]);
 mapping(MMP.Uniform:mapping(MMP.Uniform:array(function))) pending = ([ ]);
+multiset(MMP.Uniform) authenticated = (<>);
+
+void authenticate(MMP.Uniform t) {
+    authenticated[t] = 1;
+}
+
+int postfilter_request_authenticate(MMP.Packet p, mapping _v, mapping _m) {
+    PSYC.Packet m = p->data;
+
+    if (!_m["itsme"]) {
+	sendmsg(p->reply(), m->reply("_failure_invalid_request_authenticate"));
+	return PSYC.Handler.STOP;
+    }
+
+    if (!has_index(m->vars, "_location") || !MMP.is_uniform(m["_location"])) {
+	sendmsg(p->reply(), m->reply("_error_invalid_request_authenticate"));
+	return PSYC.Handler.STOP;
+    }
+
+    authenticate(m["_location"]);
+
+    return PSYC.Handler.STOP;
+}
+
+int postfilter_request_authenticate_remove(MMP.Packet p, mapping _v, mapping _m) {
+    PSYC.Packet m = p->data;
+
+    if (!_m["itsme"]) {
+	sendmsg(p->reply(), m->reply("_failure_invalid_request_authenticate_remove"));
+	return PSYC.Handler.STOP;
+    }
+
+    if (!has_index(m->vars, "_location") || !MMP.is_uniform(m["_location"])) {
+	sendmsg(p->reply(), m->reply("_error_invalid_request_authenticate_remove"));
+	return PSYC.Handler.STOP;
+    }
+
+    while (authenticated[m["_location"]]) { 
+	authenticated[m["_location"]]--;
+    }
+
+    return PSYC.Handler.STOP;
+}
 
 void auth_reply(int s, MMP.Packet p) {
     PSYC.Packet m = p->data;
@@ -53,8 +100,10 @@ int postfilter_request_authentication(MMP.Packet p, mapping _v, mapping _m) {
 	sendmsg(p->reply(), m->reply("_error_invalid_request_authentication"));
 	return PSYC.Handler.STOP;
     }
-    
-    parent->check_authentication(m["_location"], auth_reply, p);
+
+    if (has_index(authenticated, m["_location"])) {
+	call_out(auth_reply, 0, 1, p);
+    } else parent->check_authentication(m["_location"], auth_reply, p);
 
     return PSYC.Handler.STOP;
 }
@@ -123,11 +172,17 @@ int has_identification(MMP.Packet p, mapping _v) {
 
 void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
 
-    P3(("Auth.Handler", "Handling identification of %O.\n", p->vars))
+    PT(("Auth.Handler", "Handling identification of %O.\n", p->vars))
+    PT(("Auth.Handler", "misc: %O.\n", _m))
 
     // why are we not using send_tagged here???
     MMP.Uniform id = p["_source_identification"];	
     MMP.Uniform s = p["_source"];
+
+    if (id == uni && _m["itsme"]) { // self auth
+	call_out(cb, 0, PSYC.Handler.GOON);
+	return;
+    }
 
     if (!has_index(unl2uni, s) || (unl2uni[s] != id && m_delete(unl2uni, s))) {
 	if (!has_index(pending, s)) {
