@@ -825,7 +825,7 @@ class Circuit {
 		[s, tmp] = tmp;
 		// it seems more logical to me, to put all this logic into
 		// close.
-		if (tmp) realQ->shift();
+		if (tmp) (realQ = shift())->shift();
 	    } else /* if (objectp(tmp)) */ {
 		s = tmp->next();
 		if (tmp->has_next()) {
@@ -845,6 +845,7 @@ class Circuit {
 	    if (written != sizeof(s)) {
 		if (realQ) {
 		    q_neg->unshift(({ s[written..], tmp }));
+		    unshift(realQ);
 		    realQ->unshift(tmp);	
 		} else {
 		    q_neg->unshift(({ s[written..], 0 }));
