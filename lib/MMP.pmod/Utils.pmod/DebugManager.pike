@@ -2,6 +2,8 @@ mapping(string:int) cat = ([]);
 mapping(string:object) stderrs = ([]);
 mapping(string:int(0..1)) bt = ([]);
 
+int(0..1) dbt;
+
 int default_lvl = 0;
 object default_stderr;
 // categories of debug -> their current levels
@@ -17,6 +19,20 @@ int get_default_debug() {
 
 void set_default_stderr(object o) {
     default_stderr = o;
+}
+
+void set_default_backtrace(int(0..1) i) {
+    dbt = i;
+}
+
+int(0..1) unset_default_backtrace() {
+    int i = dbt;
+
+    dbt = 0;
+    return i;
+}
+int(0..1) get_default_backtrace() {
+    return dbt;
 }
 
 object unset_default_stderr() {
@@ -86,7 +102,7 @@ string diff_paths(string f1, string f2) {
 
 void debug(string c, int lvl, string fmt, mixed ... args) {
     if ((has_index(cat, c) && cat[c] >= lvl) || default_lvl >= lvl) {
-	if (bt[c]) {
+	if (dbt && !has_index(bt, c) || bt[c]) {
 	    array backtrace = backtrace();
 	   
 	    Pike.BacktraceFrame debug, fun;
@@ -139,7 +155,7 @@ void do_throw(string c, string fmt, mixed ... args) {
     string s = sprintf(fmt, @args);
     array trace;
 
-    if (bt[c]) {
+    if (dbt && !has_index(bt, c) || bt[c]) {
 	trace = backtrace();
 	trace = trace[..sizeof(trace) - 2];
     }
