@@ -97,25 +97,20 @@ string diff_paths(string f1, string f2) {
     return npath * "/";
 }
 
-void debug(string|multiset c, mixed ... args) {
+void debug(string|mapping(string:int) c, mixed ... args) {
     // lvl, fmt
     string fmt;
 
-    if (multisetp(c)) {
+    if (mappingp(c)) {
 	fmt = args[0];
 	args = args[1..];
     } else {
-	c = (< ({ c, args[0] }) >);
+	c = ([ c : args[0] ]);
 	fmt = args[1];
 	args = args[2..];
     }
 
-    foreach (c; array strct;) {
-	string c;
-	int lvl;
-
-	[c, lvl] = strct;
-
+    foreach (c; string c; int lvl) {
 	if ((has_index(cat, c) && cat[c] >= lvl) || default_lvl >= lvl) {
 	    if (dbt && !has_index(bt, c) || bt[c]) {
 		array backtrace = backtrace();
