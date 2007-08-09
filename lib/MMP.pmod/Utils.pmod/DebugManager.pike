@@ -48,7 +48,6 @@ object get_default_stderr() {
 
 void set_debug(string c, int lvl) {
     cat[c] = lvl;
-    werror("%O %O %O\n", cat, c, lvl);
 }
 
 int unset_debug(string c) {
@@ -89,9 +88,7 @@ string diff_paths(string f1, string f2) {
 	for (int i = sizeof(a2); i < sizeof(a1); i++) {
 	    npath += ({ ".." });
 	}
-	npath += ({ a2[-1] });
     } else {
-	npath += ({ a2[i] });
 	for (int i = sizeof(a1); i < sizeof(a2); i++) {
 	    npath += ({ a2[i] });
 	}
@@ -100,41 +97,60 @@ string diff_paths(string f1, string f2) {
     return npath * "/";
 }
 
-void debug(string c, int lvl, string fmt, mixed ... args) {
-    if ((has_index(cat, c) && cat[c] >= lvl) || default_lvl >= lvl) {
-	if (dbt && !has_index(bt, c) || bt[c]) {
-	    array backtrace = backtrace();
-	   
-	    Pike.BacktraceFrame debug, fun;
-	    debug = backtrace[-1];
-	    fun = backtrace[-2];
+void debug(string|multiset c, mixed ... args) {
+    // lvl, fmt
+    string fmt;
 
-	    string nfmt = "%s:%d:%s(";
+    if (multisetp(c)) {
+	fmt = args[0];
+	args = args[1..];
+    } else {
+	c = (< ({ c, args[0] }) >);
+	fmt = args[1];
+	args = args[2..];
+    }
 
-	    array t = ({ "%O" }) * (sizeof(fun) - 3);
-	    array funargs = ({ });
+    foreach (c; array strct;) {
+	string c;
+	int lvl;
 
-	    nfmt += t * ", " + ")\t";
-	    fmt = nfmt + fmt;
+	[c, lvl] = strct;
 
-	    for (int i = 3; i < sizeof(fun); i++) {
-		funargs += ({ fun[i] });
+	if ((has_index(cat, c) && cat[c] >= lvl) || default_lvl >= lvl) {
+	    if (dbt && !has_index(bt, c) || bt[c]) {
+		array backtrace = backtrace();
+	       
+		Pike.BacktraceFrame fun;
+		fun = backtrace[-2];
+
+		string nfmt = "%s:%d:%s(";
+
+		array t = ({ "%O" }) * (sizeof(fun) - 3);
+		array funargs = ({ });
+
+		nfmt += t * ", " + ")\t";
+		fmt = nfmt + fmt;
+
+		for (int i = 3; i < sizeof(fun); i++) {
+		    funargs += ({ fun[i] });
+		}
+		
+		string path = diff_paths(getcwd(), fun[0]);
+		if (sizeof(path) > sizeof(fun[0])) {
+		    path = fun[0];
+		}
+
+		args = ({path, fun[1], function_name(fun[2])||"!!!UNKNOWN!!!" }) + funargs + args;
+
+		if (stderrs[c]) {
+		    stderrs[c]->write(fmt, @args);
+		} else if (default_stderr) {
+		    default_stderr->write(fmt, @args);
+		} else {
+		    werror(fmt, @args);
+		}
+		return;
 	    }
-	    
-	    string path = diff_paths(getcwd(), debug[0]);
-	    if (sizeof(path) > sizeof(debug[0])) {
-		path = debug[0];
-	    }
-
-	    args = ({path, debug[1], function_name(fun[2])||"!!!UNKNOWN!!!" }) + funargs + args;
-	}
-
-	if (stderrs[c]) {
-	    stderrs[c]->write(fmt, @args);
-	} else if (default_stderr) {
-	    default_stderr->write(fmt, @args);
-	} else {
-	    werror(fmt, @args);
 	}
     }
 }
