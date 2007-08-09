@@ -4,9 +4,6 @@ void create(DebugManager s) {
     server = s;
 }
 
-void debug(mixed ... args) {
-    server->debug(@args);
-}
-
 // so the backtrace won't get messed up
+function debug = server->debug;
 function do_throw = server->do_throw;
