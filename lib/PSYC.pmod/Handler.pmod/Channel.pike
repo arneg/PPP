@@ -55,7 +55,7 @@ constant _ = ([
 ]);
 
 constant export = ({
-    "castmsg", "create_channel", "remove"
+    "castmsg", "create_channel", "remove", "channel_exists"
 });
 
 int is_us(MMP.Packet p, mapping _m) {
@@ -71,6 +71,10 @@ int is_us(MMP.Packet p, mapping _m) {
     
     P2(("Handler.Channel", "is_us check is false for %O.\n", p))
     return 0;
+}
+
+int channel_exists(MMP.Uniform channel) {
+    return has_index(callbacks, channel);
 }
 
 //! Creates a channel.
