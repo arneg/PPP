@@ -44,7 +44,9 @@ int display_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
     if (has_index(p->vars, "_source_relay")) {
 	MMP.Uniform sr = p["_source"];
 
-	if (sr == parent->link_to) {
+	// not sure if this check is save. maybe not. can we send a msg through
+	// the person containing a faked join?
+	if (sr == parent->link_to && m["_supplicant"] == parent->link_to) {
 	    PSYC.Packet echo = PSYC.Packet("_echo_context_enter");
 	    mixed group = m["_group"];
 
