@@ -42,6 +42,7 @@ void _leave(MMP.Uniform someone) {
 
 void _history(MMP.Packet p) {
   MMP.Packet entry = p->clone();
+  entry->data = entry->data->clone(); // assume psyc packet...
   entry->data->vars->_time_place = time();
   history += ({ entry });
 }
