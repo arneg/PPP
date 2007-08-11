@@ -17,7 +17,7 @@ constant GOON = 1;
 
 //! Constant for telling the @[PSYC.MethodMultiplexer] framework to stop
 //! processing.
-constant STOP = 0;
+constant STOP = 4;
 
 //! Constant for telling the @[PSYC.MethodMultiplexer] framework to pass on
 //! the packet to the display handler without further processing.
