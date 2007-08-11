@@ -49,8 +49,9 @@ int init(mapping _v) {
 }
 
 int prefilter(MMP.Packet p, mapping _v, mapping _m) {
+    MMP.Uniform source = p["_source"];
     
-    if (parent->attached(p->source()) || p->source() == uni) {
+    if (parent->attached(source) || source == uni) {
 	_m["itsme"] = 1;
     } else {
 	_m["itsme"] = 0;
@@ -73,16 +74,17 @@ int postfilter_failure_delivery(MMP.Packet p, mapping _v, mapping _m) {
 int postfilter_request_link(MMP.Packet p, mapping _v, mapping _m) {
 
     PSYC.Packet m = p->data;
+    MMP.Uniform source = p["_source"];
 
     if (stringp(_v["password"])) {
 	if (!has_index(m->vars, "_password")) {
-	    sendmsg(p["_source"], m->reply("_query_password"));
+	    sendmsg(source, m->reply("_query_password"));
 	    return PSYC.Handler.STOP;
 	}
 
 	P3(("PSYC.Handler.Link", "comparing %O and %O.\n", _v["password"], m->vars["_password"]))
 	if (_v["password"] != m->vars["_password"]) {
-	    sendmsg(p["_source"], m->reply("_error_invalid_password"));
+	    sendmsg(source, m->reply("_error_invalid_password"));
 	    return PSYC.Handler.STOP;
 	}
     }
@@ -94,14 +96,14 @@ int postfilter_request_link(MMP.Packet p, mapping _v, mapping _m) {
 	// TODO: this will add multiple handlers. not fatal, wont produce bugs. but we
 	// need some way to check if some handler has been added already. same stuff
 	// is needed for removal
-	object o = PSYC.PrimitiveClient(p->source(), parent->server, uni, stringp(_v["_password"]) && m["_password"]);
+	object o = PSYC.PrimitiveClient(source, parent->server, uni, stringp(_v["_password"]) && m["_password"]);
 	return PSYC.Handler.STOP;
     } else 
 //#endif
-	parent->attach(p->source());
+	parent->attach(source);
     
 
-    sendmsg(p->source(), m->reply("_notice_link"));	
+    sendmsg(source, m->reply("_notice_link"));	
     return PSYC.Handler.STOP;
 }
 
