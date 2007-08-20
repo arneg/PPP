@@ -169,7 +169,7 @@ void process(MMP.Packet reply, mapping _v, MMP.Uniform trustee,
 
 }
 
-void postfilter_notice_trustiness(MMP.Packet p, mapping _v, mapping _m) {
+int postfilter_notice_trustiness(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
     MMP.Uniform trustee = p->source();
     MMP.Uniform location = (m->vars["_location"] = m->vars["_location"]);
