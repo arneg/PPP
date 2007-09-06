@@ -43,8 +43,10 @@ void remove(MMP.Uniform u) {
 	return;
     } else {
 	if (has_index(routes, u->root)) {
-	    if (routes[u->root] == 1) {
+	    if (routes[u->root] <= 1) {
 		m_delete(routes, u->root);
+	    } else {
+		routes[u->root]--;
 	    }
 	}
     }
