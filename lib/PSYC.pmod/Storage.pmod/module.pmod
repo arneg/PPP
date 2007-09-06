@@ -50,3 +50,4 @@ void multifetch(object storage, multiset locked_vars, multiset vars, function ca
 	call_out(callback, 0, new, @args);
     }
 }
+

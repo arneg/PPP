@@ -11,8 +11,8 @@ function wrapped_get(function fun, string key, mixed ... args) {
 	    if (key1 == key) {
 		fun(value, @args, @args1);
 	    } else {
-		P0(("PSYC.Storage", "%O: data with wrong name from storage (%O instead of 'members').\n", this, key))
-		fun(UNDEFINED);
+		P0(("PSYC.Storage", "%O: data with wrong name from storage (%O instead of %O).\n", this, key1, key))
+		fun(UNDEFINED, @args, @args1);
 	    }
 	}
 

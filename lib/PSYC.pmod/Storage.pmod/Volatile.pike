@@ -7,6 +7,8 @@ import .module;
 #define GET	2
 #define LOCK	4
 
+inherit PSYC.Storage.Base;
+
 //! Basic storage class that operates on a mapping/object.
 //! Does locking and request queueing.
 
