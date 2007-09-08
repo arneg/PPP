@@ -4,6 +4,7 @@ constant Uniform 	= 1 << __LINE__;
 constant BEGIN_MODIFIERS = (1 << __LINE__) - 1;
 constant Place 		= 1 << __LINE__;
 constant Person		= 1 << __LINE__;
+constant Channel	= 1 << __LINE__;
 //! Type-constants for Command specifications.
 //! @expr{BEGIN_MODIFIERS@} obviously is not a type but a hack. Beware of!
 //!
@@ -17,13 +18,17 @@ constant Person		= 1 << __LINE__;
 //! 		be parsed to @expr{int@} accordingly.
 //! 	@value Uniform
 //! 		A string consting of a uniform is expected and will
-//! 		be parsed to @[MMP.Uniform] accordingly.
+//! 		be parsed to @[MMP.Uniform] accordingly. In case of nicknames
+//! 		a Uniform defaults to Person.
 //! 	@value Place
 //! 		A uniform of a Place. Will be parsed as the nickname or
 //! 		uniform of a Place and 'return' @[MMP.Uniform].
 //! 	@value Person
 //! 		A uniform of a Person. Will be parsed as the nickname or
 //! 		uniform of a Person and 'return' @[MMP.Uniform].
+//! 	@value Channel
+//! 		A uniform of a channel. In case of a nickname a Uniform defaults
+//! 		to a place if neither Place or Person are chosen.
 //! @endint
 //! 
 //! Additional commands may be implemented using programs. 
@@ -90,13 +95,17 @@ array parse(int|object|program type, string data, object ui, void|array(mixed) a
 
 	    if (!temp[0]) return temp;
 
-	    if (type & Place) {
+	    if (type & Place || (type & (Channel|Person) == Channel)) {
 		u = ui->client->room_to_uniform(temp[1]);
 	    } else {
 		u = ui->client->user_to_uniform(temp[1]);	
 	    }
 
 	    if (u) {
+		if (type & Channel && !u->channel) {
+		    return ({ 0, "The given Uniform is not Channel." });
+		}
+
 		return ({ temp[0], u });
 	    }
 
