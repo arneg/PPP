@@ -4,35 +4,85 @@
 inherit PSYC.Handler.Base;
 
 constant _ = ([ 
-    
+    "" : ([ "lock" : ({ "members" }) ]),
+    "filter" : ([
+	"" : ({ "members" }),		
+    ]),
+    "postfilter" : ([
+	"_request_members" : ({ "members" }),
+    ]),
 ]);
 
-constant export = ({ "leave", "enter", "members" });
+constant export = ({ "leave", "enter", "low_enter", "low_leave" });
 
-void enter() {
-    
+void create(mixed ... args) {
+    ::create(@args);
+
+    enter = parent->storage->wrapped_get_lock(low_enter, "members");
+    leave = parent->storage->wrapped_get_lock(low_leave, "members");
 }
 
-void leave() {
-
-}
-
-//! Callback will be called with the mapping of members as the first argument, or UNDEFINED on error.
-void members(function callback) {
+void init(mapping _v) {
     
-    void cb(int error, string key, mapping members) {
-
-	if (error != PSYC.Storage.OK) {
-	    P0(("PSYC.Members", "unable to fetch members.\n"))
-	}
-
-	if (key == "members") {
-	    callback(members);
-	} else {
-	    P0(("Handler.Members", "data with wrong name from storage (%O instead of 'members').\n", key))
-	    callback(UNDEFINED);
-	}
+    if (!mappingp(_v["members"])) {
+	parent->storage->set_unlock("members", ([]));	
+    } else {
+	parent->storage->unlock("members");
     }
 
-    storage->get("members", cb); 
+    set_inited(1);
+}
+
+//! @decl void enter(MMP.Uniform uni)
+//! @decl void leave(MMP.Uniform uni)
+//!
+//! Fetches members from storage and calls @[low_enter()]/@[low_leave()].
+//! 
+//! @note
+//! 	In case you have fetched members already, use @[low_enter()]/@[low_leave()]
+//! 	instead.
+
+//! @decl void low_enter(mapping members, MMP.Uniform uni)
+//! @decl void low_leave(mapping members, MMP.Uniform uni)
+//!
+//! You should probably use @[leave()] or @[enter()] unless 
+//! you have the @{members} already. Keep in mind that @{members} are expected
+//! be locked as we are changing the mapping.
+//! 
+//! @note 
+//! 	Never ever call this method with something other than the locked "members"
+//! 	mapping from the storage of the channel.
+
+void low_enter(mapping members, MMP.Uniform uni) {
+    members[uni] = 1;
+    parent->storage->set_unlock("members", members); 
+}
+
+void low_leave(mapping members, MMP.Uniform uni) {
+    m_delete(members, uni);
+    parent->storage->set_unlock("members", members); 
+}
+
+function enter, leave;
+
+int filter(MMP.Packet p, mapping _v, mapping _m) {
+
+    if (!mappingp(_v["members"])) {
+	P0(("%O: 'members' should be a mapping in storage. Dropping Packet.", parent))
+	return PSYC.Handler.STOP;
+    }
+
+    if (!_v["members"][p->source()]) {
+	sendmsg(p->reply(), p->data->reply("_error_necessary_membership"));	
+	return PSYC.Handler.STOP;
+    }
+
+    return PSYC.Handler.GOON;
+}
+
+int postfilter_request_members(MMP.Packet p, mapping _v, mapping _m) {
+    
+    sendmsg(p->reply(), p->data->reply("_status_members", ([ "members" : _v["members"] ])));
+
+    return PSYC.Handler.STOP;
 }

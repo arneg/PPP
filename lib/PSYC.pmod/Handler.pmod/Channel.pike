@@ -55,7 +55,7 @@ constant _ = ([
 ]);
 
 constant export = ({
-    "castmsg", "create_channel", "remove", "channel_exists"
+    "castmsg", "create_channel", "channel_remove", "channel_exists", "channel_add"
 });
 
 int is_us(MMP.Packet p, mapping _m) {
@@ -99,8 +99,8 @@ int channel_exists(MMP.Uniform channel) {
 //! 
 //! 	@expr{void on_castmsg(MMP.Packet p);}
 //! @note
-//! 	Both callbacks @expr{enter@} and @expr{leave@} are not called when @[add()] or
-//! 	@[remove()] have been used. You are supposed to keep track of those changes 
+//! 	Both callbacks @expr{enter@} and @expr{leave@} are not called when @[channel_add()] or
+//! 	@[channel_remove()] have been used. You are supposed to keep track of those changes 
 //! 	on your own.
 //! @throws
 //! 	Throws a exception if the given @expr{channel@} does not fit the requirements. 
@@ -172,7 +172,7 @@ int postfilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m) {
 //! @note
 //! 	You should keep track of membership yourself. That can be done
 //! 	by using the callbacks to @[create_channel()].
-void remove(MMP.Uniform channel, MMP.Uniform entity) {
+void channel_remove(MMP.Uniform channel, MMP.Uniform entity) {
     enforcer(has_index(callbacks, channel), 
 	     "Trying to remove someone from nonexisting channel.\n");
 
@@ -186,8 +186,8 @@ void remove(MMP.Uniform channel, MMP.Uniform entity) {
 //! @throws
 //! 	This method will throw if @expr{channel@} is the default channel
 //! 	as entities cannot be forced into it.
-void add(MMP.Uniform channel, MMP.Uniform entity) {
-    P2(("Handler.Channel", "%O->add(%O)\n", channel, entity))
+void channel_add(MMP.Uniform channel, MMP.Uniform entity) {
+    P2(("Handler.Channel", "%O->channel_add(%O)\n", channel, entity))
 
     enforcer(has_index(callbacks, channel), 
 	     "Trying to add someone to nonexisting channel.\n");
