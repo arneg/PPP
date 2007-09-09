@@ -1,4 +1,3 @@
-
 // vim:syntax=lpc
 #include <debug.h>
 
@@ -6,40 +5,38 @@ inherit PSYC.Handler.Base;
 
 constant _ = ([ 
     "filter" : ([
-	"_request_add_member" : ({ "members", "admins" }),
-	"_request_remove_member" : ({ "members", "admins" }),
+	"_request_add_member" : ([ "async" : 1 ]),
+	"_request_remove_member" : ([ "async" : 1 ]),
     ]),
     "postfilter" : ([
-	"_request_add_member" : ({ "members", "admins" }),
-	"_request_remove_member" : ({ "members", "admins" }),
+	"_request_add_member" : 0,
+	"_request_remove_member" : 0,
     ]),
 ]);
 
 constant export = ({ });
 
-int filter_request_add_member(MMP.Packet p, mapping _v, mapping _m) {
+void filter_request_add_member(MMP.Packet p, mapping _v, mapping _m, function cb) {
     PSYC.Packet m = p->data;
-
-    if (!mappingp(_v["admins"])) {
-	P0(("Handler.ChannelSort", "%O: no proper admins available in storage. Cannot authorize.\n", parent))
-	sendmsg(p->reply(), p->data->reply("_error"+m->mc));
-
-	return PSYC.Handler.STOP;		
-    }
-
-    if (!_v["admins"][p->source()]) {
-	sendmsg(p->reply(), p->data->reply("_failure_privileges_required"));
-
-	return PSYC.Handler.STOP;		
-    }
 
     if (!MMP.is_uniform(m["_channel"]) || !m["channel"]->channel ||
 	!MMP.is_uniform(m["_member"])) {
 	sendmsg(p->reply(), p->data->reply("_error"+m->mc));
 
-	return PSYC.Handler.STOP;		
+	MMP.Utils.invoke_later(cb, PSYC.Handler.STOP);
+	return;		
     }
-    
+
+    void callback(int priv) {
+	if (priv) {
+	    MMP.Utils.invoke_later(cb, PSYC.Handler.GOON);
+	} else {
+	    sendmsg(p->reply(), p->data->reply("_failure_privileges_required"));
+	    MMP.Utils.invoke_later(cb, PSYC.Handler.STOP);
+	}
+    };
+
+    parent->is_admin(p->source(), callback);
 }
 
 int postfilter_request_add_member(MMP.Packet p, mapping _v, mapping _m) {

@@ -26,6 +26,9 @@ void create(mixed ... args) {
 
     add_admin = parent->storage->wrapped_get_lock(low_add_admin, "admins");
     remove_admin = parent->storage->wrapped_get_lock(low_remove_admin, "admins");
+
+    is_admin = parent->storage->wrapped_get(low_is_admin, "admins");
+    get_admin_level = parent->storage->wrapped_get(low_get_admin_level, "admins");
 }
 
 void init(mapping _v) {
@@ -39,12 +42,14 @@ void init(mapping _v) {
     set_inited(1);
 }
 
-void is_admin() {
+function is_admin, get_admin_level;
 
+void low_is_admin(mapping admins, MMP.Uniform guy, function callback, mixed ... args) {
+    MMP.Utils.invoke_later(callback, has_index(admins, guy), @args);
 }
 
-void get_admin_level() {
-
+void low_get_admin_level(mapping admins, MMP.Uniform guy, function callback, mixed ... args) {
+    MMP.Utils.invoke_later(callback, admins[guy], @args);
 }
 
 //! @decl void add_admin(MMP.Uniform uni, int|void level)
