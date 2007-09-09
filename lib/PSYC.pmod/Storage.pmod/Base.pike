@@ -1,3 +1,5 @@
+#include <debug.h>
+
 function wrapped_get(function fun, string key, mixed ... args) {
     
     void cb(mixed ... args1) {
@@ -14,10 +16,10 @@ function wrapped_get(function fun, string key, mixed ... args) {
 		P0(("PSYC.Storage", "%O: data with wrong name from storage (%O instead of %O).\n", this, key1, key))
 		fun(UNDEFINED, @args, @args1);
 	    }
-	}
+	};
 
 	this->get(key, cb1);	
-    }
+    };
 
     return cb;
 }
@@ -38,10 +40,10 @@ function wrapped_get_lock(function fun, string key, mixed ... args) {
 		P0(("PSYC.Storage", "%O: data with wrong name from storage (%O instead of %O).\n", this, key1, key))
 		fun(UNDEFINED, @args, @args1);
 	    }
-	}
+	};
 
 	this->get_lock(key, cb1);	
-    }
+    };
 
     return cb;
 }

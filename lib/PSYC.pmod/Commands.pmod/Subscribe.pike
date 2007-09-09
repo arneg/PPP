@@ -5,12 +5,12 @@ inherit PSYC.Commands.Base;
 constant _ = ([
     "subscribe" : ({ 
 	({ "subscribe", 
-	    ({ PSYC.Commands.Uniform|PSYC.Commands.Place, "channel" }),
+	    ({ PSYC.Commands.Arguments.Uniform|PSYC.Commands.Arguments.Place, "channel" }),
 	 }),
     }),
     "unsubscribe" : ({
 	({ "unsubscribe",
-	    ({ PSYC.Commands.Uniform|PSYC.Commands.Place, "channel" }),
+	    ({ PSYC.Commands.Arguments.Uniform|PSYC.Commands.Arguments.Place, "channel" }),
 	}),
     }),
 ]);

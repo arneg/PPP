@@ -6,22 +6,22 @@ inherit PSYC.Commands.Base;
 //! and removing them.
 //! @ul
 //! 	@item
-//!		@expr{"channel_add" . PSYC.Commands.Uniform|PSYC.Commands.Channel . PSYC.Commands.Uniform@}
+//!		@expr{"channel_add" . PSYC.Commands.Arguments.Uniform|PSYC.Commands.Arguments.Channel . PSYC.Commands.Arguments.Uniform@}
 //! 	@item
-//!		@expr{"channel_remove" . PSYC.Commands.Uniform|PSYC.Commands.Channel . PSYC.Commands.Uniform@}
+//!		@expr{"channel_remove" . PSYC.Commands.Arguments.Uniform|PSYC.Commands.Arguments.Channel . PSYC.Commands.Arguments.Uniform@}
 //! @endul
 
 constant _ = ([
     "channel_add" : ({ 
 	({ "channel_add", 
-	    ({ PSYC.Commands.Uniform|PSYC.Commands.Channel, "channel",
-	       PSYC.Commands.Uniform, "member" }),
+	    ({ PSYC.Commands.Arguments.Uniform|PSYC.Commands.Arguments.Channel, "channel",
+	       PSYC.Commands.Arguments.Uniform, "member" }),
 	 }),
     }),
     "channel_remove" : ({
 	({ "channel_remove",
-	    ({ PSYC.Commands.Uniform|PSYC.Commands.Channel, "channel",
-	       PSYC.Commands.Uniform, "member" }),
+	    ({ PSYC.Commands.Arguments.Uniform|PSYC.Commands.Arguments.Channel, "channel",
+	       PSYC.Commands.Arguments.Uniform, "member" }),
 	}),
     }),
 ]);

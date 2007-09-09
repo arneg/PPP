@@ -1,7 +1,7 @@
 // vim:syntax=lpc
 #include <debug.h>
 inherit PSYC.HandlingTools;
-inherit PSTC.Storage.Base;
+inherit PSYC.Storage.Base;
 import .module;
 
 //! A storage class that uses storage from a (possibly) remote entity using PSYC.
