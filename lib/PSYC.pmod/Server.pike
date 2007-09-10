@@ -258,6 +258,15 @@ void close(MMP.Circuit c) {
     //c->peeraddr->handler = UNDEFINED;
 }
 
+object get_storage(MMP.Uniform uni) {
+
+    if (!uni->is_local()) {
+	THROW(sprintf("we have no storage for remote object %O.\n", uni));
+    }
+
+    return storage_factory->getStorage(uni);
+}
+
 //! @returns
 //! 	The object managing the given uniform...string.
 //! @note
@@ -315,7 +324,7 @@ MMP.Uniform get_uniform(string unl) {
 	}
 
 	if (t->channel) {
-	    t->super = get_uniform(t->scheme + t->slashes + t->body + "/" + t->obj);
+	    t->super = get_uniform(t->scheme + ":" + t->slashes + t->hostPort + "/" + t->obj);
 	}
 
 	return unlcache[unl] = t;

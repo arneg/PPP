@@ -7,13 +7,13 @@ constant _ = ([
     "" : ([ "lock" : ({ "admins" }) ]),
     "filter" : ([
 	"_request_administrators" : ({ "admins" }),
-	"_request_add_administrators" : ({ "admins" }),
-	"_request_remove_administrators" : ({ "admins" }),
+	"_request_add_administrator" : ({ "admins" }),
+	"_request_remove_administrator" : ({ "admins" }),
     ]),
     "postfilter" : ([
 	"_request_administrators" : ({ "admins" }),
-	"_request_add_administrators" : ([ "lock" : ({ "admins" }) ]),
-	"_request_remove_administrators" : ([ "lock" : ({ "admins" }) ]),
+	"_request_add_administrator" : ([ "lock" : ({ "admins" }) ]),
+	"_request_remove_administrator" : ([ "lock" : ({ "admins" }) ]),
     ]),
 ]);
 
@@ -101,7 +101,7 @@ int filter_request_administrators(MMP.Packet p, mapping _v, mapping _m) {
 
 int postfilter_request_administrators(MMP.Packet p, mapping _v, mapping _m) {
 
-    sendmsg(p->reply(), p->data->reply("_status_channel_administrators", ([ "admins" : _v["admins"] ])));
+    sendmsg(p->reply(), p->data->reply("_status_channel_administrators", ([ "_admins" : _v["admins"] ])));
 
     return PSYC.Handler.STOP;
 }

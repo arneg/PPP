@@ -3,6 +3,8 @@
 inherit PSYC.MethodMultiplexer : multiplexer;
 inherit PSYC.HandlingTools : handling;
 
+object storage;
+
 //! @seealso
 //! 	@[PSYC.Storage.File], @[PSYC.Storage.Remote], @[PSYC.Storage.Dummy]
 void create(mapping prefs) {
@@ -15,7 +17,8 @@ void create(mapping prefs) {
     assert(functionp(prefs["sendmmp"]));
     _sendmmp = prefs["sendmmp"];
 
-    multiplexer::create(prefs["storage"]);
+    storage = prefs["storage"];
+    multiplexer::create(storage);
 
     void sendmmp(MMP.Uniform target, MMP.Packet p) {
 	if (!has_index(p->vars, "_source")) {

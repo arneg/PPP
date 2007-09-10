@@ -28,10 +28,10 @@ constant _ = ([
 
 void channel_add(MMP.Uniform channel, MMP.Uniform member) {
     P3(("PSYC.Commands.Channel", "channel_add(%O, %O)\n", channel, member))
-    sendmsg(channel->super, PSYC.Packet("_request_member_add", ([ "_member" : member ])));
+    sendmsg(channel->super, PSYC.Packet("_request_member_add", ([ "_member" : member, "_channel" : channel ])));
 }
 
 void channel_remove(MMP.Uniform channel, MMP.Uniform member) {
     P3(("PSYC.Commands.Channel", "channel_remove(%O, %O)\n", channel, member))
-    sendmsg(channel->super, PSYC.Packet("_request_member_remove", ([ "_member" : member ])));
+    sendmsg(channel->super, PSYC.Packet("_request_member_remove", ([ "_member" : member, "_channel" : channel ])));
 }

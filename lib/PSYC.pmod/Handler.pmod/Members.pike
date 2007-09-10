@@ -68,7 +68,7 @@ function member_insert, member_remove;
 int filter(MMP.Packet p, mapping _v, mapping _m) {
 
     if (!mappingp(_v["members"])) {
-	P0(("%O: 'members' should be a mapping in storage. Dropping Packet.", parent))
+	P0(("Handler.Members", "%O: 'members' should be a mapping in storage. Dropping Packet.\n", parent))
 	return PSYC.Handler.STOP;
     }
 
