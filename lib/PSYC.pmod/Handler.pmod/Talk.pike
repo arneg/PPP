@@ -8,7 +8,7 @@ inherit PSYC.Handler.Base;
 
 constant _ = ([ 
     "postfilter" : ([
-	"_message_public" : ({ }),
+	"_message_public" : 0,
     ]),
 ]);
 

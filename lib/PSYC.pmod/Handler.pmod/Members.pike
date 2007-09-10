@@ -13,13 +13,13 @@ constant _ = ([
     ]),
 ]);
 
-constant export = ({ "leave", "enter", "low_enter", "low_leave" });
+constant export = ({ "member_remove", "member_insert", "low_member_insert", "low_member_remove" });
 
 void create(mixed ... args) {
     ::create(@args);
 
-    enter = parent->storage->wrapped_get_lock(low_enter, "members");
-    leave = parent->storage->wrapped_get_lock(low_leave, "members");
+    member_insert = parent->storage->wrapped_get_lock(low_member_insert, "members");
+    member_remove = parent->storage->wrapped_get_lock(low_member_remove, "members");
 }
 
 void init(mapping _v) {
@@ -33,19 +33,19 @@ void init(mapping _v) {
     set_inited(1);
 }
 
-//! @decl void enter(MMP.Uniform uni)
-//! @decl void leave(MMP.Uniform uni)
+//! @decl void member_insert(MMP.Uniform uni)
+//! @decl void member_remove(MMP.Uniform uni)
 //!
-//! Fetches members from storage and calls @[low_enter()]/@[low_leave()].
+//! Fetches members from storage and calls @[low_member_insert()]/@[low_member_remove()].
 //! 
 //! @note
-//! 	In case you have fetched members already, use @[low_enter()]/@[low_leave()]
+//! 	In case you have fetched members already, use @[low_member_insert()]/@[low_member_remove()]
 //! 	instead.
 
-//! @decl void low_enter(mapping members, MMP.Uniform uni)
-//! @decl void low_leave(mapping members, MMP.Uniform uni)
+//! @decl void low_member_insert(mapping members, MMP.Uniform uni)
+//! @decl void low_member_remove(mapping members, MMP.Uniform uni)
 //!
-//! You should probably use @[leave()] or @[enter()] unless 
+//! You should probably use @[member_remove()] or @[member_insert()] unless 
 //! you have the @{members} already. Keep in mind that @{members} are expected
 //! be locked as we are changing the mapping.
 //! 
@@ -53,17 +53,17 @@ void init(mapping _v) {
 //! 	Never ever call this method with something other than the locked "members"
 //! 	mapping from the storage of the channel.
 
-void low_enter(mapping members, MMP.Uniform uni) {
+void low_member_insert(mapping members, MMP.Uniform uni) {
     members[uni] = 1;
     parent->storage->set_unlock("members", members); 
 }
 
-void low_leave(mapping members, MMP.Uniform uni) {
+void low_member_remove(mapping members, MMP.Uniform uni) {
     m_delete(members, uni);
     parent->storage->set_unlock("members", members); 
 }
 
-function enter, leave;
+function member_insert, member_remove;
 
 int filter(MMP.Packet p, mapping _v, mapping _m) {
 

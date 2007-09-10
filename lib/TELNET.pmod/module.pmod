@@ -67,9 +67,11 @@ class Session {
 	    ::create(u, sendmmp, un);
 	}
 
-	void display(MMP.Packet p, mapping _v, mapping _m) {
+	int display(MMP.Packet p, mapping _v, mapping _m) {
 	    P0(("TELNET.UngroovyTelnetDisplayHandler", "display(%O)\n", p))
 	    writeln((objectp(p->data) ? p->data->mc : "an mc-less packet") + "\t" + PSYC.psyctext(p, textdb));
+
+	    return PSYC.Handler.GOON;
 	}
     }
 
