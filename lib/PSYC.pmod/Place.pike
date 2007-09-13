@@ -5,21 +5,10 @@
 inherit PSYC.Unl;
 //! A minimal implementation of a chatroom.
 
-object context;
-array history = ({});
-
 string _sprintf(int type) {
     if (type == 'O') {
 	return sprintf("PSYC.Place(%O)", uni);
     }
-}
-
-// not working here..
-void _history(MMP.Packet p) {
-  MMP.Packet entry = p->clone();
-  entry->data = entry->data->clone(); // assume psyc packet...
-  entry->data->vars->_time_place = time();
-  history += ({ entry });
 }
 
 //! @param uni
@@ -40,8 +29,6 @@ void create(MMP.Uniform uniform, object server, object storage) {
 		 PSYC.Handler.ChannelSort(this, sendmmp, uniform),
 		 PSYC.Handler.AdminEveryone(this, sendmmp, uniform), 
 		 );
-    context = server->get_context(uniform);
-
     object default_chan = PSYC.Channel(([
 		"storage" : storage,
 		"parent" : this,
@@ -52,7 +39,7 @@ void create(MMP.Uniform uniform, object server, object storage) {
     default_chan->add_handlers(
 			       PSYC.Handler.PublicSymmetric(default_chan, default_chan->sendmmp, uniform),
 			       PSYC.Handler.Talk(default_chan, default_chan->sendmmp, uniform), 
-		//	       PSYC.Handler.Members(default_chan, default_chan->sendmmp, uniform), 
+			       PSYC.Handler.Members(default_chan, default_chan->sendmmp, uniform), 
 			       );
     this->add_channel(uniform, default_chan);
 
@@ -66,7 +53,7 @@ void create(MMP.Uniform uniform, object server, object storage) {
     test_chan->add_handlers(
 			   PSYC.Handler.Public(test_chan, test_chan->sendmmp, uniform),
 			   PSYC.Handler.Talk(test_chan, test_chan->sendmmp, uniform), 
-		//	   PSYC.Handler.Members(test_chan, test_chan->sendmmp, uniform), 
+			   PSYC.Handler.Members(test_chan, test_chan->sendmmp, uniform), 
 			   );
 
     this->add_channel(test_chan_uni, test_chan);

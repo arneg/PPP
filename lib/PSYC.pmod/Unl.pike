@@ -4,7 +4,7 @@
 //! The simplest PSYC speaking object in whole @i{PSYCSPACE@}. Does
 //! Remote Authentication and Reply using uthe 
 
-inherit PSYC.MethodMultiplexer;
+inherit PSYC.Handling;
 
 PSYC.Handler.Base reply;// = PSYC.Handler.Reply();
 PSYC.Handler.Base auth;// = PSYC.Handler.Auth();
@@ -43,11 +43,12 @@ void create(MMP.Uniform u, object s, object stor) {
     uni = u;
     server = s;
     storage = stor;
-    ::create(stor);
 
+    PSYC.MethodMultiplexer(this, storage);
+    PSYC.NotifyHandling(this, storage);
+    // the order of storage and trustiness is somehow critical..
     add_handlers(auth = PSYC.Handler.Auth(this, sendmmp, uni),
 		 reply = PSYC.Handler.Reply(this, sendmmp, uni));
-    // the order of storage and trustiness is somehow critical..
 }
 
 //! Send an @[MMP.Packet]. MMP routing variables of the packet will be set automatically if possible.
@@ -77,3 +78,34 @@ void sendmmp(MMP.Uniform target, MMP.Packet packet) {
     server->deliver(target, packet);
 }
 
+//! Entry point for processing PSYC messages through this handler framework.
+//! @param p
+//! 	An @[MMP.Packet] containing parseable PSYC as a string or @[PSYC.Packet].
+//!
+//! 	This will do everything from throwing to nothing if you provide something else.
+void msg(MMP.Packet p) {
+    P3(("Unl", "%O: msg(%O)\n", this, p))
+    
+    object factory() {
+	return JSON.UniformBuilder(this->server->get_uniform);
+    };
+
+    mixed parse_JSON(string d) {
+	return JSON.parse(d, 0, 0, ([ '\'' : factory ]));
+    };
+    
+    if (p->data) {
+	if (stringp(p->data)) {
+#ifdef LOVE_TELNET
+	    p->data = PSYC.parse(p->data, parse_JSON, p->newline);
+#else
+	    p->data = PSYC.parse(p->data, parse_JSON);
+#endif
+	}
+    } else {
+	P1(("Unl", "%O: got packet without data. maybe state changes\n"))
+	return;
+    }
+
+    handle("prefilter", p, ([]));
+}
