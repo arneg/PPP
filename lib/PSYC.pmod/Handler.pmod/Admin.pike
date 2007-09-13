@@ -4,7 +4,7 @@
 inherit PSYC.Handler.Base;
 
 constant _ = ([ 
-    "" : ([ "lock" : ({ "admins" }) ]),
+    "init" : ([ "lock" : ({ "admins" }) ]),
     "filter" : ([
 	"_request_administrators" : ({ "admins" }),
 	"_request_add_administrator" : ({ "admins" }),

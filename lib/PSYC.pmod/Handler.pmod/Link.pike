@@ -30,7 +30,7 @@ inherit PSYC.Handler.Base;
 //! Openheartedly uses the "password" storage variable.
 
 constant _ = ([
-    "_" : ({ "_password" }),
+    "init" : ({ "_password" }),
     "prefilter" : ([
 	"" : 0,
     ]),
