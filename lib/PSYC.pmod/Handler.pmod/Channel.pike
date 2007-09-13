@@ -224,9 +224,6 @@ void castmsg(MMP.Uniform channel, PSYC.Packet m, MMP.Uniform source_relay) {
 				    "_source_relay" : source_relay,
 				    ]));
 
-    if (callbacks[channel][CAST]) {
-	callbacks[channel][CAST](p);
-    }
-
+    parent->handle("notify", "castmsg", p, channel);
     parent->server->get_context(channel)->msg(p); 
 }

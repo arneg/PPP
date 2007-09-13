@@ -7,6 +7,9 @@ constant _ = ([
     "postfilter" : ([
 	"" : 0,
     ]),
+    "notify" : ([
+	"castmsg" : 0,
+    ]),
 ]);
 
 mapping(MMP.Uniform:object) channels = ([]);
@@ -46,3 +49,10 @@ int postfilter(MMP.Packet p, mapping _v, mapping _m) {
 	P0(("ChannelMultiplexer", "packet with wrong target (%O) got here, god knows how.\n", target))	
     }
 }
+
+void notify_castmsg(MMP.Packet p, MMP.Uniform channel) {
+    if (has_index(channels, channel)) {
+	channels[channel]->handle("cast", p);
+    }
+}
+
