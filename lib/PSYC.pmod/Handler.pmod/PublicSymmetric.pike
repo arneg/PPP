@@ -21,6 +21,7 @@ void enter(MMP.Uniform someone, function callback, mixed ... args) {
 	    } else {
 		callback(1, @args); 
 		parent->castmsg(PSYC.Packet("_notice_context_enter"), someone);
+		parent->handle("notify", "member_entered", someone);
 	    }
 	};
 
@@ -34,4 +35,5 @@ void enter(MMP.Uniform someone, function callback, mixed ... args) {
 
 void leave(MMP.Uniform someone) {
     parent->castmsg(PSYC.Packet("_notice_context_leave"), someone);
+    parent->handle("notify", "member_left", someone);
 }
