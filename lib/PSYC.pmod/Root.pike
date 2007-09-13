@@ -51,7 +51,7 @@ class Signaling {
     inherit PSYC.Handler.Base;
 
     constant _ = ([
-	"_" : ({ "groups" }),
+	"init" : ({ "groups" }),
 	"postfilter" : ([
 	    // someone entered the context and is supposed to get
 	    // all messages on that context from us. this would
@@ -135,7 +135,7 @@ class Signaling {
 	    return PSYC.Handler.STOP;
 	}
 
-	void callback(MMP.Packet reply, mapping _v) {
+	int callback(MMP.Packet reply, mapping _v) {
 	    PSYC.Packet m = reply->data;
 	    mapping groups = _v["groups"];
 
@@ -155,6 +155,7 @@ class Signaling {
 	    }
 	    parent->storage->save();
 
+	    return PSYC.Handler.STOP;
 	};
 
 
@@ -199,7 +200,7 @@ class Signaling {
 
 	object c = parent->server->get_context(group);
 
-	void callback(MMP.Packet reply, mapping _v) {
+	int callback(MMP.Packet reply, mapping _v) {
 	    PSYC.Packet m = reply->data;
 	    mapping groups = _v["groups"];
 
@@ -221,6 +222,8 @@ class Signaling {
 	    }
 
 	    sendmsg(p->source(), t->reply("_notice_context_leave", ([ "_group" : group, "_supplicant" : member ])));
+
+	    return PSYC.Handler.STOP;
 	};
 
 	if (!c->contains(member)) {
