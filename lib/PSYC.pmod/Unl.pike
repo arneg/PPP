@@ -46,6 +46,7 @@ void create(MMP.Uniform u, object s, object stor) {
 
     PSYC.MethodMultiplexer(this, storage);
     PSYC.NotifyHandling(this, storage);
+    PSYC.CheckHandling(this, storage);
     // the order of storage and trustiness is somehow critical..
     add_handlers(auth = PSYC.Handler.Auth(this, sendmmp, uni),
 		 reply = PSYC.Handler.Reply(this, sendmmp, uni));

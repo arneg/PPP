@@ -9,6 +9,9 @@ constant _ = ([
 	"_request_add_administrator" : 0,
 	"_request_remove_administrator" : 0,
     ]),
+    "check" : ([
+	"is_admin" : 0,
+    ]),
 ]);
 
 constant export = ({ "is_admin", "get_admin_level", "low_add_admin", "low_remove_admin", "add_admin", "remove_admin" });
@@ -19,6 +22,10 @@ void is_admin(MMP.Uniform guy, function callback, mixed ... args) {
 
 void get_admin_level(MMP.Uniform guy, function callback, mixed ... args) {
     MMP.Utils.invoke_later(callback, 1, @args);
+}
+
+void check_is_admin(function callback, MMP.Uniform guy) {
+    callback(1);
 }
 
 // this is used as filter_request_add/remove_administrator aswell, so keep in

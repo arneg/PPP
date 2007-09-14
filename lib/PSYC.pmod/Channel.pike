@@ -21,6 +21,7 @@ void create(mapping prefs) {
     PSYC.MethodMultiplexer(this, storage);
     PSYC.NotifyHandling(this, storage);
     PSYC.CastHandling(this, storage);
+    PSYC.CheckHandling(this, storage);
 
     void sendmmp(MMP.Uniform target, MMP.Packet p) {
 	if (!has_index(p->vars, "_source")) {
