@@ -1,9 +1,10 @@
 // vim:syntax=lpc
-#include <debug.h>
 #include <assert.h>
 
 // TODO
 // - let the check function return variables to request.
+
+inherit MMP.Utils.Debug;
 
 object storage;
 mapping table = ([]);
@@ -11,7 +12,7 @@ mapping requested = ([]);
 function go_on, stop, error, display;
 string prefix;
 
-void create(string foo, function go_on_, function stop_, function display_, function error_, object s) {
+void create(MMP.Utils.DebugManager d, string foo, function go_on_, function stop_, function display_, function error_, object s) {
     prefix = foo;
 
     go_on = go_on_;
@@ -20,6 +21,8 @@ void create(string foo, function go_on_, function stop_, function display_, func
     display = display_;
 
     storage = s;
+
+    ::create(d);
 }
 
 #ifdef DEBUG
@@ -34,7 +37,7 @@ string _sprintf(int type) {
 void add(string mc, object handler, void|mapping|array(string) d) {
     PSYC.AR result;
 
-    P3(("PSYC.StageHandler", "%O->add(%O)\n", prefix, handler))
+    debug("handler_management", 3, "%O->add(%O)\n", prefix, handler);
 
     if (!has_index(table, mc)) table[mc] = ({ }); 
 
@@ -51,12 +54,11 @@ void add(string mc, object handler, void|mapping|array(string) d) {
     }
     table[mc] += ({ result });
 
-    P3(("StageHandler", "table: %O\n", table))
 }
 
 void handle(MMP.Packet p, mapping _m) {
 
-    P3(("StageHandler", "%s:handle(%s)\n", prefix, p->data->mc))
+    debug("packet_flow", 3, "%s:handle(%s)\n", prefix, p->data->mc);
 
     array(string) l = p->data->mc / "_";
     MMP.Utils.Queue liste = MMP.Utils.Queue(); 
@@ -72,9 +74,9 @@ void handle(MMP.Packet p, mapping _m) {
 
 #if DEBUG > 1
     if (!sizeof(liste)) {
-	P1(("StageHandler", "%O: no stack for method %s.\n", prefix, p->data->mc))
+	debug(([ "packet_flow" : 1, "handler" : 2 ]), "%O: no stack for method %s.\n", prefix, p->data->mc);
     } else {
-	P3(("StageHandler", "%O: stack for %s is %O\n", prefix, p->data->mc, (array)liste))
+	debug(([ "packet_flow" : 3, "handler" : 4 ]), "%O: stack for %s is %O\n", prefix, p->data->mc, (array)liste);
     }
 #endif
     progress(liste, p, _m);
@@ -97,7 +99,7 @@ void fetched(string key, mixed value, MMP.Utils.Queue stack, MMP.Packet p,
 #endif
 
 void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
-    P3(("StageHandler", "%O: progressing %O.\n", prefix, stack))
+    debug("packet_flow", 3, "%O: progressing %O.\n", prefix, stack);
 
     if (stack->isEmpty()) {
 	call_out(go_on, 0, p, _m);
@@ -108,14 +110,14 @@ void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
     PSYC.AR o = stack->shift_();
 
     if (o->check && !o->check(p, _m)) {
-	P3(("StageHandler", "%O: %O->check() returned Null.\n", prefix, o))
+	debug("packet_flow", 2, "%O: %O->check() returned Null.\n", prefix, o);
 	stack->shift();
 	call_out(progress, 0, stack, p, _m);
 	return;
     }
 
     void fail(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
-	P0(("StageHandler", "fetching data for %O failed in stack %O.\n", p, stack))
+	debug("storage", 0, "fetching data for %O failed in stack %O.\n", p, stack);
     };
 
     array(mixed) args = ({ storage, o->lvars && (multiset)o->lvars, o->wvars && (multiset)o->wvars, call_handler, fail, stack, p, _m });
@@ -127,7 +129,7 @@ void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 	object handler = function_object(o->handler);
 
 	if (!handler->is_inited()) {
-	    PT(("Stagehandler", "%O not inited yet. queueing %O.\n", handler, p->data))
+	    debug("handler_init", -1, "%O not inited yet. queueing %O.\n", handler, p->data);
 	    handler->init_cb_add(PSYC.Storage.multifetch, @args);
 	    return;
 	}
@@ -167,7 +169,7 @@ void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 
 void call_handler(mapping _v, MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
     PSYC.AR o = stack->shift();
-    P3(("StageHandler", "Calling %O for %O with misc: %O.\n", o->handler, p, _m))
+    debug("packet_flow", 3, "Calling %O for %O with misc: %O.\n", o->handler, p, _m);
 
 
     int in_progress = 1;
@@ -191,11 +193,11 @@ void call_handler(mapping _v, MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 		display(p, _m);
 		break;
 	    default:
-		THROW(sprintf("Illegal return type from Handler function %O.\n", o->handler));
+		do_throw("warning", "Illegal return type from Handler function %O.\n", o->handler);
 	    }
 	};
 
-	P3(("PSYC.StageHandler", "attempting to call %O.\n", o->handler))
+	debug("packet_flow", 3, "attempting to call %O.\n", o->handler);
 
 	o->handler(p, _v, _m, callback);
 	in_progress = 0;
@@ -212,7 +214,7 @@ void call_handler(mapping _v, MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 	    display(p, _m);
 	    break;
 	default:
-	    THROW(sprintf("Illegal return type from Handler function %O.\n", o->handler));
+	    do_throw("warning", "Illegal return type from Handler function %O.\n", o->handler);
 	}
     }
 

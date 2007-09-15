@@ -15,14 +15,14 @@ string _sprintf(int type) {
 }
 
 void _enter(MMP.Uniform someone, function callback, mixed ... args) {
-    PT(("Place", "%O: %O asks for membership. args: %O\n", this, someone, args))
+    debug("PSYC.Place", -1, "%O: %O asks for membership. args: %O\n", this, someone, args);
 
     if (MMP.is_person(someone)) {
 	
 	void _callback(int error, mixed args) {
 	    if (error) {
 		callback(0, @args);
-		P0(("Place", "%O: %O wont let me join his presence. i therefore wont let him subscribe me.\n", this, someone))
+		debug("PSYC.Place", 0, "%O: %O wont let me join his presence. i therefore wont let him subscribe me.\n", this, someone);
 	    } else {
 		callback(1, @args); 
 		this->castmsg(uni, PSYC.Packet("_notice_context_enter"), someone);
@@ -31,7 +31,7 @@ void _enter(MMP.Uniform someone, function callback, mixed ... args) {
 
 	this->enter(someone, _callback, args);
     } else {
-	P0(("Place", "Got enter request from non-person %O.\n", someone))
+	debug("PSYC.Place", 0, "Got enter request from non-person %O.\n", someone);
 	callback(0, @args);
     }
 }

@@ -97,20 +97,22 @@ string diff_paths(string f1, string f2) {
     return npath * "/";
 }
 
-void debug(string|mapping(string:int) c, mixed ... args) {
+void debug(string|mapping(string:int) cats, mixed ... args) {
     // lvl, fmt
-    string fmt;
+    string fmt, all_cats;
+    mapping seen = ([ ]);
 
-    if (mappingp(c)) {
+    if (mappingp(cats)) {
 	fmt = args[0];
 	args = args[1..];
     } else {
-	c = ([ c : args[0] ]);
+	cats = ([ cats : args[0] ]);
 	fmt = args[1];
 	args = args[2..];
     }
 
-    foreach (c; string c; int lvl) {
+    foreach (cats; string c; int lvl) {
+	string tmp_fmt;
 	if ((has_index(cat, c) && cat[c] >= lvl) || default_lvl >= lvl) {
 	    if (dbt && !has_index(bt, c) || bt[c]) {
 		array backtrace = backtrace();
@@ -124,7 +126,7 @@ void debug(string|mapping(string:int) c, mixed ... args) {
 		array funargs = ({ });
 
 		nfmt += t * ", " + ")\t";
-		fmt = nfmt + fmt;
+		tmp_fmt = nfmt + fmt;
 
 		for (int i = 3; i < sizeof(fun); i++) {
 		    funargs += ({ fun[i] });
@@ -135,16 +137,28 @@ void debug(string|mapping(string:int) c, mixed ... args) {
 		    path = fun[0];
 		}
 
-		args = ({path, fun[1], function_name(fun[2])||"!!!UNKNOWN!!!" }) + funargs + args;
+		args = ({  path, fun[1], function_name(fun[2])||"!!!UNKNOWN!!!" }) + funargs + args;
 
-		if (stderrs[c]) {
-		    stderrs[c]->write(fmt, @args);
-		} else if (default_stderr) {
-		    default_stderr->write(fmt, @args);
-		} else {
-		    werror(fmt, @args);
-		}
-		return;
+		tmp_fmt = "[%s]:" + tmp_fmt;
+	    } else {
+		tmp_fmt = "[%s]\t" + fmt;
+	    }
+
+	    args = ({ all_cats || (all_cats = sprintf("%O(%d)", indices(cats)[*], values(cats)[*]) * ", ") }) + args;
+
+	    object out;
+
+	    if (stderrs[c]) {
+		out = stderrs[c];
+	    } else if (default_stderr) {
+		out = default_stderr;
+	    } else {
+		out = Stdio.stderr;
+	    }
+
+	    if (!has_index(seen, out)) {
+		seen[out]++;
+		out->write(tmp_fmt, @args);
 	    }
 	}
     }

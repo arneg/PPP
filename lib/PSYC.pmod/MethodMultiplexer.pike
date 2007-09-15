@@ -1,5 +1,4 @@
 // vim:syntax=lpc
-#include <debug.h>
 
 //! This class provides an amazingly sweet PSYC processing framework.
 //! PSYC functionality can be added to an entity by
@@ -13,15 +12,17 @@
 //! 	Better have a look at the source code, if you intend to use it without
 //!	using @[PSYC.Unl]. @b{WE MEAN IT!@}.
 
+inherit MMP.Utils.Debug;
+
 PSYC.StageHandler prefilter, filter, postfilter, display;
 mapping(string:function) exports = ([]);
 
 void stop(MMP.Packet p) {
-    P3(("MethodMultiplexer", "stopped %O.\n", p))
+    debug("packet_flow", 3, "stopped %O.\n", p);
 }
 
 void finish(MMP.Packet p) {
-    P3(("MethodMultiplexer", "finished %O.\n", p))
+    debug("packet_flow", 3, "finished %O.\n", p);
 }
 
 #ifdef DEBUG
@@ -30,21 +31,22 @@ void throw(mixed ... x) {
 }
 #endif
 
-void create(object storage) {
+void create(MMP.Utils.DebugManager d, object storage) {
     // display is sortof isolated from the rest.. 
     //
     // we should think about introducing a different api.. one closure which gets called
     // with the returntype.. (for STOP and DISPLAY). 
-    display = PSYC.StageHandler("display", finish, stop, finish, throw, storage);
-    postfilter = PSYC.StageHandler("postfilter", display->handle, stop, display->handle, throw, storage);
-    filter = PSYC.StageHandler("filter", postfilter->handle, stop, display->handle, throw, storage);
-    prefilter = PSYC.StageHandler("prefilter", filter->handle, filter->handle, filter->handle, throw, storage);
+    ::create(d);
+    display = PSYC.StageHandler(d, "display", finish, stop, finish, throw, storage);
+    postfilter = PSYC.StageHandler(d, "postfilter", display->handle, stop, display->handle, throw, storage);
+    filter = PSYC.StageHandler(d, "filter", postfilter->handle, stop, display->handle, throw, storage);
+    prefilter = PSYC.StageHandler(d, "prefilter", filter->handle, filter->handle, filter->handle, throw, storage);
 }
 
 
 //! Add handlers.
 void add_handlers(PSYC.Handler.Base ... handlers) { 
-    P2(("MethodMultiplexer", "add_handler(%O) in %O\n", handlers, this))
+    debug("handler_management", 2, "add_handlers(%O) in %O\n", handlers, this);
     foreach (handlers;; PSYC.Handler.Base handler) {
 	mapping temp = handler->_;
 
@@ -88,9 +90,8 @@ mixed `->(string fun) {
     }
     return UNDEFINED;
 }
-
 void call_init(object handler, PSYC.AR o) {
-    P3(("StageHandler", "Calling %O for init.\n", o->handler))
+    debug("handler-management", 3, "Calling %O for init.\n", o->handler);
     PSYC.Storage.multifetch(this->storage, o->lvars && (multiset)o->lvars, o->wvars && (multiset)o->wvars, 
 			    handler->init,0); 
 }
@@ -111,7 +112,7 @@ void do_import(PSYC.Handler.Base ... handlers) {
 //!
 //! 	This will do everything from throwing to nothing if you provide something else.
 void msg(MMP.Packet p) {
-    P3(("MethodMultiplexer", "%O: msg(%O)\n", this, p))
+    debug("packet_flow", 3, "%O: msg(%O)\n", this, p);
     
     object factory() {
 	return JSON.UniformBuilder(this->server->get_uniform);
@@ -130,7 +131,7 @@ void msg(MMP.Packet p) {
 #endif
 	}
     } else {
-	P1(("MethodMultiplexer", "%O: got packet without data. maybe state changes\n"))
+	debug(([ "unexpected" : 2, "packet_flow" : 1]), "%O: got packet without data. maybe state changes\n");
 	return;
     }
 

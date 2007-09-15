@@ -1,5 +1,5 @@
 // vim:syntax=lpc
-#include <debug.h>
+//#include <debug.h>
 
 //! The simplest PSYC speaking object in whole @i{PSYCSPACE@}. Does
 //! Remote Authentication and Reply using uthe 
@@ -39,11 +39,11 @@ void check_authentication(MMP.Uniform t, function cb, mixed ... args) {
 //! 	callbacks to the @[PSYC.Server] that will get called if someone
 //! 	tries to reach a non-present entity.
 void create(MMP.Uniform u, object s, object stor) {
-    P2(("PSYC.Unl", "created object for %s.\n", u))
+    ::create(s, stor);
+    debug("local_object", 2, "Uniform created for %s.\n", u);
     uni = u;
     server = s;
     storage = stor;
-    ::create(stor);
 
     add_handlers(auth = PSYC.Handler.Auth(this, sendmmp, uni),
 		 reply = PSYC.Handler.Reply(this, sendmmp, uni));
@@ -58,7 +58,7 @@ void create(MMP.Uniform u, object s, object stor) {
 //! @param packet
 //! 	The @[MMP.Packet] to send.
 void sendmmp(MMP.Uniform target, MMP.Packet packet) {
-    P2(("PSYC.Unl", "%O->sendmmp(%O, %O)\n", this, target, packet))
+    debug("packet_flow", 2, "%O->sendmmp(%O, %O)\n", this, target, packet);
     
     if (!has_index(packet->vars, "_context")) {
 	if (!has_index(packet->vars, "_target")) {
