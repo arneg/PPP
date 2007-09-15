@@ -34,6 +34,7 @@ void check(string name, function cb, mixed ... args) {
 	return;
     }
 
+    // TODO: think about deleted checks. is copying smarty?
     array(PSYC.AR) ao = checks[name];
 
     int i = 0;
