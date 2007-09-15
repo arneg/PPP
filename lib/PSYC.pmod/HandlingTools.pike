@@ -1,4 +1,4 @@
-#include <debug.h>
+inherit MMP.Utils.Debug;
 
 //! Tools for message handlers
 //! @note
@@ -10,6 +10,8 @@ MMP.Uniform uni;
 
 // we tried optional, but that doesn't work - might be a bug, we'll ask the
 // pikers soon. in the meantime, we'll use static.
+//! @param d
+//! 	The @[MMP.Utils.DebugManager] managing debug outputs (and throws).
 //! @param o
 //!	Object to be added to via @[add_handler] or @[add_command] in the @[StageHandler] or @[CommandSingleplexer] api, respectively.
 //! @param fun
@@ -25,6 +27,7 @@ static void create(object o, function fun, MMP.Uniform uniform) {
     uni = uniform;
 
     sendmmp = fun;
+    ::create(parent->_debugmanager);
 }
 
 //! Send a unicast packet
@@ -33,7 +36,7 @@ static void create(object o, function fun, MMP.Uniform uniform) {
 //! @param m
 //!	@[PSYC.Packet] to be sent.
 void sendmsg(MMP.Uniform target, PSYC.Packet m) {
-    P2(("PSYC.Unl", "sendmsg(%O, %O)\n", target, m))
+    debug("packet-flow", 2, "sendmsg(%O, %O)\n", target, m);
     MMP.Packet p = MMP.Packet(m);
     sendmmp(target, p);    
 }

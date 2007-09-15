@@ -32,11 +32,12 @@ void detach(MMP.Uniform unl) {
 
 	void callback(int error, string key, mapping sub) {
 	    if (error != PSYC.Storage.OK) {
-		P0(("Handler.Subscribe", "leave(%O) failed because of storage.\n"))
+		debug("storage", 0, "leave failed because of storage.\n");
 		return;
 	    }
 
-	    P2(("Person", "leaving all places because we are a newbie: %O\n", sub))
+	    debug(([ "newbie" : 2, "local_object_destruct" : 1, "local_object" : 2 ]),
+		  "leaving all places(%O) because we are a newbie\n", sub);
 
 	    foreach (sub;MMP.Uniform channel;) {
 		MMP.Utils.invoke_later(this->leave, channel);
@@ -59,7 +60,7 @@ int attached(MMP.Uniform unl) {
 
 void check_authentication(MMP.Uniform t, function cb, mixed ... args) {
 
-    P3(("PSYC.Person", "looking for %O in %O.\n", t, clients))
+    debug("auth", 3,"looking for %O in %O.\n", t, clients);
 
     if (has_index(clients, t)) {
 	call_out(cb, 0, 1, @args);	
@@ -77,6 +78,7 @@ int isNewbie(void|int(0..1) i) {
     }
 } 
 
+// obsolete!! use the handler.
 void distribute(MMP.Packet p) {
     P3(("Person", "distribute(%O)\n", p))
 
