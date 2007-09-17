@@ -65,7 +65,7 @@ string make_reply(function cb, multiset(string)|mapping vars, mixed ... args) {
     return tag;
 }
 
-void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
+int filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
     PSYC.Packet m = p->data;
 
     P3(("Handler.Reply", "%O: prefilter(%O)\n", parent, p))
@@ -106,7 +106,7 @@ void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
 	    // still some vars missing/supposed to come from storage
 	    PSYC.Storage.multifetch(parent->storage, ca[LVARS], ca[WVARS], got_data, fail, p, ca[CB], ca[ASYNC], ca[ARGS]);
 	    m_delete(reply, tag);
-	    return;
+	    return PSYC.Handler.STOP;
 	} else {
 	    P0(("Handler.Reply", "packet %O (%O) is tagged with an unknown tag.\n", p, m))
 	    // Not to bad. the packet may goon
@@ -114,4 +114,5 @@ void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
     }
 
     call_out(cb, 0, PSYC.Handler.GOON);
+    return PSYC.Handler.STOP;
 }

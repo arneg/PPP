@@ -1,14 +1,15 @@
-#include <debug.h>
+#include <new_assert.h>
+inherit MMP.Utils.Debug;
 
 object server;
 
-void create(object server_object) {
-    P4(("Codec", "create(%O)\n", server_object))
-    server = server_object;
+void create(mapping params) {
+    ::create(params["debug"]);
+    enforce(objectp(server = params["server"]));
 }
 
 mixed nameof(function|program|object o) {
-    P4(("Codec", "nameof(%O)\n", o))
+    debug("serialization", 6, "nameof(%O)\n", o);
 
     if (MMP.is_uniform(o)) {
 	return (string)o;
@@ -18,7 +19,7 @@ mixed nameof(function|program|object o) {
 }
 
 mixed objectof(string data) {
-    P4(("Codec", "objectof(%O)\n", data))
+    debug("serialization", 6, "objectof(%O)\n", data);
     return server->get_uniform(data); 
 }
 

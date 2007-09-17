@@ -1,16 +1,18 @@
 // vim:syntax=lpc
 // psyc root object. does most routing, multicast signalling etc.
 //
-#include <debug.h>
 
 inherit PSYC.Unl;
 
-void create(MMP.Uniform uniform, object server, object storage) {
-    ::create(uniform, server, storage);
-    P3(("PSYC.Root", "new PSYC.Root(%O, %O, %O)\n", uniform, server, storage))
+void create(mapping params) {
+    ::create(params);
 
-    add_handlers(Circuit(this, sendmmp, uni),
-		 Signaling(this, sendmmp, uni));
+    mapping handler_params = params + ([ "parent" : this, "sendmmp" : sendmmp ]);
+
+    add_handlers(
+		 Circuit(handler_params),
+		 Signaling(handler_params),
+    );
 }
 
 class Circuit {
@@ -26,7 +28,6 @@ class Circuit {
 
     int postfilter_notice_circuit_established(MMP.Packet p, mapping _v, mapping _m) {
 	// TODO: is a _source_identification valid here _at all_ ? doesnt make too much sense.
-	P3(("Root", "Got _notice_circuit_established on %O.\n", p->source()->handler))
 	if (p->source()->handler) {
 	    server->add_route(p->source(), p->source()->handler->circuit);
 	}
@@ -57,7 +58,7 @@ class Signaling {
 	    // all messages on that context from us. this would
 	    // in many cases be a local user, doesnt matter though
 	    "_request_context_enter" : 0, 
-	    "_request_context_leave" : 0, 
+	    //"_request_context_leave" : 0, 
 	    "_status_context_empty" : 0, 
 	    "_notice_context_leave" : ([ "lock" : ({ "groups" }) ]), 
 	    "_notice_context_enter_channel" : ([ "lock" : ({ "groups" }) ]), 
@@ -69,18 +70,16 @@ class Signaling {
 	int count;
 
 	void _cb(int error, MMP.Uniform group, MMP.Uniform guy) {
-	    P4(("PSYC.Root", "Inserting %O into %O\n", guy, group))
 	    if (!--count) {
 		set_inited(1);
 	    }
 
 	    if (error) {
-		P0(("PSYC.Root", "Insert failed for %O into %O.\n", guy, group))
+		debug(([ "storage" : 0, "multicast_routing" : 0 ]), "Insert failed for %O into %O.\n", guy, group);
 	    }
 	};
 	
 	if (mappingp(_v["groups"])) {
-	    P3(("PSYC.Root", "groups: %O.\n", _v["groups"]))
 	    foreach (_v["groups"]; MMP.Uniform group; mapping members) {
 		object context = parent->server->get_context(group);
 
@@ -103,7 +102,6 @@ class Signaling {
     // 	master here means a top router.
     int postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m) {
 	PSYC.Packet t = p->data;
-	P3(("Root.Signaling", "%O\n", t))
 
 	if (!(has_index(t->vars, "_group") && objectp(t["_group"]) 
 	      && has_index(t->vars, "_supplicant") && objectp(t["_supplicant"]))) {
@@ -131,15 +129,13 @@ class Signaling {
 	}
 
 	if (target == uni) {
-	    P0(("Root", "crazy in %O.\n", p))
+	    debug(([ "multicast_routing" : 2, "protocol_error" : 2 ]), "%O is trying to the root.\n", p->source());
 	    return PSYC.Handler.STOP;
 	}
 
 	void callback(MMP.Packet reply, mapping _v) {
 	    PSYC.Packet m = reply->data;
 	    mapping groups = _v["groups"];
-
-	    P2(("Root", "%O: reply to _request is %O.\n", parent, m))
 
 	    if (PSYC.abbrev(m->mc, "_notice_context_enter")) {
 		parent->server->get_context(group)->insert(member);
@@ -164,76 +160,6 @@ class Signaling {
 	return PSYC.Handler.STOP;
     }
 
-    // bottom up leave request. top down just sends a notice.. not politeness needed
-    //
-    // DEPRECATED!!!
-    int postfilter_request_context_leave(MMP.Packet p, mapping _v, mapping _m) {
-	PSYC.Packet t = p->data;
-
-	if (!(has_index(t->vars, "_group") && objectp(t["_group"]) 
-	      && has_index(t->vars, "_supplicant") && objectp(t["_supplicant"]))) {
-	    sendmsg(p->source(), t->reply("_error_context_leave"));
-	    return PSYC.Handler.STOP;
-	}
-
-	MMP.Uniform member = t["_supplicant"];
-	MMP.Uniform group = t["_group"];
-
-	if (p->source() != (member->is_local() ? member : member->root)) {
-	    sendmsg(p->source(), t->reply("_error_context_leave_trust"));
-	    return PSYC.Handler.STOP;
-	}
-
-	MMP.Uniform target;
-
-	if (group->is_local()) {
-	    target = group;
-	} else {
-	    target = group->root;
-	}
-
-	if (target == uni) {
-	    P0(("Root", "crazy in %O.\n", p))
-	    return PSYC.Handler.STOP;
-	}
-
-	object c = parent->server->get_context(group);
-
-	void callback(MMP.Packet reply, mapping _v) {
-	    PSYC.Packet m = reply->data;
-	    mapping groups = _v["groups"];
-
-	    if (c->contains(member)) {
-		c->remove(member);
-
-		if (!has_index(groups, group)) {
-		    P0(("Root", "inconsistency of storage and context.\n"))
-		    parent->storage->unlock("groups");
-		} else {
-		    if (has_index(groups[group], member)) {
-			m_delete(groups[group], member);
-			parent->storage->set_unlock("groups", groups);
-			parent->storage->save();
-		    } else {
-			parent->storage->unlock("groups");
-		    }
-		}
-	    }
-
-	    sendmsg(p->source(), t->reply("_notice_context_leave", ([ "_group" : group, "_supplicant" : member ])));
-	};
-
-	if (!c->contains(member)) {
-	    sendmsg(p->source(), t->reply("_notice_context_leave", ([ "_group" : group, "_supplicant" : member ]))); 
-	    return PSYC.Handler.STOP;
-	}
-
-	send_tagged_v(target, PSYC.Packet("_request_context_leave", ([ "_group" : group, "_supplicant" : member ])), 
-				    ([ "lock" : (< "groups" >) ]), callback);
-
-	return PSYC.Handler.STOP;
-    }
-
     // master kicks someone out.
     // user leaves himself.
     int postfilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m) {
@@ -242,8 +168,7 @@ class Signaling {
 	MMP.Uniform channel = m["_group"];
 	MMP.Uniform target; // who gets the _notice??
 
-	P2(("PSYC.Root", "LEAVE: %O\n", p))
-	P2(("PSYC.Root", "_notice_context_leave of %O in channel %O.\n", member, channel))
+	debug("multicast_routing", 4, "_notice_context_leave of %O in channel %O.\n", member, channel);
 
 	if (!objectp(member) || !objectp(channel)) {
 	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
@@ -255,14 +180,15 @@ class Signaling {
 			    ? (channel->channel ? channel->super : channel) 
 			    : channel->root)) {
 	    // TOP_DOWN
-	    P2(("Root", "TOP-DOWN leave!\n"))
+	    debug("multicast_routing", 4, "TOP-DOWN leave!\n");
 	    target = member->is_local() ? member : member->root;
 	} else if (p->source() == (member->is_local() ? member : member->root)) {
 	    // BOTTOM_UP
-	    P2(("Root", "BOTTOM-UP leave!\n"))
+	    debug("multicast_routing", 4, "BOTTOM-UP leave!\n");
 	    target = channel->is_local() ? (channel->channel ? channel->super : channel) : channel->root;
 	} else {
-	    P0(("Root", "%O: Got channel leave for context %O from %O. denied.\n", uni, channel, p->source()))
+	    debug(([ "multicast_routing" : 2, "protocol_error" : 2 ]), 
+		  "%O: Got channel leave for context %O from %O. denied.\n", uni, channel, p->source());
 	    // TODO: fix the mc here.. depending on the incoming one
 	    sendmsg(p->source(), m->reply("_error_context_leave"));
 	    parent->storage->unlock("groups");
@@ -271,8 +197,13 @@ class Signaling {
 
 	object c = parent->server->get_context(channel);
 
-	if (!c->contains(member)) {
-	    P0(("Root", "out of sync. %O not member of %O.\n", member, channel))
+	int(0..1) zero_and_zero_only(mixed zero) {
+	    if (0 == zero) return !zero_type(zero);
+	    return 0;
+	};
+
+	if (zero_and_zero_only(member->is_local()) && !c->contains(member)) {
+	    debug(([ "multicast_routing" : 0, "protocol_error" : 0 ]), "out of sync. %O not member of %O.\n", member, channel);
 	} else {
 	    c->remove(member);
 	}
@@ -280,7 +211,7 @@ class Signaling {
 	mapping groups = _v["groups"];
 
 	if (!has_index(groups, channel)) {
-	    P0(("Root", "inconsistency of storage and context.\n"))
+	    debug(([ "storage" : 0, "multicast_routing" : 0 ]), "inconsistency of storage and context.\n");
 	    parent->storage->unlock("groups");
 	} else {
 	    m_delete(groups[channel], member);
@@ -307,14 +238,15 @@ class Signaling {
 
 	if (!channel->super) {
 	    // be more specific here
-	    P1(("Root", "%O: got channel join from %O for a non-channel (%O).\n", uni, p->source(), channel))
+	    debug(([ "multicast_routing" : 0, "protocol_error" : 0 ]), 
+		  "%O: got channel join from %O for a non-channel (%O).\n", uni, p->source(), channel);
 	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
 	    parent->storage->unlock("groups");
 	    return PSYC.Handler.STOP;
 	}
 
-	if (p->source() != (channel->is_local() ? channel->super : channel->root)) {
-	    P1(("Root", "%O: Got channel join to %O from context %O. denied.\n", uni, channel, p->source()))
+	if (p->source() != (channel->is_local() ? channel->super : channel->root)) { // TODO:: needs zero_and_zero_only around is_local?
+	    debug("multicast_routing", 1, "%O: Got channel join to %O from context %O. denied.\n", uni, channel, p->source());
 	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
 	    parent->storage->unlock("groups");
 	    return PSYC.Handler.STOP;
@@ -332,7 +264,7 @@ class Signaling {
 
 	if (c->contains(member)) {
 	    // all is fine.
-	    P1(("Root", "%O: %O tries to double join %O into %O.\n", uni, p->source(), member, channel))
+	    debug("multicast_routing", 2, "%O: %O tries to double join %O into %O.\n", uni, p->source(), member, channel);
 	    parent->storage->unlock("groups");
 	    return PSYC.Handler.STOP;
 	}

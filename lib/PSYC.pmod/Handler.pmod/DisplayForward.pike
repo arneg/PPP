@@ -1,4 +1,5 @@
 #include <debug.h>
+#include <new_assert.h>
 inherit PSYC.Handler.Base;
 
 constant _ = ([
@@ -13,10 +14,14 @@ MMP.Uniform to;
 object textdb;
 
 
-void create(object c, function s, MMP.Uniform uni, MMP.Uniform client_uni, object tdb) {
-    to = client_uni;
-    textdb = tdb;
-    ::create(c, s, uni);
+void create(mapping params) {
+    to = params["client_uni"];
+    textdb = params["textdb"];
+
+    ::create(params);
+
+    enforce(MMP.is_uniform(to));
+    enforce(objectp(textdb));
 }
 
 int display_message(MMP.Packet p, mapping _v, mapping _m) {
@@ -54,7 +59,7 @@ int display_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
 		MMP.Packet pt = MMP.Packet(echo, ([ "_source_relay" : group ]));
 		sendmmp(to, pt);
 	    } else {
-		P0(("PrimitiveClient", "Want to fake an _echo_context_enter but thats no context %O.\n", m["_group"]));
+		debug("protocol_error", 0, "_group in _notice_context_enter supposed to be a group. got: %O.\n", m["_group"]);
 	    }
 
 	    return PSYC.Handler.STOP;
@@ -65,7 +70,7 @@ int display_notice_context_enter(MMP.Packet p, mapping _v, mapping _m) {
 }
 
 int display(MMP.Packet p, mapping _v, mapping _m) {
-    P2(("PrimitiveClient", "Forwarding %O to primitive client (%O).\n", p, to));
+    debug("PSYC.PrimitiveClient", 3, "Forwarding %O to primitive client (%O).\n", p, to);
 
     forward(p->clone());
 

@@ -82,6 +82,7 @@ int postfilter_request_do_enter(MMP.Packet p, mapping _v, mapping _m) {
 	PT(("Do", "%O is no place.\n", m["_group"]))
 	sendmsg(p->source(), m->reply("_failure"+m->mc));
     }
+    return PSYC.Handler.STOP;
 }
 
 int postfilter_request_do_leave(MMP.Packet p, mapping _v, mapping _m) {
@@ -93,4 +94,5 @@ int postfilter_request_do_leave(MMP.Packet p, mapping _v, mapping _m) {
     } else {
 	sendmsg(p->source(), m->reply("_failure"+m->mc));
     }
+    return PSYC.Handler.STOP;
 }

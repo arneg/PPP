@@ -9,8 +9,7 @@
 //! adress. Main function is to grant or deny access to the friendship channel
 //! based upon per person settings in the @expr{peers@} mapping in storage.
 
-#include <debug.h>
-#include <assert.h>
+#include <new_assert.h>
 
 #define OFFERED	1		// offered friendship to 
 #define	PENDING 2		// asked for friendship of
@@ -27,19 +26,18 @@ constant _ = ([
     ]),
 ]);
 
-void create(object o, function f, object u) {
-    ::create(o,f,u);
+void create(mapping params) {
+    ::create(params);
 
-    parent->create_channel(u, request_friend, request_unfriend);
+    parent->create_channel(uni, request_friend, request_unfriend);
 }
 
 void init(mapping vars) {
-    P3(("Handler.Friendship", "Init of %O. vars: %O\n", parent, vars))
     
     if (!mappingp(vars["peers"])) {
 	void callback(int error, string key) {
 	    if (error) {
-		P0(("Handler.Friendship", "Absolutely fatal: initing handler did not work!!!\n"))
+		debug("storage", 0, "Absolutely fatal: initing PSYC.Handler.Friendship failed.\n");
 	    } else {
 		set_inited(1);
 	    }
@@ -56,7 +54,7 @@ int postfilter_notice_friendship_offered(MMP.Packet p, mapping _v, mapping _m) {
 
     if (!mappingp(peers)) {
 	parent->storage->unlock("peers");
-	enforcer(0, "peers from storage not a mapping.\n");
+	do_throw("peers from storage not a mapping.\n");
     }
     
     if (has_index(peers, source)) {
@@ -64,7 +62,7 @@ int postfilter_notice_friendship_offered(MMP.Packet p, mapping _v, mapping _m) {
 
 	if (!mappingp(spec)) {
 	    parent->storage->unlock("peers");
-	    enforcer(0, "user spec from storage not a mapping.\n");
+	    do_throw("user spec from storage not a mapping.\n");
 	}
 
 	if (spec["fflags"] & PENDING) {
@@ -80,18 +78,16 @@ int postfilter_notice_friendship_offered(MMP.Packet p, mapping _v, mapping _m) {
 }
 
 void request_friend(MMP.Uniform guy, function callback, mixed ... args)	{
-    P3(("Handler.Friendship", "%O: Friend request from %O.\n", parent, guy))
+    debug("friendship", 3, "%O: Friend request from %O.\n", parent, guy);
     
     void cb(int error, string key, mixed peers) {
 
 	if (error != PSYC.Storage.OK) {
-	    P0(("Handler.Friendship", "fetching the peer-data failed.\n"))
+	    debug((["storage" : 0, "friendship" : 0 ]), "fetching 'peer' from storage failed.\n");
 	    return;
 	}
 
-	enforcer(mappingp(peers), "peers from storage not a mapping.\n");
-	P3(("Handler.Friendship", "peer data structure: %O\n", peers))
-	P3(("Handler.Friendship", "extra args: %O\n", args))
+	enforce(mappingp(peers));
 
 	if (has_index(peers, guy)) {
 	    mixed spec = peers[guy];
@@ -113,7 +109,7 @@ void request_friend(MMP.Uniform guy, function callback, mixed ... args)	{
 }
 
 void request_unfriend(MMP.Uniform guy) {
-    P3(("Person", "%O: %O removes his friendship.\n", this, guy))  
+    debug("friendship", 3, "%O: %O cancels his friendship.\n", this, guy);
     if (MMP.is_place(guy)) {
 	// this is a reason to leave..
 	parent->leave(guy);

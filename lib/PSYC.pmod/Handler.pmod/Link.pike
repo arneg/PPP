@@ -96,7 +96,13 @@ int postfilter_request_link(MMP.Packet p, mapping _v, mapping _m) {
 	// TODO: this will add multiple handlers. not fatal, wont produce bugs. but we
 	// need some way to check if some handler has been added already. same stuff
 	// is needed for removal
-	object o = PSYC.PrimitiveClient(source, parent->server, uni, stringp(_v["_password"]) && m["_password"]);
+	object o = PSYC.PrimitiveClient(([ 
+					 "uniform" : parent->server->random_uniform("primitive"), 
+					 "server" : parent->server, 
+					 "person" : uni, 
+					 "password" : stringp(_v["_password"]) && m["_password"], 
+					 "client_uniform" : source,
+					 ]));
 	return PSYC.Handler.STOP;
     } else 
 //#endif

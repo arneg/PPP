@@ -1,4 +1,5 @@
-#include <debug.h>
+#include <new_assert.h>
+inherit MMP.Utils.Debug;
 
 //! Tools for message handlers
 //! @note
@@ -10,6 +11,8 @@ MMP.Uniform uni;
 
 // we tried optional, but that doesn't work - might be a bug, we'll ask the
 // pikers soon. in the meantime, we'll use static.
+//! @param d
+//! 	The @[MMP.Utils.DebugManager] managing debug outputs (and throws).
 //! @param o
 //!	Object to be added to via @[add_handler] or @[add_command] in the @[StageHandler] or @[CommandSingleplexer] api, respectively.
 //! @param fun
@@ -20,11 +23,12 @@ MMP.Uniform uni;
 //!	In most cases it should me most convenient to simply inherit Base Handlers.
 //! @seealso
 //!	@[Handler.Base], @[Commands.Base]
-static void create(object o, function fun, MMP.Uniform uniform) {
-    parent = o;
-    uni = uniform;
+static void create(mapping params) {
+    ::create(params["debug"]);
 
-    sendmmp = fun;
+    enforce(objectp(parent = params["parent"]));
+    enforce(MMP.is_uniform(uni = params["uniform"]));
+    enforce(callablep(sendmmp = params["sendmmp"]));
 }
 
 //! Send a unicast packet
@@ -33,7 +37,7 @@ static void create(object o, function fun, MMP.Uniform uniform) {
 //! @param m
 //!	@[PSYC.Packet] to be sent.
 void sendmsg(MMP.Uniform target, PSYC.Packet m) {
-    P2(("PSYC.Unl", "sendmsg(%O, %O)\n", target, m))
+    debug("packet-flow", 2, "sendmsg(%O, %O)\n", target, m);
     MMP.Packet p = MMP.Packet(m);
     sendmmp(target, p);    
 }

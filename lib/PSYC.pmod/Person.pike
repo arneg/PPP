@@ -1,16 +1,40 @@
 // vim:syntax=lpc
 #include <debug.h>
 
-//! An implementation of a minimal user to which clients can be linked.
-int(0..1) is_newbie = 0;
-
 inherit PSYC.Unl;
 multiset clients = (< >);
 object user; // euqivalent to the _idea_ of "user.c" in psycmuve
-PSYC.Handler.Base relay;
-PSYC.Handler.Base link;
-PSYC.Handler.Base forward;
-PSYC.Handler.Base echo;
+
+//! An implementation of a minimal user to which clients can be linked.
+
+//! @param uni
+//! 	Uniform of the user.
+//! @param server
+//! 	A server object providing mmp message delivery.
+//! @param storage
+//! 	An instance of a @[PSYC.Storage] Storage subclass.
+//! @seealso
+//! 	@[PSYC.Storage.File], @[PSYC.Storage.Remote], @[PSYC.Storage.Dummy]
+void create(mapping params) {
+    ::create(params);
+
+    mapping handler_params = params + ([ "parent" : this, "sendmmp" : sendmmp ]);
+
+    add_handlers(
+	PSYC.Handler.Relay(handler_params),
+	PSYC.Handler.Forward(handler_params),
+	PSYC.Handler.Link(handler_params),
+	PSYC.Handler.Echo(handler_params),
+	PSYC.Handler.Storage(handler_params),
+	PSYC.Handler.Trustiness(handler_params),
+	PSYC.Handler.Channel(handler_params),
+	PSYC.Handler.Subscribe(handler_params),
+	PSYC.Handler.Friendship(handler_params),
+	PSYC.Handler.ClientFriendship(handler_params),
+    );
+}
+
+int(0..1) is_newbie = 0;
 
 string _sprintf(int type) {
     return sprintf("Person(%O)", uni);
@@ -32,11 +56,12 @@ void detach(MMP.Uniform unl) {
 
 	void callback(int error, string key, mapping sub) {
 	    if (error != PSYC.Storage.OK) {
-		P0(("Handler.Subscribe", "leave(%O) failed because of storage.\n"))
+		debug("storage", 0, "leave failed because of storage.\n");
 		return;
 	    }
 
-	    P2(("Person", "leaving all places because we are a newbie: %O\n", sub))
+	    debug(([ "newbie" : 2, "local_object_destruct" : 1, "local_object" : 2 ]),
+		  "leaving all places(%O) because we are a newbie\n", sub);
 
 	    foreach (sub;MMP.Uniform channel;) {
 		MMP.Utils.invoke_later(this->leave, channel);
@@ -59,7 +84,7 @@ int attached(MMP.Uniform unl) {
 
 void check_authentication(MMP.Uniform t, function cb, mixed ... args) {
 
-    P3(("PSYC.Person", "looking for %O in %O.\n", t, clients))
+    debug("auth", 3,"looking for %O in %O.\n", t, clients);
 
     if (has_index(clients, t)) {
 	call_out(cb, 0, 1, @args);	
@@ -77,6 +102,7 @@ int isNewbie(void|int(0..1) i) {
     }
 } 
 
+// obsolete!! use the handler.
 void distribute(MMP.Packet p) {
     P3(("Person", "distribute(%O)\n", p))
 
@@ -95,32 +121,3 @@ void distribute(MMP.Packet p) {
 	sendmmp(target, pt);
     }
 }
-
-//! @param uni
-//! 	Uniform of the user.
-//! @param server
-//! 	A server object providing mmp message delivery.
-//! @param storage
-//! 	An instance of a @[PSYC.Storage] Storage subclass.
-//! @seealso
-//! 	@[PSYC.Storage.File], @[PSYC.Storage.Remote], @[PSYC.Storage.Dummy]
-void create(MMP.Uniform uni, object server, object storage) {
-    ::create(uni, server, storage);
-
-    forward = PSYC.Handler.Forward(this, sendmmp, uni);
-    relay = PSYC.Handler.Relay(this, sendmmp, uni);
-    link = PSYC.Handler.Link(this, sendmmp, uni);
-    echo = PSYC.Handler.Echo(this, sendmmp, uni);
-    add_handlers(
-		 relay, link, forward, echo, 
-		 PSYC.Handler.Storage(this, sendmmp, uni, storage),
-		 PSYC.Handler.Trustiness(this, sendmmp, uni),
-		 PSYC.Handler.Channel(this, sendmmp, uni),
-		 PSYC.Handler.Subscribe(this, sendmmp, uni),
-		 );
-    add_handlers(
-		 PSYC.Handler.Friendship(this, sendmmp, uni),
-		 PSYC.Handler.ClientFriendship(this, sendmmp, uni),
-		 );
-}
-

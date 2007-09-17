@@ -1,5 +1,7 @@
 // vim:syntax=lpc
 #include <debug.h>
+#include <new_assert.h>
+
 inherit PSYC.HandlingTools;
 import .module;
 
@@ -8,7 +10,7 @@ import .module;
 //! 	@[Volatile] for method documentation, as this class is API compatible
 //! 	to it (except for the methods explicitely documented here).
 
-MMP.Uniform link_to;
+MMP.Uniform person;
 int linked = 0;
 MMP.Utils.Queue queue = MMP.Utils.Queue();
 
@@ -19,11 +21,11 @@ MMP.Utils.Queue queue = MMP.Utils.Queue();
 //! 	Usually @expr{parent->sendmmp@}.
 //! @param u
 //! 	The parent's uniform.
-//! @param link_to_
+//! @param person
 //! 	The uniform of the entity to 'link' to.
-void create(object parent, function sendmmp, MMP.Uniform u, MMP.Uniform link_to_) {
-    link_to = link_to_;
-    ::create(parent, sendmmp, u);
+void create(mapping params) {
+    ::create(params);
+    enforce(MMP.is_uniform(person = params["person"]));
 }
 
 void save() {
@@ -37,7 +39,7 @@ void save() {
 
 void _save() {
     P2(("PSYC.Storage.Remote", "Sending _request_save.\n"))
-    send_tagged(link_to, PSYC.Packet("_request_save"), stopper);
+    send_tagged(person, PSYC.Packet("_request_save"), stopper);
 }
 
 //! Callback to signal that the @expr{parent@} has linked to the entity
@@ -179,9 +181,9 @@ void _lock(string key, function callback, array(mixed) args,
 					]));
 
     if (callback) {
-	send_tagged(link_to, request, gscb, callback, key, mc, args);
+	send_tagged(person, request, gscb, callback, key, mc, args);
     } else { // maybe we should still send a tagged message.. but have dummy callback. not sure.
-	send_tagged(link_to, request, stopper);
+	send_tagged(person, request, stopper);
     }
 }
 
@@ -193,9 +195,9 @@ void _set(string key, mixed value, function callback,
 			    ]));
 
     if (callback) {
-	send_tagged(link_to, request, gscb, callback, key, mc, args);
+	send_tagged(person, request, gscb, callback, key, mc, args);
     } else {
-	send_tagged(link_to, request, stopper);
+	send_tagged(person, request, stopper);
     }
 }
 
@@ -204,10 +206,10 @@ void _get(string key, function callback, array(mixed) args, string mc) {
 				"_key" : key
 			    ]));
     if (callback) {
-	send_tagged(link_to, request, grcb, callback, key, mc, args);
+	send_tagged(person, request, grcb, callback, key, mc, args);
     } else {
 	// what is that for??
-	send_tagged(link_to, request, stopper);
+	send_tagged(person, request, stopper);
     }
 }
 

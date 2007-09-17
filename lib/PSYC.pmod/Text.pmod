@@ -89,8 +89,8 @@ class FileTextDB {
     //! 	Path to the TextDB folder.
     //! @note
     //! 	You usually won't have to create your own @[FileTextDB]s, but use @[FileTextDBFactoryFactory()]
-    void create(string path) {
-	P3(("FileTextDB", "create(%O)\n", path))
+     void create(string path) {
+ 	P3(("FileTextDB", "create(%O)\n", path))
 	tdbpath = path;
 
 	if (path[-1] != '/') {
