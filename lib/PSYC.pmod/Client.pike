@@ -1,11 +1,11 @@
 // vim:syntax=lpc
-#include <debug.h>
+#include <new_assert.h>
 inherit PSYC.Unl;
 
 int linked = 0;
 MMP.Utils.Queue queue = MMP.Utils.Queue();
 object attachee;
-MMP.Uniform link_to;
+MMP.Uniform person;
 function subscribe, unsubscribe;
 
 //! Generic PSYC client implementation.
@@ -38,32 +38,44 @@ function subscribe, unsubscribe;
 //! @param query_password
 //! 	Will be called when a password is needed during the linking process.
 //! 	Basically the same as @expr{error@}.
-void create(MMP.Uniform person, object server, MMP.Uniform unl,
-	    function error, function query_password, string|void|int password) {
-    link_to = person;
+void create(mapping params) {
 
-    ::create(unl, server, PSYC.Storage.Remote(this, sendmmp, uni, link_to)); 
+    params["storage"] = PSYC.Storage.Remote(params);
+
+    ::create(params); 
+
+    enforce(MMP.is_person(person = params["person"]));
     // there will be dragons here
     // (if we directly create a Linker-instance in the add_handlers call,
     // dragons appear.
     // might be a pike bug.
-    PSYC.Handler.Base t = PSYC.Handler.Subscribe(this, client_sendmmp, link_to); 
+    
+    mapping handler_params = params + ([ ]);
+    handler_params["parent"] = this;
+
+    mapping linker_params = handler_params + ([ ]);
+
+    handler_params["sendmmp"] = client_sendmmp;
+    linker_params["sendmmp"] = sendmmp;
+
+    mapping subscribe_params = handler_params + ([ ]);
+    subscribe_params["uniform"] = person;// TODO: is this smart?
+
     add_handlers(
-		 Linker(this, sendmmp, uni, error, query_password, link_to), 
-		 PSYC.Handler.Forward(this, sendmmp, uni), 
-		 PSYC.Handler.Textdb(this, sendmmp, uni),
-		 t
-		 );
-    add_handlers(PSYC.Handler.ClientFriendship(this, sendmmp, uni),
-		 );
+	PSYC.Handler.Subscribe(subscribe_params), 
+	PSYC.Handler.Forward(handler_params), 
+	PSYC.Handler.Textdb(handler_params),
+	PSYC.Handler.ClientFriendship(linker_params),
+	Linker(linker_params),
+    );
 
     PSYC.Packet request = PSYC.Packet("_request_link");
 
-    if (password) {
-	request["_password"] = password;
+    if (params["password"]) {
+	request["_password"] = params["password"];
     }
 
-    sendmmp(link_to, MMP.Packet(request));
+    sendmmp(person, MMP.Packet(request));
 }
 
 //! Attach an object to the client.
@@ -76,21 +88,9 @@ void detach() {
     attachee = UNDEFINED;
 }
 
-//! Distribute a @[MMP.Packet] to the attached object, calling @expr{msg()@}.
-void distribute(MMP.Packet p) {
-#if 0
-    if (attachee && attachee->msg) {
-	attachee->msg(p);
-	return;
-    } 
-#endif
-
-    P3(("PSYC.Client", "Noone using %O. Dropping %O.\n", this, p->data->data))
-}
-
 void unlink() {
     detach();
-    sendmmp(link_to, MMP.Packet(PSYC.Packet("_request_unlink")));
+    sendmmp(person, MMP.Packet(PSYC.Packet("_request_unlink")));
 }
 
 //! Same as standard @[PSYC.Unl()->sendmmp()] but it identifies
@@ -103,7 +103,7 @@ void unlink() {
 void client_sendmmp(MMP.Uniform target, MMP.Packet p) {
 
     if (!has_index(p->vars, "_source_identification")) {
-	p["_source_identification"] = link_to;
+	p["_source_identification"] = person;
     }
 
     if (linked) {
@@ -130,7 +130,7 @@ void unroll() {
 MMP.Uniform user_to_uniform(string l) {
     MMP.Uniform address;
     if (search(l, ":") == -1) {
-	l = "psyc://" + link_to->host + "/~" + l;
+	l = "psyc://" + person->host + "/~" + l;
     }
     address = server->get_uniform(l); 
 
@@ -141,7 +141,7 @@ MMP.Uniform user_to_uniform(string l) {
 MMP.Uniform room_to_uniform(string l) {
     MMP.Uniform address;
     if (search(l, ":") == -1) {
-	l = "psyc://" + link_to->host + "/@" + l;
+	l = "psyc://" + person->host + "/@" + l;
     }
     address = server->get_uniform(l); 
 
@@ -151,13 +151,14 @@ MMP.Uniform room_to_uniform(string l) {
 class Linker {
     inherit PSYC.Handler.Base;
     function error, query_password;
-    MMP.Uniform link_to;
+    MMP.Uniform person;
     
-    void create(object c, function sendmmp, MMP.Uniform u, function err, function quer, MMP.Uniform link_to_) {
-	error = err;
-	query_password = quer;
-	link_to = link_to_;
-	::create(c, sendmmp, u);
+void create(mapping params) {
+	::create(params);
+
+	enforce(callablep(error = params["error"]));
+	enforce(callablep(query_password = params["query_password"]));
+	enforce(MMP.is_person(person = params["person"]));
     }
 
     constant _ = ([
@@ -174,7 +175,7 @@ class Linker {
 	if (hash) {
 	    m["_method_hash"] = hash;
 	}
-	sendmsg(link_to, m);
+	sendmsg(person, m);
     }
 
     int postfilter_query_password(MMP.Packet p, mapping _v) {

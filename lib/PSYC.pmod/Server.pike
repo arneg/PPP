@@ -1,8 +1,9 @@
 // vim:syntax=lpc
-#include <debug.h>
-#include <assert.h>
+#include <new_assert.h>
 
 //! PSYC Server class. Does routing and delivery of @[MMP.Packet]s.
+
+inherit MMP.Utils.Debug;
 
 mapping(string:mixed) localhosts;
 // TODO: i was thinking about changing all those connection based
@@ -15,6 +16,7 @@ mapping(object:object)
 		       vcircuits = ([ ]);
 mapping(MMP.Uniform:object) contexts = ([ ]);
 mapping(string:MMP.Uniform) unlcache = ([ ]);
+mapping params;
 PSYC.Packet circuit_established;
 string bind_to;
 string def_localhost;
@@ -42,7 +44,7 @@ void activate(MMP.Uniform croot) { // croot == circuit root
     // not sure. activate does not really make sense without
     // a circuit. we might even throw! ... or exit(12).
     // TODO:: throw or exit. ,)
-    P0(("PSYC.Server", "%O->activate(%s) failed because the circuit was non-existing??!\n", this, croot))
+    do_throw(sprintf("%O->activate(%s) failed because the circuit was non-existing??!\n", this, croot));
 }
 
 // we could make the verbosity of this putput debug-level dependent
@@ -96,7 +98,7 @@ void insert(MMP.Uniform context, MMP.Uniform guz) {
 //! @note
 //! 	Warning: Use this method only if you know what you are doing. really.
 void add_route(MMP.Uniform target, object circuit) {
-    P1(("PSYC.Server", "add_route(%O, %O) as %O.\n", target, circuit, target->root))
+    debug("routing", 3, "add_route(%O, %O) as %O.\n", target, circuit, target->root);
 
     if (!has_index(vcircuits, target->root)) {
 	vcircuits[target->root] = MMP.VirtualCircuit(target, this, failure_delivery, 0, circuit);
@@ -131,6 +133,11 @@ void add_route(MMP.Uniform target, object circuit) {
 //! 	@endmapping
 void create(mapping(string:mixed) config) {
 
+    if (!config["debug"]) {
+	config["debug"] = MMP.Utils.DebugManager(); 
+    }
+
+    ::create(config["debug"]);
     // TODO: expecting ip:port ... is maybe a bit too much
     // looks terribly ugly..
     //
@@ -155,7 +162,7 @@ void create(mapping(string:mixed) config) {
 
     if (!functionp(create_context = config["create_context"])) {
 	object cc(MMP.Uniform context) {
-	    return PSYC.Context(this);	    
+	    return PSYC.Context(params);	    
 	};
 	create_context = cc;
     }
@@ -163,8 +170,14 @@ void create(mapping(string:mixed) config) {
     enforcer(objectp(storage_factory = config["storage"]), 
 	    "Storage factory missing (setting: 'storage')");
 
+    params = ([
+	"server" : this,
+	"debug" : config["debug"],
+	"storage_factory" : storage_factory,
+    ]);
+
     if (!storage_factory->codec_object) {
-	storage_factory->codec_object = PSYC.Codec(this);
+	storage_factory->codec_object = PSYC.Codec(params);
     }
 
     if (has_index(config, "deliver_remote")) {
@@ -178,6 +191,7 @@ void create(mapping(string:mixed) config) {
     } else {
 	external_deliver_local = deliver_local; 
     }
+
 
 #ifdef PRIMITIVE_CLIENT
     enforcer(functionp(textdb_factory = config["textdb"]),
@@ -212,9 +226,9 @@ void create(mapping(string:mixed) config) {
 			  "You got connected to [_source].");
     MMP.Uniform t = get_uniform("psyc://" + def_localhost);
     t->islocal = 1;
-    root = create_local(t, this, storage_factory);
+    root = create_local(params + ([ "uniform" : t ]));
     t->handler = root;
-    P1(("PSYC.Server", "created a new PSYC.Server(%s) with root object %O.\n", root->uni, root))
+    debug("local_objects", 8, "created a new PSYC.Server(%s) with root object %O.\n", root->uni, root);
     // not good for nonstandard port?
 }
 
@@ -233,7 +247,6 @@ void accept(Stdio.Port lsocket) {
 }
 
 void connect(int success, Stdio.File so, MMP.Uniform id) {
-    PT(("PSYC.Server", "connect(%O, %O, %O)\n", success, so, id))
     MMP.Circuit c = 0;
 
     if (success) {
@@ -242,7 +255,7 @@ void connect(int success, Stdio.File so, MMP.Uniform id) {
 	circuits[c->peeraddr] = c;
 
     } else {
-	P0(("PSYC.Server", "Connection to %O failed.\n", so))
+	debug("routing", 2, "Connection to %O failed.\n", so);
     }
 
     MMP.Utils.Queue q = m_delete(wf_circuits, id);
@@ -253,7 +266,7 @@ void connect(int success, Stdio.File so, MMP.Uniform id) {
 }
 
 void close(MMP.Circuit c) {
-    P0(("PSYC.Server", "%O->close(%O)\n", this, c))
+    debug("routing", 5, "%O->close(%O)\n", this, c);
     m_delete(circuits, c->peeraddr);
     //c->peeraddr->handler = UNDEFINED;
 }
@@ -267,7 +280,7 @@ object get_local(string uni) {
     MMP.Uniform u = get_uniform(uni);
 
     if (u->handler) return u->handler;
-    return u->handler = create_local(u, this, storage_factory);
+    return u->handler = create_local(params + ([ "uniform" : u ]));
 }
 
 //! @returns
@@ -297,14 +310,12 @@ MMP.Uniform get_uniform(string unl) {
     unl = lower_case(unl);
 
     if (!sizeof(unl)) {
-	THROW("ahhhhhh\n");
+	do_throw("ahhhhhh\n");
     }
 
     if (has_index(unlcache, unl)) {
-	P3(("PSYC.Server", "returning cached %O\n", unlcache[unl]))
 	return unlcache[unl];
     } else {
-	P3(("PSYC.Server", "returning newly created %O\n", unl))
 	MMP.Uniform t = MMP.Uniform(unl);
 
 	if (t->resource) {
@@ -330,14 +341,14 @@ void if_localhost(MMP.Uniform candidate, function if_cb, function else_cb,
 void _if_localhost(MMP.Uniform candidate, function if_cb, function else_cb,
 		  int port, array args) {
     // this is rather blöde
-    P3(("PSYC.Server", "if_localhost(%s, %O, %O, ...) looking in %O\n", candidate, if_cb, 
-	else_cb, localhosts))
+    debug("dns", 4, "if_localhost(%s, %O, %O, ...) looking in %O\n", candidate, if_cb, 
+	else_cb, localhosts);
     void callback(string host, mixed ip) {
 	// TODO: we need error_handling here!
 	if (!ip) {
-	    P1(("MMP.Server", "Could not resolve %s.\n", host))
+	    debug("dns", 3, "Could not resolve %s.\n", host);
 	} else {
-	    P2(("MMP.Server", "%s resolves to %s.\n", host, ip))
+	    debug("dns", 5, "%s resolves to %s.\n", host, ip);
 	}
 
 	if (ip && has_index(localhosts, ip + ":" + (port ? port : 4404)))
@@ -411,10 +422,10 @@ void _if_localhost(MMP.Uniform candidate, function if_cb, function else_cb,
 //! 	If you use convenient @[PSYC.Person] and the like, you most probably 
 //! 	don't need to use this directly.
 void deliver(MMP.Uniform target, MMP.Packet packet) {
-    P2(("PSYC.Server", "%O->deliver(%O, %O)\n", this, target, packet))
+    debug("packet_flow", 4, "%O->deliver(%O, %O)\n", this, target, packet);
 
     if (target->handler) {
-	P3(("PSYC.Server", "Found handler in %O. calling %O.\n", target, target->handler->msg))
+	debug("packet_flow", 5, "Found handler in %O. calling %O.\n", target, target->handler->msg);
 	MMP.Utils.invoke_later(target->handler->msg, packet);
 	return;
     }
@@ -426,8 +437,6 @@ void deliver(MMP.Uniform target, MMP.Packet packet) {
 
 void circuit_to(MMP.Uniform target, function(MMP.Circuit:void) cb) {
 
-    PT(("PSYC.Server", "circuit_to(%O, %O)\n", target, cb))
-    PT(("PSYC.Server", "circuits: %O, wf_circuits: %O\n", circuits, wf_circuits))
 
     if (has_index(circuits, target)) {
 	cb(circuits[target]);
@@ -438,8 +447,6 @@ void circuit_to(MMP.Uniform target, function(MMP.Circuit:void) cb) {
 
 	wf_circuits[target] = MMP.Utils.Queue();
 	wf_circuits[target]->push(cb);
-
-	PT(("PSYC.Server", "Opening a connection to %O.\n", target))
 
 	so = Stdio.File();
 
@@ -456,7 +463,6 @@ void circuit_to(MMP.Uniform target, function(MMP.Circuit:void) cb) {
 
 
 void failure_delivery(MMP.Uniform target, MMP.Packet p, void|mixed reason) {
-    PT(("PSYC.Server", "failure_delivery(%O)\n", p))
     if (objectp(p->data)) {
 	if (!PSYC.abbrev(p->data->mc, "_failure_delivery")) {
 	    PSYC.Packet reply = p->data->reply("_failure_delivery", 
@@ -466,20 +472,17 @@ void failure_delivery(MMP.Uniform target, MMP.Packet p, void|mixed reason) {
 						 ]));
 	    root->sendmmp(p->tsource(), MMP.Packet(reply));
 	} else {
-	    P0(("PSYC.Server", "a _failure_delivery could not be delivered: %O, %O\n", p, reason))
+	    debug("routing", 0, "a _failure_delivery could not be delivered: %O, %O\n", p, reason);
 	}
     }
 }
 
 void deliver_remote(MMP.Packet packet, MMP.Uniform root) {
-    P2(("PSYC.Server", "%O->deliver_remote(%O, %O)\n", this, packet, root))
+    debug("packet_flow", 5, "%O->deliver_remote(%O, %O)\n", this, packet, root);
     root->islocal = 0;
     root = root->root;
     root->islocal = 0;
     
-    P3(("PSYC.Server", "looking in %O for a connection to %s.\n", 
-	circuits, root))
-
     if (has_index(vcircuits, root)) {
 	MMP.Utils.invoke_later((root->handler = vcircuits[root])->msg, packet);
 	return;
@@ -492,14 +495,14 @@ void deliver_remote(MMP.Packet packet, MMP.Uniform root) {
 }
 
 void deliver_local(MMP.Packet packet, MMP.Uniform target) {
-    P3(("PSYC.Server", "%O->deliver_local(%O, %O)\n", this, packet, 
-	target))
+    debug("packet_flow", 5, "%O->deliver_local(%O, %O)\n", this, packet, 
+	target);
     target->islocal = 1;
-    object o = create_local(target, this, storage_factory);
+    object o = create_local(params + ([ "uniform" : target ]));
 
     if (!o) {
-	P0(("PSYC.Server", "Could not summon a local object for %O.\n",
-	    target))
+	debug("local_objects", 0, "Could not summon a local object for %O.\n",
+	    target);
 	failure_delivery(target, packet);	
 	return;
     }
@@ -512,7 +515,6 @@ void check_source(MMP.Packet packet, object connection, function callback, mixed
     MMP.Uniform source;
 
     void cb(mapping ips) {
-	PT(("Server", "ips: %O, ip: %O.\n", ips, connection->peerip))
 	if (ips && has_index(ips, connection->peerip)) {
 	    call_out(callback, 0, 1, @args);
 	} else {
@@ -603,7 +605,7 @@ void check(MMP.Packet packet, object connection) {
 	case 3:
 	    call_out(route, 0, packet, connection);
 	} else {
-	    P0(("PSYC.Server", "Packet %O with invalid header information dropped in stage %O.\n", packet, stage))
+	    debug(([ "packet_flow" : 0, "protocol_error" : 3 ]), "Packet %O with invalid header information dropped in stage %O.\n", packet, stage);
 	}
     };
 
@@ -612,7 +614,7 @@ void check(MMP.Packet packet, object connection) {
 
 void route(MMP.Packet packet, object connection) {
     
-    P3(("PSYC.Server", "%O->route(%O)\n", this, packet))
+    debug("packet_flow", 5, "%O->route(%O)\n", this, packet);
     
     MMP.Uniform target, source, context;
     // this is maybe the most ... innovative piece of code on this planet
@@ -622,8 +624,8 @@ void route(MMP.Packet packet, object connection) {
 
     // may be objects already if these are packets coming from a socket that
     // has been closed.
-    P3(("PSYC.Server", "routing source: %O, target: %O, context: %O\n", 
-	source, target, context))
+    debug("routing", 5, "routing source: %O, target: %O, context: %O\n", 
+	source, target, context);
 
     switch ((target ? 1 : 0)|
 	    (source ? 2 : 0)|
@@ -639,8 +641,8 @@ void route(MMP.Packet packet, object connection) {
 	//break;
     case 3:
     case 1:
-	P3(("PSYC.Server", "routing %O via unicast to %s\n", packet, 
-	    target))
+	debug("routing", 5, "routing %O via unicast to %s\n", packet, 
+	    target);
 
 	if (target->handler) {
 	    target->handler->msg(packet);
@@ -652,7 +654,7 @@ void route(MMP.Packet packet, object connection) {
 	} else { // rootmsg
 #ifdef DEBUG
 	    void dummy(MMP.Packet p) {
-		P0(("PSYC.Server", "%O sent us a packet (%O) that apparently does not belong here.\n", p->source(), p))
+		debug("routing", 0, "%O sent us a packet (%O) that apparently does not belong here.\n", p->source(), p);
 	    };
 #else
 	    function dummy;
@@ -660,9 +662,9 @@ void route(MMP.Packet packet, object connection) {
 	    // wouldnt it be good to have if_localhost check for that
 	    // in the uniform on its own?
 	    //  being local should never change...
-	    if (target->islocal == 1) {
+	    if (target->islocal) {
 		root->msg(packet);
-	    } else if (target->islocal == 0) {
+	    } else if (zero_type(target->islocal) == 0) {
 		dummy(packet);
 	    } else 
 		if_localhost(target, root->msg, dummy, packet);
@@ -670,21 +672,21 @@ void route(MMP.Packet packet, object connection) {
 	break;
     case 2:
     case 0:
-	P0(("PSYC.Server", "Broken Packet without _target from %O.\n", source))
+	debug(([ "routing" : 0, "protocol_error" : 2]), "Broken Packet without _target from %O.\n", source);
 	root->msg(packet);
 	break;
     case 4:
-	P2(("PSYC.Server", "routing multicast message %O to local %s\n", 
-	    packet, context))
+	debug("routing", 2, "routing multicast message %O to local %s\n", 
+	    packet, context);
 	if (has_index(contexts, context)) {
 	    contexts[context]->msg(packet);
 	} else {
-	    P0(("PSYC.Server", "<F8>hzt noone distributing messages in %O\n", 
-		context))
+	    debug("routing", 0, "Context() empty for %O\n", 
+		context);
 	}
 	break;
     case 6:
-	P0(("PSYC.Server", "unimplemented routing scheme (%d)\n", 6))
+	debug(([ "routing" : 0, "protocol_error" : 2]), "unimplemented routing scheme (%d)\n", 6);
 	// bullshit.. 
 	break;
     }

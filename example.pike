@@ -58,6 +58,9 @@ int main(int argc, array(string) argv) {
 
     dumms = PSYC.Storage.FileFactory(DATA_PATH); 
 
+    object debug = MMP.Utils.DebugManager();
+    debug->set_default_backtrace(1);
+    debug->set_default_debug(3);
     dings = PSYC.Server(([
 	     "ports" : ({ 
 #ifdef BIND
@@ -66,6 +69,7 @@ int main(int argc, array(string) argv) {
 			LOCALHOST
 #endif
 			+ ":4404" }),
+	     "debug" : debug,
 	   "storage" : dumms,
       "create_local" : create_local,
      "offer_modules" : ({ "_compress" }),
@@ -127,24 +131,27 @@ void deliver_remote(MMP.Packet p, MMP.Uniform target) {
 }
 
 // does _not_ check whether the uni->host is local.
-object create_local(MMP.Uniform uni, object psyc_server, object storage_factory) {
+object create_local(mapping params) {
+
+    MMP.Uniform uni = params["uniform"];
+
     write("creating object for %O.\n", uni);
-    object o;
-    if (uni->resource && sizeof(uni->resource) > 1) switch (uni->resource[0]) {
-    case '~':
-	// TODO check for the path...
-	o = PSYC.Person(uni, psyc_server, storage_factory->getStorage(uni));
+    if (uni->resource && sizeof(uni->resource) > 1) {
 
-//	o->add_handlers(PSYC.Handler.ClientFriendship(o, o->sendmmp, o->uni));
-//	o->add_handlers(PSYC.Handler.Do(o, o->sendmmp, o->uni));
-
-	return o;
-	break;
-    case '@':
-	return PSYC.Place(uni, psyc_server, storage_factory->getStorage(uni));
-	break;
+	switch (uni->resource[0]) {
+	case '~':
+	    // TODO check for the path...
+	    params += ([ "storage" : params["storage_factory"]->getStorage(uni) ]);
+	    return PSYC.Person(params);
+	case '@':
+	    params += ([ "storage" : params["storage_factory"]->getStorage(uni) ]);
+	    return PSYC.Place(params);
+	default:
+	    return 0;
+	}
     } else {
-	return PSYC.Root(uni, psyc_server, storage_factory->getStorage(uni));
+	params += ([ "storage" : params["storage_factory"]->getStorage(uni) ]);
+	return PSYC.Root(params);
     }
 }
 

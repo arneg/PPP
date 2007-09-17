@@ -62,9 +62,9 @@ class Session {
 	    ]),
 	]);
 
-	void create(object u, function sendmmp, MMP.Uniform un, object tdb) {
-	    textdb = tdb;
-	    ::create(u, sendmmp, un);
+	void create(mapping params) {
+	    ::create(params);
+	    textdb = params["textdb"];
 	}
 
 	void display(MMP.Packet p, mapping _v, mapping _m) {
@@ -163,17 +163,31 @@ class Session {
 	}
 
 	MMP.Uniform unl = server->random_uniform("telnet");
-	client = PSYC.Client(user, server, unl, query_password, query_password);
-	object test = UngroovyTelnetDisplayHandler(client, client->sendmmp, client->uni,textdb);
+	mapping params = ([
+	    "person" : user,
+	    "uniform" : unl,
+	    "server" : server,
+	    "textdb" : textdb,
+	]);
+	client = PSYC.Client(params + ([ "query_password" : query_password, "error" : query_password ]));
+
+	params += ([
+	    "uniform" : client->uni,
+	    "sendmmp" : client->sendmmp,
+	    "parent" : client,
+		   ]);
+
 	unl->handler = client;
 	client->attach(this);
-	client->add_handlers(GroovyTelnetPromptChangeHandler(client, client->sendmmp, client->uni),
-			     test);
+	client->add_handlers(
+			     GroovyTelnetPromptChangeHandler(params),
+			     UngroovyTelnetDisplayHandler(params),
+			     );
 
-	add_commands(PSYC.Commands.Tell(client, client->client_sendmmp, client->uni));
+	add_commands(PSYC.Commands.Tell(params));
 	//add_commands(PSYC.Commands.Subscribe(this));
-	add_commands(PSYC.Commands.Enter(client, client->client_sendmmp, client->uni));
-	add_commands(PSYC.Commands.Set(client, client->client_sendmmp, client->uni));
+	add_commands(PSYC.Commands.Enter(params));
+	add_commands(PSYC.Commands.Set(params));
 
 	input_to();
     }

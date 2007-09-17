@@ -1,13 +1,11 @@
 // vim:syntax=lpc
-//#include <debug.h>
+#include <new_assert.h>
 
 //! The simplest PSYC speaking object in whole @i{PSYCSPACE@}. Does
 //! Remote Authentication and Reply using uthe 
 
 inherit PSYC.MethodMultiplexer;
 
-PSYC.Handler.Base reply;// = PSYC.Handler.Reply();
-PSYC.Handler.Base auth;// = PSYC.Handler.Auth();
 object storage;
 
 object server;
@@ -38,15 +36,20 @@ void check_authentication(MMP.Uniform t, function cb, mixed ... args) {
 //!	PSYC entities should not be created anytime anywhere, but by the
 //! 	callbacks to the @[PSYC.Server] that will get called if someone
 //! 	tries to reach a non-present entity.
-void create(MMP.Uniform u, object s, object stor) {
-    ::create(s, stor);
-    debug("local_object", 2, "Uniform created for %s.\n", u);
-    uni = u;
-    server = s;
-    storage = stor;
+void create(mapping params) {
+    ::create(params); 
+    enforce(MMP.is_uniform(uni = params["uniform"]));
+    enforce(objectp(server = params["server"]));
+    enforce(objectp(storage = params["storage"]));
 
-    add_handlers(auth = PSYC.Handler.Auth(this, sendmmp, uni),
-		 reply = PSYC.Handler.Reply(this, sendmmp, uni));
+    debug("local_object", 2, "Uniform created for %s.\n", uni);
+
+    mapping handler_params = params + ([ "parent" : this, "sendmmp" : sendmmp ]);
+
+    add_handlers(
+		 PSYC.Handler.Auth(handler_params),
+		 PSYC.Handler.Reply(handler_params)
+		 );
     // the order of storage and trustiness is somehow critical..
 }
 

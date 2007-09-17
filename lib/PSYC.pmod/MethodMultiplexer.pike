@@ -1,5 +1,7 @@
 // vim:syntax=lpc
 
+#include <new_assert.h>
+
 //! This class provides an amazingly sweet PSYC processing framework.
 //! PSYC functionality can be added to an entity by
 //! adding Handlers using @[add_handlers()].
@@ -31,16 +33,51 @@ void throw(mixed ... x) {
 }
 #endif
 
-void create(MMP.Utils.DebugManager d, object storage) {
+void create(mapping params) {
     // display is sortof isolated from the rest.. 
     //
     // we should think about introducing a different api.. one closure which gets called
     // with the returntype.. (for STOP and DISPLAY). 
-    ::create(d);
-    display = PSYC.StageHandler(d, "display", finish, stop, finish, throw, storage);
-    postfilter = PSYC.StageHandler(d, "postfilter", display->handle, stop, display->handle, throw, storage);
-    filter = PSYC.StageHandler(d, "filter", postfilter->handle, stop, display->handle, throw, storage);
-    prefilter = PSYC.StageHandler(d, "prefilter", filter->handle, filter->handle, filter->handle, throw, storage);
+    ::create(params["debug"]);
+
+
+    // >>>TODO>>> change mapping keys from "goon" to the corresponding
+    // constants. that way enabling MORE pwnage. <<<TODO<<<
+    //
+    // TODO, TOO: write an auto_unfpld macro for vim, unfplding mappings.
+    //
+    // TODO: start writing more TODOs at places where you will NEVER see them again.
+    //
+    // TODO: alias ft grep -rn TODO *
+
+    display = PSYC.StageHandler(params + ([
+					   "prefix" : "display",
+					   "goon" : finish,
+					   "stop" : stop,
+					   "display" : finish,
+					   "error" : do_throw
+					   ]));
+    postfilter = PSYC.StageHandler(params + ([
+					  "prefix" : "postfilter",
+					  "goon" : display->handle,
+					  "stop" : stop,
+					  "display" : display->handle,
+					  "error" : do_throw
+				  	 ]));
+    filter = PSYC.StageHandler(params + ([
+					 "prefix" : "filter",
+					 "goon" : postfilter->handle,
+					 "stop" : stop,
+					 "display" : display->handle,
+					 "error" : do_throw
+				      ]));
+    prefilter = PSYC.StageHandler(params + ([
+					    "prefix" : "prefilter",
+					    "goon" : filter->handle,
+					    "stop" : filter->handle,
+					    "display" : filter->handle,
+					    "error" : do_throw
+				  ]));
 }
 
 
@@ -91,7 +128,7 @@ mixed `->(string fun) {
     return UNDEFINED;
 }
 void call_init(object handler, PSYC.AR o) {
-    debug("handler-management", 3, "Calling %O for init.\n", o->handler);
+    debug("handler_management", 3, "Calling %O for init.\n", o->handler);
     PSYC.Storage.multifetch(this->storage, o->lvars && (multiset)o->lvars, o->wvars && (multiset)o->wvars, 
 			    handler->init,0); 
 }

@@ -1,5 +1,5 @@
 // vim:syntax=lpc
-#include <assert.h>
+#include <new_assert.h>
 
 // TODO
 // - let the check function return variables to request.
@@ -9,20 +9,20 @@ inherit MMP.Utils.Debug;
 object storage;
 mapping table = ([]);
 mapping requested = ([]);
-function go_on, stop, error, display;
+function goon, stop, error, display;
 string prefix;
 
-void create(MMP.Utils.DebugManager d, string foo, function go_on_, function stop_, function display_, function error_, object s) {
-    prefix = foo;
+void create(mapping params) {
 
-    go_on = go_on_;
-    stop = stop_;
-    error = error_;
-    display = display_;
+    ::create(params["debug"]);
+    prefix = params["prefix"];
 
-    storage = s;
+    enforce(callablep(goon = params["goon"]));
+    enforce(callablep(stop = params["stop"]));
+    enforce(callablep(error = params["error"]));
+    enforce(callablep(display = params["display"]));
 
-    ::create(d);
+    enforce(objectp(storage = params["storage"]));
 }
 
 #ifdef DEBUG
@@ -37,8 +37,7 @@ string _sprintf(int type) {
 void add(string mc, object handler, void|mapping|array(string) d) {
     PSYC.AR result;
 
-    debug("handler_management", 3, "%O->add(%O)\n", prefix, handler);
-
+    debug("handler_management", 3, "%O->add(%O, %O)\n", prefix, mc, handler);
     if (!has_index(table, mc)) table[mc] = ({ }); 
 
     result = PSYC.handler_parser(d);
@@ -82,27 +81,11 @@ void handle(MMP.Packet p, mapping _m) {
     progress(liste, p, _m);
 }
 
-#if 0
-void fetched(string key, mixed value, MMP.Utils.Queue stack, MMP.Packet p,
-	     mapping _m, multiset(string) wvars) {
-    P3(("StageHandler", "fetched(%O, %O, %O, %O, %O)\n", key, value, stack,
-	p, wvars))
-
-    requested[p][key] = value;
-
-    if (wvars[key]) while(--wvars[key]);
-
-    if (!sizeof(wvars)) {
-	call_handler(stack, p, m_delete(requested, p), _m);
-    }
-}
-#endif
-
 void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
     debug("packet_flow", 3, "%O: progressing %O.\n", prefix, stack);
 
     if (stack->isEmpty()) {
-	call_out(go_on, 0, p, _m);
+	call_out(goon, 0, p, _m);
 
 	return;
     }

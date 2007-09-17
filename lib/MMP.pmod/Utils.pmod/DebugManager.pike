@@ -1,8 +1,8 @@
 mapping(string:int) cat = ([]);
 mapping(string:object) stderrs = ([]);
-mapping(string:int(0..1)) bt = ([]);
+mapping(string:int) bt = ([]);
 
-int(0..1) dbt;
+int dbt;
 
 int default_lvl = 0;
 object default_stderr;
@@ -21,17 +21,17 @@ void set_default_stderr(object o) {
     default_stderr = o;
 }
 
-void set_default_backtrace(int(0..1) i) {
+void set_default_backtrace(int i) {
     dbt = i;
 }
 
-int(0..1) unset_default_backtrace() {
+int unset_default_backtrace() {
     int i = dbt;
 
     dbt = 0;
     return i;
 }
-int(0..1) get_default_backtrace() {
+int get_default_backtrace() {
     return dbt;
 }
 
@@ -114,7 +114,7 @@ void debug(string|mapping(string:int) cats, mixed ... args) {
     foreach (cats; string c; int lvl) {
 	string tmp_fmt;
 	if ((has_index(cat, c) && cat[c] >= lvl) || default_lvl >= lvl) {
-	    if (dbt && !has_index(bt, c) || bt[c]) {
+	    if (dbt >= lvl && !has_index(bt, c) || bt[c] >= lvl) {
 		array backtrace = backtrace();
 	       
 		Pike.BacktraceFrame fun;
@@ -164,15 +164,15 @@ void debug(string|mapping(string:int) cats, mixed ... args) {
     }
 }
 
-void set_backtrace(string c, int(0..1) trace) {
+void set_backtrace(string c, int trace) {
     bt[c] = trace;
 }
 
-int(0..1) unset_backtrace(string c) {
+int unset_backtrace(string c) {
     return m_delete(bt, c);
 }
 
-int(0..1) get_backtrace(string c) {
+int get_backtrace(string c) {
     return bt[c];
 }
 
@@ -180,7 +180,8 @@ void do_throw(string c, string fmt, mixed ... args) {
     string s = sprintf(fmt, @args);
     array trace;
 
-    if (dbt && !has_index(bt, c) || bt[c]) {
+    
+    if (dbt >= 0 && !has_index(bt, c) || bt[c] >= 0) {
 	trace = backtrace();
 	trace = trace[..sizeof(trace) - 2];
     }

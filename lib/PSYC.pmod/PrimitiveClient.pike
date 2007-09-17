@@ -1,17 +1,21 @@
 // vim:syntax=lpc
 //
 #include <debug.h>
+#include <new_assert.h>
 
 object client;
 MMP.Uniform client_uniform;
 object textdb;
 
 inherit PSYC.CommandSingleplexer;
+inherit MMP.Utils.Debug;
 
-void create(MMP.Uniform client_u, object server, MMP.Uniform person, string|void pw) {
-    P0(("PrimitiveClient", "create(%O, %O, %O)\n", client_u, server, person))
+void create(mapping params) {
     // das wird wieder boese hier, 
-    client_uniform = client_u;
+
+    ::create(params["debug"]);
+
+    enforce(MMP.is_uniform(client_uniform = params["client_uniform"]));
 
     void error() {
 	P0(("PrimitiveClient", "error() called... \n"))
@@ -24,32 +28,40 @@ void create(MMP.Uniform client_u, object server, MMP.Uniform person, string|void
 	client->client_sendmsg(client_uniform, PSYC.Packet("_query_password"));
     };
 
-    textdb = server->textdb_factory("plain", "en");
+    enforce(params["server"]);
+    textdb = params["server"]->textdb_factory("plain", "en");
 
     // still not that beautyful.. the client doesnt need to do linking
     // in this case. doesnt matter
-    MMP.Uniform t = server->random_uniform("primitive");
-    client = PSYC.Client(person, server, t, error, query_password, pw);
+
+    mapping client_params = params + ([ "query_password" : query_password,
+				        "error" : error ]);
+
+    client = PSYC.Client(client_params);
+
     client->attach(this);
-    t->handler = client;
+    client->uni->handler = client;
+
+    mapping handler_params = params + ([
+	"sendmmp" : client->client_sendmmp,
+	"parent" : client,
+	"uniform" : client->uni,
+    ]);
 
     client->add_handlers(
-	PSYC.Handler.Execute(client, client->client_sendmmp, client->uni),
-	PSYC.Handler.PrimitiveLink(client, client->client_sendmmp, client->uni, 
-				   client_uniform),
+	PSYC.Handler.Execute(handler_params),
+	PSYC.Handler.PrimitiveLink(handler_params),
 	// person uniform here to enter the uni.
-	PSYC.Handler.Subscribe(client, client->client_sendmmp, person),
-	PSYC.Handler.DisplayForward(client, client->client_sendmmp, client->uni, client_uniform, textdb),
-	PSYC.Handler.ClientFriendship(client, client->client_sendmmp, 
-				      client->uni),
-	PSYC.Handler.Do(client, client->client_sendmmp, client->uni),
+	PSYC.Handler.Subscribe(handler_params),
+	PSYC.Handler.DisplayForward(params),
+	PSYC.Handler.ClientFriendship(handler_params),
+	PSYC.Handler.Do(handler_params),
     );
 
-//add_commands(PSYC.Commands.Subscribe(this));
     add_commands(
-	PSYC.Commands.Tell(client, client->client_sendmmp, client->uni),
-	PSYC.Commands.Enter(client, client->client_sendmmp, client->uni),
-	PSYC.Commands.Set(client, client->client_sendmmp, client->uni),
+	PSYC.Commands.Tell(handler_params),
+	PSYC.Commands.Enter(handler_params),
+	PSYC.Commands.Set(handler_params),
     );
 }
 

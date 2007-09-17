@@ -1,6 +1,6 @@
 // vim:syntax=lpc
 inherit PSYC.Handler.Base;
-#include <debug.h>
+#include <new_assert.h>
 
 //! An Implementation of PSYC storage. Handles @expr{get@}, @expr{set@} and
 //! @expr{lock@} operations, namely:
@@ -63,7 +63,6 @@ int _set(MMP.Packet p, mapping _v, mapping _m, string mc, function set) {
     mixed value = m->vars["_value"];
 
     void callback(int error, string key, MMP.Uniform target, PSYC.Packet m) {
-	P3(("Handler.Storage", "callback(%O, %O, %O)\n", error, target, m))
 	if (error) {
 	    sendmsg(target, m->reply("_error"+mc,
 					  ([ "_key" : key ])));
@@ -197,8 +196,8 @@ int postfilter_request_save(MMP.Packet p, mapping _v, mapping _m) {
 //! @seealso
 //! 	@[PSYC.HandlingTools()->create()] for documentation of the other
 //! 	arguments.
-void create(object uni, function f, MMP.Uniform u, object s) {
-    storage = s;
-    ::create(uni, f, u);
+void create(mapping params) {
+    ::create(params);
+    enforce(objectp(storage = params["storage"]));
 }
 

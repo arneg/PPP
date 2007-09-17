@@ -1,3 +1,4 @@
+#include <new_assert.h>
 inherit MMP.Utils.Debug;
 
 //! Tools for message handlers
@@ -22,12 +23,12 @@ MMP.Uniform uni;
 //!	In most cases it should me most convenient to simply inherit Base Handlers.
 //! @seealso
 //!	@[Handler.Base], @[Commands.Base]
-static void create(object o, function fun, MMP.Uniform uniform) {
-    parent = o;
-    uni = uniform;
+static void create(mapping params) {
+    ::create(params["debug"]);
 
-    sendmmp = fun;
-    ::create(parent->_debugmanager);
+    enforce(objectp(parent = params["parent"]));
+    enforce(MMP.is_uniform(uni = params["uniform"]));
+    enforce(callablep(sendmmp = params["sendmmp"]));
 }
 
 //! Send a unicast packet

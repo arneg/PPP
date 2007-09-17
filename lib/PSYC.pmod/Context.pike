@@ -1,23 +1,28 @@
 // vim:syntax=lpc
+#include <new_assert.h>
+
+inherit MMP.Utils.Debug;
+
 object server;
 multiset(MMP.Uniform) members = (<>);
 mapping(MMP.Uniform:int) routes = ([]);
 mapping options;
 int count = 0;
 
-#include <debug.h>
 
 // TODO: 
 // - doesnt know who he is and therefore needs to know the route to the
 //   context
 // - think about the local checks.
 
-void create(object s) {
-    server = s;
+void create(mapping params) {
+    ::create(params["debug"]);
+
+    assert(objectp(server = params["server"]));
 }
 
 void insert(MMP.Uniform u, function cb, mixed ... args) {
-    P3(("PSYC.Context", "insert(%O).\n", u))
+    debug("multicast_routing", 3, "insert(%O).\n", u);
 
     if (u->is_local()) {
 	members[u] = 1;
@@ -35,7 +40,7 @@ int contains(MMP.Uniform u) {
 }
 
 void remove(MMP.Uniform u) {
-    P3(("PSYC.Context", "remove(%O).\n", u))
+    debug("multicast_routing", 3, "remove(%O).\n", u);
 
     while (members[u]--);
     if (u->is_local()) {
@@ -60,9 +65,9 @@ void msg(MMP.Packet p) {
 
     // the PSYC packet actually goes through unparsed. and it is parsed once if
     // its delivered locally. hooray
-    P3(("PSYC.Context", "casting %O.\n", p->data))
+    debug(([ "packet_flow" : 3, "multicast_routing" : 3 ]), "casting %O.\n", p->data);
     foreach(routes; MMP.Uniform u;) {
-	P4(("PSYC.Context", "casting to route %O.\n", u))
+	debug(([ "packet_flow" : 4, "multicast_routing" : 4 ]), "casting to route %O.\n", u);
 	server->deliver(u, p);
     }
 }
