@@ -50,23 +50,22 @@ void create(mapping params) {
     // dragons appear.
     // might be a pike bug.
     
-    mapping handler_params = params + ([ ]);
-    handler_params["parent"] = this;
+    mapping handler_params = params + ([ 
+	"parent" : this,
+	"sendmmp" : sendmmp,
+    ]);
 
-    mapping linker_params = handler_params + ([ ]);
-
-    handler_params["sendmmp"] = client_sendmmp;
-    linker_params["sendmmp"] = sendmmp;
-
-    mapping subscribe_params = handler_params + ([ ]);
-    subscribe_params["uniform"] = person;// TODO: is this smart?
+    mapping subscribe_params = handler_params + ([ 
+	"uniform" : person,// TODO: is this smart?
+	"sendmmp" : client_sendmmp,
+    ]);
 
     add_handlers(
 	PSYC.Handler.Subscribe(subscribe_params), 
 	PSYC.Handler.Forward(handler_params), 
 	PSYC.Handler.Textdb(handler_params),
-	PSYC.Handler.ClientFriendship(linker_params),
-	Linker(linker_params),
+	PSYC.Handler.ClientFriendship(handler_params),
+	Linker(handler_params),
     );
 
     PSYC.Packet request = PSYC.Packet("_request_link");

@@ -17,7 +17,7 @@ constant _ = ([
 void create(mapping params) {
     ::create(params);
 
-    enforce(MMP.is_uniform(primitive = params["client_uni"]));
+    enforce(MMP.is_uniform(primitive = params["client_uniform"]));
     call_out(parent->authenticate, 0, primitive);
 }
 
