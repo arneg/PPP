@@ -5,21 +5,21 @@ inherit PSYC.Commands.Base;
 //! Provides the following commands for setting and retrieving storage variables.
 //! @ul
 //! 	@item
-//!		@expr{"set" . Commands.Word . Commands.String@}
+//!		@expr{"set" . PSYC.Commands.Arguments.Word . PSYC.Commands.Arguments.String@}
 //! 	@item
-//!		@expr{"get" . Commands.Word@}
+//!		@expr{"get" . PSYC.Commands.Arguments.Word@}
 //! @endul
 
 constant _ = ([
     "get" : ({ 
 	({ "get", 
-	    ({ PSYC.Commands.Word, "key" })
+	    ({ PSYC.Commands.Arguments.Word, "key" })
 	 }),
     }),
     "set" : ({ 
 	({ "set", 
-	    ({ PSYC.Commands.Word, "key", 
-	       PSYC.Commands.String, "value" }),
+	    ({ PSYC.Commands.Arguments.Word, "key", 
+	       PSYC.Commands.Arguments.String, "value" }),
 	 }),
     }),
 ]);

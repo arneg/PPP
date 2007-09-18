@@ -64,4 +64,3 @@ void create(mapping params) {
 	PSYC.Commands.Set(handler_params),
     );
 }
-

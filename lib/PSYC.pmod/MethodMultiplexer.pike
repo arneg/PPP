@@ -16,8 +16,7 @@
 
 inherit MMP.Utils.Debug;
 
-PSYC.StageHandler prefilter, filter, postfilter, display;
-mapping(string:function) exports = ([]);
+PSYC.StageHandler stage_prefilter, stage_filter, stage_postfilter, stage_display;
 
 void stop(MMP.Packet p) {
     debug("packet_flow", 3, "stopped %O.\n", p);
@@ -39,7 +38,12 @@ void create(mapping params) {
     // we should think about introducing a different api.. one closure which gets called
     // with the returntype.. (for STOP and DISPLAY). 
     ::create(params["debug"]);
-
+    enforce(objectp(handling = params["handling"]));
+    handling->register_handler("display", this);
+    handling->register_handler("postfilter", this);
+    handling->register_handler("filter", this);
+    handling->register_handler("prefilter", this);
+    handling->register_handler("init", this);
 
     // >>>TODO>>> change mapping keys from "goon" to the corresponding
     // constants. that way enabling MORE pwnage. <<<TODO<<<
@@ -50,82 +54,68 @@ void create(mapping params) {
     //
     // TODO: alias ft grep -rn TODO *
 
-    display = PSYC.StageHandler(params + ([
+    stage_display = PSYC.StageHandler(params + ([
 					   "prefix" : "display",
 					   "goon" : finish,
 					   "stop" : stop,
 					   "display" : finish,
 					   "error" : do_throw
 					   ]));
-    postfilter = PSYC.StageHandler(params + ([
+    stage_postfilter = PSYC.StageHandler(params + ([
 					  "prefix" : "postfilter",
-					  "goon" : display->handle,
+					  "goon" : stage_display->handle,
 					  "stop" : stop,
-					  "display" : display->handle,
+					  "display" : stage_display->handle,
 					  "error" : do_throw
 				  	 ]));
-    filter = PSYC.StageHandler(params + ([
+    stage_filter = PSYC.StageHandler(params + ([
 					 "prefix" : "filter",
-					 "goon" : postfilter->handle,
+					 "goon" : stage_postfilter->handle,
 					 "stop" : stop,
-					 "display" : display->handle,
+					 "display" : stage_display->handle,
 					 "error" : do_throw
 				      ]));
-    prefilter = PSYC.StageHandler(params + ([
+    stage_prefilter = PSYC.StageHandler(params + ([
 					    "prefix" : "prefilter",
-					    "goon" : filter->handle,
-					    "stop" : filter->handle,
-					    "display" : filter->handle,
+					    "goon" : stage_filter->handle,
+					    "stop" : stage_filter->handle,
+					    "display" : stage_filter->handle,
 					    "error" : do_throw
 				  ]));
+    // packet handling chain goes here. We could make it more general by supplying a mapping of
+    // return values to functions.
 }
 
-
-//! Add handlers.
-void add_handlers(PSYC.Handler.Base ... handlers) { 
-    debug("handler_management", 2, "add_handlers(%O) in %O\n", handlers, this);
-    foreach (handlers;; PSYC.Handler.Base handler) {
-	mapping temp = handler->_;
-
-	if (has_index(temp, "_")) {
-	    call_init(handler, PSYC.handler_parser(temp["_"]));
-	}
-
-	if (has_index(temp, "prefilter")) 
-	foreach (temp["prefilter"]; string mc; mapping|array(string) wvars) {
-	    prefilter->add(mc, handler, wvars);
-	}
-
-	if (has_index(temp, "filter")) 
-	foreach (temp["filter"]; string mc; mapping|array(string) wvars) {
-	    filter->add(mc, handler, wvars);
-	}
-
-	if (has_index(temp, "postfilter")) 
-	foreach (temp["postfilter"]; string mc; mapping|array(string) wvars) {
-	    postfilter->add(mc, handler, wvars);
-	}
-
-	if (has_index(temp, "display")) 
-	foreach (temp["display"]; string mc; mapping|array(string) wvars) {
-	    display->add(mc, handler, wvars);
-	}
-    }
-
-    do_import(@handlers);
+#define ADD(x)	void add_##x(object handler, mapping events) { \
+    foreach (events; string mc; mapping|array(string) wvars) { \
+	stage_##x->add(mc, handler, wvars); \
+    } \
 }
 
-mixed `->(string fun) {
-    if (has_index(exports, fun)) {
-	return exports[fun];
-    }
-        
-    // TODO: change this when pike 7.7 is there.
-    // 	     this is a hack.
-    if (has_index(this, fun)) {
-	return this[fun];
-    }
-    return UNDEFINED;
+ADD(postfilter)
+ADD(filter)
+ADD(prefilter)
+ADD(display)
+
+#undef ADD
+
+#define HANDLE(x)	void  x (MMP.Packet p, mapping _m) {\
+    stage_##x->handle(p, _m);\
+}
+#define DONT_HANDLE(x)	void  x (MMP.Packet p, mapping _m) {\
+    P0(("MethodMultiplexer", "I do not handle manual ##x events.\n"))\
+}
+
+HANDLE(prefilter)
+HANDLE(display)
+DONT_HANDLE(postfilter)
+DONT_HANDLE(filter)
+
+#undef HANDLE
+#undef DONT_HANDLE
+
+void add_init(object handler, mixed cred) {
+    call_init(handler, PSYC.handler_parser(cred));
 }
 void call_init(object handler, PSYC.AR o) {
     debug("handler_management", 3, "Calling %O for init.\n", o->handler);
@@ -133,44 +123,8 @@ void call_init(object handler, PSYC.AR o) {
 			    handler->init,0); 
 }
 
-void do_import(PSYC.Handler.Base ... handlers) {
-    foreach (handlers;; PSYC.Handler.Base handler) {
-	if (has_index(handler, "export")) {
-	    foreach (handler->export;;string fun) {
-		exports[fun] = predef::`->(handler, fun);
-	    }
-	}
-    }
+// maybe we should actually call init with the handler as the argument.
+void init() {
+    P0(("Multiplexer", "Init happens only once.. \n"))
 }
 
-//! Entry point for processing PSYC messages through this handler framework.
-//! @param p
-//! 	An @[MMP.Packet] containing parseable PSYC as a string or @[PSYC.Packet].
-//!
-//! 	This will do everything from throwing to nothing if you provide something else.
-void msg(MMP.Packet p) {
-    debug("packet_flow", 3, "%O: msg(%O)\n", this, p);
-    
-    object factory() {
-	return JSON.UniformBuilder(this->server->get_uniform);
-    };
-
-    mixed parse_JSON(string d) {
-	return JSON.parse(d, 0, 0, ([ '\'' : factory ]));
-    };
-    
-    if (p->data) {
-	if (stringp(p->data)) {
-#ifdef LOVE_TELNET
-	    p->data = PSYC.parse(p->data, parse_JSON, p->newline);
-#else
-	    p->data = PSYC.parse(p->data, parse_JSON);
-#endif
-	}
-    } else {
-	debug(([ "unexpected" : 2, "packet_flow" : 1]), "%O: got packet without data. maybe state changes\n");
-	return;
-    }
-
-    prefilter->handle(p, ([]));
-}

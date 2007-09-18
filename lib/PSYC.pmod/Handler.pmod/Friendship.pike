@@ -20,7 +20,7 @@
 inherit PSYC.Handler.Base;
 
 constant _ = ([
-    "_" : ({ "peers" }),
+    "init" : ({ "peers" }),
     "postfilter" : ([
 	"_notice_friendship_offered" : ([ "lock": ({ "peers" }) ]),
     ]),

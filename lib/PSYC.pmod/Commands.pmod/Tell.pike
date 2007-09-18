@@ -5,14 +5,14 @@ inherit PSYC.Commands.Base;
 //! Provides the tell command to talk to users privately.
 //! @ul
 //! 	@item
-//!		@expr{"tell" . Commands.Uniform|PSYC.Commands.Person . Comands.String@}
+//!		@expr{"tell" . PSYC.Commands.Arguments.Uniform|PSYC.Commands.Arguments.Person . PSYC.Comands.Arguments.String@}
 //! @endul
 
 constant _ = ([
     "tell" : ({ 
 	({ "tell", 
-	    ({ PSYC.Commands.Uniform|PSYC.Commands.Person, "user", 
-	       PSYC.Commands.String, "text" }),
+	    ({ PSYC.Commands.Arguments.Uniform|PSYC.Commands.Arguments.Person, "user", 
+	       PSYC.Commands.Arguments.String, "text" }),
 	 }),
     }),
 ]);

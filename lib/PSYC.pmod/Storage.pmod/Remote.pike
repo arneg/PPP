@@ -3,6 +3,7 @@
 #include <new_assert.h>
 
 inherit PSYC.HandlingTools;
+inherit PSYC.Storage.Base;
 import .module;
 
 //! A storage class that uses storage from a (possibly) remote entity using PSYC.

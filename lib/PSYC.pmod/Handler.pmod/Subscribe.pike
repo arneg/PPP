@@ -37,7 +37,7 @@ inherit PSYC.Handler.Base;
  */
 
 constant _ = ([
-    "_" : ({ "places" }),
+    "init" : ({ "places" }),
     "filter" : ([ 
 	"" : ([ 
 	    "wvars" : ({ "places" }),
@@ -86,6 +86,10 @@ int has_context(MMP.Packet p, mapping _m) {
 
 int not_us(MMP.Packet p, mapping _m) {
     mapping vars = p->data->vars;
+
+    if (has_index(p->vars, "_context")) {
+	return 0;
+    }
 
     if (p["_source_relay"] != uni) {
 	// we did not leave!
@@ -299,9 +303,8 @@ void enter(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 	call_out(cb, 0, PSYC.Handler.DISPLAY);
     };
 
-    send_tagged_v(uni->root, PSYC.Packet("_request_context_enter", 
-						   ([ "_group" : channel, "_supplicant" : uni ])), 
-		       ([ "lock" : (< "places" >), "async" : 1 ]), callback);
+    send_tagged_v(uni->root, PSYC.Packet("_request_context_enter", ([ "_group" : channel, "_supplicant" : uni ])), 
+		  ([ "lock" : (< "places" >), "async" : 1 ]), callback);
 }
 
 //! Leaves a channel.

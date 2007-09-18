@@ -67,9 +67,11 @@ class Session {
 	    textdb = params["textdb"];
 	}
 
-	void display(MMP.Packet p, mapping _v, mapping _m) {
+	int display(MMP.Packet p, mapping _v, mapping _m) {
 	    P0(("TELNET.UngroovyTelnetDisplayHandler", "display(%O)\n", p))
 	    writeln((objectp(p->data) ? p->data->mc : "an mc-less packet") + "\t" + PSYC.psyctext(p, textdb));
+
+	    return PSYC.Handler.GOON;
 	}
     }
 
@@ -188,6 +190,7 @@ class Session {
 	//add_commands(PSYC.Commands.Subscribe(this));
 	add_commands(PSYC.Commands.Enter(params));
 	add_commands(PSYC.Commands.Set(params));
+	add_commands(PSYC.Commands.Channel(params));
 
 	input_to();
     }

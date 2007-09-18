@@ -28,7 +28,7 @@ void insert(MMP.Uniform u, function cb, mixed ... args) {
 	members[u] = 1;
 	routes[u] = 1;
     } else {
-	members[u] = 1;
+//	members[u] = 1;
 	routes[u->root]++;
     }
 

@@ -9,7 +9,7 @@ object context;
 array history = ({});
 
 //!
-//! @param uni
+//! @param uniform
 //! 	Uniform of the room.
 //! @param server
 //! 	A server object providing mmp message delivery.
@@ -24,75 +24,48 @@ void create(mapping params) {
 
     add_handlers(
 		 PSYC.Handler.Channel(handler_params),
-		 Public(handler_params),
 		 PSYC.Handler.Subscribe(handler_params),
+		 PSYC.Handler.ChannelMultiplexer(handler_params),
+		 PSYC.Handler.ChannelSort(handler_params),
+		 PSYC.Handler.AdminEveryone(handler_params), 
 		 );
-    this->create_channel(uni, _enter, _leave, _history);
-    context = server->get_context(uni);
+    mapping channel_params = params + ([
+		"parent" : this,
+		"sendmmp" : sendmmp,
+    ]);
+
+    object chan = PSYC.Channel(channel_params);
+
+    mapping channel_handler_params = params + ([
+		"parent" chan,
+		"sendmmp" : chan->sendmmp,
+    ]);
+
+    chan->add_handlers(
+		       PSYC.Handler.PublicSymmetric(channel_handler_params),
+		       PSYC.Handler.Talk(channel_handler_params),
+		       PSYC.Handler.Members(channel_handler_params
+		       );
+    this->add_channel(uniform, chan);
+
+    MMP.Uniform test_chan_uni = server->get_uniform((string)uniform+"#test");
+    object test_chan = PSYC.Channel(([
+		"storage" : server->get_storage(test_chan_uni),
+		"parent" : this,
+		"sendmmp" : sendmmp,
+		"uniform" : test_chan_uni,
+    ]));
+    test_chan->add_handlers(
+			   PSYC.Handler.Public(test_chan, test_chan->sendmmp, uniform),
+			   PSYC.Handler.Talk(test_chan, test_chan->sendmmp, uniform), 
+			   PSYC.Handler.Members(test_chan, test_chan->sendmmp, uniform), 
+			   );
+    this->add_channel(test_chan_uni, test_chan);
 }
 
 
 string _sprintf(int type) {
     if (type == 'O') {
 	return sprintf("PSYC.Place(%O)", uni);
-    }
-}
-
-void _enter(MMP.Uniform someone, function callback, mixed ... args) {
-    debug("PSYC.Place", 4, "%O: %O asks for membership. args: %O\n", this, someone, args);
-
-    if (MMP.is_person(someone)) {
-	
-	void _callback(int error, mixed args) {
-	    if (error) {
-		callback(0, @args);
-		debug("PSYC.Place", 0, "%O: %O wont let me join his presence. i therefore wont let him subscribe me.\n", this, someone);
-	    } else {
-		callback(1, @args); 
-		this->castmsg(uni, PSYC.Packet("_notice_context_enter"), someone);
-	    }
-	};
-
-	this->enter(someone, _callback, args);
-    } else {
-	debug("PSYC.Place", 0, "Got enter request from non-person %O.\n", someone);
-	callback(0, @args);
-    }
-}
-
-void _leave(MMP.Uniform someone) {
-    this->castmsg(uni, PSYC.Packet("_notice_context_leave"), someone);
-}
-
-void _history(MMP.Packet p) {
-  MMP.Packet entry = p->clone();
-  entry->data = entry->data->clone(); // assume psyc packet...
-  entry->data->vars->_time_place = time();
-  history += ({ entry });
-}
-
-void add(MMP.Uniform guy, function cb, mixed ... args) {
-    call_out(cb, 0, @args);
-}
-
-
-class Public {
-
-    inherit PSYC.Handler.Base;
-
-    constant _ = ([
-	"postfilter" : ([
-	    "_message_public" : 0,
-	]),
-    ]);
-
-    int postfilter_message_public(MMP.Packet p, mapping _v, mapping _m) {
-	
-	if (!parent->context->contains(p->source())) {
-	    sendmsg(p->reply(), p->data->reply("_failure_message_public")); 
-	}
-
-	parent->castmsg(uni, PSYC.Packet(p->data->mc, 0, p->data->data), p->source());
-	return PSYC.Handler.GOON;
     }
 }

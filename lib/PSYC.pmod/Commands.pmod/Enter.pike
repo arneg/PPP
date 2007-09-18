@@ -5,28 +5,28 @@ inherit PSYC.Commands.Base;
 //! Provides the following commands for entering, leaving and speaking in rooms.
 //! @ul
 //! 	@item
-//!		@expr{"enter" . Commands.Uniform|PSYC.Commands.Place@}
+//!		@expr{"enter" . PSYC.Commands.Arguments.Uniform|PSYC.Commands.Arguments.Place@}
 //! 	@item
-//!		@expr{"leave" . Commands.Uniform|PSYC.Commands.Place@}
+//!		@expr{"leave" . PSYC.Commands.Arguments.Uniform|PSYC.Commands.Arguments.Place@}
 //! 	@item
-//!		@expr{"say" . Commands.Uniform|PSYC.Commands.Place . Comands.String@}
+//!		@expr{"say" . PSYC.Commands.Arguments.Uniform|PSYC.Commands.Arguments.Place . Comands.Arguments.String@}
 //! @endul
 
 constant _ = ([
     "enter" : ({ 
 	({ "enter", 
-	    ({ PSYC.Commands.Uniform|PSYC.Commands.Place, "channel" }),
+	    ({ PSYC.Commands.Arguments.Uniform|PSYC.Commands.Arguments.Place, "channel" }),
 	 }),
     }),
     "leave" : ({
 	({ "leave",
-	    ({ PSYC.Commands.Uniform|PSYC.Commands.Place, "channel" }),
+	    ({ PSYC.Commands.Arguments.Uniform|PSYC.Commands.Arguments.Place, "channel" }),
 	}),
     }),
     "say" : ({
 	({ "say",
-	    ({ PSYC.Commands.Uniform|PSYC.Commands.Place, "channel",
-	       PSYC.Commands.String, "text" }),
+	    ({ PSYC.Commands.Arguments.Uniform|PSYC.Commands.Arguments.Place, "channel",
+	       PSYC.Commands.Arguments.String, "text" }),
 	}),
      }),
 ]);

@@ -21,7 +21,7 @@
 inherit PSYC.Handler.Base;
 
 constant _ = ([
-    "_" : ({ "peers" }),
+    "init" : ({ "peers" }),
 ]);
 
 constant export = ({ "unfriend", "unfriend_symmetric", "friend", 

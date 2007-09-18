@@ -69,7 +69,7 @@ constant export = ({
 
 // we have to make a decision whether we keep the trust for ever or not.
 constant _ = ([
-    "_" : ({ "friends" }),
+    "init" : ({ "friends" }),
     "filter" : ([
 	"" : ([
 	    "async" : 1,
@@ -139,7 +139,7 @@ int postfilter_failure_trustiness(MMP.Packet p, mapping _v, mapping _m) {
     return PSYC.Handler.STOP;
 }
 
-void process(MMP.Packet reply, mapping _v, MMP.Uniform trustee,
+int process(MMP.Packet reply, mapping _v, MMP.Uniform trustee,
 	     MMP.Uniform source) {
     PSYC.Packet m = reply->data;
 
@@ -155,7 +155,7 @@ void process(MMP.Packet reply, mapping _v, MMP.Uniform trustee,
 	// we might think about deleting the pending stuff
 	// and GOON the packets without any trust
 	deliver(trustee, source, NO_TRUST);	
-	return;
+	return PSYC.Handler.STOP;
     }
 
     m->vars["_location"] = m->vars["_location"];
@@ -167,6 +167,7 @@ void process(MMP.Packet reply, mapping _v, MMP.Uniform trustee,
 	postfilter_notice_trustiness(reply, _v, ([]));
     }
 
+    return PSYC.Handler.STOP;
 }
 
 int postfilter_notice_trustiness(MMP.Packet p, mapping _v, mapping _m) {
