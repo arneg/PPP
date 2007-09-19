@@ -1,5 +1,5 @@
 // vim:syntax=lpc
-#include <debug.h>
+#include <new_assert.h>
 
 inherit PSYC.Unl;
 multiset clients = (< >);
@@ -29,6 +29,8 @@ void create(mapping params) {
 	PSYC.Handler.Trustiness(handler_params),
 	PSYC.Handler.Channel(handler_params),
 	PSYC.Handler.Subscribe(handler_params),
+    );
+    add_handlers(
 	PSYC.Handler.Friendship(handler_params),
 	PSYC.Handler.ClientFriendship(handler_params),
     );
@@ -102,9 +104,8 @@ int isNewbie(void|int(0..1) i) {
     }
 } 
 
-// obsolete!! use the handler.
 void distribute(MMP.Packet p) {
-    P3(("Person", "distribute(%O)\n", p))
+    debug("packet_flow", 5, "%O: distribute(%O)\n", p);
 
     PSYC.Packet m = p->data;
 
@@ -117,7 +118,8 @@ void distribute(MMP.Packet p) {
 	    pt["_context"] = p["_context"];
 	}
 	pt["_target"] = target;
-		
+
 	sendmmp(target, pt);
     }
 }
+
