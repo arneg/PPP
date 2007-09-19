@@ -21,7 +21,7 @@ mapping|object data;
 //! @seealso
 //! 	@[MappingBased], @[FlatFile]
 void create(mapping|object d) {
-    assert(mappingp(d) || objectp(d));
+    enforce(mappingp(d) || objectp(d));
     data = d;
 }
 
