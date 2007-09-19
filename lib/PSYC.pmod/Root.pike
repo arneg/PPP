@@ -65,6 +65,12 @@ class Signaling {
 	]),
     ]);
 
+    int(0..1) zero_and_zero_only(mixed zero) {
+	if (0 == zero) return !zero_type(zero);
+	return 0;
+    };
+
+
     int init(mapping _v) {
 
 	int count;
@@ -198,11 +204,6 @@ class Signaling {
 
 	object c = parent->server->get_context(channel);
 
-	int(0..1) zero_and_zero_only(mixed zero) {
-	    if (0 == zero) return !zero_type(zero);
-	    return 0;
-	};
-
 	if (zero_and_zero_only(member->is_local()) && !c->contains(member)) {
 	    debug(([ "multicast_routing" : 0, "protocol_error" : 0 ]), "out of sync. %O not member of %O.\n", member, channel);
 	} else {
@@ -255,15 +256,16 @@ class Signaling {
 
 	object c = parent->server->get_context(channel->super);
 
-	if (!c->contains(member)) {
+	if (member->is_local() && !c->contains(member)) {
 	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
+	    debug("multicast_routing", 1, "%O: %O tries to force-join %O into %O.\n", p->source(), member, channel);
 	    parent->storage->unlock("groups");
 	    return PSYC.Handler.STOP;
 	}
 
 	c = parent->server->get_context(channel);
 
-	if (c->contains(member)) {
+	if (member->is_local() && c->contains(member)) {
 	    // all is fine.
 	    debug("multicast_routing", 2, "%O: %O tries to double join %O into %O.\n", uni, p->source(), member, channel);
 	    parent->storage->unlock("groups");
