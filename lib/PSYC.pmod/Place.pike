@@ -29,36 +29,39 @@ void create(mapping params) {
 		 PSYC.Handler.ChannelSort(handler_params),
 		 PSYC.Handler.AdminEveryone(handler_params), 
 		 );
-    mapping channel_params = params + ([
-		"parent" : this,
-		"sendmmp" : sendmmp,
-    ]);
 
-    object chan = PSYC.Channel(channel_params);
+    object chan = PSYC.Channel(handler_params);
 
     mapping channel_handler_params = params + ([
-		"parent" chan,
+		"parent" : chan,
 		"sendmmp" : chan->sendmmp,
     ]);
 
     chan->add_handlers(
 		       PSYC.Handler.PublicSymmetric(channel_handler_params),
 		       PSYC.Handler.Talk(channel_handler_params),
-		       PSYC.Handler.Members(channel_handler_params
+		       PSYC.Handler.Members(channel_handler_params),
 		       );
-    this->add_channel(uniform, chan);
+    this->add_channel(uni, chan);
 
-    MMP.Uniform test_chan_uni = server->get_uniform((string)uniform+"#test");
-    object test_chan = PSYC.Channel(([
-		"storage" : server->get_storage(test_chan_uni),
-		"parent" : this,
-		"sendmmp" : sendmmp,
-		"uniform" : test_chan_uni,
-    ]));
+    MMP.Uniform test_chan_uni = server->get_uniform((string)uni+"#test");
+
+    mapping test_chan_params = handler_params + ([
+	"uniform" : test_chan_uni,
+	"storage" : server->get_storage(test_chan_uni),
+    ]);
+
+    object test_chan = PSYC.Channel(test_chan_params);
+
+    test_chan_params += ([
+	"parent" : test_chan,
+	"sendmmp" : test_chan->sendmmp,
+    ]);
+
     test_chan->add_handlers(
-			   PSYC.Handler.Public(test_chan, test_chan->sendmmp, uniform),
-			   PSYC.Handler.Talk(test_chan, test_chan->sendmmp, uniform), 
-			   PSYC.Handler.Members(test_chan, test_chan->sendmmp, uniform), 
+			   PSYC.Handler.Public(test_chan_params),
+			   PSYC.Handler.Talk(test_chan_params),
+			   PSYC.Handler.Members(test_chan_params),
 			   );
     this->add_channel(test_chan_uni, test_chan);
 }

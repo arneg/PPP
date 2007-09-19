@@ -40,20 +40,22 @@ function subscribe, unsubscribe;
 //! 	Basically the same as @expr{error@}.
 void create(mapping params) {
 
-    params["storage"] = PSYC.Storage.Remote(params);
+    mapping handler_params = params + ([ 
+	"parent" : this,
+	"sendmmp" : sendmmp,
+    ]);
 
-    ::create(params); 
+    handler_params += ([ 
+	       "storage" : PSYC.Storage.Remote(handler_params),
+    ]);
+
+    ::create(handler_params); 
 
     enforce(MMP.is_person(person = params["person"]));
     // there will be dragons here
     // (if we directly create a Linker-instance in the add_handlers call,
     // dragons appear.
     // might be a pike bug.
-    
-    mapping handler_params = params + ([ 
-	"parent" : this,
-	"sendmmp" : sendmmp,
-    ]);
 
     mapping subscribe_params = handler_params + ([ 
 	"uniform" : person,// TODO: is this smart?
