@@ -5,7 +5,9 @@ function debug;
 function do_throw;
 
 void create(.DebugManager s) {
-    _debugmanager = s;
+    if (!(_debugmanager = s)) {
+	throw(({ "No DebugManager given.\n", backtrace() }));
+    }
 
     debug = s->debug;
     do_throw = s->do_throw;

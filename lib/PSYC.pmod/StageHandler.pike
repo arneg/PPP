@@ -19,8 +19,8 @@ void create(mapping params) {
 
     enforce(callablep(goon = params["goon"]));
     enforce(callablep(stop = params["stop"]));
-    enforce(callablep(error = params["error"]));
-    enforce(callablep(display = params["display"]));
+    error = params["error"];
+    display = params["display"];
 
     enforce(objectp(storage = params["storage"]));
 }
@@ -173,7 +173,7 @@ void call_handler(mapping _v, MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 		stop(p, _m);
 		break;
 	    case PSYC.Handler.DISPLAY:
-		display(p, _m);
+		if (display) display(p, _m);
 		break;
 	    default:
 		do_throw("warning", "Illegal return type from Handler function %O.\n", o->handler);
@@ -194,7 +194,7 @@ void call_handler(mapping _v, MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 	    stop(p, _m);
 	    break;
 	case PSYC.Handler.DISPLAY:
-	    display(p, _m);
+	    if (display) display(p, _m);
 	    break;
 	default:
 	    do_throw("warning", "Illegal return type from Handler function %O.\n", o->handler);
