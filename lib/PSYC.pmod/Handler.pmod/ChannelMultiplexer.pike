@@ -18,10 +18,6 @@ constant export = ({
     "add_channel"
 });
 
-void create(object c, function s, MMP.Uniform uni) {
-    ::create(c, s, uni);
-}
-
 void add_channel(MMP.Uniform channel, object o) {
 
     if (!functionp(o->msg)) {
