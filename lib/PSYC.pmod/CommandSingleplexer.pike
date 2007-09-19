@@ -55,6 +55,7 @@ void cmd(string input) {
 	args = input[i ..];
     }
 	
+    P3(("Command", "%O\n", commands))
 
     if (has_index(commands, command)) {
 COMMAND: foreach (commands[command];;array pair) {

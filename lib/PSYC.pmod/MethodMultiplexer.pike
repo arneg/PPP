@@ -17,6 +17,7 @@
 inherit MMP.Utils.Debug;
 
 PSYC.StageHandler stage_prefilter, stage_filter, stage_postfilter, stage_display;
+object storage;
 
 void stop(MMP.Packet p) {
     debug("packet_flow", 3, "stopped %O.\n", p);
@@ -37,8 +38,10 @@ void create(mapping params) {
     //
     // we should think about introducing a different api.. one closure which gets called
     // with the returntype.. (for STOP and DISPLAY). 
+    object handling;
     ::create(params["debug"]);
     enforce(objectp(handling = params["handling"]));
+    enforce(objectp(storage = params["storage"]));
     handling->register_handler("display", this);
     handling->register_handler("postfilter", this);
     handling->register_handler("filter", this);
@@ -103,7 +106,7 @@ ADD(display)
     stage_##x->handle(p, _m);\
 }
 #define DONT_HANDLE(x)	void  x (MMP.Packet p, mapping _m) {\
-    P0(("MethodMultiplexer", "I do not handle manual ##x events.\n"))\
+    debug("event_handling", 0, "I do not handle manual ##x events.\n");\
 }
 
 HANDLE(prefilter)
@@ -125,6 +128,6 @@ void call_init(object handler, PSYC.AR o) {
 
 // maybe we should actually call init with the handler as the argument.
 void init() {
-    P0(("Multiplexer", "Init happens only once.. \n"))
+    // dummy.. we need to change that
 }
 

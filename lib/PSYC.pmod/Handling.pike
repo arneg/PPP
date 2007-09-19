@@ -1,14 +1,20 @@
 // vim:syntax=lpc
-#include <debug.h>
+#include <new_assert.h>
+inherit MMP.Utils.Debug;
+
 mapping handlers = ([]);
 // temporary
 mapping(string:function) exports = ([]);
+
+void create(mapping params) {
+    ::create(params["debug"]);
+}
 
 // would be "postfilter" and MethodMultiplexer
 void register_handler(string name, object handler) {
 
     if (!has_index(handler, name)) {
-	THROW(sprintf("%O does not offer %O.\n", handler, name));
+	do_throw(sprintf("%O does not offer %O.\n", handler, name));
     }
 
     handlers[name] = handler;
@@ -17,7 +23,7 @@ void register_handler(string name, object handler) {
 void handle(string name, mixed ... args) {
 
     if (!has_index(handlers, name)) {
-	P0(("PSYC.Handling", "No handling registered for %O.\n", name))	
+	debug("handler_management", 1, "No handling registered for %O.\n", name);
 	return;
     }
 
@@ -27,7 +33,7 @@ void handle(string name, mixed ... args) {
 }
 
 void add_handlers(object ... h) { 
-    P2(("Handling", "add_handler(%O) in %O\n", h, this))
+    debug("handler_management", 3, "add_handler(%O) in %O\n", h, this);
     foreach (h;; object handler) {
 	mapping temp = handler->_;
 

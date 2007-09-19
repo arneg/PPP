@@ -12,6 +12,7 @@ class Session {
     inherit PSYC.CommandSingleplexer;
 
     object textdb;
+    object debug;
     object socket, server;
     MMP.Uniform user;
     PSYC.Client client;
@@ -95,8 +96,9 @@ class Session {
 	socket->write_raw(KILLLINE);
     }
  
-    void create(object so, object se, function close, function textdbfac_) {
+    void create(object so, object se, function close, function textdbfac_, object d) {
 	input_to(read_username);
+	debug = d;
 
 	socket = Protocols.TELNET.Readline(so, superintendent_read, 0,
 					   close, ([]));
@@ -170,6 +172,7 @@ class Session {
 	    "uniform" : unl,
 	    "server" : server,
 	    "textdb" : textdb,
+	    "debug" : debug,
 	]);
 	client = PSYC.Client(params + ([ "query_password" : query_password, "error" : query_password ]));
 
@@ -227,7 +230,7 @@ class Session {
 class Server {
 
     mapping(string:TELNET.Session) sessions = ([]);
-    object psyc_server;
+    object psyc_server, debug;
     function textdb;
 
     void close(TELNET.Session tn) {
@@ -243,7 +246,7 @@ class Server {
 
 	P0(("TELNET.Server", "accepted connection from %s in %O\n", peerhost, sessions))
 
-        sessions[peerhost] = TELNET.Session(socket, psyc_server, close, textdb);
+        sessions[peerhost] = TELNET.Session(socket, psyc_server, close, textdb, debug);
 	sessions[peerhost]->write(MOTD);
 	sessions[peerhost]->logon();
 	P0(("TELNET.Server", "blub\n"))
@@ -258,6 +261,9 @@ class Server {
 	if (has_index(config, "textdb")) {
 	    textdb = config["textdb"];
 	} else throw("no");
+
+	// bad dependency here
+	debug = config["debug"] || MMP.Utils.DebugManager();
 
 	if (has_index(config, "ports")) {
             // more error-checking would be a good idea.

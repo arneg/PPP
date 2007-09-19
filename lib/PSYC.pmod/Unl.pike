@@ -45,8 +45,8 @@ void create(mapping params) {
 
     mapping handler_params = params + ([ "parent" : this, "sendmmp" : sendmmp ]);
 
-    PSYC.MethodMultiplexer(([ "handling" : this, "storage" : storage]));
-    PSYC.NotifyHandling(([ "handling" : this, "storage" : storage]));
+    PSYC.MethodMultiplexer(params + ([ "handling" : this ]));
+    PSYC.NotifyHandling(params + ([ "handling" : this ]));
 
     add_handlers(
 		 PSYC.Handler.Auth(handler_params),
@@ -87,7 +87,7 @@ void sendmmp(MMP.Uniform target, MMP.Packet packet) {
 //!
 //! 	This will do everything from throwing to nothing if you provide something else.
 void msg(MMP.Packet p) {
-    P3(("Unl", "%O: msg(%O)\n", this, p))
+    debug("packet_flow", 3, "%O: msg(%O)\n", this, p);
     
     object factory() {
 	return JSON.UniformBuilder(this->server->get_uniform);
@@ -106,7 +106,7 @@ void msg(MMP.Packet p) {
 #endif
 	}
     } else {
-	P1(("Unl", "%O: got packet without data. maybe state changes\n"))
+	debug("packet_flow", 1, "Got Packet without data. maybe state changes?\n");
 	return;
     }
 

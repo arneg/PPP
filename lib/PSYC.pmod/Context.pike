@@ -18,7 +18,7 @@ int count = 0;
 void create(mapping params) {
     ::create(params["debug"]);
 
-    assert(objectp(server = params["server"]));
+    enforce(objectp(server = params["server"]));
 }
 
 void insert(MMP.Uniform u, function cb, mixed ... args) {

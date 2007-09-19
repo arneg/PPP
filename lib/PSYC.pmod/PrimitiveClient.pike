@@ -1,6 +1,5 @@
 // vim:syntax=lpc
 //
-#include <debug.h>
 #include <new_assert.h>
 
 object client;
@@ -18,13 +17,13 @@ void create(mapping params) {
     enforce(MMP.is_uniform(client_uniform = params["client_uniform"]));
 
     void error() {
-	P0(("PrimitiveClient", "error() called... \n"))
+	debug("PrimitiveClient", 0, "error() called... \n");
 	client->client_sendmsg(client_uniform, PSYC.Packet("_error_link"));
     };
 
     // TODO: do something more useful in here (as soon as dumbclient-clients get spawned by a service)
     void query_password() {
-	P0(("PrimitiveClient", "query_password() called... \n"))
+	debug("PrimitiveClient", 4, "query_password() called... \n");
 	client->client_sendmsg(client_uniform, PSYC.Packet("_query_password"));
     };
 

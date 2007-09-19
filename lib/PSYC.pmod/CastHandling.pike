@@ -1,23 +1,35 @@
 // vim:syntax=lpc
-#include <debug.h>
+#include <new_assert.h>
+
+inherit MMP.Utils.Debug;
 
 PSYC.StageHandler stage;
 object storage;
 
 void stop(MMP.Packet p) {
-    P3(("MethodMultiplexer", "stopped %O.\n", p))
+    debug("packet_flow", 6, "%O stopped in 'casted' stage.\n", p);
 }
 
 void finish(MMP.Packet p) {
-    P3(("MethodMultiplexer", "finished %O.\n", p))
+    debug("packet_flow", 6, "%O finished in 'casted' stage.\n", p);
 }
 
-void create(object handling, object _storage) {
-    storage = _storage;
+void create(mapping params) {
+    object handling;
+
+    ::create(params["debug"]);
+
+    enforce(objectp(storage = params["storage"]));
+    enforce(objectp(handling = params["handling"]));
 
     handling->register_handler("casted", this);
 
-    stage = PSYC.StageHandler("casted", finish, stop, finish, throw, storage);
+    stage = PSYC.StageHandler(params + ([
+		    "prefix" : "casted",
+		    "goon" : finish,
+		    "finish" : finish,
+		    "stop" : stop,
+			       ]));
 }
 
 void add_casted(object handler, mapping events) {

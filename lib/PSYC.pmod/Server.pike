@@ -274,7 +274,7 @@ void close(MMP.Circuit c) {
 object get_storage(MMP.Uniform uni) {
 
     if (!uni->is_local()) {
-	THROW(sprintf("we have no storage for remote object %O.\n", uni));
+	do_throw(sprintf("we have no storage for remote object %O.\n", uni));
     }
 
     return storage_factory->getStorage(uni);

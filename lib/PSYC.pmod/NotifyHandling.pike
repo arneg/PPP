@@ -1,12 +1,19 @@
 // vim:syntax=lpc
-#include <debug.h>
+#include <new_assert.h>
+
+inherit MMP.Utils.Debug;
 
 mapping events = ([]);
 object storage;
 
-void create(object handling, object _storage) {
+void create(mapping params) {
+    object handling;
+    ::create(params["debug"]);
+
+    enforce(objectp(storage = params["storage"]));
+    enforce(objectp(handling = params["handling"]));
+
     handling->register_handler("notify", this);
-    storage = _storage;
 }
 
 void add_notify(object handler, mapping e) {
@@ -15,10 +22,9 @@ void add_notify(object handler, mapping e) {
 	string fname = "notify_"+name;
 
 	if (!functionp(o->handler = `->(handler, fname))) {
-	    THROW(sprintf("%O does not offer %O function.\n", handler, fname));
+	    do_throw(sprintf("%O does not offer %O function.\n", handler, fname));
 	}
 
-	P0(("NotifyHandling","%O\n", events))
 	if (has_index(events, name)) {
 	    events[name] += ({ o });
 	} else {
@@ -29,7 +35,7 @@ void add_notify(object handler, mapping e) {
 
 void notify(string name, mixed ... args) {
     if (!has_index(events, name)) {
-	P0(("NotifyHandling", "Unused notify %O.\n", name))
+	debug("event_handling", 2, "Unused notify %O.\n", name);
 	return;
     }
 

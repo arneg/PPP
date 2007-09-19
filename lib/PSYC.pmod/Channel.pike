@@ -1,5 +1,4 @@
-#include <debug.h>
-#include <assert.h>
+#include <new_assert.h>
 inherit PSYC.Handling;
 inherit PSYC.HandlingTools;
 
@@ -7,20 +6,11 @@ object storage;
 
 //! @seealso
 //! 	@[PSYC.Storage.File], @[PSYC.Storage.Remote], @[PSYC.Storage.Dummy]
-void create(mapping prefs) {
-    P2(("PSYC.Channel", "created object for %s.\n", prefs["uniform"]))
+void create(mapping params) {
     function _sendmmp;
 
-    assert(objectp(prefs["storage"]));
-    assert(objectp(prefs["parent"]));
-    assert(MMP.is_uniform(prefs["uniform"]));
-    assert(functionp(prefs["sendmmp"]));
-    _sendmmp = prefs["sendmmp"];
-
-    storage = prefs["storage"];
-    PSYC.MethodMultiplexer(this, storage);
-    PSYC.NotifyHandling(this, storage);
-    PSYC.CastHandling(this, storage);
+    enforce(objectp(storage = params["storage"]));
+    enforce(functionp(_sendmmp = params["sendmmp"]));
 
     void sendmmp(MMP.Uniform target, MMP.Packet p) {
 	if (!has_index(p->vars, "_source")) {
@@ -30,7 +20,16 @@ void create(mapping prefs) {
 	_sendmmp(target, p);
     };
 
-    ::create(prefs["parent"], sendmmp, prefs["uniform"]);
+    ::create(params + ([ "sendmmp" : sendmmp ]));
+    debug("local_objects", 5, "created Channel(%s).\n", uni);
+
+    mapping handling_params = params + ([
+	"handling" : this,	
+    ]);
+
+    PSYC.MethodMultiplexer(handling_params);
+    PSYC.NotifyHandling(handling_params);
+    PSYC.CastHandling(handling_params);
 }
 
 void castmsg(MMP.Packet p, MMP.Uniform source_relay) {
@@ -44,8 +43,8 @@ void castmsg(MMP.Packet p, MMP.Uniform source_relay) {
 //!
 //! 	This will do everything from throwing to nothing if you provide something else.
 void msg(MMP.Packet p) {
-    P3(("Unl", "%O: msg(%O)\n", this, p))
-    
+    debug("packet_flow", 4, "%O: msg(%O)\n", this, p);
+
     object factory() {
 	return JSON.UniformBuilder(this->server->get_uniform);
     };
@@ -63,7 +62,7 @@ void msg(MMP.Packet p) {
 #endif
 	}
     } else {
-	P1(("Unl", "%O: got packet without data. maybe state changes\n"))
+	debug("packet_flow", 2, "%O: got packet without data. maybe state changes\n");
 	return;
     }
 
