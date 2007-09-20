@@ -27,7 +27,7 @@ int casted(MMP.Packet p, mapping _v) {
 // message retrieval somewhere and we should put them together.
 // TODO
 int postfilter_request_history() {
-    foreach (parent->history;; MMP.Packet m) {
+    foreach (history;; MMP.Packet m) {
 	if (has_prefix(m->data->mc,"_message")) {
 	    MMP.Packet nm = m->clone();
 	    nm->vars->_target = p->lsource();
