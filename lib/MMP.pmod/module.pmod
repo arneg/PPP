@@ -957,7 +957,7 @@ class Circuit {
 	if (exception) {
 	    if (objectp(exception)
 		&& Program.inherits(object_program(exception), Error.Generic)) {
-		P0(("MMP.Circuit", "Catched an error: %O, %O\n", exception,
+		P0(("MMP.Circuit", "Caught an error: %O, %O\n", exception,
 		    exception->backtrace()))
 	    } else {
 		P0(("MMP.Circuit", "Catched an error: %O\n", exception))
