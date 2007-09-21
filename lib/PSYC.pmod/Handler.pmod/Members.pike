@@ -94,7 +94,7 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
 }
 
 int postfilter_request_members(MMP.Packet p, mapping _v, mapping _m) {
-    
+    PSYC.Packet m = p->data;
     sendmsg(p->reply(), m->reply("_notice_context_members", 
                                    (["_group":uni,
 				     "_list_members": indices(_v["members"]),
