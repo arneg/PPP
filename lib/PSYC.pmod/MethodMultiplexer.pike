@@ -4,15 +4,13 @@
 
 //! This class provides an amazingly sweet PSYC processing framework.
 //! PSYC functionality can be added to an entity by
-//! adding Handlers using @[add_handlers()].
+//! adding Handlers using @[PSYC.Handling.add_handlers()].
 //! @note
-//! 	This class is designed for being inherited by PSYC entities.
-//!	@[PSYC.Unl] already does that for you. Should you want to use it 
-//!	differenly, remember to pass on incoming @[MMP.Packet]s to the @[msg()] 
-//!	function.
-//!
-//! 	Better have a look at the source code, if you intend to use it without
-//!	using @[PSYC.Unl]. @b{WE MEAN IT!@}.
+//! 	This class is designed to be added to a @[PSYC.Handling] object. If offers
+//! 	handling for the event types @expr{init@}, @expr{prefilter@}, @expr{filter@}, 
+//! 	@expr{postfilter@} and @expr{display@}.
+//! 
+//! 	This module basically implements a processing chain for @[PSYC.Packet]s. 
 
 inherit MMP.Utils.Debug;
 
@@ -26,12 +24,6 @@ void stop(MMP.Packet p) {
 void finish(MMP.Packet p) {
     debug("packet_flow", 3, "finished %O.\n", p);
 }
-
-#ifdef DEBUG
-void throw(mixed ... x) {
-    predef::throw(@x);
-}
-#endif
 
 void create(mapping params) {
     // display is sortof isolated from the rest.. 
@@ -79,15 +71,17 @@ void create(mapping params) {
 					 "error" : do_throw
 				      ]));
     stage_prefilter = PSYC.StageHandler(params + ([
-					    "prefix" : "prefilter",
-					    "goon" : stage_filter->handle,
-					    "stop" : stage_filter->handle,
-					    "display" : stage_filter->handle,
-					    "error" : do_throw
+					"prefix" : "prefilter",
+					"goon" : stage_filter->handle,
+					"stop" : stage_filter->handle,
+					"display" : stage_filter->handle,
+					"error" : do_throw
 				  ]));
     // packet handling chain goes here. We could make it more general by supplying a mapping of
     // return values to functions.
 }
+
+//! @ignore
 
 #define ADD(x)	void add_##x(object handler, mapping events) { \
     foreach (events; string mc; mapping|array(string) wvars) { \
@@ -116,6 +110,8 @@ DONT_HANDLE(filter)
 
 #undef HANDLE
 #undef DONT_HANDLE
+
+//! @endignore
 
 void add_init(object handler, mixed cred) {
     call_init(handler, PSYC.handler_parser(cred));

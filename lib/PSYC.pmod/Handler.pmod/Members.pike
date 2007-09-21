@@ -50,7 +50,7 @@ void init(mapping _v) {
 //! @decl void low_member_remove(mapping members, MMP.Uniform uni)
 //!
 //! You should probably use @[member_remove()] or @[member_insert()] unless 
-//! you have the @{members} already. Keep in mind that @{members} are expected
+//! you have the @expr{members@} already. Keep in mind that @expr{members@} are expected
 //! be locked as we are changing the mapping.
 //! 
 //! @note 

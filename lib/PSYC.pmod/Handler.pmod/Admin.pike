@@ -67,8 +67,8 @@ void low_get_admin_level(mapping admins, MMP.Uniform guy, function callback, mix
 //! @decl void low_remove_admin(mapping admins, MMP.Uniform uni)
 //!
 //! You should probably use @[add_admin()] or @[remove_admin()] unless 
-//! you have @{admins} already. Keep in mind that @{admins} are expected
-//! be locked as we are changing the mapping.
+//! you have @expr{admins@} already. Keep in mind that @expr{admins@} are expected
+//! be locked in storage as we are changing the mapping.
 //! 
 //! @note 
 //! 	Never ever call this method with something other than the locked "admins"

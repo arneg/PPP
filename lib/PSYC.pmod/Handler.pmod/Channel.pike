@@ -97,7 +97,7 @@ int channel_exists(MMP.Uniform channel) {
 //! 	Callback to be called whenever a @[MMP.Packet] is send by castmsg. Expected 
 //! 	signature:
 //! 
-//! 	@expr{void on_castmsg(MMP.Packet p);}
+//! 	@expr{void on_castmsg(MMP.Packet p);@}
 //! @note
 //! 	Both callbacks @expr{enter@} and @expr{leave@} are not called when @[channel_add()] or
 //! 	@[channel_remove()] have been used. You are supposed to keep track of those changes 
