@@ -16,6 +16,6 @@ constant export = ({ });
 
 int postfilter_message_public(MMP.Packet p, mapping _v, mapping _m) {
 
-    parent->castmsg(p->data);
+    parent->castmsg(p->data, p->source());
     return PSYC.Handler.STOP;
 }
