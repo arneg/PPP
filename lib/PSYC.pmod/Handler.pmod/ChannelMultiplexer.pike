@@ -52,7 +52,7 @@ int postfilter(MMP.Packet p, mapping _v, mapping _m) {
 
 void notify_castmsg(MMP.Packet p, MMP.Uniform channel) {
     if (has_index(channels, channel)) {
-	channels[channel]->handle("cast", p);
+	channels[channel]->handle("casted", p);
     }
 }
 
