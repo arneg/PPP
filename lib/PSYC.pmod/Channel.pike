@@ -45,7 +45,7 @@ void castmsg(MMP.Packet p, MMP.Uniform source_relay) {
 //!
 //! 	This will do everything from throwing to nothing if you provide something else.
 void msg(MMP.Packet p) {
-    P3(("Unl", "%O: msg(%O)\n", this, p))
+    P3(("Channel", "Channel(%O): msg(%O)\n", uni, p))
     
     object factory() {
 	return JSON.UniformBuilder(this->server->get_uniform);
