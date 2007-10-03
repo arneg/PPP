@@ -40,7 +40,7 @@ void create(MMP.Uniform uniform, object server, object storage) {
 			       PSYC.Handler.PublicSymmetric(default_chan, default_chan->sendmmp, uniform),
 			       PSYC.Handler.Talk(default_chan, default_chan->sendmmp, uniform), 
 			       PSYC.Handler.Members(default_chan, default_chan->sendmmp, uniform), 
-			       PSYC.Handler.History(this, sendmmp, uniform),
+			       PSYC.Handler.History(default_chan, default_chan->sendmmp, uniform),
 			       );
     this->add_channel(uniform, default_chan);
 
