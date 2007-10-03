@@ -221,9 +221,20 @@ void create(mapping(string:mixed) config) {
 // CALLBACKS
 void accept(Stdio.Port lsocket) {
     Stdio.File socket;
-    MMP.Circuit con;
 
     socket = lsocket->accept();
+
+    add_socket(socket);
+}
+
+//! Add a socket by hand. Use this only if your port handling is controlled by 
+//! some other application, e.g. Roxen.
+//! 
+//! @params socket
+//! 	Socket to be added. Has to be subclass of Stdio.File offering
+//! 	@[Stdio.File->query_address()], etc.
+void add_socket(Stdio.File socket) {
+    MMP.Circuit con;
     con = MMP.Server(socket, check, close, get_uniform);
     circuits[con->peeraddr] = con;
     // create VCircuit for the given peeraddr
