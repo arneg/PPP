@@ -15,6 +15,9 @@ constant _ = ([
 	"member_left" : ([ "lock" : ({ "members" }) ]),
 	"member_entered" : ([ "lock" : ({ "members" }) ]),
     ]),
+    "check" : ([
+	"is_member" : ({ "members" }),
+    ]),
 ]);
 
 constant export = ({ "member_remove", "member_insert", "low_member_insert", "low_member_remove" });
@@ -35,6 +38,10 @@ void init(mapping _v) {
     }
 
     set_inited(1);
+}
+
+void check_is_member(mapping _v, function cb, MMP.Uniform guy) {
+    cb(has_index(_v["members"], guy));
 }
 
 //! @decl void member_insert(MMP.Uniform uni)
@@ -87,8 +94,11 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
 }
 
 int postfilter_request_members(MMP.Packet p, mapping _v, mapping _m) {
-    
-    sendmsg(p->reply(), p->data->reply("_status_members", ([ "members" : _v["members"] ])));
+    PSYC.Packet m = p->data;
+    sendmsg(p->reply(), m->reply("_notice_context_members", 
+                                   (["_group":uni,
+				     "_list_members": indices(_v["members"]),
+                                   ])));
 
     return PSYC.Handler.STOP;
 }

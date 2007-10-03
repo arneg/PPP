@@ -117,6 +117,9 @@ void add_route(MMP.Uniform target, object circuit) {
 //! 			An instance of a suiting @[PSYC.Storage.Factory] subclass.
 //! 		@member array(string) "ports"
 //! 			An array of "host:port" strings the server will then try to listen on.
+//! 		@member string "bind_to"
+//! 			Ip to bind to. Has to be specified in case no ports have been given for 
+//! 			connects.
 //! 	@endmapping
 //! 	Optional settings:
 //! 	@mapping
@@ -198,10 +201,8 @@ void create(mapping(string:mixed) config) {
 	     "Textdb factory missing (setting: 'textdb') but needed for PRIMITIVE_CLIENT. ");
 #endif
 
-    enforcer(arrayp(config["ports"]), 
-	     "List of ports missing. (setting: 'ports')");
-	// more error-checking would be a good idea.
-    foreach (config["ports"];; string port) {
+    // more error-checking would be a good idea.
+    if (arrayp(config["ports"])) foreach (config["ports"];; string port) {
 	string ip;
 	Stdio.Port p;
 
@@ -217,6 +218,12 @@ void create(mapping(string:mixed) config) {
 	p = Stdio.Port(port, accept, ip);
 	bind_to = ip;
 	p->set_id(p);
+    } else if (stringp(config["bind_to"])) {
+	enforcer(MMP.Utils.Net.is_ip(config["bind_to"]),
+		 sprintf("Malformed ip (%s) address given in \"bind_to\".", config["bind_to"]));
+	bind_to = config["bind_to"];
+    } else {
+	 throw(({"You either must specify ports to bind to or at least an ip (\"bind_to\") to bind outgoing connections to.\n"}));
     }
 
     //set_weak_flag(unlcache, Pike.WEAK_VALUES);
@@ -235,9 +242,20 @@ void create(mapping(string:mixed) config) {
 // CALLBACKS
 void accept(Stdio.Port lsocket) {
     Stdio.File socket;
-    MMP.Circuit con;
 
     socket = lsocket->accept();
+
+    add_socket(socket);
+}
+
+//! Add a socket by hand. Use this only if your port handling is controlled by 
+//! some other application, e.g. Roxen.
+//! 
+//! @params socket
+//! 	Socket to be added. Has to be subclass of Stdio.File offering
+//! 	@[Stdio.File->query_address()], etc.
+void add_socket(Stdio.File socket) {
+    MMP.Circuit con;
     con = MMP.Server(socket, check, close, get_uniform);
     circuits[con->peeraddr] = con;
     // create VCircuit for the given peeraddr

@@ -15,6 +15,9 @@ constant _ = ([
 	"_request_add_administrator" : ([ "lock" : ({ "admins" }) ]),
 	"_request_remove_administrator" : ([ "lock" : ({ "admins" }) ]),
     ]),
+    "check" : ([
+	"is_admin" : ({ "admins" }),
+    ]),
 ]);
 
 constant export = ({ "is_admin", "get_admin_level", "low_add_admin", "low_remove_admin", "add_admin", "remove_admin" });
@@ -50,6 +53,10 @@ void low_is_admin(mapping admins, MMP.Uniform guy, function callback, mixed ... 
 
 void low_get_admin_level(mapping admins, MMP.Uniform guy, function callback, mixed ... args) {
     MMP.Utils.invoke_later(callback, admins[guy], @args);
+}
+
+void check_is_admin(mapping _v, function cb, MMP.Uniform guy) {
+    low_is_admin(_v["admins"], guy, cb); 
 }
 
 //! @decl void add_admin(MMP.Uniform uni, int|void level)

@@ -13,7 +13,7 @@
 
 #define OFFERED	1		// offered friendship to 
 #define	PENDING 2		// asked for friendship of
-#define	ISFRIEND	4	// foobarflags. dont needed
+#define	ISFRIEND	4	// foobarflags. not needed
 #define AMFRIEND	8	// we are his friend
 
 
