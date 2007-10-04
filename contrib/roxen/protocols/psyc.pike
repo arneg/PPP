@@ -1,26 +1,9 @@
-// This is a roxen module. 
-// (c) 2007      Webhaven.
+// This is a roxen protokol module. 
+// (c) 2007 Arne Goedeke, Martin Bähr, Tobias S. Josefowitz, Webhaven
 //
 // psyc.pike
 // Roxen PSYC Protocol
 // glue for the PSYC protocol.
-//
-//  This code is (c) 2007 Webhaven.
-//  it can be used, modified and redistributed freely
-//  under the terms of the GNU General Public License, version 2.
-//
-//  This code comes on a AS-IS basis, with NO WARRANTY OF ANY KIND, either
-//  implicit or explicit. Use at your own risk.
-//  You can modify this code as you wish, but in this case please
-//  - state that you changed the code in the modified version
-//  - do not remove our name from it
-//  - if possible, send us a copy of the modified version or a patch, so that
-//    we can include it in the 'official' release.
-//  If you find this code useful, please e-mail us. It would definitely
-//  boost our ego :)
-//
-//  For risks and side-effects please read the code or ask your local
-//  unix or roxen-guru.
 
 constant cvs_version="$Id: psyc.pike,v 0.1 mbaehr Exp $";
 
@@ -91,28 +74,114 @@ void create(object f, object c, object cc) {
     my_fd=f;
     if( c ) port_obj = c;
     if( cc ) conf = cc;
-    dns=Protocols.DNS.client();
+    //dns=Protocols.DNS.client();
     array tmp;
 
 
     catch(remoteaddr=((my_fd->query_address()||"")/" ")[0]);
-    catch(localaddr=((my_fd->query_address(1)||"")/" ")[0]);
-    catch(localport=(int)((my_fd->query_address(1)||"")/" ")[1]);
-    if(!remoteaddr) {
-      end("No remote address?! Closing down.", ({421,4,3,2}));
-      return;
-    }
-    if(!localaddr) {
-      end("No local address?! Closing down.", ({421,4,3,2}));
-      return;
-    }
-  //  tmp= dns->gethostbyaddr(localaddr);
-
     localhost=gethostname();
     remotehost = roxen->blocking_ip_to_host(remoteaddr);
-    mark_fd(my_fd->query_fd(), "PSYC connection");
-    my_fd->set_close_callback(end);
-    my_fd->set_read_callback(got_data);
+    create_server();
+    werror("Psychaven %s:%O\n", localhost, PSYC["servers"]);
+    PSYC["servers"][conf]->add_socket(f);
   }
 }
 
+
+string text_db_path = "../psyced/world/default/";
+// string text_db_path = "../default/";
+string data_path = "dat/";
+string hostname;
+string bind;
+
+
+void create_server()
+{
+  werror("Psychaven create_server() %s:%O\n", localhost, PSYC.servers);
+  if (!PSYC.servers[conf])
+  {
+    
+    if (!hostname)
+      hostname = gethostname()||localhost||"localhost";
+    if (!localhost)
+      localhost = gethostbyname(hostname)[1][0];
+
+    function textdb = PSYC.Text.FileTextDBFactoryFactory(text_db_path);
+
+    PSYC.Storage.Factory storage = PSYC.Storage.FileFactory(data_path); 
+
+    mapping config = ([
+           "bind_to" : localhost,
+	   "storage" : storage,
+      "create_local" : create_local,
+     "offer_modules" : ({ "_compress" }),
+    "deliver_remote" : deliver_remote,
+    "module_factory" : create_module,
+ "default_localhost" : hostname,
+            "textdb" : textdb,
+    "stille_duldung" : 1,
+         "love_json" : 1,
+  "primitive_client" : 1,
+                     ]);
+
+    if (bind && bind != hostname)
+        config->localhosts = ({ bind });
+
+    PSYC.Server root = PSYC.Server(config);
+    PSYC["servers"][conf] = root;
+
+    werror("Psychaven %s ready: %s\n", hostname, Calendar.ISO.now()->format_smtp());
+    return;
+  }
+}
+
+void deliver_remote(MMP.Packet p, MMP.Uniform target) {
+    
+    switch (target->scheme) { 
+    case "psyc":
+	PSYC["servers"][conf]->deliver_remote(p, target);	
+	break;
+    }
+}
+
+// does _not_ check whether the uni->host is local.
+object create_local(MMP.Uniform uni, object psyc_server, object storage_factory) {
+    write("creating object for %O.\n", uni);
+    object o;
+    if (uni->resource && sizeof(uni->resource) > 1) 
+    {
+      switch (uni->resource[0]) 
+      {
+        case '~':
+          // TODO check for the path...
+          o = PSYC.Person(uni, psyc_server, storage_factory->getStorage(uni));
+	  o->add_handlers(
+	        PSYC.Handler.Do(o, o->sendmmp, uni),
+	                 );
+          break;
+        case '@':
+          o = PSYC.Place(uni, psyc_server, storage_factory->getStorage(uni));
+          break;
+      } 
+    }
+    else 
+      o = PSYC.Root(uni, psyc_server, storage_factory->getStorage(uni));
+
+    o->add_handlers( 
+	  PSYC.Handler.ClientFriendship(o, o->sendmmp, uni),
+	           );
+
+    return o;
+}
+
+// we transmit the variables of the neg packet. i dont have a better idea
+// right now
+object create_module(string name, mapping vars) {
+
+    switch (name) {
+    case "_compress":
+	
+    case "_encrypt":
+
+    }
+}
