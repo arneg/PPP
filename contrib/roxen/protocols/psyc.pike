@@ -82,8 +82,8 @@ void create(object f, object c, object cc) {
     localhost=gethostname();
     remotehost = roxen->blocking_ip_to_host(remoteaddr);
     create_server();
-    werror("Psychaven %s:%O\n", localhost, PSYC["servers"]);
-    PSYC["servers"][conf]->add_socket(f);
+    werror("Psychaven %s:%O\n", localhost, port_obj->servers);
+    port_obj->servers[conf]->add_socket(f);
   }
 }
 
@@ -97,8 +97,8 @@ string bind;
 
 void create_server()
 {
-  werror("Psychaven create_server() %s:%O\n", localhost, PSYC.servers);
-  if (!PSYC.servers[conf])
+  werror("Psychaven create_server() %s:%O\n", localhost, port_obj->servers);
+  if (!port_obj->servers[conf])
   {
     
     if (!hostname)
@@ -128,7 +128,7 @@ void create_server()
         config->localhosts = ({ bind });
 
     PSYC.Server root = PSYC.Server(config);
-    PSYC["servers"][conf] = root;
+    port_obj->servers[conf] = root;
 
     werror("Psychaven %s ready: %s\n", hostname, Calendar.ISO.now()->format_smtp());
     return;
@@ -139,7 +139,7 @@ void deliver_remote(MMP.Packet p, MMP.Uniform target) {
     
     switch (target->scheme) { 
     case "psyc":
-	PSYC["servers"][conf]->deliver_remote(p, target);	
+	port_obj->servers[conf]->deliver_remote(p, target);	
 	break;
     }
 }

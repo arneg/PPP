@@ -10,3 +10,4 @@ constant name = "psyc";
 constant prot_name = "psyc";
 constant default_port = 4044;
 constant requesthandlerfile = "protocols/psyc.pike";
+mapping servers = ([]);
