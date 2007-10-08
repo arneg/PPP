@@ -16,7 +16,7 @@ object port_obj; // The port object
 object conf;  // The current configuration
 
 mapping (string:mixed)  misc = ([ ]);
-string localhost; // Name of the mail server.
+string localhost; // Name of the psyc server.
 string localaddr; // IP address
 int localport;
 
@@ -79,7 +79,8 @@ void create(object f, object c, object cc) {
 
 
     catch(remoteaddr=((my_fd->query_address()||"")/" ")[0]);
-    localhost=gethostname();
+    localhost = gethostname();
+    localaddr = gethostbyname(localhost)[1][0];
     remotehost = roxen->blocking_ip_to_host(remoteaddr);
     create_server();
     werror("Psychaven %s:%O\n", localhost, port_obj->servers);
@@ -111,7 +112,7 @@ void create_server()
     PSYC.Storage.Factory storage = PSYC.Storage.FileFactory(data_path); 
 
     mapping config = ([
-           "bind_to" : localhost,
+           "bind_to" : localaddr,
 	   "storage" : storage,
       "create_local" : create_local,
      "offer_modules" : ({ "_compress" }),
