@@ -124,6 +124,9 @@ void call_init(object handler, PSYC.AR o) {
 
 // maybe we should actually call init with the handler as the argument.
 void init() {
+<<<<<<< origin/current:lib/PSYC.pmod/MethodMultiplexer.pike
     // dummy.. we need to change that
+=======
+>>>>>>> local:lib/PSYC.pmod/MethodMultiplexer.pike
 }
 
