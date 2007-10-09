@@ -55,16 +55,32 @@ int main(int argc, array(string) argv) {
 							 "../default/"
 #endif
 							 );
+#ifndef BIND
+    if (!MMP.Utils.Net.is_ip(HOSTNAME)) {
+	write("You did not specify any ip for binding outgoing connections to.\n"); 
+	return 1;
+    }
+#endif
 
     dumms = PSYC.Storage.FileFactory(DATA_PATH); 
     object port;
 
     object debug = MMP.Utils.DebugManager();
+#ifdef DEBUG
+    debug->set_default_debug(DEBUG);
+# if DEBUG >= 2
     debug->set_default_backtrace(1);
-    debug->set_default_debug(3);
+# endif
+#else 
+    debug->set_default_debug(0);
+#endif
     dings = PSYC.Server(([
 	     "debug" : debug,
-	   "bind_to" : "127.0.0.4",
+#ifdef BIND
+	   "bind_to" : BIND,
+#elif defined(HOSTNAME)
+	   "bind_to" : HOSTNAME,
+#endif
 	   "storage" : dumms,
       "create_local" : create_local,
      "offer_modules" : ({ "_compress" }),
@@ -88,7 +104,13 @@ int main(int argc, array(string) argv) {
 	return MMP.Utils.FlashFile(policy);	
     };
 
-    port = MMP.Utils.Port(4404, accept, "127.0.0.4", factory);
+    port = MMP.Utils.Port(4404, accept, 
+#ifdef BIND
+			  BIND, 
+#elif defined(HOSTNAME)
+			  HOSTNAME, 
+#endif
+			  factory);
 #ifdef HAS_XMPP
     XMPP.S2S.Client flumms;
 
