@@ -24,8 +24,8 @@ constant export = ({ "is_admin", "get_admin_level", "low_add_admin", "low_remove
 
 function add_admin, remove_admin;
 
-void create(mixed ... args) {
-    ::create(@args);
+void create(mapping params) {
+    ::create(params);
 
     add_admin = parent->storage->wrapped_get_lock(low_add_admin, "admins");
     remove_admin = parent->storage->wrapped_get_lock(low_remove_admin, "admins");

@@ -22,8 +22,8 @@ constant _ = ([
 
 constant export = ({ "member_remove", "member_insert", "low_member_insert", "low_member_remove" });
 
-void create(mixed ... args) {
-    ::create(@args);
+void create(mapping params) {
+    ::create(params);
 
     member_insert = parent->storage->wrapped_get_lock(low_member_insert, "members");
     member_remove = parent->storage->wrapped_get_lock(low_member_remove, "members");
