@@ -4,7 +4,8 @@ string policy;
 mapping _stream_policy = ([]);
 
 void create(mixed ... args) {
-    allow_port_range(@args);
+    if (sizeof(args)) 
+	allow_port_range(@args);
 }
 
 void allow_port_range(string domain, int min, void|int max, 
@@ -35,7 +36,7 @@ string render_policy() {
 	if (!a[0]) {
 	    range = "*";
 	} else {
-	    sprintf(range, "%d-%d", @a);
+	    range = sprintf("%d-%d", @a);
 	}
 
 	if (a[2]) { // insecure	
@@ -46,4 +47,6 @@ string render_policy() {
 	policy += sprintf(fmt, domain, range);
     }
     policy += "</cross-domain-policy>\0";
+
+    return policy;
 }
