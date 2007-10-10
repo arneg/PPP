@@ -22,6 +22,8 @@
 //! there exists only one such class, namely @[PSYC.Server]. There are plans to
 //! implement more lightweight ones for simple applications.
 
+mapping servers = ([]);
+
 class AR(function handler, array(string) wvars, int async, array(string) lvars,
 	 function|string check) {
     
