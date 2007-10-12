@@ -41,6 +41,7 @@ void create(mapping params) {
 		       PSYC.Handler.PublicSymmetric(channel_handler_params),
 		       PSYC.Handler.Talk(channel_handler_params),
 		       PSYC.Handler.Members(channel_handler_params),
+		       PSYC.Handler.History(channel_handler_params),
 		       );
     this->add_channel(uni, chan);
 

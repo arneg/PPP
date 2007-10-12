@@ -146,31 +146,34 @@ void deliver_remote(MMP.Packet p, MMP.Uniform target) {
 }
 
 // does _not_ check whether the uni->host is local.
-object create_local(MMP.Uniform uni, object psyc_server, object storage_factory) {
+object create_local(mapping params) 
+{
+    MMP.Uniform uni = params["uniform"];
     write("creating object for %O.\n", uni);
     object o;
     if (uni->resource && sizeof(uni->resource) > 1) 
     {
+      params += ([ "storage" : params["storage_factory"]->getStorage(uni) ]);
       switch (uni->resource[0]) 
       {
         case '~':
           // TODO check for the path...
-          o = PSYC.Person(uni, psyc_server, storage_factory->getStorage(uni));
-	  o->add_handlers(
-	        PSYC.Handler.Do(o, o->sendmmp, uni),
-	                 );
+          o = PSYC.Person(params);
+//	  o->add_handlers(
+//	        PSYC.Handler.Do(o, o->sendmmp, uni),
+//	                 );
           break;
         case '@':
-          o = PSYC.Place(uni, psyc_server, storage_factory->getStorage(uni));
+          o = PSYC.Place(params);
           break;
       } 
     }
     else 
-      o = PSYC.Root(uni, psyc_server, storage_factory->getStorage(uni));
+      o = PSYC.Root(params);
 
-    o->add_handlers( 
-	  PSYC.Handler.ClientFriendship(o, o->sendmmp, uni),
-	           );
+//    o->add_handlers( 
+//	  PSYC.Handler.ClientFriendship(o, o->sendmmp, uni),
+//	           );
 
     return o;
 }
