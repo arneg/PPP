@@ -105,7 +105,7 @@ int isNewbie(void|int(0..1) i) {
 } 
 
 void distribute(MMP.Packet p) {
-    debug("packet_flow", 5, "%O: distribute(%O)\n", p);
+    debug("packet_flow", 5, "distribute(%O)\n", p);
 
     PSYC.Packet m = p->data;
 
