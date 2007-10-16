@@ -91,7 +91,7 @@ void create(object f, object c, object cc) {
 
 string text_db_path = "../psyced/world/default/";
 // string text_db_path = "../default/";
-string data_path = "dat/";
+string data_path = "/usr/local/roxen/local/psyc_data/";
 string hostname;
 string bind;
 
@@ -110,8 +110,12 @@ void create_server()
     function textdb = PSYC.Text.FileTextDBFactoryFactory(text_db_path);
 
     PSYC.Storage.Factory storage = PSYC.Storage.FileFactory(data_path); 
+    object debug = MMP.Utils.DebugManager();
+    debug->set_default_backtrace(1);
+    debug->set_default_debug(5);
 
     mapping config = ([
+             "debug" : debug,
            "bind_to" : localaddr,
 	   "storage" : storage,
       "create_local" : create_local,
@@ -148,20 +152,21 @@ void deliver_remote(MMP.Packet p, MMP.Uniform target) {
 // does _not_ check whether the uni->host is local.
 object create_local(mapping params) 
 {
+    werror("create_local(%O)\n", params);
     MMP.Uniform uni = params["uniform"];
+    params += ([ "storage" : params["storage_factory"]->getStorage(uni) ]);
     write("creating object for %O.\n", uni);
     object o;
     if (uni->resource && sizeof(uni->resource) > 1) 
     {
-      params += ([ "storage" : params["storage_factory"]->getStorage(uni) ]);
       switch (uni->resource[0]) 
       {
         case '~':
           // TODO check for the path...
           o = PSYC.Person(params);
-//	  o->add_handlers(
-//	        PSYC.Handler.Do(o, o->sendmmp, uni),
-//	                 );
+	  o->add_handlers(
+	        PSYC.Handler.Do(params + ([ "parent":o,"sendmmp":o->sendmmp ])),
+	                 );
           break;
         case '@':
           o = PSYC.Place(params);
