@@ -76,10 +76,10 @@ int postfilter_request_do_enter(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
     
     if (MMP.is_place(m["_group"])) {
-	PT(("Do", "%O is place.\n", m["_group"]))
+	debug("Do", 2, "%O is place.\n", m["_group"]);
 	parent->subscribe(m["_group"]);
     } else {
-	PT(("Do", "%O is no place.\n", m["_group"]))
+	debug("Do", 2, "%O is no place.\n", m["_group"]);
 	sendmsg(p->source(), m->reply("_failure"+m->mc));
     }
     return PSYC.Handler.STOP;
