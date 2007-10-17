@@ -311,7 +311,7 @@ string|String.Buffer render(Packet o, void|String.Buffer to) {
     function putchar = p->putchar;
 
     if (sizeof(o->vars)) 
-#if LOVE_JSON
+#if 1 // LOVE_JSON
     foreach (o->vars; string key; mixed value) {
 	string mod;
 	if (key[0] == '_') {
@@ -396,7 +396,7 @@ LINE:while (-1 < stop &&
 	    if (num == 0) THROW("Blub");
 	    if (num == 1) val = UNDEFINED;
 	    else if (key == "") { // list continuation
-#ifdef LOVE_JSON
+#if 1 //LOVE_JSON
 		if (mod != lastmod) 
 		    THROW("improper list continuation");
 		if (mod == '-') THROW("diminishing lists is not supported");
@@ -434,7 +434,7 @@ LINE:while (-1 < stop &&
 
 	// TODO: modifier unterscheiden
 	if (lastmod != 0) {
-#ifdef LOVE_JSON
+#if 1 //def LOVE_JSON
 	    // long term plan is to make that on demand inside the packet..
 	    if (stringp(lastval))
 		lastval = parse_JSON(lastval);
@@ -452,7 +452,7 @@ LINE:while (-1 < stop &&
 	if (strlen(data) > start+1 && data[start] == '_') { 
 	    packet->mc = data[start .. ];
 	    packet->data = "";
-#ifdef LOVE_JSON
+#if 1 //def LOVE_JSON
 	    // long term plan is to make that on demand inside the packet..
 	    if (stringp(lastval))
 		lastval = parse_JSON(lastval);
