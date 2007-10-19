@@ -170,6 +170,7 @@ object create_local(mapping params)
           break;
         case '@':
           o = PSYC.Place(params);
+	  o->add_handlers(PSYCLocal.Place(params));
           break;
       } 
     }

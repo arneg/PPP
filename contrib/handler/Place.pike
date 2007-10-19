@@ -1,3 +1,4 @@
+#pike 7.6 
 #include <debug.h>
 inherit PSYC.Handler.Base;
 
@@ -8,11 +9,11 @@ string mailserver;
 object sql;
 mapping sessions = ([]);
 
-void create(object o, function fun, MMP.Uniform uniform, string _sqlserver, void|string _mailserver)
+void create(mapping params)
 {
-  sqlserver = _sqlserver;
-  mailserver = _mailserver;
-  ::create(o, fun, uniform);
+  sqlserver = params->sqlserver;
+  mailserver = params->mailserver;
+  ::create(params - ([ "sqlserver":0, "mailserver":0 ]) );
 }
 
 constant _ = ([
