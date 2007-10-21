@@ -77,7 +77,6 @@ void create(object f, object c, object cc) {
     //dns=Protocols.DNS.client();
     array tmp;
 
-
     catch(remoteaddr=((my_fd->query_address()||"")/" ")[0]);
     localhost = gethostname();
     localaddr = gethostbyname(localhost)[1][0];
@@ -129,8 +128,8 @@ void create_server()
   "primitive_client" : 1,
                      ]);
 
-    if (bind && bind != hostname)
-        config->localhosts = ({ bind });
+    if (localaddr && localaddr != hostname)
+        config->localhosts = ({ localaddr });
 
     PSYC.Server root = PSYC.Server(config);
     port_obj->servers[conf] = root;
@@ -170,7 +169,11 @@ object create_local(mapping params)
           break;
         case '@':
           o = PSYC.Place(params);
-	  o->add_handlers(PSYCLocal.Place(params));
+	  mapping handler_params = params + 
+		  ([ "parent" : o,
+		     "sendmmp" : o->sendmmp
+		     ]);
+	  o->add_handlers(PSYCLocal.Place(handler_params));
           break;
       } 
     }

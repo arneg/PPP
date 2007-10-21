@@ -610,10 +610,10 @@ void check_target(MMP.Packet packet, object connection, function callback, mixed
 	call_out(callback, 0, 0, @args);
     };
 
-    if (!has_index(packet->vars, "_target")) {
+    if (!has_index(packet->vars, "_target") 
+    || (!MMP.is_uniform(target = packet["_target"]))) {
 	call_out(callback, 0, 1, @args);
     } else {
-	target = packet["_target"];
 	if_localhost(target, if_cb, else_cb);
     }
 }

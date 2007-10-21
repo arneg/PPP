@@ -13,7 +13,7 @@ void create(mapping params)
 {
   sqlserver = params->sqlserver;
   mailserver = params->mailserver;
-  ::create(params - ([ "sqlserver":0, "mailserver":0 ]) );
+  ::create(params - ([ "sqlserver":0, "mailserver":0 ]));
 }
 
 constant _ = ([
@@ -129,8 +129,10 @@ int display_message(MMP.Packet p, mapping _v, mapping _m)
 
 int prefilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m) 
 {
+#if 0
   if(!sql)
       sql = Sql.Sql(sqlserver);
+#endif
 
   if (parent->qName() && p->data["_supplicant"])
   {
@@ -138,6 +140,7 @@ int prefilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m)
     if (!sessions[parent->qName()->resource])
       sessions[parent->qName()->resource] = ([]);
 
+#if 0
     sql->query("INSERT INTO chat_sessions (session_id, name, room, begin) VALUES(:session_id, :name, :room, NOW())",
 	       ([
 		   ":session_id" : sessions[parent->qName()->resource]->id,
@@ -158,6 +161,7 @@ int prefilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m)
     }
 
     sessions[parent->qName()->resource][p->data["_supplicant"]->resource]++;
+#endif
   }
   return PSYC.Handler.GOON;
 }
