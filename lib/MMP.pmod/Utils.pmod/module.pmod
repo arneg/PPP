@@ -149,6 +149,10 @@ void late_invoker() {
 void invoke_later(function|object|program f, mixed ... args) {
     if (!invoke_queue) invoke_queue = .Queue();
 
+    if (!callablep(f)) {
+	throw(({ "First argument to invoke_later has to be callable.\n", backtrace() }));
+    }
+
     invoke_queue->push(({ f, args }));
     call_out(late_invoker, 0);
 }

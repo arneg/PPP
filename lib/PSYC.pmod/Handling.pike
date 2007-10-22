@@ -61,10 +61,14 @@ mixed `->(string name) {
     if (has_index(exports, name)) {
 
 	return exports[name];
-    } 
+    }
 
     // we want to call ::`->(), but thats for 
     // pike 7.7 only.
-    return this[name];
+    if (has_index(this, name)) {
+	return this[name];
+    }
+
+    debug("handler_management", 0, "No export %s found in %O\n", name, exports);
 }
 
