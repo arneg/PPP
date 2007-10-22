@@ -179,10 +179,11 @@ int filter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m)
 
 int prefilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m) 
 {
+  debug("Place", 0, sprintf("LEAVE: %O(%O): %O(%O) =>\n", p->data["_supplicant"]->resource, p->data["_supplicant"], parent->qName()->resource, parent->qName()));
+/*
   if(!sql)
       sql = Sql.Sql(sqlserver);
 
-  P0(("Place", sprintf("LEAVE: %O(%O): %O(%O) =>\n", p->data["_supplicant"]->resource, p->data["_supplicant"], parent->qName()->resource, parent->qName())));
   sql->query("UPDATE chat_sessions SET end=NOW() WHERE session_id=:session_id AND name=:name AND room=:room",
                ([
                   ":session_id" : (sessions[parent->qName()->resource]?sessions[parent->qName()->resource]->id:0),
@@ -199,6 +200,7 @@ int prefilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m)
       && sessions[parent->qName()->resource]->id)
     m_delete(sessions, parent->qName()->resource);
   }
+*/
     
   return PSYC.Handler.GOON;
 }
