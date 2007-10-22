@@ -75,7 +75,7 @@ void detach(MMP.Uniform unl) {
 	object context = server->get_context(uni);
 
 	foreach (context->members;MMP.Uniform member;) {
-	    MMP.Utils.invoke_later(this->remove, uni, member);
+	    MMP.Utils.invoke_later(this->channel_remove, uni, member);
 	}
     }
 }

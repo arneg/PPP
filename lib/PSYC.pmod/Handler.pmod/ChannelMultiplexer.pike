@@ -5,7 +5,7 @@ inherit PSYC.Handler.Base;
 
 constant _ = ([
     "postfilter" : ([
-	"" : 0,
+	"" : ([ "check" : "has_target" ]),
     ]),
     "notify" : ([
 	"castmsg" : 0,
@@ -17,6 +17,10 @@ mapping(MMP.Uniform:object) channels = ([]);
 constant export = ({
     "add_channel"
 });
+
+int has_target(MMP.Packet p) {
+    return has_index(p->vars, "_target");
+}
 
 void add_channel(MMP.Uniform channel, object o) {
 
