@@ -153,7 +153,8 @@ object create_local(mapping params)
 {
     werror("create_local(%O)\n", params);
     MMP.Uniform uni = params["uniform"];
-    params += ([ "storage" : params["storage_factory"]->getStorage(uni) ]);
+    params += ([ "storage" : params["storage_factory"]->getStorage(uni),
+		     ]);
     write("creating object for %O.\n", uni);
     object o;
     if (uni->resource && sizeof(uni->resource) > 1) 
@@ -161,20 +162,27 @@ object create_local(mapping params)
       switch (uni->resource[0]) 
       {
         case '~':
+	{
           // TODO check for the path...
           o = PSYC.Person(params);
+          mapping handler_params = params + ([ "parent" : o,
+		                               "sendmmp" : o->sendmmp,
+                                             ]);
 	  o->add_handlers(
-	        PSYC.Handler.Do(params + ([ "parent":o,"sendmmp":o->sendmmp ])),
+	        PSYC.Handler.Do(handler_params),
+	        PSYCLocal.Person(handler_params),
 	                 );
-          break;
+	}
+        break;
         case '@':
+	{
           o = PSYC.Place(params);
-	  mapping handler_params = params + 
-		  ([ "parent" : o,
-		     "sendmmp" : o->sendmmp
-		     ]);
+          mapping handler_params = params + ([ "parent" : o,
+		                               "sendmmp" : o->sendmmp,
+                                             ]);
 	  o->add_handlers(PSYCLocal.Place(handler_params));
-          break;
+	}
+        break;
       } 
     }
     else 
