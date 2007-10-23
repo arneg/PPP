@@ -3,9 +3,10 @@
 string policy;
 mapping _stream_policy = ([]);
 
-void create(mixed ... args) {
-    if (sizeof(args)) 
-	allow_port_range(@args);
+void create(string|void domain, int|void min, void|int max,
+                      int(0..1)|void insecure) {
+    if (domain && !zero_type(min)) 
+	allow_port_range(domain, min, max, insecure);
 }
 
 void allow_port_range(string domain, int min, void|int max, 
@@ -36,7 +37,7 @@ string render_policy() {
 	if (!a[0]) {
 	    range = "*";
 	} else {
-	    range = sprintf("%d-%d", @a);
+	    range = sprintf("%d-%d", a[0], a[1]);
 	}
 
 	if (a[2]) { // insecure	
