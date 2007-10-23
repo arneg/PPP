@@ -46,7 +46,7 @@ int display_notice_context_enter(MMP.Packet p, mapping _v, mapping _m)
      && parent->qName() == p->data["_supplicant"] 
      && MMP.is_place(p->data["_group"]))
   {
-    P0(("Person", sprintf("[%s]PERSON: _notice_context_enter\n", Calendar.now()->format_time_xshort())));
+    debug("Person", 0, sprintf("[%s]PERSON: _notice_context_enter\n", Calendar.now()->format_time_xshort()));
     sendmsg(p->data["_group"], PSYC.Packet("_request_members"));
   }
   if (p->vars->_context)
