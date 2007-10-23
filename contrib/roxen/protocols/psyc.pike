@@ -83,6 +83,18 @@ void create(object f, object c, object cc) {
     remotehost = roxen->blocking_ip_to_host(remoteaddr);
     create_server();
     werror("Psychaven %s:%O\n", localhost, port_obj->servers);
+
+    array connectedaddr; 
+    int connectedport;
+    object flashfile;
+    [connectedaddr, connectedport] = array_sscanf(f->query_address(1), "%{%d.%d.%d.%d%} %d");
+    if ( connectedport < 1024 )
+    {
+      flashfile = MMP.Utils.FlashFile(MMP.Utils.CrossDomainPolicy(localhost, connectedport));
+      flashfile->assign(f);
+      f = flashfile;
+    }
+      
     port_obj->servers[conf]->add_socket(f);
   }
 }
