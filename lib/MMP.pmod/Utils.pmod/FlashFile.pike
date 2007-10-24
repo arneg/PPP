@@ -1,7 +1,7 @@
 // vim:syntax=lpc
 inherit Stdio.File;
 
-#define REQUEST	"<policy-file-request />\0"
+#define REQUEST	"<policy-file-request/>\0"
 
 object _policy;
 function _read_cb, _write_cb;
