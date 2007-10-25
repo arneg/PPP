@@ -84,13 +84,12 @@ void create(object f, object c, object cc) {
     create_server();
     werror("Psychaven %s:%O\n", localhost, port_obj->servers);
 
-    array connectedaddr; 
-    int connectedport;
-    object flashfile;
-    [connectedaddr, connectedport] = array_sscanf(f->query_address(1), "%{%d.%d.%d.%d%} %d");
+    int connectedport = array_sscanf(f->query_address(1), "%{%d.%d.%d.%d%} %d")[1];
     if ( connectedport < 1024 )
     {
-      flashfile = MMP.Utils.FlashFile(MMP.Utils.CrossDomainPolicy(localhost, connectedport));
+      object policy = MMP.Utils.CrossDomainPolicy(localaddr, connectedport);
+      policy->allow_port_range(localhost, connectedport);
+      object flashfile = MMP.Utils.FlashFile(policy);
       flashfile->assign(f);
       f = flashfile;
     }
