@@ -41,9 +41,9 @@ string render_policy() {
 	}
 
 	if (a[2]) { // insecure	
-	    fmt = "<allow-access-from domain=\"%s\" to-ports=\"%s\" secure=\"false\" \\>";
+	    fmt = "<allow-access-from domain=\"%s\" to-ports=\"%s\" secure=\"false\"/>";
 	} else {
-	    fmt = "<allow-access-from domain=\"%s\" to-ports=\"%s\" \\>";
+	    fmt = "<allow-access-from domain=\"%s\" to-ports=\"%s\"/>";
 	}
 	policy += sprintf(fmt, domain, range);
     }
