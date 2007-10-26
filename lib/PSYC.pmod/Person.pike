@@ -65,9 +65,7 @@ void detach(MMP.Uniform unl) {
 	    debug(([ "newbie" : 2, "local_object_destruct" : 1, "local_object" : 2 ]),
 		  "leaving all places(%O) because we are a newbie\n", sub);
 
-	    foreach (sub;MMP.Uniform channel;) {
-		MMP.Utils.invoke_later(this->leave, channel);
-	    }
+	    MMP.Utils.invoke_later(this->leave, @indices(sub));
 	};
 
 	storage->get("places", callback);
