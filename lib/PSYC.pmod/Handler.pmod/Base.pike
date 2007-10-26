@@ -28,7 +28,7 @@ int is_inited() {
 void set_inited(int i) {
     _init = i;
     if (i) {
-	PT(("Handler.Base", "INITED %O. Calling %O.\n", this, _init_cb_queue))
+	debug("Handler.Base", 2, "INITED %O. Calling %O.\n", this, _init_cb_queue);
 	call_init_callbacks();
     }
 }
