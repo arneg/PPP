@@ -103,9 +103,11 @@ class Uniform {
     int is_local() {
 	if (zero_type(islocal)) {
 	    // -> to trigger parsing
-	    if (this->super && (islocal = this->super->is_local())) {
-		return islocal;	
+	    if (this->super) { 
+		islocal = this->super->is_local();
 	    } 
+
+	    if (!zero_type(islocal)) return islocal;
 
 	    if (this->root && this != root) {
 		islocal = root->is_local();
