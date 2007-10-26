@@ -44,7 +44,7 @@ void activate(MMP.Uniform croot) { // croot == circuit root
     // not sure. activate does not really make sense without
     // a circuit. we might even throw! ... or exit(12).
     // TODO:: throw or exit. ,)
-    do_throw(sprintf("%O->activate(%s) failed because the circuit was non-existing??!\n", this, croot));
+    do_throw("%O->activate(%s) failed because the circuit was non-existing??!\n", this, croot);
 }
 
 // we could make the verbosity of this putput debug-level dependent
@@ -294,7 +294,7 @@ void close(MMP.Circuit c) {
 object get_storage(MMP.Uniform uni) {
 
     if (!uni->is_local()) {
-	do_throw(sprintf("we have no storage for remote object %O.\n", uni));
+	do_throw("we have no storage for remote object %O.\n", uni);
     }
 
     return storage_factory->getStorage(uni);

@@ -176,8 +176,9 @@ int get_backtrace(string c) {
     return bt[c];
 }
 
-void do_throw(string c, string fmt, mixed ... args) {
+void do_throw(string fmt, mixed ... args) {
     string s = sprintf(fmt, @args);
+    string c = "exception";
     array trace;
 
     

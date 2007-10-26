@@ -177,7 +177,7 @@ void call_handler(mapping _v, MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 		if (display) display(p, _m);
 		break;
 	    default:
-		do_throw("warning", "Illegal return type from Handler function %O.\n", o->handler);
+		do_throw("Illegal return type from Handler function %O.\n", o->handler);
 	    }
 	};
 
@@ -198,7 +198,7 @@ void call_handler(mapping _v, MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 	    if (display) display(p, _m);
 	    break;
 	default:
-	    do_throw("warning", "Illegal return type from Handler function %O.\n", o->handler);
+	    do_throw("Illegal return type from Handler function %O.\n", o->handler);
 	}
     }
 
