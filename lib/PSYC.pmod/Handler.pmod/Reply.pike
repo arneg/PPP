@@ -1,7 +1,6 @@
 // vim:syntax=lpc
 #include <random.h>
-#include <debug.h>
-#include <assert.h>
+#include <new_assert.h>
 #define CB	0
 #define ARGS	1
 #define WVARS	2
@@ -27,7 +26,7 @@ int add_reply(function cb, string tag, multiset(string)|mapping vars, mixed ... 
     multiset wvars, lvars;
     int async = 0;
 
-    P2(("Handler.Reply", "%O: added tag(%s) with %O for %O.\n", parent, tag, vars, cb))
+    debug("reply", 2, "%O: added tag(%s) with %O for %O.\n", parent, tag, vars, cb);
 
     if (multisetp(vars)) {
 	wvars = vars;
@@ -36,7 +35,7 @@ int add_reply(function cb, string tag, multiset(string)|mapping vars, mixed ... 
 	    if (multisetp(vars["lock"])) {
 		lvars = (multiset)vars["lock"];
 	    } else {
-		THROW(sprintf("set of locked variables has to be an array.\n"));
+		do_throw("set of locked variables has to be an array.\n");
 	    }
 	}
 
@@ -44,7 +43,7 @@ int add_reply(function cb, string tag, multiset(string)|mapping vars, mixed ... 
 	    if (multisetp(vars["wvars"])) {
 		wvars = (multiset)vars["wvars"];
 	    } else {
-		THROW(sprintf("set of variables has to be an array.\n"));
+		do_throw("set of variables has to be an array.\n");
 	    }
 	}
 	async = has_index(vars, "async") && vars["async"];
@@ -58,8 +57,6 @@ int add_reply(function cb, string tag, multiset(string)|mapping vars, mixed ... 
 string make_reply(function cb, multiset(string)|mapping vars, mixed ... args) {
     string tag;
 
-    P2(("Handler.Reply", "%O: make_reply(%O, %O, %O)\n", this, cb, vars, args))
-
     while (has_index(reply, tag = RANDHEXSTRING));
     add_reply(cb, tag, vars, @args);
     return tag;
@@ -68,15 +65,12 @@ string make_reply(function cb, multiset(string)|mapping vars, mixed ... args) {
 int filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
     PSYC.Packet m = p->data;
 
-    P3(("Handler.Reply", "%O: prefilter(%O)\n", parent, p))
-    
     if (has_index(m->vars, "_tag_reply")) {
 	string tag = m->vars["_tag_reply"];
 
 	if (has_index(reply, tag)) {
 	    array(mixed) ca = reply[tag];
 
-	    P3(("Handler.Reply", "%O: ca: %O\n", parent, ca))
 	    // callback for storage
 	    void got_data(mapping _v, MMP.Packet p, function callback, int async, mixed args) {
 		array temp;
@@ -98,7 +92,7 @@ int filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
 	    };
 
 	    void fail(mixed ... args) {
-		P0(("PSYC.Handler.Reply", "fetching data failed for someone.. %O\n", args))
+		debug("storage", 0, "fetching data failed for someone.. %O\n", args);
 		// TODO: das alles toller
 	    };
 	    enforcer(functionp(ca[CB]), "oups.. \n");
@@ -108,7 +102,7 @@ int filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
 	    m_delete(reply, tag);
 	    return PSYC.Handler.STOP;
 	} else {
-	    P0(("Handler.Reply", "packet %O (%O) is tagged with an unknown tag.\n", p, m))
+	    debug("reply", 1, "packet %O (%O) is tagged with an unknown tag.\n", p, m);
 	    // Not to bad. the packet may goon
 	}
     }

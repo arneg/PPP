@@ -1,5 +1,4 @@
 // vim:syntax=lpc
-#include <debug.h>
 
 inherit PSYC.Handler.Base;
 
@@ -65,7 +64,7 @@ int postfilter_failure_delivery(MMP.Packet p, mapping _v, mapping _m) {
 
     if (MMP.is_uniform(m["_location"]) && parent->attached(m["_location"])) {
 	parent->detach(m["_location"]);
-	PT(("Person", "%O unlinked from %O because of delivery_failure.", m["_location"], parent))
+	debug("client", 1, "%O unlinked from %O because of delivery_failure.", m["_location"], parent);
     }
 
     return PSYC.Handler.GOON;
@@ -82,14 +81,11 @@ int postfilter_request_link(MMP.Packet p, mapping _v, mapping _m) {
 	    return PSYC.Handler.STOP;
 	}
 
-	P3(("PSYC.Handler.Link", "comparing %O and %O.\n", _v["password"], m->vars["_password"]))
 	if (_v["password"] != m->vars["_password"]) {
 	    sendmsg(source, m->reply("_error_invalid_password"));
 	    return PSYC.Handler.STOP;
 	}
     }
-
-    PT(("Link", "_request_link with %O.\n", m->vars))
 
 //#ifdef PRIMITIVE_CLIENT
     if (has_index(m->vars, "_type") && m["_type"] == "_assisted") {

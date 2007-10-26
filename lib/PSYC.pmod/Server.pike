@@ -454,7 +454,7 @@ void deliver(MMP.Uniform target, MMP.Packet packet) {
     debug("packet_flow", 4, "%O->deliver(%O, %O)\n", this, target, packet);
 
     if (target->handler) {
-	debug("packet_flow", 5, "Found handler in %O. calling %O.\n", target, target->handler->msg);
+	debug("packet_flow", 5, "Found handler in %O. calling %O->msg().\n", target, target->handler);
 	MMP.Utils.invoke_later(target->handler->msg, packet);
 	return;
     }

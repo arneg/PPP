@@ -1,4 +1,3 @@
-#include <debug.h>
 #include <new_assert.h>
 inherit PSYC.Handler.Base;
 

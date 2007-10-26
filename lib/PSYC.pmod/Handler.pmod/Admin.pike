@@ -1,5 +1,4 @@
 // vim:syntax=lpc
-#include <debug.h>
 
 inherit PSYC.Handler.Base;
 
@@ -96,7 +95,7 @@ void low_leave(mapping members, MMP.Uniform uni) {
 int filter_request_administrators(MMP.Packet p, mapping _v, mapping _m) {
 
     if (!mappingp(_v["admins"])) {
-	P0(("PSYC.Handler.Admin", "%O: \"admins\" not a mapping.\n", parent))
+	debug("admin", 0, "%O: \"admins\" not a mapping.\n", parent);
 	return PSYC.Handler.STOP;
     }
 

@@ -1,7 +1,6 @@
 // vim:syntax=lpc
 // probably the most efficient/bugfree class in the whole program
 
-#include <debug.h>
 
 //! This is the base class for all handlers to enable things handlers need, and to grant a type to all those classes who want to
 //! participate in the handling of PSYC.

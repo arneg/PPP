@@ -1,6 +1,5 @@
 // vim:syntax=lpc
 
-#include <debug.h>
 inherit PSYC.Handler.Base;
 
 // A handler implementing all kinds of client features.. in here only those 

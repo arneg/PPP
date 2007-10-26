@@ -1,4 +1,3 @@
-#include <debug.h>
 inherit PSYC.Handler.Base;
 
 //! This handler calls @expr{parent->distribute(mmppacket);@} for every

@@ -170,6 +170,7 @@ void call_handler(mapping _v, MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 		progress(stack, p, _m);
 		break;
 	    case PSYC.Handler.STOP:
+		debug("packet_flow", 1, "%O stopped in %O\n", p, o->handler);
 		stop(p, _m);
 		break;
 	    case PSYC.Handler.DISPLAY:

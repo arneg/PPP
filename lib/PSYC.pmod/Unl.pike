@@ -62,7 +62,7 @@ void create(mapping params) {
 //! @param packet
 //! 	The @[MMP.Packet] to send.
 void sendmmp(MMP.Uniform target, MMP.Packet packet) {
-    debug("packet_flow", 2, "%O->sendmmp(%O, %O)\n", this, target, packet);
+    debug("packet_flow", 1, "%O->sendmmp(%O, %O)\n", this, target, packet);
     
     if (!has_index(packet->vars, "_context")) {
 	if (!has_index(packet->vars, "_target")) {

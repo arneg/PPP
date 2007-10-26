@@ -1,5 +1,4 @@
 // vim:syntax=lpc
-#include <debug.h>
 
 inherit PSYC.Handler.Base;
 array history = ({});

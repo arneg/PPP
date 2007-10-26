@@ -1,5 +1,4 @@
 // vim:syntax=lpc
-#include <debug.h>
 
 inherit PSYC.Handler.Base;
 
@@ -65,13 +64,14 @@ void check_is_member(mapping _v, function cb, MMP.Uniform guy) {
 //! 	mapping from the storage of the channel.
 
 void low_member_insert(mapping members, MMP.Uniform uni) {
-    P0(("Handler.Members", "A NEW MEMBER!! %O \n\n\n", uni))
+    debug("channel_membership", 2, "A NEW MEMBER!! %O \n\n\n", uni);
     members[uni] = 1;
     parent->storage->set_unlock("members", members); 
+    parent->storage->save();
 }
 
 void low_member_remove(mapping members, MMP.Uniform uni) {
-    P0(("Handler.Members", "A former MEMBER!! %O \n\n\n", uni))
+    debug("channel_membership", 2, "A former MEMBER!! %O \n\n\n", uni);
     m_delete(members, uni);
     parent->storage->set_unlock("members", members); 
 }
@@ -81,7 +81,7 @@ function member_insert, member_remove;
 int filter(MMP.Packet p, mapping _v, mapping _m) {
 
     if (!mappingp(_v["members"])) {
-	P0(("Handler.Members", "%O: 'members' should be a mapping in storage. Dropping Packet.\n", parent))
+	debug("channel_membership", 0, "%O: 'members' should be a mapping in storage. Dropping Packet.\n", parent);
 	return PSYC.Handler.STOP;
     }
 

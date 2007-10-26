@@ -1,5 +1,4 @@
 // vim:syntax=lpc
-#include <debug.h>
 
 //! Handler implementing remote PSYC Authentication.
 //! 
@@ -112,7 +111,7 @@ int filter_error_authentication(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
 
     if (!has_index(m->vars, "_location")) {
-	P3(("PSYC.Handler.Auth", "incomplete _error_invalid_authentication (_location is missing)\n"))
+	debug("auth", 1, "incomplete _error_invalid_authentication (_location is missing)\n");
 	return PSYC.Handler.STOP;
     }
 
@@ -122,13 +121,13 @@ int filter_error_authentication(MMP.Packet p, mapping _v, mapping _m) {
     if (has_index(pending, location) && has_index(pending[location], source)) {
 	m_delete(pending[location], source)(0);
 
-	P3(("Uni", "I was not able to get authentication for %s (claims to be %s).\n", location, source))
+	debug("auth", 1, "I was not able to get authentication for %s (claims to be %s).\n", location, source);
 
 	PSYC.Packet failure = PSYC.Packet("_failure_authentification", ([ "_identification" : source ]));
 
 	sendmsg(location, failure);
     } else {
-	P3(("Handler.Auth", "_error_authentication even though we never requested one.\n"))
+	debug("auth", 1, "_error_authentication even though we never requested one.\n");
     }
 
     return PSYC.Handler.STOP;
@@ -138,7 +137,7 @@ int filter_notice_authentication(MMP.Packet p, mapping _v, mapping _m) {
     PSYC.Packet m = p->data;
 
     if (!has_index(m->vars, "_location")) {
-	P0(("PSYC.Handler.Auth", "incomplete _notice_authentication (_location is missing)\n"))
+	debug("auth", 0, "incomplete _notice_authentication (_location is missing)\n");
 	return PSYC.Handler.STOP;
     }
 
@@ -146,7 +145,7 @@ int filter_notice_authentication(MMP.Packet p, mapping _v, mapping _m) {
     MMP.Uniform location = m["_location"];
     
     // we dont use that yet
-    P3(("Uni", "Successfully authenticated %s as %s.\n", location, source))
+    debug("auth", 1, "Successfully authenticated %s as %s.\n", location, source);
     unl2uni[location] = source; 	
 
     if (has_index(uni2unl, source)) {
@@ -172,9 +171,6 @@ int has_identification(MMP.Packet p, mapping _v) {
 
 void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
 
-    PT(("Auth.Handler", "Handling identification of %O.\n", p->vars))
-    PT(("Auth.Handler", "misc: %O.\n", _m))
-
     // why are we not using send_tagged here???
     MMP.Uniform id = p["_source_identification"];	
     MMP.Uniform s = p["_source"];
@@ -191,7 +187,6 @@ void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
 
 	if (!has_index(pending[s], id)) {
 	    pending[s][id] = ({  }); 
-P3(("Auth.Handler", "!!!Handling!!! identification of %O.\n", p))
 	    PSYC.Packet request = PSYC.Packet("_request_authentication",
 					      ([ "_location" : s ]));
 	    sendmsg(id, request);

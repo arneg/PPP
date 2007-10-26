@@ -1,5 +1,4 @@
 // vim:syntax=lpc
-#include <debug.h>
 
 //! This handler takes care of prefetching @[PSYC.Text.TextDB] entries,
 //! so that @expr{sometextdb[mc]@} returns the template (if existing) once
