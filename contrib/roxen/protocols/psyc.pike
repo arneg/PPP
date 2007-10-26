@@ -78,8 +78,14 @@ void create(object f, object c, object cc) {
     array tmp;
 
     catch(remoteaddr=((my_fd->query_address()||"")/" ")[0]);
-    localhost = gethostname();
-    localaddr = gethostbyname(localhost)[1][0];
+
+    localhost = port_obj->ip;
+    if (!MMP.Utils.Net.is_ip(localhost)) {
+	localaddr = gethostbyname(localhost)[1][0];
+    } else {
+	localaddr = localhost;
+    }
+
     remotehost = roxen->blocking_ip_to_host(remoteaddr);
     create_server();
     werror("Psychaven %s:%O\n", localhost, port_obj->servers);
@@ -121,8 +127,8 @@ void create_server()
 
     PSYC.Storage.Factory storage = PSYC.Storage.FileFactory(data_path); 
     object debug = MMP.Utils.DebugManager();
-    debug->set_default_backtrace(1);
-    debug->set_default_debug(5);
+    debug->set_default_backtrace(0);
+    debug->set_default_debug(2);
 
     mapping config = ([
              "debug" : debug,
