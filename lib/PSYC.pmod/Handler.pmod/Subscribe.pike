@@ -1,6 +1,5 @@
 // vim:syntax=lpc
-#include <debug.h>
-#include <assert.h>
+#include <new_assert.h>
 
 inherit PSYC.Handler.Base;
 
@@ -63,12 +62,12 @@ constant export = ({
 });
 
 void init(mapping vars) {
-    P3(("Handler.Subscribe", "Initing Handler.Subscribe of %O. vars: %O\n", parent, vars))
+    debug("init", 1, "Initing Handler.Subscribe of %O. vars: %O\n", parent, vars);
     
     if (!mappingp(vars["places"])) {
 	void callback(int error, string key) {
 	    if (error) {
-		P0(("Handler.Subscribe", "Absolutely fatal: initing handler did not work!!!\n"))
+		debug("init", "Absolutely fatal: initing handler did not work!!!\n");
 	    } else {
 		set_inited(1);
 	    }
@@ -99,12 +98,11 @@ int not_us(MMP.Packet p, mapping _m) {
     if (has_index(vars, "_group")) {
 	MMP.Uniform group = vars["_group"];
 	if (group->channel ? group->super : group == uni) {
-	    P3(("Handler.Subscribe", "not_us check is false for %O.\n", p))
+	    debug("packet_flow", 1, "not_us check is false for %O.\n", p);
 	    return 0;
 	}
     }
     
-    P3(("Handler.Subscribe", "not_us check is true for %O.\n", p))
     return 1;
 }
 
@@ -120,7 +118,7 @@ void postfilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m, funct
 
     void callback(int error) {
 	if (error) {
-	    P0(("PSYC.Handler.Subscribe", "set_unlock failed for places. retry... \n."))
+	    debug("storage", 0, "set_unlock failed for places. retry... \n.");
 
 	    // in most cases this will be a loop.. most certainly.
 	    //  we should do something else here..
@@ -156,18 +154,19 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
 
 	if (!has_index(sub, channel)) {
 	    if (has_index(sub, context)) {
-		P0(("Handler.Subscribe", "%O: %O forgot to join us into %O.\n", parent, context, channel))
+		debug("multicast_routing", 0, "%O: %O forgot to join us into %O.\n", parent, context, channel);
 	    } else {
-		P0(("Handler.Subscribe", "%O: we never joined %O but are getting messages from %O.\n", parent, context, channel))
+		debug("multicast_routing", 0, "%O: we never joined %O but are getting messages from %O.\n", parent, context, channel);
 	    }
 
-	    // TODO: use leave()
-	    sendmsg(channel, PSYC.Packet("_notice_context_leave_channel"));
+	    // TODO: dont use leave() since we dont need to remove channel from
+	    // places mapping
+	    sendmsg(channel, PSYC.Packet("_request_context_leave_channel"));
 
 	    return PSYC.Handler.STOP;
 	}
     } else if (!has_index(sub, channel)) {
-	P0(("Handler.Subscribe", "%O: we never joined %O but are getting messages.\n", parent, channel))
+	debug("multicast_routing", 0, "%O: we never joined %O but are getting messages.\n", parent, channel);
 	//sendmsg(channel, PSYC.Packet("_notice_context_leave"));
 	leave(channel);
 
@@ -190,14 +189,14 @@ void postfilter_notice_context_enter_channel(MMP.Packet p, mapping _v, mapping _
 
     if (!channel->super) {
 	// dum dump
-	P1(("Handler.Subscribe", "%O: got channel join without channel from dump dump %O.\n", uni, p->source()))
+	debug("protocol_error", 1, "%O: got channel join without channel from dump dump %O.\n", uni, p->source());
 	parent->storage->unlock("places");
 	call_out(cb, 0, PSYC.Handler.STOP);
 	return;
     }
 
     if (!has_index(sub, channel->super)) {
-	P1(("Handler.Subscribe", "%O: illegal channel join to %O from %O.\n", uni, channel, p->source()))
+	debug("protocol_error", 1, "%O: illegal channel join to %O from %O.\n", uni, channel, p->source());
 	parent->storage->unlock("places");
 	call_out(cb, 0, PSYC.Handler.STOP);
 	return;
@@ -242,7 +241,7 @@ void subscribe(MMP.Uniform channel) {
     
     void callback(int error) {
 	if (error) {
-	    P0(("Handler.Subscribe", "offer_quiet() in subscribe() failed.\n"))
+	    debug("friendship", 0, "offer_quiet() in subscribe() failed.\n");
 	} else {
 	    enter(channel);
 	}
@@ -276,11 +275,11 @@ void enter(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 
 	void _error_cb(int error, string key, function error_cb, array(mixed) args) {
 	    if (error) {
-		P0(("unlocking in %O failed. thats fatal!!!\n", key))
+		debug("storage", 0, "unlocking in %O failed. thats fatal!!!\n", key);
 	    } else if (error_cb) {
 		error_cb(0, @args);	
 	    } else {
-		P3(("Handler.Subscribe", "enter() was successfull. but noone realized.\n"))
+		debug("channel_membership", 3, "enter() was successfull. but noone realized.\n");
 	    }
 	};
 
@@ -288,7 +287,7 @@ void enter(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 
 	if (PSYC.abbrev(m->mc, "_notice_context_enter")) {
 	    if (has_index(sub, group)) {
-		P3(("Handler.Subscribe", "%O: Double joined %O.\n", parent, group))
+		debug("channel_membership", 1, "%O: Double joined %O.\n", parent, group);
 		parent->storage->unlock("places", _error_cb, error_cb, args);
 	    } else {
 		sub[group] = 1;
@@ -310,31 +309,37 @@ void enter(MMP.Uniform channel, function|void error_cb, mixed ... args) {
 //! Leaves a channel.
 //! @param channel
 //! 	The channel to leave.
-void leave(MMP.Uniform channel) {
-    string mc = "_notice_context_leave" + (channel->channel) ? "_channel" : ""; 
+void leave(MMP.Uniform ... channels) {
 
     void callback(int error, string key, mapping sub) {
 	if (error != PSYC.Storage.OK) {
-	    P0(("Handler.Subscribe", "leave(%O) failed because of storage.\n"))
+	    debug("storage", 0, "leave(%O) failed because of storage.\n");
 	    return;
 	}
 
 	void cb(int error, string key) {
 	    if (error != PSYC.Storage.OK) {
-		P0(("Handler.Subscribe", "leave(%O) failed because of storage.\n"))
+		debug("storage", 0, "leave(%O) failed because of storage.\n");
 	    }
 	};
 
-	if (has_index(sub, channel)) {
-	    m_delete(sub, channel);
+	int changed = 0;
+	foreach (channels;;MMP.Uniform channel) {
+	    if (has_index(sub, channel)) {
+		m_delete(sub, channel);
+		changed = 1;
+	    }
+
+	    PSYC.Packet request = PSYC.Packet("_request_context_leave", ([ "_group" : channel, "_supplicant" : uni ]));
+	    sendmsg(uni->root, request);
+	}
+
+	if (changed) {
 	    parent->storage->set_unlock("places", sub);
 	} else {
 	    parent->storage->unlock("places");
 	    // could warn about desync here.. but it should be selfhealing anyways
 	}
-
-	PSYC.Packet notice = PSYC.Packet("_notice_context_leave", ([ "_group" : channel, "_supplicant" : uni ]));
-	sendmsg(uni->root, notice);
     };
 
     parent->storage->get_lock("places", callback);

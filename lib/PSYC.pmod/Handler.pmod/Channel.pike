@@ -1,6 +1,5 @@
 // vim:syntax=lpc
-#include <debug.h>
-#include <assert.h>
+#include <new_assert.h>
 
 //! Implementation of PSYC channels, e.g. multicast groups. Does not keep 
 //! track of its members on its own. That should be done persistently by
@@ -13,7 +12,7 @@
 //! PSYC Packets to be processed are those of type:
 //! @pre{ 
 //! _request_context_enter
-//! _notice_context_leave
+//! _request_context_leave
 //! @}
 //! 
 //! Exports: @[create_channel()], @[castmsg()]
@@ -48,7 +47,7 @@ constant _ = ([
 	    "async" : 1,
 	    "check" : "is_us",
 	]),
-	"_notice_context_leave" : ([
+	"_request_context_leave" : ([
 	    "check" : "is_us",
 	]),
     ]),
@@ -64,12 +63,12 @@ int is_us(MMP.Packet p, mapping _m) {
     if (!has_index(p->vars, "_context") && has_index(vars, "_group")) {
 	MMP.Uniform group = vars["_group"];
 	if ((group->channel ? group->super : group) == uni) {
-	    P2(("Handler.Channel", "is_us check true for %O.\n", p))
+	    debug("multicast_routing", 2, "is_us check true for %O.\n", p);
 	    return 1;
 	}
     }
     
-    P2(("Handler.Channel", "is_us check is false for %O.\n", p))
+    debug("multicast_routing", 2, "is_us check is false for %O.\n", p);
     return 0;
 }
 
@@ -105,7 +104,7 @@ int channel_exists(MMP.Uniform channel) {
 void create_channel(MMP.Uniform channel, function|void enter, void|function leave, void|function on_castmsg) {
 
     if (channel->channel ? (channel->super != uni) : (channel != uni)) {
-	THROW(sprintf("cannot create channel %O in %O because it doesnt belong there.\n", channel, uni));
+	do_throw("cannot create channel %O in %O because it doesnt belong there.\n", channel, uni);
     }
     callbacks[channel] = ({ enter, leave, on_castmsg });
 }
@@ -116,11 +115,11 @@ void postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m, func
     MMP.Uniform group = m["_group"];
     MMP.Uniform supplicant = m["_supplicant"];
 
-    P2(("Handler.Channel", "%O: request to enter %O from %O.\n", parent, group, source))
+    debug("multicast_routing", 2, "%O: request to enter %O from %O.\n", parent, group, source);
 
     if (!has_index(callbacks, group)) {
 	// blub
-	P0(("PSYC.Handler.Channel", "Channel does not exist.\n"))
+	debug("multicast_routing", 0, "Channel does not exist.\n");
 	sendmsg(p->source(), m->reply("_failure_context_enter"));
 	call_out(cb, 0, PSYC.Handler.STOP);
 	return;
@@ -141,13 +140,12 @@ void postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m, func
 	return;
     }
 
-    P2(("Handlers.Channel", "cb: %O. sup: %O, callb: %O\n", callbacks[group][ENTER], supplicant, callback))
     callbacks[group][ENTER](supplicant, callback, p);
 
     call_out(cb, 0, PSYC.Handler.STOP);
 }
 
-int postfilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m) {
+int postfilter_request_context_leave(MMP.Packet p, mapping _v, mapping _m) {
     MMP.Uniform source = p->source();
     PSYC.Packet m = p->data;
     MMP.Uniform group = m["_group"];
@@ -182,7 +180,7 @@ void channel_remove(MMP.Uniform channel, MMP.Uniform entity) {
 //! 	This method will throw if @expr{channel@} is the default channel
 //! 	as entities cannot be forced into it.
 void channel_add(MMP.Uniform channel, MMP.Uniform entity) {
-    P2(("Handler.Channel", "%O->channel_add(%O)\n", channel, entity))
+    debug("multicast_routing", 2, "%O->channel_add(%O)\n", channel, entity);
 
     enforcer(has_index(callbacks, channel), 
 	     "Trying to add someone to nonexisting channel.\n");
@@ -208,10 +206,10 @@ void channel_add(MMP.Uniform channel, MMP.Uniform entity) {
 //! @throws
 //! 	If the @expr{channel@} has never been created.
 void castmsg(MMP.Uniform channel, PSYC.Packet m, MMP.Uniform source_relay) {
-    P2(("Handler.Channel", "%O->castmsg(%O, %O)\n", channel, m, source_relay))
+    debug("multicast_routing", 2, "%O->castmsg(%O, %O)\n", channel, m, source_relay);
 
     if (!has_index(callbacks, channel)) {
-	THROW(("Handlers.Channel", "%O is very unlikely to contain anyone as you never created it.\n", channel));
+	do_throw("castmsg in non-existing channel.\n", channel);
     }
 
 

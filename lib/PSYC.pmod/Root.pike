@@ -61,6 +61,7 @@ class Signaling {
 	    //"_request_context_leave" : 0, 
 	    "_status_context_empty" : 0, 
 	    "_notice_context_leave" : ([ "lock" : ({ "groups" }) ]), 
+	    "_request_context_leave" : ([ "lock" : ({ "groups" }) ]), 
 	    "_notice_context_enter_channel" : ([ "lock" : ({ "groups" }) ]), 
 	]),
     ]);
@@ -168,14 +169,14 @@ class Signaling {
     }
 
     // master kicks someone out.
-    // user leaves himself.
     int postfilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m) {
 	PSYC.Packet m = p->data;	
 	MMP.Uniform member = m["_supplicant"];
 	MMP.Uniform channel = m["_group"];
 	MMP.Uniform target; // who gets the _notice??
 
-	debug("multicast_routing", 4, "_notice_context_leave of %O in channel %O.\n", member, channel);
+	debug("temp", 0, "packet: %O, vars: %O\n", p, m->vars);
+	debug("multicast_routing", 0, "_notice_context_leave of %O in channel %O.\n", member, channel);
 
 	if (!objectp(member) || !objectp(channel)) {
 	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
@@ -189,7 +190,54 @@ class Signaling {
 	    // TOP_DOWN
 	    debug("multicast_routing", 4, "TOP-DOWN leave!\n");
 	    target = member->is_local() ? member : member->root;
-	} else if (p->source() == (member->is_local() ? member : member->root)) {
+	} else {
+	    debug(([ "multicast_routing" : 2, "protocol_error" : 2 ]), 
+		  "%O: Got channel leave for context %O from %O. denied.\n", uni, channel, p->source());
+	    // TODO: fix the mc here.. depending on the incoming one
+	    sendmsg(p->source(), m->reply("_error_context_leave"));
+	    parent->storage->unlock("groups");
+	    return PSYC.Handler.STOP;
+	}
+
+	object c = parent->server->get_context(channel);
+
+	if (zero_and_zero_only(member->is_local()) && !c->contains(member)) {
+	    debug(([ "multicast_routing" : 0, "protocol_error" : 0 ]), "out of sync. %O not member of %O.\n", member, channel);
+	} else {
+	    c->remove(member);
+	}
+
+	mapping groups = _v["groups"];
+
+	if (!has_index(groups, channel)) {
+	    debug(([ "storage" : 0, "multicast_routing" : 0 ]), "inconsistency of storage and context.\n");
+	    parent->storage->unlock("groups");
+	} else {
+	    m_delete(groups[channel], member);
+	    parent->storage->set_unlock("groups", groups);
+	    parent->storage->save();
+	}
+
+	sendmsg(target, m);
+	return PSYC.Handler.STOP;
+    }
+
+    // user leaves himself.
+    int postfilter_request_context_leave(MMP.Packet p, mapping _v, mapping _m) {
+	PSYC.Packet m = p->data;	
+	MMP.Uniform member = m["_supplicant"];
+	MMP.Uniform channel = m["_group"];
+	MMP.Uniform target; // who gets the _notice??
+
+	debug("multicast_routing", 4, "_request_context_leave of %O in channel %O.\n", member, channel);
+
+	if (!objectp(member) || !objectp(channel)) {
+	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
+	    parent->storage->unlock("groups");
+	    return PSYC.Handler.STOP;
+	}
+
+	if (p->source() == (member->is_local() ? member : member->root)) {
 	    // BOTTOM_UP
 	    debug("multicast_routing", 4, "BOTTOM-UP leave!\n");
 	    target = channel->is_local() ? (channel->channel ? channel->super : channel) : channel->root;
