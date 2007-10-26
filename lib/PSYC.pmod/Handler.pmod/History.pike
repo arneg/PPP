@@ -14,11 +14,12 @@ constant _ = ([
 ]);
 
 int casted_message(MMP.Packet p, mapping _v) {
-    PT(("Handler.History", "storing: %O.\n", p->data))
+    debug("Handler.History", 2, "storing: %O.\n", p->data);
     MMP.Packet entry = p->clone();
     entry->data = entry->data->clone(); // assume psyc packet...
     entry->data->vars->_time_place = time();
     history += ({ entry });
+    debug("Handler.History", 5, "stored: %d\n", sizeof(history));
 
     return PSYC.Handler.GOON;
 }
@@ -28,6 +29,7 @@ int casted_message(MMP.Packet p, mapping _v) {
 // message retrieval somewhere and we should put them together.
 // TODO
 int postfilter_request_history(MMP.Packet p, mapping _v, mapping _m) {
+    debug("Handler.History", 5, "postfilter_request_history(%O): %O.\n", p, history);
     foreach (history;; MMP.Packet m) {
 	MMP.Packet nm = m->clone();
 	nm->vars->_target = p->lsource();
