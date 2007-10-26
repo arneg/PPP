@@ -24,7 +24,7 @@ int casted_message(MMP.Packet p, mapping _v) {
 }
 
 // need to check if source() is member, or something
-// this needs some ueberarbeitung. there are plans for history/
+// this needs some reworking. there are plans for history/
 // message retrieval somewhere and we should put them together.
 // TODO
 int postfilter_request_history(MMP.Packet p, mapping _v, mapping _m) {
