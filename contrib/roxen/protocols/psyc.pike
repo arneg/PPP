@@ -79,11 +79,14 @@ void create(object f, object c, object cc) {
 
     catch(remoteaddr=((my_fd->query_address()||"")/" ")[0]);
 
-    localhost = port_obj->ip;
-    if (!MMP.Utils.Net.is_ip(localhost)) {
+    localhost = gethostname();
+    if (localhost) 
+    {
 	localaddr = gethostbyname(localhost)[1][0];
-    } else {
-	localaddr = localhost;
+    }
+    else 
+    {
+	localaddr = localhost = port_obj->ip;
     }
 
     remotehost = roxen->blocking_ip_to_host(remoteaddr);
