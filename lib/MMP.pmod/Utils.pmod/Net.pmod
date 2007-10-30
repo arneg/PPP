@@ -9,6 +9,8 @@
 //! 	Support IPv6.
 int(0..1) is_ip(string candidate) {
 
+    // I would prefer to throw here instead of silently ignoring 
+    // misuse. 
     if (!candidate) return 0;
 
     array(string) parts = candidate / ".";
