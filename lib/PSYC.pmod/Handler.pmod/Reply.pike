@@ -62,7 +62,7 @@ string make_reply(function cb, multiset(string)|mapping vars, mixed ... args) {
     return tag;
 }
 
-int filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
+void filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
     PSYC.Packet m = p->data;
 
     if (has_index(m->vars, "_tag_reply")) {
@@ -100,7 +100,7 @@ int filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
 	    // still some vars missing/supposed to come from storage
 	    PSYC.Storage.multifetch(parent->storage, ca[LVARS], ca[WVARS], got_data, fail, p, ca[CB], ca[ASYNC], ca[ARGS]);
 	    m_delete(reply, tag);
-	    return PSYC.Handler.STOP;
+	    call_out(cb, 0, PSYC.Handler.STOP);
 	} else {
 	    debug("reply", 1, "packet %O (%O) is tagged with an unknown tag.\n", p, m);
 	    // Not to bad. the packet may go on
@@ -108,5 +108,4 @@ int filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
     }
 
     call_out(cb, 0, PSYC.Handler.GOON);
-    return PSYC.Handler.STOP;
 }
