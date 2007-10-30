@@ -74,6 +74,7 @@ void low_member_remove(mapping members, MMP.Uniform uni) {
     debug("channel_membership", 2, "A former MEMBER!! %O \n\n\n", uni);
     m_delete(members, uni);
     parent->storage->set_unlock("members", members); 
+    parent->storage->save();
 }
 
 function member_insert, member_remove;
