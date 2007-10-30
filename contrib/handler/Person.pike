@@ -107,12 +107,23 @@ int postfilter_request_do_log_email(MMP.Packet p, mapping _v, mapping _m)
 
   if(MMP.is_place(p->data["_group"]))
   {
-/*
-    send_tagged_v(room, 
-     PSYC.Packet("_requet_history"), (< "_identification_scheme_mailto" 
-	                >), callback);
-*/
-    sendmsg(p->data["_group"], PSYC.Packet("_request_log_email", (["_email_address":p->data["_email_address"]])));
+    send_tagged(p->lsource(),
+                PSYC.Packet("_request_retrieve", ([ "_key":"_identification_scheme_mailto" ])),
+                lambda(MMP.Packet r, mixed ... args)
+                {
+                  debug("Email", 3, sprintf("%O\n", (string)r->data));
+                  send_tagged_v(p->data["_group"],PSYC.Packet("_request_history_log"), ([]),
+                                lambda(MMP.Packet r, mixed ... args)
+                                {
+                                  debug("Email", 3, sprintf("%O:%O\n", (string)r->data, args));
+                                  return PSYC.Handler.STOP;
+                                });
+                  return PSYC.Handler.STOP;
+                });
+
+
+//                  Thread.Thread(lambda(){ Protocols.SMTP.Client(mailserver)->simple_mail(p->data["_email_address"], "Your Hyundai chatlog", "customerservice@hyundai.co.nz", logtext); });
+//    sendmsg(p->data["_group"], PSYC.Packet("_request_log_email", (["_email_address":p->data["_email_address"]])));
   }
   return PSYC.Handler.STOP;
 }
