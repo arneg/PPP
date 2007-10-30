@@ -31,6 +31,7 @@ void create(mapping|object d) {
 void save();
 
 mixed _get(string key) {
+    PT(("Volatile", "_get(%O).\n", key))
     return data[key];
 }
 
@@ -39,10 +40,10 @@ void _set(string key, mixed val) {
 }
 
 void _lock(string key) {
-    P4(("Volatile", "%O: Locking key %s.\n", this, key))
+    PT(("Volatile", "%O: Locking key %s.\n", this, key))
 
     if (has_index(locks, key)) {
-	P0(("Volatile", "%O: Locking already locked key %s.\n", this, key))
+	PT(("Volatile", "%O: Locking already locked key %s.\n", this, key))
 	return;
     }
 
@@ -60,7 +61,7 @@ void get(string key, function cb, mixed ... args) {
     assert(functionp(cb));
 
     if (has_index(locks, key)) {
-	P3(("Volatile", "%O: %s is locked. scheduling get.\n", this, key))
+	PT(("Volatile", "%O: %s is locked. scheduling get.\n", this, key))
 	locks[key] += ({ ({ GET, key, cb, args }) });	
 	return;
     }
@@ -80,7 +81,7 @@ void set(string key, mixed value, function|void cb, mixed ... args) {
     P4(("Volatile", "%O: set(%s, %O, %O, %O)\n", this, key, value, cb, args))
 
     if (has_index(locks, key)) {
-	P3(("Volatile", "%O: %s is locked. scheduling set.\n", this, key))
+	PT(("Volatile", "%O: %s is locked. scheduling set.\n", this, key))
 	locks[key] += ({ ({ SET, key, value, cb, args }) });	
 	return;
     }
@@ -99,7 +100,7 @@ void get_lock(string key, function cb, mixed ... args) {
     P4(("Volatile", "%O: get_lock(%s, %O, %O)\n", this, key, cb, args))
 
     if (has_index(locks, key)) {
-	P3(("Volatile", "%O: %s is locked. scheduling get_lock.\n", this, key))
+	PT(("Volatile", "%O: %s is locked. scheduling get_lock.\n", this, key))
 	locks[key] += ({ ({ GET|LOCK, key, cb, args }) });	
 	return;
     }
@@ -182,6 +183,7 @@ void _unlock(string key) {
 
     if (!has_index(locks, key)) {
 	P0(("Volatile", "%O: Trying to unlock %s even though it is _not_ locked!\n", this, key))
+	PT(("Volatile", "backtrace: %O\n", describe_backtrace(backtrace())))
 	return;
     }
 
@@ -190,17 +192,26 @@ void _unlock(string key) {
     foreach (locks[key];int i;array a) {
 	int type = a[0];
 
-	if (type&GET) {
+	switch(type) {
+	case GET|LOCK:
+	    _lock(a[1]);
+	case GET:
 	    call_out(a[2], 0, OK, a[1], _get(a[1]), @(a[3]));
-	} else if (type&SET) {
+	    break;
+	case LOCK:
+	    _lock(a[1]);
+	    call_out(a[2], 0, OK, a[1], @(a[3]));
+	    break;
+	case SET|LOCK:
+	    _lock(a[1]);
+	case SET:
 	    _set(a[1], a[2]);
 	    call_out(a[3], 0, OK, a[1], @(a[4]));
-	} else if (type&LOCK) {
-	    call_out(a[2], 0, OK, a[1], @(a[3]));
-	} else {
+	    break;
+	default:
 	    P0(("Volatile", "%O: Unknown type (%O) in unroll.\n", this, type))
 	}
-
+	
 	if (type&LOCK) {
 	    if (i == num - 1) { // all done
 		m_delete(locks, key);
