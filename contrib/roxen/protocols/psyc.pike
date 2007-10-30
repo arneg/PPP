@@ -80,9 +80,9 @@ void create(object f, object c, object cc) {
     catch(remoteaddr=((my_fd->query_address()||"")/" ")[0]);
 
     localhost = gethostname();
-    if (localhost) 
+    if (localhost && arrayp(tmp = gethostbyname(localhost)))
     {
-	localaddr = gethostbyname(localhost)[1][0];
+	localaddr = tmp[1][0];
     }
     else 
     {
@@ -111,7 +111,6 @@ void create(object f, object c, object cc) {
 string text_db_path = "../psyced/world/default/";
 // string text_db_path = "../default/";
 string data_path = "/usr/local/roxen/local/psyc_data/";
-string hostname;
 string bind;
 
 
@@ -121,17 +120,24 @@ void create_server()
   if (!port_obj->servers[conf])
   {
     
+    // this makes no sense
+    /*
     if (!hostname)
       hostname = gethostname()||localhost||"localhost";
     if (!localhost)
       localhost = gethostbyname(hostname)[1][0];
+  */
 
     function textdb = PSYC.Text.FileTextDBFactoryFactory(text_db_path);
 
     PSYC.Storage.Factory storage = PSYC.Storage.FileFactory(data_path); 
     object debug = MMP.Utils.DebugManager();
-    debug->set_default_backtrace(0);
-    debug->set_default_debug(2);
+    debug->set_default_backtrace(-1); // throws only.
+    debug->set_default_debug(1);
+    debug->set_debug("Handler.History", 10);
+    debug->set_debug("packet_flow", 1);
+    debug->set_debug("Email", 5);
+    debug->set_debug("channel_membership", 5);
 
     mapping config = ([
              "debug" : debug,
@@ -141,20 +147,20 @@ void create_server()
      "offer_modules" : ({ "_compress" }),
     "deliver_remote" : deliver_remote,
     "module_factory" : create_module,
- "default_localhost" : hostname,
+ "default_localhost" : localhost,
             "textdb" : textdb,
     "stille_duldung" : 1,
          "love_json" : 1,
   "primitive_client" : 1,
                      ]);
 
-    if (localaddr && localaddr != hostname)
+    if (localaddr && localaddr != localhost)
         config->localhosts = ({ localaddr });
 
     PSYC.Server root = PSYC.Server(config);
     port_obj->servers[conf] = root;
 
-    werror("Psychaven %s ready: %s\n", hostname, Calendar.ISO.now()->format_smtp());
+    werror("Psychaven %s ready: %s\n", localhost, Calendar.ISO.now()->format_smtp());
     return;
   }
 }
