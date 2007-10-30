@@ -30,13 +30,13 @@ object sql;
 
 int prefilter_request_execute(MMP.Packet p, mapping _v, mapping _m)
 {
-  P0(("Person", sprintf("[%s]PERSON: _request_execute\n", Calendar.now()->format_time_xshort())));
+  debug("Person", 0, sprintf("[%s]PERSON: _request_execute\n", Calendar.now()->format_time_xshort()));
   return PSYC.Handler.GOON;
 }
 
 int display_notice_context_leave(MMP.Packet p, mapping _v, mapping _m)
 {
-    P0(("Person", sprintf("[%s]PERSON: _notice_context_leave\n", Calendar.now()->format_time_xshort())));
+    debug("Person", 0, sprintf("[%s]PERSON: _notice_context_leave\n", Calendar.now()->format_time_xshort()));
     return PSYC.Handler.GOON;
 }
 
@@ -56,22 +56,22 @@ int display_notice_context_enter(MMP.Packet p, mapping _v, mapping _m)
 
 int prefilter_request_do_exit(MMP.Packet p, mapping _v, mapping _m)
 {
-  P0(("Person", sprintf("[%s]PERSON: _request_do_exit: %O:%O\n", Calendar.now()->format_time_xshort(), p->data, parent->clients)));
+  debug("Person", 0, sprintf("[%s]PERSON: _request_do_exit: %O:%O\n", Calendar.now()->format_time_xshort(), p->data, parent->clients));
   return PSYC.Handler.GOON;
 }
 
 int prefilter_request_do_enter(MMP.Packet p, mapping _v, mapping _m)
 {
-  P0(("Person", sprintf("[%s]PERSON: _request_do_enter: %O\n", Calendar.now()->format_time_xshort(), p->data)));
+  debug("Person", 0, sprintf("[%s]PERSON: _request_do_enter: %O\n", Calendar.now()->format_time_xshort(), p->data));
   return PSYC.Handler.GOON;
 }
 
 int filter_request_link(MMP.Packet p, mapping _v, mapping _m)
 {
-  P0(("Person", sprintf("_request_link: %O\n", parent->clients)));
+  debug("Person", 0, sprintf("_request_link: %O\n", parent->clients));
   if (sizeof(parent->clients) && !stringp(_v["password"]))
   {
-    P0(("Person", "_error_nickname_used\n"));
+    debug("Person", 0, "_error_nickname_used\n");
     sendmsg(p["_source"], p->data->reply("_error_nickname_inuse"));
     return PSYC.Handler.STOP;
   }
@@ -81,7 +81,7 @@ int filter_request_link(MMP.Packet p, mapping _v, mapping _m)
 
 int filter_echo_ping(MMP.Packet p, mapping _v, mapping _m)
 {
-  P0(("Person", sprintf("_request_link: %O\n", parent->clients)));
+  debug("Person", 0, sprintf("_request_link: %O\n", parent->clients));
   call_out(lambda(){ sendmsg(p["_source"], p->data->reply("_notice_ping")); }, 60);
   return PSYC.Handler.STOP;
 }
@@ -89,21 +89,21 @@ int filter_echo_ping(MMP.Packet p, mapping _v, mapping _m)
 
 int postfilter_request_do_history(MMP.Packet p, mapping _v, mapping _m)
 {
-  P0(("Person", sprintf("[%s]PERSON: _request_do_history: %O\n", Calendar.now()->format_time_xshort(), p->data)));
+  debug("Person", 0, sprintf("[%s]PERSON: _request_do_history: %O\n", Calendar.now()->format_time_xshort(), p->data));
   sendmsg(p->data["_group"], PSYC.Packet("_request_history"));
   return PSYC.Handler.STOP;
 }
 
 int postfilter_request_do_invite(MMP.Packet p, mapping _v, mapping _m)
 {
-  P0(("Person", sprintf("[%s]PERSON: _request_do_invite: %O\n", Calendar.now()->format_time_xshort(), p->data)));
+  debug("Person", 0, sprintf("[%s]PERSON: _request_do_invite: %O\n", Calendar.now()->format_time_xshort(), p->data));
   sendmsg(p->data["_person"], PSYC.Packet("_notice_invitation", (["_place":p->data["_focus"] ]), p->data->data));
   return PSYC.Handler.STOP;
 }
 
 int postfilter_request_do_log_email(MMP.Packet p, mapping _v, mapping _m)
 {
-  P0(("Person", sprintf("[%s]PERSON: _request_do_log_email: %O\n", Calendar.now()->format_time_xshort(), p->data)));
+  debug("Person", 0, sprintf("[%s]PERSON: _request_do_log_email: %O\n", Calendar.now()->format_time_xshort(), p->data));
 
   if(MMP.is_place(p->data["_group"]))
   {
@@ -112,7 +112,7 @@ int postfilter_request_do_log_email(MMP.Packet p, mapping _v, mapping _m)
                 lambda(MMP.Packet r, mixed ... args)
                 {
                   debug("Email", 3, sprintf("%O\n", (string)r->data));
-                  send_tagged_v(p->data["_group"],PSYC.Packet("_request_history_log"), ([]),
+                  send_tagged(p->data["_group"],PSYC.Packet("_request_history_log"),
                                 lambda(MMP.Packet r, mixed ... args)
                                 {
                                   debug("Email", 3, sprintf("%O:%O\n", (string)r->data, args));
@@ -124,6 +124,8 @@ int postfilter_request_do_log_email(MMP.Packet p, mapping _v, mapping _m)
 
 //                  Thread.Thread(lambda(){ Protocols.SMTP.Client(mailserver)->simple_mail(p->data["_email_address"], "Your Hyundai chatlog", "customerservice@hyundai.co.nz", logtext); });
 //    sendmsg(p->data["_group"], PSYC.Packet("_request_log_email", (["_email_address":p->data["_email_address"]])));
+  } else {
+    debug("Person", 0, "%O is not a place. stopping.\n", p->data["_group"]);
   }
   return PSYC.Handler.STOP;
 }
