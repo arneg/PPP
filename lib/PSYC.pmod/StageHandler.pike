@@ -28,7 +28,7 @@ void create(mapping params) {
 #ifdef DEBUG
 string _sprintf(int type) {
     if (type == 'O') {
-	return sprintf("StageHandler(%O)", function_object(error));
+	return sprintf("StageHandler(%O)", function_object(stop));
     }
 }
 #endif
@@ -122,34 +122,6 @@ void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 
 }
 
-#if 0
-    array wvars = o->wvars;
-    array lvars = o->lvars;
-
-    if (wvars || lvars) {
-	multiset rvars;
-	if (wvars && lvars) {
-	    rvars = (multiset)wvars;
-	    rvars += (multiset)lvars;
-	} else {
-	    rvars = (multiset)(wvars || lvars);
-	}
-
-	requested[p] = ([ ]);
-
-	if (wvars) foreach(wvars;; string key) {
-	    storage->get(key, fetched, stack, p, _m, rvars);
-	}
-
-	if (lvars) foreach(lvars;; string key) {
-	    storage->get_lock(key, fetched, stack, p, _m, rvars);
-	}
-
-    } else {
-	call_out(call_handler, 0, stack, p, ([]), _m);	
-    }
-#endif
-
 void call_handler(mapping _v, MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
     PSYC.AR o = stack->shift();
     debug("packet_flow", 3, "Calling %O for %O with misc: %O.\n", o->handler, p, _m);
@@ -192,6 +164,7 @@ void call_handler(mapping _v, MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
 	    progress(stack, p, _m);
 	    break;
 	case PSYC.Handler.STOP:
+	    debug("packet_flow", 1, "%O stopped in %O\n", p, o->handler);
 	    stop(p, _m);
 	    break;
 	case PSYC.Handler.DISPLAY:
