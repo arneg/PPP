@@ -103,7 +103,7 @@ int filter(MMP.Packet p, mapping _v, mapping _m, function cb) {
 	    return PSYC.Handler.STOP;
 	} else {
 	    debug("reply", 1, "packet %O (%O) is tagged with an unknown tag.\n", p, m);
-	    // Not to bad. the packet may goon
+	    // Not to bad. the packet may go on
 	}
     }
 
