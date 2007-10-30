@@ -58,11 +58,10 @@ class Signaling {
 	    // all messages on that context from us. this would
 	    // in many cases be a local user, doesnt matter though
 	    "_request_context_enter" : 0, 
-	    //"_request_context_leave" : 0, 
 	    "_status_context_empty" : 0, 
-	    "_notice_context_leave" : ([ "lock" : ({ "groups" }) ]), 
-	    "_request_context_leave" : ([ "lock" : ({ "groups" }) ]), 
-	    "_notice_context_enter_channel" : ([ "lock" : ({ "groups" }) ]), 
+	    "_notice_context_leave" : ([ "lock" : ({ "groups" }), "check" : "no_context" ]), 
+	    "_request_context_leave" : ([ "lock" : ({ "groups" }), "check" : "no_context" ]), 
+	    "_notice_context_enter_channel" : ([ "lock" : ({ "groups" }), "check" : "no_context" ]), 
 	]),
     ]);
 
@@ -70,6 +69,16 @@ class Signaling {
 	if (0 == zero) return !zero_type(zero);
 	return 0;
     };
+
+    int no_context(MMP.Packet p) {
+	if (has_index(p->vars, "_context")) {
+	    debug("dns", 0, "The Root object got a %s in multicast context %O. There seems to be some problem in name resolution.\n",
+		  p->data->mc, p["_context"]);
+	    return 0;
+	}
+
+	return 1;
+    }
 
 
     int init(mapping _v) {
@@ -232,7 +241,7 @@ class Signaling {
 	debug("multicast_routing", 4, "_request_context_leave of %O in channel %O.\n", member, channel);
 
 	if (!objectp(member) || !objectp(channel)) {
-	    sendmsg(p->source(), m->reply("_error_context_enter_channel"));
+	    sendmsg(p->source(), m->reply("_error_context_leave"));
 	    parent->storage->unlock("groups");
 	    return PSYC.Handler.STOP;
 	}
