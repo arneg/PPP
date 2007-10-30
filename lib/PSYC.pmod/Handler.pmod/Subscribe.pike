@@ -134,6 +134,7 @@ void postfilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m, funct
 	parent->storage->set_unlock("places", sub, callback);
     } else {
 	parent->storage->unlock("places");
+	call_out(cb, 0, PSYC.Handler.DISPLAY);
     }
 }
 
@@ -161,7 +162,7 @@ int filter(MMP.Packet p, mapping _v, mapping _m) {
 
 	    // TODO: dont use leave() since we dont need to remove channel from
 	    // places mapping
-	    sendmsg(channel, PSYC.Packet("_request_context_leave_channel"));
+	    sendmsg(channel, PSYC.Packet("_request_context_leave_channel", ([ "_supplicant" : uni, "_group" : channel ])));
 
 	    return PSYC.Handler.STOP;
 	}
