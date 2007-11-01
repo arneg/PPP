@@ -45,6 +45,11 @@ void create(mapping params) {
 		       );
     this->add_channel(uni, chan);
 
+    // this seems to be rather pointless.. but it will repair some
+    // desync, etc..
+    chan->castmsg(PSYC.Packet("_notice_context_available"));
+#if 0
+
     MMP.Uniform test_chan_uni = server->get_uniform((string)uni+"#test");
 
     mapping test_chan_params = handler_params + ([
@@ -65,6 +70,7 @@ void create(mapping params) {
 			   PSYC.Handler.Members(test_chan_params),
 			   );
     this->add_channel(test_chan_uni, test_chan);
+#endif
 }
 
 
