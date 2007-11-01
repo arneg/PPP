@@ -14,8 +14,16 @@ constant _ = ([
 mapping(MMP.Uniform:object) channels = ([]);
 
 constant export = ({
-    "add_channel"
+    "add_channel", "get_channel"
 });
+
+object get_channel(MMP.Uniform|string chan) {
+    if (stringp(chan)) {
+	chan = server->get_uniform(uni+"#"+chan);
+    }
+
+    return channels[chan];
+}
 
 int has_target(MMP.Packet p) {
     return has_index(p->vars, "_target");
