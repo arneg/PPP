@@ -19,7 +19,7 @@ constant export = ({
 
 object get_channel(MMP.Uniform|string chan) {
     if (stringp(chan)) {
-	chan = server->get_uniform(uni+"#"+chan);
+	chan = parent->get_uniform(uni+"#"+chan);
     }
 
     return channels[chan];
