@@ -41,7 +41,7 @@ int postfilter_request_history(MMP.Packet p, mapping _v, mapping _m) {
 	MMP.Packet nm = m->clone();
 	nm->vars->_target = p->lsource();
 	nm->vars->_source_relay = m["_source"]||m["_source_relay"];
-	MMP.invoke_later(sendmmp, p->lsource(), nm);
+	MMP.Utils.invoke_later(sendmmp, p->lsource(), nm);
 	list[i++] = p["_counter"];
     }
 
