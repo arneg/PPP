@@ -194,9 +194,11 @@ object create_local(mapping params)
           mapping handler_params = params + ([ "parent" : o,
 		                               "sendmmp" : o->sendmmp,
                                              ]);
+          array handlers = conf->call_provider("psyc", "get_handler", "~", handler_params);
 	  o->add_handlers(
 	        PSYC.Handler.Do(handler_params),
 	        PSYCLocal.Person(handler_params),
+                @handlers,
 	                 );
 	}
         break;
