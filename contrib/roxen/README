@@ -1,10 +1,11 @@
 integrate psyc into roxen
     
     to use psyc with roxen,
-    the protocols directory needs to be placed in roxen/local/protocols/
-    pmods need to be linked (or copied from lib to roxen/local/pike_modules/
-    include files need to go into roxen/local/include/
-    handlers from contrib go into roxen/local/pike_modules/PSYCLocal.pmod
+    * protocols directory needs to be placed in roxen/local/protocols/
+    * pmods need to be linked (or copied from lib to roxen/local/pike_modules/)
+    * include files need to go into roxen/local/include/
+    * handlers from contrib go into roxen/local/pike_modules/PSYCLocal.pmod/
+    * modules directory needs to be linked to roxen/local/modules/psyc/
     
     roxen needs to be restarted on the command line if one of the directories in
     roxen/local did not exist previously. (restarting in the webinterface is not

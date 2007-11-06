@@ -191,27 +191,21 @@ object create_local(mapping params)
 	{
           // TODO check for the path...
           o = PSYC.Person(params);
-          mapping handler_params = params + ([ "parent" : o,
-		                               "sendmmp" : o->sendmmp,
-                                             ]);
-          array handlers = conf->call_provider("psyc", "get_handler", "~", handler_params);
-	  o->add_handlers(
-	        PSYC.Handler.Do(handler_params),
-	        PSYCLocal.Person(handler_params),
-                @handlers,
-	                 );
 	}
         break;
         case '@':
 	{
           o = PSYC.Place(params);
-          mapping handler_params = params + ([ "parent" : o,
-		                               "sendmmp" : o->sendmmp,
-                                             ]);
-	  o->add_handlers(PSYCLocal.Place(handler_params));
 	}
         break;
       } 
+      mapping handler_params = params + ([ "parent" : o,
+		                               "sendmmp" : o->sendmmp,
+                                        ]);
+      array handlers = conf->call_provider("psyc", "get_handlers", uni->resource[0], handler_params);
+      werror("create_local() - handlers:%O\n", handlers);
+      if(handlers)
+        o->add_handlers(@handlers);
     }
     else 
       o = PSYC.Root(params);
