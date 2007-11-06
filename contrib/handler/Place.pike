@@ -13,7 +13,8 @@ void create(mapping params)
 {
   sqlserver = params->sqlserver;
   mailserver = params->mailserver;
-  ::create(params - ([ "sqlserver":0, "mailserver":0 ]));
+  sql = params->sql;
+  ::create(params - ([ "sql":0, "sqlserver":0, "mailserver":0 ]));
 }
 
 constant _ = ([
@@ -28,7 +29,7 @@ constant _ = ([
     "prefilter" : ([
 	"_request_context_enter" : 0,
 	"_notice_context_leave" : 0,
-//	"_message_public" : 0,
+	"_message_public" : 0,
     ]),
     "display" : ([
 	"_message" : 0,
@@ -113,10 +114,13 @@ int prefilter_message_public(MMP.Packet p, mapping _v, mapping _m)
 
 int display_message(MMP.Packet p, mapping _v, mapping _m) 
 {
-  if(!sql)
+  debug("Place", 2, sprintf("[%s]sql_log: %O\n", Calendar.now()->format_time_xshort(), p));
+  if (!sql && sqlserver)
       sql = Sql.Sql(sqlserver);
 
-  sql->query("INSERT INTO chat_log (session_id, sender, recipient, message) VALUES(:session_id, :sender, :recipient, :message)",
+  if (sql)
+  {
+    sql->query("INSERT INTO chat_log (session_id, sender, recipient, message) VALUES(:session_id, :sender, :recipient, :message)",
              ([
                 "session_id":(sessions[parent->qName()->resource]?sessions[parent->qName()->resource]->id:0),
                 ":sender"   :(p->lsource()?p->lsource()->resource:0),
@@ -124,15 +128,14 @@ int display_message(MMP.Packet p, mapping _v, mapping _m)
                 ":message"  :p->data->data,
              ])
             );
+  }
   return PSYC.Handler.GOON;
 }
 
 int prefilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m) 
 {
-#if 0
-  if(!sql)
+  if (!sql && sqlserver)
       sql = Sql.Sql(sqlserver);
-#endif
 
   if (parent->qName() && p->data["_supplicant"])
   {
@@ -140,28 +143,29 @@ int prefilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m)
     if (!sessions[parent->qName()->resource])
       sessions[parent->qName()->resource] = ([]);
 
-#if 0
-    sql->query("INSERT INTO chat_sessions (session_id, name, room, begin) VALUES(:session_id, :name, :room, NOW())",
+    if (sql)
+    {
+      sql->query("INSERT INTO chat_sessions (session_id, name, room, begin) VALUES(:session_id, :name, :room, NOW())",
 	       ([
 		   ":session_id" : sessions[parent->qName()->resource]->id,
 		   ":name"       : p->data["_supplicant"]->resource,
 		   ":room"       : parent->qName()->resource,
 	       ])
 	      );
-    if (!sessions[parent->qName()->resource]->id)
-    {
-      sessions[parent->qName()->resource]->id=sql->master_sql->insert_id();
-      sql->query("UPDATE chat_sessions SET session_id=:session_id WHERE id=:session_id AND name=:name AND room=:room",
+      if (!sessions[parent->qName()->resource]->id)
+      {
+        sessions[parent->qName()->resource]->id=sql->master_sql->insert_id();
+        sql->query("UPDATE chat_sessions SET session_id=:session_id WHERE id=:session_id AND name=:name AND room=:room",
 	         ([
 		     ":session_id" : sessions[parent->qName()->resource]->id,
 		     ":name"       : p->data["_supplicant"]->resource,
 		     ":room"       : parent->qName()->resource,
 	         ]),
 		);
+      }
     }
 
     sessions[parent->qName()->resource][p->data["_supplicant"]->resource]++;
-#endif
   }
   return PSYC.Handler.GOON;
 }
@@ -180,17 +184,19 @@ int filter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m)
 int prefilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m) 
 {
   debug("Place", 2, sprintf("LEAVE: %O(%O): %O(%O) =>\n", p->data["_supplicant"]->resource, p->data["_supplicant"], parent->qName()->resource, parent->qName()));
-/*
-  if(!sql)
+  if (!sql && sqlserver)
       sql = Sql.Sql(sqlserver);
 
-  sql->query("UPDATE chat_sessions SET end=NOW() WHERE session_id=:session_id AND name=:name AND room=:room",
+  if (sql)
+  {
+    sql->query("UPDATE chat_sessions SET end=NOW() WHERE session_id=:session_id AND name=:name AND room=:room",
                ([
                   ":session_id" : (sessions[parent->qName()->resource]?sessions[parent->qName()->resource]->id:0),
                   ":name"       : p->data["_supplicant"]->resource,
                   ":room"       : parent->qName()->resource,
                ])
               );
+  }
 
   if (sessions[parent->qName()->resource])
   {
@@ -200,7 +206,6 @@ int prefilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m)
       && sessions[parent->qName()->resource]->id)
     m_delete(sessions, parent->qName()->resource);
   }
-*/
     
   return PSYC.Handler.GOON;
 }
