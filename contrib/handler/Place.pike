@@ -183,7 +183,7 @@ int filter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m)
 
 int prefilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m) 
 {
-  debug("Place", 2, sprintf("LEAVE: %O(%O): %O(%O) =>\n", p->data["_supplicant"]->resource, p->data["_supplicant"], parent->qName()->resource, parent->qName()));
+  debug("Place", 0, sprintf("LEAVE: %O(%O): %O(%O) =>\n", p->data["_supplicant"]->resource, p->data["_supplicant"], parent->qName()->resource, parent->qName()));
   if (!sql && sqlserver)
       sql = Sql.Sql(sqlserver);
 
