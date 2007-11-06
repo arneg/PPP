@@ -27,50 +27,10 @@ string remoteaddr; // Remote IP address.
 string remotehost; // Remote host name.
 string ident;
 
-void disconnect() {
-  my_fd = 0;
-  destruct();
-}
-
-void send(string what, array(int)|int|void code, int|void host);
-
-void end(string|void s, array(int)|int|void code) {
-  if(objectp(my_fd)) {
-    catch {
-      my_fd->set_close_callback(0);
-      my_fd->set_read_callback(0);
-      my_fd->set_blocking();
-      send(s, code);
-      my_fd->close();
-      destruct(my_fd);
-    };
-    my_fd = 0;
-  }
-  disconnect();  
-}
-
-
-mixed handle_psyc(mixed cmd, mixed args) 
+void create(object f, object c, object cc) 
 {
-  mixed out;
-  out = this_object()->conf->call_provider("psyc","handle_psyc",this_object(),cmd,args);
-  //werror("PSYC: %O, %O, %O, %O\n", cmd, args, out, this_object()->conf->get_providers("psyc"));
-  return out;
-}
-
-mixed log_psyc(mixed cmd, mixed args, mixed out, array(int)|int|void error, int|void size) 
-{
-  //werror("PSYC: %O, %O, %O, %O, %O, %O\n", cmd, args, out, error, size, this_object()->conf->get_providers("psyc_logger"));
-  return this_object()->conf->call_provider("psyc_logger","log_psyc",this_object(),cmd, args, out, error, size||0);
-}
-
-
-// Some data arrived on the socket...
-void got_data(mixed _id, string data);
-
-void create(object f, object c, object cc) {
-
-  if(f) {
+  if(f) 
+  {
     my_fd=f;
     if( c ) port_obj = c;
     if( cc ) conf = cc;
@@ -120,14 +80,6 @@ void create_server()
   if (!port_obj->servers[conf])
   {
     
-    // this makes no sense
-    /*
-    if (!hostname)
-      hostname = gethostname()||localhost||"localhost";
-    if (!localhost)
-      localhost = gethostbyname(hostname)[1][0];
-  */
-
     function textdb = PSYC.Text.FileTextDBFactoryFactory(text_db_path);
 
     PSYC.Storage.Factory storage = PSYC.Storage.FileFactory(data_path); 
