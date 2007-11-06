@@ -24,11 +24,16 @@ array|string query_provides()
 
 Sql.Sql sql;
 string mailserver;
+string sqlserver;
 
 void create()
 {
-  set_my_db(my_configuration()->call_provider("webhaven", "query", "thedatabase"));
-  sql = get_my_sql();
+  sqlserver = my_configuration()->call_provider("webhaven", "query", "thedatabase");
+  if (sqlserver)
+  {
+    set_my_db(sqlserver);
+    sql = get_my_sql();
+  }
 
   mailserver = my_configuration()->call_provider("webhaven", "query", "global_mailserver");
 }
@@ -45,7 +50,9 @@ array get_handlers(int type, mapping params)
       handlers += ({ PSYC.Handler.Do(params), PSYCLocal.Person(params) });
       break;
     case '@':
-      handlers += ({ PSYCLocal.Place(params + ([ "sql":sql, "mailserver":mailserver ])) });
+      handlers += ({ PSYCLocal.Place(params + ([ "sql":sql, 
+                                                 "sqlserver":sqlserver, 
+                                                 "mailserver":mailserver ])) });
       break;
   }
   //handlers += ({ PSYCLocal.Logger(params) });
