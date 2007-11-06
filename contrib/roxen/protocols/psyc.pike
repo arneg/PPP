@@ -154,10 +154,10 @@ object create_local(mapping params)
       mapping handler_params = params + ([ "parent" : o,
 		                               "sendmmp" : o->sendmmp,
                                         ]);
-      array handlers = conf->call_provider("psyc", "get_handlers", uni->resource[0], handler_params);
+      array handlers = conf->map_providers("psyc", "get_handlers", uni->resource[0], handler_params);
       werror("create_local() - handlers:%O\n", handlers);
-      if(handlers)
-        o->add_handlers(@handlers);
+      if(handlers && sizeof(handlers))
+        o->add_handlers(@Array.flatten(handlers));
     }
     else 
       o = PSYC.Root(params);
