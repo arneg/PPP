@@ -8,6 +8,7 @@ string sqlserver;
 string mailserver;
 object sql;
 mapping sessions = ([]);
+array history = ({});
 
 void create(mapping params)
 {
@@ -23,19 +24,18 @@ constant _ = ([
 //	"_request_history" : 0,
 	"_request_log_email" : 0,
     ]),
-    "filter" : ([
-        "_notice_context_leave" : 0,
-    ]),
-    "prefilter" : ([
-	"_request_context_enter" : 0,
-	"_notice_context_leave" : 0,
-	"_message_public" : 0,
-    ]),
-    "display" : ([
+//    "filter" : ([
+//	"_notice_context_leave" : 0,
+//    ]),
+    "casted" : ([
 	"_message" : 0,
     ]),
+    "notify" : ([
+	"member_left" : 0,
+	"member_entered" : 0,
+    ]),
 ]);
-
+/*
 int postfilter_request_history(MMP.Packet p, mapping _v, mapping _m)
 {
   PSYC.Packet m = p->data;
@@ -58,6 +58,7 @@ int postfilter_request_history(MMP.Packet p, mapping _v, mapping _m)
   }
   return PSYC.Handler.STOP;
 }
+*/
 
 int postfilter_request_log_email(MMP.Packet p, mapping _v, mapping _m)
 {
@@ -67,7 +68,7 @@ int postfilter_request_log_email(MMP.Packet p, mapping _v, mapping _m)
   {
     array log = ({});
 
-    foreach(reverse(parent->history);; MMP.Packet m)
+    foreach(reverse(history);; MMP.Packet m)
     {
       if (has_prefix(m->data->mc,"_notice_context_enter") && m->lsource() == p->lsource() )
         break;
@@ -89,6 +90,7 @@ int postfilter_request_log_email(MMP.Packet p, mapping _v, mapping _m)
   return PSYC.Handler.STOP;
 }
 
+/*
 int postfilter_request_members(MMP.Packet p, mapping _v, mapping _m)
 {
   PSYC.Packet m = p->data;
@@ -98,23 +100,24 @@ int postfilter_request_members(MMP.Packet p, mapping _v, mapping _m)
   if(MMP.is_uniform(p->lsource()))
   {
     sendmsg(p->lsource(), m->reply("_notice_context_members", 
-                                   (["_group":parent->qName()->resource,
+                                   (["_group":uni->resource,
 				     "_list_members":(array)(parent->context->members||(<>)),
                                    ])));
     return PSYC.Handler.STOP;
   }
   return PSYC.Handler.GOON;
 }
+*/
 
 int prefilter_message_public(MMP.Packet p, mapping _v, mapping _m) 
 {
-  P0(("Place", sprintf("[%s]HISTORY: %O\n", Calendar.now()->format_time_xshort(), p)));
+  P0(("Place", "[%s]HISTORY: %O\n", Calendar.now()->format_time_xshort(), p));
   return PSYC.Handler.GOON;
 }
 
-int display_message(MMP.Packet p, mapping _v, mapping _m) 
+int casted_message(MMP.Packet p, mapping _v) 
 {
-  debug("Place", 2, sprintf("[%s]sql_log: %O\n", Calendar.now()->format_time_xshort(), p));
+  debug("Place", 2, "[%s]sql_log: %O\n", Calendar.now()->format_time_xshort(), p);
   if (!sql && sqlserver)
       sql = Sql.Sql(sqlserver);
 
@@ -122,57 +125,56 @@ int display_message(MMP.Packet p, mapping _v, mapping _m)
   {
     sql->query("INSERT INTO chat_log (session_id, sender, recipient, message) VALUES(:session_id, :sender, :recipient, :message)",
              ([
-                "session_id":(sessions[parent->qName()->resource]?sessions[parent->qName()->resource]->id:0),
+                "session_id":(sessions[uni->resource]?sessions[uni->resource]->id:0),
                 ":sender"   :(p->lsource()?p->lsource()->resource:0),
-                ":recipient":parent->qName()->resource,
+                ":recipient":uni->resource,
                 ":message"  :p->data->data,
              ])
             );
   }
+
+  history += ({ p });
   return PSYC.Handler.GOON;
 }
 
-int prefilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m) 
+void notify_member_entered(MMP.Uniform guy) 
 {
+  debug("Place", 0, "ENTER: %O(%O) => %O(%O)\n", guy->resource, guy, uni->resource, uni);
   if (!sql && sqlserver)
       sql = Sql.Sql(sqlserver);
 
-  if (parent->qName() && p->data["_supplicant"])
-  {
-    P0(("Place", sprintf("ENTER: %O(%O) => %O(%O)\n", p->data["_supplicant"]->resource, p->data["_supplicant"], parent->qName()->resource, parent->qName())));
-    if (!sessions[parent->qName()->resource])
-      sessions[parent->qName()->resource] = ([]);
+    if (!sessions[uni->resource])
+      sessions[uni->resource] = ([]);
 
     if (sql)
     {
       sql->query("INSERT INTO chat_sessions (session_id, name, room, begin) VALUES(:session_id, :name, :room, NOW())",
 	       ([
-		   ":session_id" : sessions[parent->qName()->resource]->id,
-		   ":name"       : p->data["_supplicant"]->resource,
-		   ":room"       : parent->qName()->resource,
+		   ":session_id" : sessions[uni->resource]->id,
+		   ":name"       : guy->resource,
+		   ":room"       : uni->resource,
 	       ])
 	      );
-      if (!sessions[parent->qName()->resource]->id)
+      if (!sessions[uni->resource]->id)
       {
-        sessions[parent->qName()->resource]->id=sql->master_sql->insert_id();
-        sql->query("UPDATE chat_sessions SET session_id=:session_id WHERE id=:session_id AND name=:name AND room=:room",
-	         ([
-		     ":session_id" : sessions[parent->qName()->resource]->id,
-		     ":name"       : p->data["_supplicant"]->resource,
-		     ":room"       : parent->qName()->resource,
-	         ]),
+	sessions[uni->resource]->id=sql->master_sql->insert_id();
+	sql->query("UPDATE chat_sessions SET session_id=:session_id WHERE id=:session_id AND name=:name AND room=:room",
+		 ([
+		     ":session_id" : sessions[uni->resource]->id,
+		     ":name"       : guy->resource,
+		     ":room"       : uni->resource,
+		 ]),
 		);
       }
     }
 
-    sessions[parent->qName()->resource][p->data["_supplicant"]->resource]++;
-  }
-  return PSYC.Handler.GOON;
+    sessions[uni->resource][guy->resource]++;
 }
 
+/*
 int filter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m) 
 {
-  P0(("Place", sprintf("postLEAVE: %O(%O): %O(%O) => %O\n", p->data["_supplicant"]->resource, p->data["_supplicant"], parent->qName()->resource, parent->qName(), indices(parent) ))); //->context->members)));
+  P0(("Place", sprintf("postLEAVE: %O(%O): %O(%O) => %O\n", p->data["_supplicant"]->resource, p->data["_supplicant"], uni->resource, uni, indices(parent) ))); //->context->members)));
 #if 0
   // FIXME: this is a risky hack
   if (parent->context->members[p->data["_supplicant"]])
@@ -180,10 +182,12 @@ int filter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m)
 #endif
   return PSYC.Handler.GOON;
 }
+*/
 
-int prefilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m) 
+
+void notify_member_left(MMP.Uniform guy) 
 {
-  debug("Place", 0, sprintf("LEAVE: %O(%O): %O(%O) =>\n", p->data["_supplicant"]->resource, p->data["_supplicant"], parent->qName()->resource, parent->qName()));
+  debug("Place", 0, "LEAVE: %O(%O): %O(%O) =>\n", guy->resource, guy, uni->resource, uni);
   if (!sql && sqlserver)
       sql = Sql.Sql(sqlserver);
 
@@ -191,21 +195,18 @@ int prefilter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m)
   {
     sql->query("UPDATE chat_sessions SET end=NOW() WHERE session_id=:session_id AND name=:name AND room=:room",
                ([
-                  ":session_id" : (sessions[parent->qName()->resource]?sessions[parent->qName()->resource]->id:0),
-                  ":name"       : p->data["_supplicant"]->resource,
-                  ":room"       : parent->qName()->resource,
+                  ":session_id" : (sessions[uni->resource]?sessions[uni->resource]->id:0),
+                  ":name"       : guy->resource,
+                  ":room"       : uni->resource,
                ])
               );
   }
 
-  if (sessions[parent->qName()->resource])
+  if (sessions[uni->resource])
   {
-    m_delete(sessions[parent->qName()->resource], p->data["_supplicant"]->resource);
+    m_delete(sessions[uni->resource], guy->resource);
 
-    if (sizeof(sessions[parent->qName()->resource]) == 1 
-      && sessions[parent->qName()->resource]->id)
-    m_delete(sessions, parent->qName()->resource);
+    if (sizeof(sessions[uni->resource]) == 1 && sessions[uni->resource]->id)
+	m_delete(sessions, uni->resource);
   }
-    
-  return PSYC.Handler.GOON;
 }
