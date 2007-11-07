@@ -220,8 +220,11 @@ void postfilter_notice_context_enter_channel(MMP.Packet p, mapping _v, mapping _
 //! @param channel
 //! 	Channel to cancel subscription of.
 void unsubscribe(MMP.Uniform channel) {
-    parent->unfriend(channel);
-    leave(channel);
+    if (!channel->channel) {
+	parent->unfriend_symmetric(channel);
+    } else {
+	parent->leave(channel);
+    }
 }
 
 //! Subscribe to a channel. This is a special term used for the request for 
