@@ -38,23 +38,34 @@ void create()
   mailserver = my_configuration()->call_provider("webhaven", "query", "global_mailserver");
 }
 
-array get_handlers(int type, mapping params)
+array get_handlers(MMP.Uniform uni, mapping params)
 {
 // TODO: query roxen database variable, and instantiate Logger handler,
 // return instantiated handler with params and database variable
 
   array handlers = ({});
-  switch(type)
-  {
-    case '~':
+  if (MMP.is_person(uni)) {
       handlers += ({ PSYC.Handler.Do(params), PSYCLocal.Person(params) });
-      break;
-    case '@':
+  }
+
+  //handlers += ({ PSYCLocal.Logger(params) });
+
+  return handlers;
+}
+
+array get_channel_handlers(MMP.Uniform uni, mapping params)
+{
+// TODO: query roxen database variable, and instantiate Logger handler,
+    werror("get_channel_handler(%O)\n", uni);
+// return instantiated handler with params and database variable
+
+  array handlers = ({});
+  if (MMP.is_place(uni)) {
       handlers += ({ PSYCLocal.Place(params + ([ "sql":sql, 
                                                  "sqlserver":sqlserver, 
                                                  "mailserver":mailserver ])) });
-      break;
   }
+
   //handlers += ({ PSYCLocal.Logger(params) });
 
   return handlers;

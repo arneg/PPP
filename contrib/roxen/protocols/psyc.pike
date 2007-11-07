@@ -148,16 +148,40 @@ object create_local(mapping params)
         case '@':
 	{
           o = PSYC.Place(params);
+
+	  object channel = o->get_channel(uni);
+
+	  if (!channel) werror("%O does not seem to have a default chan!!\n", o);
+	  else {
+	      mapping channel_params = params + 
+		      ([
+		       "parent" : channel,
+		       "sendmmp": channel->sendmmp,
+		     ]);
+
+	      array handlers = conf->map_providers("psyc", "get_channel_handlers", uni, channel_params);
+	      
+	      if (arrayp(handlers))
+		  handlers = Array.flatten(handlers);
+
+	      werror("channel_handlers: %O\n", handlers);
+
+	      if (sizeof(handlers)) {
+		  channel->add_handlers(@handlers);
+	      }
+	  }
 	}
         break;
       } 
       mapping handler_params = params + ([ "parent" : o,
 		                               "sendmmp" : o->sendmmp,
                                         ]);
-      array handlers = conf->map_providers("psyc", "get_handlers", uni->resource[0], handler_params);
+      array handlers = conf->map_providers("psyc", "get_handlers", uni, handler_params);
+      if (arrayp(handlers))
+	  handlers = Array.flatten(handlers);
       werror("create_local() - handlers:%O\n", handlers);
-      if(handlers && sizeof(handlers))
-        o->add_handlers(@Array.flatten(handlers));
+      if(sizeof(handlers))
+        o->add_handlers(@handlers);
     }
     else 
       o = PSYC.Root(params);
