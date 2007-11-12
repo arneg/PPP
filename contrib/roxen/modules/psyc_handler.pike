@@ -40,24 +40,17 @@ void create()
 
 array get_handlers(MMP.Uniform uni, mapping params)
 {
-// TODO: query roxen database variable, and instantiate Logger handler,
-// return instantiated handler with params and database variable
-
   array handlers = ({});
   if (MMP.is_person(uni)) {
       handlers += ({ PSYC.Handler.Do(params), PSYCLocal.Person(params) });
   }
-
-  //handlers += ({ PSYCLocal.Logger(params) });
 
   return handlers;
 }
 
 array get_channel_handlers(MMP.Uniform uni, mapping params)
 {
-// TODO: query roxen database variable, and instantiate Logger handler,
-    werror("get_channel_handler(%O)\n", uni);
-// return instantiated handler with params and database variable
+  werror("get_channel_handlers(%O)\n", uni);
 
   array handlers = ({});
   if (MMP.is_place(uni)) {
@@ -65,8 +58,6 @@ array get_channel_handlers(MMP.Uniform uni, mapping params)
                                                  "sqlserver":sqlserver, 
                                                  "mailserver":mailserver ])) });
   }
-
-  //handlers += ({ PSYCLocal.Logger(params) });
 
   return handlers;
 }
