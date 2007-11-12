@@ -1,6 +1,15 @@
+This licence does apply for all files except those in 
+ contrib/ 
+
+Look for License information in that directory.
+
+--------------------------------------------------------------------------------
+
 Copyright (c) 2006-2007, Arne Gödeke
-Copyright (c) 2006-2007, Philipp Hancke
 Copyright (c) 2006-2007, Tobias Josefowitz
+
+all files in XMPP.pmod are 
+Copyright (c) 2006-2007, Philipp Hancke
 
 All rights reserved.
 
