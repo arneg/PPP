@@ -114,7 +114,7 @@ void debug(string|mapping(string:int) cats, mixed ... args) {
     foreach (cats; string c; int lvl) {
 	string tmp_fmt;
 	if ((has_index(cat, c) && cat[c] >= lvl) || default_lvl >= lvl) {
-	    if (dbt >= lvl && !has_index(bt, c) || bt[c] >= lvl) {
+	    if ((dbt >= lvl && !has_index(bt, c)) || (has_index(bt, c) && bt[c] >= lvl)) {
 		array backtrace = backtrace();
 	       
 		Pike.BacktraceFrame fun;
