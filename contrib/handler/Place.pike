@@ -20,8 +20,6 @@ void create(mapping params)
 
 constant _ = ([
     "postfilter" : ([
-//	"_request_members" : 0,
-//	"_request_history" : 0,
 	"_request_log_email" : 0,
     ]),
 //    "filter" : ([
@@ -35,30 +33,6 @@ constant _ = ([
 	"member_entered" : 0,
     ]),
 ]);
-/*
-int postfilter_request_history(MMP.Packet p, mapping _v, mapping _m)
-{
-  PSYC.Packet m = p->data;
-
-  if(MMP.is_uniform(p->lsource()))
-  {
-    //sendmsg(p->lsource(), PSYC.Packet("_message_public", ([]), sprintf("welcome to %O\n", parent)));
-    P0(("history", sprintf("%O\n", parent->history)));
-    foreach(parent->history;; MMP.Packet m)
-    {
-      if(has_prefix(m->data->mc,"_message"))
-      {
-        P1(("Place", sprintf("%O\n", m->data->data)));
-        MMP.Packet nm = m->clone();
-	nm->vars->_target = p->lsource();
-        nm->vars->_source_relay = m["_source"]||m["_source_relay"];
-        sendmmp(p->lsource(), nm);
-      }
-    }
-  }
-  return PSYC.Handler.STOP;
-}
-*/
 
 int postfilter_request_log_email(MMP.Packet p, mapping _v, mapping _m)
 {
@@ -89,25 +63,6 @@ int postfilter_request_log_email(MMP.Packet p, mapping _v, mapping _m)
   }
   return PSYC.Handler.STOP;
 }
-
-/*
-int postfilter_request_members(MMP.Packet p, mapping _v, mapping _m)
-{
-  PSYC.Packet m = p->data;
-  P0(("Place", sprintf("[%s]PLACE: _request_members\n", Calendar.now()->format_time_xshort())));
-
-
-  if(MMP.is_uniform(p->lsource()))
-  {
-    sendmsg(p->lsource(), m->reply("_notice_context_members", 
-                                   (["_group":uni->resource,
-				     "_list_members":(array)(parent->context->members||(<>)),
-                                   ])));
-    return PSYC.Handler.STOP;
-  }
-  return PSYC.Handler.GOON;
-}
-*/
 
 int prefilter_message_public(MMP.Packet p, mapping _v, mapping _m) 
 {
@@ -170,20 +125,6 @@ void notify_member_entered(MMP.Uniform guy)
 
     sessions[uni->resource][guy->resource]++;
 }
-
-/*
-int filter_notice_context_leave(MMP.Packet p, mapping _v, mapping _m) 
-{
-  P0(("Place", sprintf("postLEAVE: %O(%O): %O(%O) => %O\n", p->data["_supplicant"]->resource, p->data["_supplicant"], uni->resource, uni, indices(parent) ))); //->context->members)));
-#if 0
-  // FIXME: this is a risky hack
-  if (parent->context->members[p->data["_supplicant"]])
-    parent->context->members = parent->context->members ^ (< p->data["_supplicant"] >);
-#endif
-  return PSYC.Handler.GOON;
-}
-*/
-
 
 void notify_member_left(MMP.Uniform guy) 
 {
