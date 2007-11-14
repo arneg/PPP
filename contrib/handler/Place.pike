@@ -80,7 +80,7 @@ int casted_message(MMP.Packet p, mapping _v)
   {
     sql->query("INSERT INTO chat_log (session_id, sender, recipient, message) VALUES(:session_id, :sender, :recipient, :message)",
              ([
-                "session_id":(sessions[uni->resource]?sessions[uni->resource]->id:0),
+                ":session_id":(sessions[uni->resource]?sessions[uni->resource]->id:0),
                 ":sender"   :(p->lsource()?p->lsource()->resource:0),
                 ":recipient":uni->resource,
                 ":message"  :p->data->data,
