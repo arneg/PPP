@@ -8,7 +8,6 @@ string sqlserver;
 string mailserver;
 object sql;
 mapping sessions = ([]);
-array history = ({});
 
 void create(mapping params)
 {
@@ -42,13 +41,14 @@ int postfilter_request_log_email(MMP.Packet p, mapping _v, mapping _m)
   {
     array log = ({});
 
-    foreach(reverse(history);; MMP.Packet m)
+    if (mappingp(parent->history))
+    foreach(reverse(parent->history);; MMP.Packet m)
     {
       if (has_prefix(m->data->mc,"_notice_context_enter") && m->lsource() == p->lsource() )
         break;
       if (has_prefix(m->data->mc,"_message"))
       {
-	log += ({ sprintf("%s says %s", m->lsource()->resource[1..], m->data->data) });
+	log += ({ sprintf("%s says: %s", m->lsource()->resource[1..], m->data->data) });
       }
     }
     string logtext = reverse(log)*"\n";
@@ -88,7 +88,6 @@ int casted_message(MMP.Packet p, mapping _v)
             );
   }
 
-  history += ({ p });
   return PSYC.Handler.GOON;
 }
 

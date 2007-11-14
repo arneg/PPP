@@ -12,6 +12,8 @@ constant _ = ([
     ]),
 ]);
 
+array export = ({ "history" });
+
 int casted_message(MMP.Packet p, mapping _v) {
     debug("Handler.History", 2, "storing: %O.\n", p->data);
     MMP.Packet entry = p->clone();
