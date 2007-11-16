@@ -109,16 +109,17 @@ class Packet {
     //! May contain a template to render the packet or arbitrary data.
     string data;
 
-    //! @param m
+    //! @param mc
     //!		The mc of the Packet.
-    //! @param v
+    //! @param vars
     //! 	PSYC variables set in the packet.
-    //! @param d
+    //! @param data
     //! 	The packet's payload.
-    void create(string|void m, mapping(string:mixed)|void v, string|void d) {
-	if (m) mc = m;
-	vars = v || ([ ]);
-	data = d || "";
+    void create(string|void mc, mapping(string:mixed)|void vars,
+		string|void data) {
+	if (mc) this_program::mc = mc;
+	this_program::vars = vars || ([ ]);
+	this_program::data = data || "";
     }
 
     //! Casts the packet to different types.

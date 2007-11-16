@@ -15,14 +15,14 @@ inherit PSYC.Storage.Base;
 mapping(string:array(mixed)) locks = ([ ]);
 mapping|object data;
 
-//! @param d
+//! @param data
 //! 	Mapping or mappinglike object to operate on. Operations on the mapping 
 //! 	block, so watch out!
 //! @seealso
 //! 	@[MappingBased], @[FlatFile]
-void create(mapping|object d) {
-    enforce(mappingp(d) || objectp(d));
-    data = d;
+void create(mapping|object data) {
+    enforce(mappingp(data) || objectp(data));
+    this_program::data = data;
 }
 
 //! Save storage (e. g. to disk, depending on the storage class used).

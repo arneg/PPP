@@ -57,10 +57,10 @@ class SRVReply {
     string query;
     int _current, _ordered, _sum;
 
-    void create(array(mapping) res, string qry) {
-	query = qry;
+    void create(array(mapping) result, string query) {
+	this_program::query = query;
 
-	if (sizeof(res) && `!=(@res->type, Protocols.DNS.T_SRV)) {
+	if (sizeof(result) && `!=(@result->type, Protocols.DNS.T_SRV)) {
 	    // TODO:: if this should happen alot, and not all answers
 	    // are of the same (wrong) type, change strategy to "fixing"
 	    // the answers. probably.
@@ -69,7 +69,7 @@ class SRVReply {
 	    error("dns-client: error-prone reply\n");
 	}
 
-	result = res;
+	this_program::result = result;
     }
 
     //! @returns

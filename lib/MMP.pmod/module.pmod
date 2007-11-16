@@ -88,13 +88,13 @@ class Uniform {
     string obj;
     int parsed, islocal = UNDEFINED, reconnectable = 1;
 
-    //! @param uniform
+    //! @param unl
     //!	    The string representation of the Uniform.
     //! @param o
     //!	    The object to be associated with @expr{u@}. Will be stored in
     //!	    the variable @expr{handler@}.
-    void create(string uniform, object|void o) {
-	unl = uniform;
+    void create(string unl, object|void o) {
+	this_program::unl = unl;
 	if (o) {
 	    handler[0] = o;
 	}
@@ -390,9 +390,9 @@ class Packet {
     // this actually does not exactly what we want.. 
     // because asking for a _source should return even _source_relay 
     // or _source_technical if present...
-    void create(void|string|object d, void|mapping(string:mixed) v) {
-	vars = v||([]);
-	data = d||0; 
+    void create(void|string|object data, void|mapping(string:mixed) vars) {
+	this_program::vars = vars||([]);
+	this_program::data = data||0; 
     }
 
     mixed cast(string type) {
@@ -675,25 +675,25 @@ class Circuit {
     // closecb(0); if connections gets closed,
     // 	 --> DISCUSS: closecb(string logmessage); on error? <--
     // 	 maybe: closecb(object dings, void|string error)
-    //! @param so
+    //! @param socket
     //!	    Socket to use. 
     //! @param cb
     //!	    Callback to call for incoming @[MMP.Packet]s. Expected signature is:
     //!	    @expr{void cb(MMP.Packet packet, MMP.Circuit connection);@}
-    //! @param closecb
+    //! @param close_cb
     //!	    Callback to be called when the @expr{so@} is being closed.
     //!	    Expected signature is: 
     //!	    @expr{void cb(MMP.Circuit connection);@}
     //! @param parse_uni
     //!	    Function to use to parse Uniforms. This is used in @[PSYC.Server] to
     //!	    keep the Uniform cache consistent.
-    void create(Stdio.File|Stdio.FILE so, function cb, function closecb,
+    void create(Stdio.File|Stdio.FILE socket, function cb, function close_cb,
 		void|function parse_uni) {
 	P2(("MMP.Circuit", "create(%O, %O, %O)\n", so, cb, closecb))
-	socket = so;
+	this_program::socket = socket;
 	socket->set_nonblocking(start_read, write, close);
 	msg_cb = cb;
-	close_cb = closecb;
+	this_program::close_cb = close_cb;
 	get_uniform = parse_uni||MMP.parse_uniform;
 
 	localip = (socket->query_address(1) / " ")[0];
@@ -1271,7 +1271,7 @@ class VirtualCircuit {
     //! @param peer
     //!	    Uniform of the peer to connect to. If the port is omitted service 
     //!	    discovery is done using SRV Records.
-    //! @param srv
+    //! @param server
     //!	    @[PSYC.Server] or similar object, which offers
     //!	    @ul
     //!		@item
@@ -1283,23 +1283,23 @@ class VirtualCircuit {
     //!	    @endul
     //! @param error
     //!     Callback to be called for packets that could not be delivered successfully.
-    //! @param co
+    //! @param check_out
     //!	    A callback the @[VirtualCircuit] calls to check out from the server.
     //!	    Currently unused.
     //! @param c
     //!	    If a suiting @[Circuit] should be at hand, pass this as @expr{c@}.
     //!	    No resolving and/or connection action will then be taken until @expr{c@}
     //!	    "breaks".
-    void create(MMP.Uniform _peer, object srv, function|void error, 
-		function|void co, MMP.Circuit|void c) {
+    void create(MMP.Uniform peer, object server, function|void error, 
+		function|void check_out, MMP.Circuit|void c) {
 	P2(("VirtualCircuit", "create(%O, %O, %O)\n", _peer, srv, c))
 
-	peer = _peer;
+	this_program::peer = peer;
 	targethost = peer->host;
 	targetport = peer->port;
 
-	server = srv;
-	check_out = co;
+	this_program::server = server;
+	this_program::check_out = check_out;
 	failure_delivery = error;
 
 	if (!c) {
