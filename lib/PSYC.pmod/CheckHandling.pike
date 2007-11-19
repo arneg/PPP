@@ -4,9 +4,9 @@
 mapping checks = ([]);
 object storage;
 
-void create(object handling, object _storage) {
+void create(object handling, object storage) {
     handling->register_handler("check", this);
-    storage = _storage;
+    this_program::storage = storage;
 }
 
 void add_check(object handler, mapping e) {

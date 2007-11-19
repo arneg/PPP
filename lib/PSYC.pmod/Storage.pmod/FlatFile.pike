@@ -51,12 +51,12 @@ void writefile(string stuff) {
 
 //! @param file
 //! 	Path to the file to write to.
-//! @param codec_object
+//! @param codec
 //! 	Codec object to use for serialization. Is used for
 //! 	@[MMP.Uniform] object only right now.
-void create(string file, object codec_object) {
+void create(string file, object codec) {
     filename = Stdio.simplify_path(file);
-    codec = codec_object;
+    this_program::codec = codec;
 
     if (filename[0] != '/') filename = "./" + filename;
 

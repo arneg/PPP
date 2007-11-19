@@ -18,8 +18,8 @@ object codec_object;
 //! @param codec
 //! 	Codec object to use for serialization.
 void create(string basepath, function|void namify, void|object codec) {
-    this->basepath = basepath + "/";
-    if (namify) this->namify = namify;
+    this_program::basepath = basepath + "/";
+    if (namify) this_program::namify = namify;
     codec_object = codec;
     ::create();
 }
