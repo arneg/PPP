@@ -700,10 +700,11 @@ class Circuit {
 		    }
 
 		}
-		cb(p, this); 
 	    } else {
 		P2(("MMP.Circuit", "Got a ping.\n"))
 	    }
+
+	    cb(p, this); 
 	    pcount++;
 	};
 
@@ -917,7 +918,17 @@ class Active {
     inherit Circuit;
 
     void create(Stdio.File|Stdio.FILE so, function cb, function closecb, void|function get_uniform) {
-	::create(so, cb, closecb, get_uniform);
+
+	void _cb(MMP.Packet p, object c) {
+	    if (!p->data) {
+		// drop pings..
+		return;
+	    }
+
+	    cb(p, c);
+	};
+
+	::create(so, _cb, closecb, get_uniform);
 
 	string peerhost = so->query_address(1);
 	localaddr = get_uniform("psyc://"+((peerhost / " ") * ":-"));
@@ -936,7 +947,17 @@ class Server {
     inherit Circuit;
 
     void create(Stdio.File|Stdio.FILE so, function cb, function closecb, void|function get_uniform) {
-	::create(so, cb, closecb, get_uniform);
+	
+	void _cb(MMP.Packet p, object c) {
+	    if (!p->data) {
+		send_neg(Packet());
+		return;
+	    }
+
+	    cb(p, c);
+	};
+
+	::create(so, _cb, closecb, get_uniform);
 
 	string peerhost = so->query_address(1);
 	localaddr = get_uniform("psyc://"+((peerhost / " ") * ":"));
