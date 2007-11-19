@@ -18,6 +18,31 @@ int mod, lastmod;
 
 int max_keylength = 0, max_valuelength = 0, max_datalength = 0, _length;
 
+void augment(string key, mixed val) {
+    
+    if (arrayp(val)) {
+	foreach (val, string t) {
+	    augment(variable_state, key, t);
+	}
+    } else {
+	// do the same with inpacket->vars too
+	if (arrayp(variable_state[key])) {
+	    variable_state[key] += ({ val });
+	} else {
+	    variable_state[key] = ({ variable_state[key], val });
+	}
+    }
+}
+
+void diminish(string key, mixed val) {
+    if (arrayp(variable_state[key])) {
+	variable_state[key] -= ({ val });
+    } else if (has_index(variable_state, key)) {
+	if (variable_state[key] == val)
+	    m_delete(variable_state, key);
+    }
+}
+
 void create(mapping conf) {
     
     callback = conf["callback"];
@@ -81,8 +106,16 @@ void parse(string data) {
 void _finish_var() {
     value = _transform(key, value);
     if (key == "_length") _length = value;
-    if (lastmod == '=') {
+    switch (lastmod) {
+    case '=':
 	variable_state[key] = value;
+	break;
+    case '+':
+	augment(key, value);
+	break;
+    case '-':
+	diminish(key, value);
+	break;
     }
     packet->vars[key] = value;
     key = 0;
@@ -114,10 +147,24 @@ void _parse() {
 	case '=':
 	case '+':
 	case '-':
-	case '?':
 	    lastmod = mod;
 	    mod = buffer[pos];
 	    break;
+	case '?':
+	    _error("unimplemented modifier");
+	case '.':
+	    if (key) _error("non_empty");
+
+	    if (sizeof(buffer) >= pos+2) {
+		if (buffer[pos+1] == '\n') { // empty packet
+		    search_pos = pos = pos+2;
+		    callback(packet);
+		    _reinit();
+		    _parse();
+		    return;
+		} else _error("empty termination");
+	    }
+	    return;
 	default:
 	    _error("modifier");
 	}
@@ -212,8 +259,6 @@ void _parse() {
 
 	} else {
 	    n = pos + _length;
-	    werror("sizeof: %d\npos: %d\nstop: %d\n", sizeof(buffer), pos, n);
-	    werror("data: %O\n", buffer[pos..]);
 
 	    if (sizeof(buffer) < n+3) {
 		return;

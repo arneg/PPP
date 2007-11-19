@@ -636,20 +636,13 @@ class Circuit {
 
     //! The socket used.
     Stdio.File|Stdio.FILE socket;
+    .Parser parser;
 
-    string|String.Buffer inbuf;
-#ifdef LOVE_TELNET
-    string dl;
-#endif
     MMP.Utils.Queue q_neg = MMP.Utils.Queue();
-    Packet inpacket;
-    mapping(string:mixed) in_state = ([ ]);
-    string|array(string) lastval; // mappings are not supported in psyc right
-				  // now anyway..
-    int lastmod, write_ready, write_okay; // sending may be forbidden during
-					  // certain parts of neg
-    string lastkey;
+    int write_ready, write_okay; // sending may be forbidden during
+				 // certain parts of neg
 
+    int pcount = 0;
     //! @[MMP.Uniform] associated with this connection. @expr{localaddr@} and
     //! and @expr{remoteaddr@} include the port, they are therefore not 
     //! necessarily equal to the adresses of the two @[PSYC.Root] objects.
@@ -658,16 +651,10 @@ class Circuit {
     //! Ip adress of the local- and peerhost of the tcp connection used.
     string peerip, localip;
 
-    function msg_cb, close_cb, get_uniform;
+    function close_cb, get_uniform;
     mapping(function:array) close_cbs = ([ ]); // close_cb == server, close_cbs
 					       // contains the callbacks of
 					       // the VCs.
-
-    // bytes missing in buf to complete the packet inpacket. (means: inpacket 
-    // has _length )
-    // start parsing at byte start_parse. start_parse == 0 means create a new
-    // packet.
-    int m_bytes, start_parse, pcount = 0;
 
     // cb(received & parsed mmp_message);
     //
@@ -692,7 +679,6 @@ class Circuit {
 	P2(("MMP.Circuit", "create(%O, %O, %O)\n", so, cb, closecb))
 	socket = so;
 	socket->set_nonblocking(start_read, write, close);
-	msg_cb = cb;
 	close_cb = closecb;
 	get_uniform = parse_uni||MMP.parse_uniform;
 
@@ -700,8 +686,41 @@ class Circuit {
 	peerip = (socket->query_address() / " ")[0];
 
 	q_neg->push(Packet());
-	reset();
 
+	void msg_cb(MMP.Packet p) {
+	    P2(("MMP.Circuit", "parsed %O.\n", p))
+	    if (p->data) {
+		// TODO: HOOK
+		if (p->parsed)
+		    p->parsed();
+		if (objectp(p["_target"])) {
+
+		    if (pcount < 3) {
+			if (!p["_target"]->reconnectable) p["_target"]->islocal = 1;
+		    }
+
+		}
+		cb(p, this); 
+	    } else {
+		P2(("MMP.Circuit", "Got a ping.\n"))
+	    }
+	    pcount++;
+	};
+
+	mixed transform(string key, mixed value) {
+
+	    // TODO: has_prefix is not quite right...
+	    if (stringp(value)) {
+		if (has_prefix(key, "_source") 
+		||  has_prefix(key, "_target")
+		||  has_prefix(key, "_context"))
+		    return get_uniform(value);
+	    }
+
+	    return value;
+	};
+
+	parser = MMP.Parser(([ "callback" : msg_cb, "transform" : transform ]));
 	//::create();
     }
 
@@ -712,44 +731,6 @@ class Circuit {
 	    return sprintf("MMP.Circuit(%O)", peeraddr);
 	}
     }
-
-    void assign(mapping state, string key, mixed val) {
-	state[key] = val;	
-    }
-
-    void augment(mapping state, string key, mixed val) {
-	
-	if (arrayp(val)) {
-	    foreach (val, string t) {
-		augment(state, key, t);
-	    }
-	} else {
-	    // do the same with inpacket->vars too
-	    if (arrayp(state[key])) {
-		state[key] += ({ val });
-	    } else {
-		state[key] = ({ state[key], val });
-	    }
-	}
-    }
-
-    void diminish(mapping state, string key, mixed val) {
-	if (arrayp(state[key])) {
-	    state[key] -= ({ val });
-	} else if (has_index(state, key)) {
-	    if (state[key] == val)
-		m_delete(state, key);
-	}
-    }
-
-
-    void reset() {
-	lastval = lastkey = lastmod = 0;
-	inpacket = Packet(0, copy_value(in_state));
-#ifdef LOVE_TELNET
-	inpacket->newline = dl;
-#endif
-    }	
 
     //! Start actually sending packets.
     //! @note
@@ -869,13 +850,6 @@ class Circuit {
     int start_read(mixed id, string data) {
 
 	// is there anyone who would send \n\r ???
-#ifdef LOVE_TELNET
-	if (data[0 .. 2] == ".\n\r") {
-	    dl = "\n\r";
-	} else if (data[0 .. 2] == ".\r\n") {
-	    dl = "\r\n";
-	} else 
-#endif
 	if (data[0 .. 1] != ".\n") {
 	    // TODO: error message
 	    socket->close();
@@ -884,76 +858,22 @@ class Circuit {
 	}
 
 	// the reset has been called before.
-#ifdef LOVE_TELNET
-	inpacket->newline = dl;
-#endif
 	P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", 
 	    peeraddr))
-#ifdef LOVE_TELNET
-	if (sizeof(data) > ((dl) ? 3 : 2)) {
-	    read(0, data[((dl) ? 3 : 2) ..]);
-	}
-#else 
 	if (sizeof(data) > 2) {
 	    read(0, data[2 ..]);
 	}
-#endif
+
 	socket->set_read_callback(read);
     }
 
     int read(mixed id, string data) {
-	int ret = 0;
 	// TODO: decode
 
 	P2(("MMP.Circuit", "read %d bytes.\n", sizeof(data)))
 
-	if (!inbuf)
-	    inbuf = data;
-	else if (stringp(inbuf)) {
-	    if (m_bytes && 0 < (m_bytes -= sizeof(data))) {
-		// create a String.Buffer
-		String.Buffer t = String.Buffer(sizeof(inbuf)+m_bytes);
-		t += inbuf;
-		t += data;
-		inbuf = t;
-		// dont try to parse again
-		return 1;
-	    }
-	    inbuf += data;
-	} else {
-	    m_bytes -= sizeof(data);
-	    inbuf += data;
-	    if (0 < m_bytes) return 1;
-
-	    // create a string since we will try to parse..
-	    inbuf = inbuf->get();
-	}
-
 	array(mixed) exception = catch {
-	    while (inbuf && !(ret = 
-#ifdef LOVE_TELNET
-		    (dl) ? parse(dl) :
-#endif
-				     parse())) {
-
-		P2(("MMP.Circuit", "parsed %O.\n", inpacket))
-		if (inpacket->data) {
-		    // TODO: HOOK
-		    if (inpacket->parsed)
-			inpacket->parsed();
-		    if (objectp(inpacket["_target"])) {
-			if (pcount < 3) {
-			    if (!inpacket["_target"]->reconnectable) inpacket["_target"]->islocal = 1;
-			}
-		    }
-		    msg_cb(inpacket, this);
-		    reset(); // watch out. this may produce strange bugs...
-		} else {
-		    P2(("MMP.Circuit", "Got a ping.\n"))
-		}
-		pcount++;
-	    }
-	    if (ret > 0) m_bytes = ret;
+	    parser->parse(data);
 	};
 
 	if (exception) {
@@ -962,7 +882,7 @@ class Circuit {
 		P0(("MMP.Circuit", "Caught an error: %O, %O\n", exception,
 		    exception->backtrace()))
 	    } else {
-		P0(("MMP.Circuit", "Catched an error: %O\n", exception))
+		P0(("MMP.Circuit", "Caught an error: %O\n", exception))
 	    }
 	    // TODO: error message
 	    socket->close();
@@ -983,186 +903,6 @@ class Circuit {
 	}
     }
 
-    // works quite similar to the psyc-parser. we may think about sharing some
-    // source-code. 
-    //! @ignore
-#define RETURN(x)	ret = (x); stop = -1
-#define INBUF	((string)inbuf)
-#ifdef LOVE_TELNET
-# define LL	sizeof(linebreak)
-# define LD	linebreak
-    int parse(void|string linebreak) {
-
-	if (!linebreak) linebreak = "\n";
-#else
-    int parse() {
-# define LL	1
-# define LD	"\n"
-#endif
-
-	string key, val;
-	int mod, start, stop, num, ret;
-
-	ret = -1;
-
-	// expects to be called only if inbuf is nonempty
-    
-	P2(("MMP.Parse", "parsing: %d from position %d\n", sizeof(inbuf), 
-	    start_parse))
-LINE:	while(-1 < stop && 
-	      -1 < (stop = (start = (mod) ? stop+LL : start_parse, 
-			    search(inbuf, LD, start)))) {
-	    mod = INBUF[start];
-	    P2(("MMP.Parse", "start: %d, stop: %d. mod: %c\n", start,stop,mod))
-	    P2(("MMP.Parse", "parsing line: '%s'\n", INBUF[start .. stop-1]))
-	    // check for an empty line.. start == stop
-	    if (stop > start) switch(mod) {
-	    case '.':
-		// empty packet. should be accepted in any case.. 
-		//
-		// it may be wrong to make a difference between packets without
-		// newline as delimiter.. and those with and without data..
-		inpacket->data = 0;
-		inbuf = INBUF[stop+LL .. ];
-		RETURN(0);
-		break;
-	    case '?':
-		THROW("modifier '?' not supported, yet.");
-	    case '-':
-	    case '+':
-	    case '=':
-	    case ':':
-#ifdef LOVE_TELNET
-		num = sscanf(INBUF[start+1 .. stop-1], "%[A-Za-z_]%*[\t ]%s",
-			     key, val);
-#else
-		num = sscanf(INBUF[start+1 .. stop-1], "%[A-Za-z_]\t%s",
-			     key, val);
-#endif
-		if (num == 0) THROW("parsing error");
-		// this is either an empty string or a delete. we have to decide
-		// on that.
-		
-		start_parse = stop+LL;
-		P2(("MMP.Parse", "%s => %O \n", key, val))
-
-		if (num == 1) {
-		    val = UNDEFINED; // undefined is zero_type != 0 and becomes
-				     // an empty variable again. 
-		} else {
-		    string k = (key == "") ? lastkey : key;		    
-
-		    if (k != "") {
-			int n = search(k, '_', 1);
-
-			switch (n == -1 ? k : k[0..n-1]) {
-			case "_source":
-			case "_target":
-			case "_context":
-			    P3(("MMP.Circuit", "cb: %O\n", get_uniform))
-			    val = get_uniform(val); 
-			}
-    
-		    }
-		    if (key == "") {
-			if (mod != lastmod) THROW("improper list continuation");
-			if (mod == '-') 
-			    THROW( "diminishing lists is not supported");
-			if (!arrayp(lastval)) {
-			    lastval = ({ lastval, val });
-			} else {
-			    lastval += ({ val });
-			}
-			continue LINE;
-		    }
-		}
-		break;
-	    case '\t':
-		if (!lastmod) THROW( "invalid variable continuation");
-		P2(("MMP.Parse", "mmp-parse: + %s\n", INBUF[start+1 .. stop-1]))
-		if (arrayp(lastval))
-		    lastval[-1] += "\n" +INBUF[start+1 .. stop-1];
-		else
-		    lastval += "\n" +INBUF[start+1 .. stop-1];
-
-		start_parse = stop+LL;
-		continue LINE;
-	    default:
-		THROW("unknown modifier "+String.int2char(mod));
-
-	    } else {
-		// this else is an empty line.. 
-		// allow for different line-delimiters
-		int length = inpacket["_length"];
-
-		if (length) {
-		    if (stop+LL + length > sizeof(inbuf)) {
-			start_parse = start;
-			P2(("MMP.Parse", 
-			    "reached the data-part. %d bytes missing (_length "
-			    "specified)\n", stop+LL+length-sizeof(inbuf)))
-			RETURN(stop+LL+length-sizeof(inbuf));
-		    } else {
-			// TODO: we have to check if the packet-delimiter
-			// is _really_ there. and throw otherwise
-			inpacket->data = INBUF[stop+LL .. stop+LL+length];
-			if (sizeof(inbuf) == stop+3*LL+length+1)
-			    inbuf = 0;
-			else
-			    inbuf = INBUF[stop+length+3*LL+1 .. ];
-			start_parse = 0;
-			P2(("MMP.Parse", "reached the data-part. finished. "
-			    "(_length specified)\n"))
-			RETURN(0);
-		    }
-		    // TODO: we could cache the last sizeof(inbuf) for failed
-		    // searches.. 
-		} else if (-1 == (length = search(inbuf, LD+"."+LD, stop+LL))) {
-		    start_parse = start;
-		    P2(("MMP.Parse", "reached the data-part. i dont know how "
-			"much is missing.\n"))
-		    RETURN(-1);
-		} else {
-		    inpacket->data = INBUF[stop+LL .. length-1];	
-		    P2(("MMP.Server", "data: %O\n", inpacket->data))
-		    if (sizeof(inbuf) == length+2*LL+1)
-			inbuf = 0;
-		    else
-			inbuf = INBUF[length+2*LL+1 .. ];
-		    start_parse = 0;
-		    P2(("MMP.Parse", "reached the data-part. finished.\n"))
-		    RETURN(0);
-		}
-	    }
-
-	    if (lastkey) {
-		switch (lastmod) {
-		case '=':
-		    in_state[lastkey] = lastval;
-		case ':':
-		    inpacket[lastkey] = lastval;
-		    break;
-		case '+':
-		    augment(in_state, lastkey, lastval);
-		    augment(inpacket->vars, lastkey, lastval);
-		    break;
-		case '-':
-		    diminish(in_state, lastkey, lastval);
-		    diminish(inpacket->vars, lastkey, lastval);
-		    break;
-		}
-	    }
-
-	    lastmod = mod;
-	    lastkey = key;
-	    lastval = val;
-
-	}
-
-	return ret;
-    }
-    //! @endignore
-
     void add_close_cb(function cb, mixed ... args) {
 	close_cbs[cb] = args;
     }
@@ -1171,10 +911,6 @@ LINE:	while(-1 < stop &&
 	m_delete(close_cbs, cb);
     }
 }
-#undef INBUF
-#undef RETURN
-#undef LL
-#undef LD
 
 //! A @[Circuit] that is active (i.e. an outgoing connection).
 class Active {
@@ -1191,10 +927,6 @@ class Active {
 	peeraddr->islocal = 0;
 	//peeraddr->handler = this;
     }
-
-    //void start_read(mixed id, string data) {
-    //	::start_read(id, data);
-    //}
 }
 
 //! A @[Circuit] that is passive (i.e. an inbound connection). Use this for 
@@ -1219,25 +951,6 @@ class Server {
     int sgn() {
 	return -1;
     }
-
-    //! @ignore
-#ifdef LOVE_TELNET
-    int parse(void|string ld) {
-	int ret = ::parse(ld);
-#else
-    int parse() {
-	int ret = ::parse();
-#endif
-
-	if (ret == 0) {
-	    if (inpacket->data == 0 && !sizeof(inpacket->vars)) {
-		send_neg(Packet());
-	    }
-	}
-
-	return ret;
-    }
-    //! @endignore
 }
 
 
