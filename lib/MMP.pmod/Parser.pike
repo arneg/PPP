@@ -7,7 +7,7 @@ constant STATE_VALUE = 16;
 constant STATE_LIST = 32;
 
 int state, pos, search_pos;
-string buffer;
+string buffer = "";
 MMP.Packet packet;
 function callback, transform;
 
@@ -86,14 +86,8 @@ void _reinit() {
     state = STATE_HEADER;
     _length = UNDEFINED;
 
-    if (stringp(buffer)) {
-	if (pos == sizeof(buffer)) {
-	    buffer = 0;
-	} else {
-	    buffer = buffer[pos..];
-	}
-	pos = search_pos = 0;
-    }
+    buffer = buffer[pos..];
+    pos = search_pos = 0;
 }
 
 void _error(string reason) {
@@ -104,24 +98,8 @@ void _error(string reason) {
 //! does not need to be a complete packet.
 void parse(string data) {
 
-    if (stringp(buffer)) {
-#if 0	// unneccessary because of pike stringops
-	if (pos == sizeof(buffer)) {
-	    buffer = data;
-	} else if (pos > 0 && pos < sizeof(buffer)) {
-	    buffer = buffer[pos..];
-	}
-
-	buffer += data;
-#else
-	buffer = buffer[pos..] + data;
-#endif
-    } else {
-	buffer = data;
-    }
-
-    pos = 0;
-    search_pos = 0;
+    buffer = buffer[pos..] + data;
+    pos = search_pos = 0;
 
     _parse();
 }
