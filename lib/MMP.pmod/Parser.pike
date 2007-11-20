@@ -39,6 +39,12 @@ void augment(string key, mixed val) {
 void diminish(string key, mixed val) {
     if (arrayp(variable_state[key])) {
 	variable_state[key] -= ({ val });
+
+	if (sizeof(variable_state[key]) == 1) {
+	    variable_state[key] = variable_state[key][0];
+	} else if (sizeof(variable_state[key]) == 0) {
+	    m_delete(variable_state, key);
+	}
     } else if (has_index(variable_state, key)) {
 	if (variable_state[key] == val)
 	    m_delete(variable_state, key);
@@ -99,6 +105,7 @@ void _error(string reason) {
 void parse(string data) {
 
     if (stringp(buffer)) {
+#if 0	// unneccessary because of pike stringops
 	if (pos == sizeof(buffer)) {
 	    buffer = data;
 	} else if (pos > 0 && pos < sizeof(buffer)) {
@@ -106,6 +113,9 @@ void parse(string data) {
 	}
 
 	buffer += data;
+#else
+	buffer = buffer[pos..] + data;
+#endif
     } else {
 	buffer = data;
     }
