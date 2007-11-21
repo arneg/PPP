@@ -24,7 +24,7 @@ void augment(string key, mixed val) {
     
     if (arrayp(val)) {
 	foreach (val, string t) {
-	    augment(variable_state, key, t);
+	    augment(key, t);
 	}
     } else {
 	// do the same with inpacket->vars too
