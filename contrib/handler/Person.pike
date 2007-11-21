@@ -81,7 +81,7 @@ int filter_request_link(MMP.Packet p, mapping _v, mapping _m)
 
 int filter_echo_ping(MMP.Packet p, mapping _v, mapping _m)
 {
-  debug("Person", 0, sprintf("_request_link: %O\n", parent->clients));
+  debug("Person", 0, sprintf("_echo_ping: %O\n", parent->clients));
   call_out(lambda(){ sendmsg(p["_source"], p->data->reply("_notice_ping")); }, 60);
   return PSYC.Handler.STOP;
 }
