@@ -99,8 +99,9 @@ string diff_paths(string f1, string f2) {
 
 void debug(string|mapping(string:int) cats, mixed ... args) {
     // lvl, fmt
-    string fmt, all_cats;
-    mapping seen = ([ ]);
+    string fmt, all_cats, bt_fmt;
+    array bt_args, left_args;
+    mapping seen = ([ ]), scheduled = ([ ]);
 
     if (mappingp(cats)) {
 	fmt = args[0];
@@ -112,56 +113,73 @@ void debug(string|mapping(string:int) cats, mixed ... args) {
     }
 
     foreach (cats; string c; int lvl) {
+	int(0..1) want_bt;
 	string tmp_fmt;
+	array tmp_args;
+
 	if ((has_index(cat, c) && cat[c] >= lvl) || default_lvl >= lvl) {
+	    if (!left_args) {
+		left_args = ({ all_cats || (all_cats = sprintf("%O(%d)", indices(cats)[*], values(cats)[*]) * ", ") });
+	    }
+
 	    if ((dbt >= lvl && !has_index(bt, c)) || (has_index(bt, c) && bt[c] >= lvl)) {
-		array backtrace = backtrace();
-	       
-		Pike.BacktraceFrame fun;
-		fun = backtrace[-2];
+		want_bt = 1;
+		if (!bt_fmt) {
+		    array backtrace = backtrace();
+		   
+		    Pike.BacktraceFrame fun;
+		    fun = backtrace[-2];
 
-		string nfmt = "%s:%d:%s(";
+		    string nfmt = "%s:%d:%s(";
 
-		array t = ({ "%O" }) * (sizeof(fun) - 3);
-		array funargs = ({ });
+		    array t = ({ "%O" }) * (sizeof(fun) - 3);
+		    array funargs = ({ });
 
-		nfmt += t * ", " + ")\t";
-		tmp_fmt = nfmt + fmt;
+		    nfmt += t * ", " + ")\t";
+		    bt_fmt = nfmt + fmt;
 
-		for (int i = 3; i < sizeof(fun); i++) {
-		    funargs += ({ fun[i] });
+		    for (int i = 3; i < sizeof(fun); i++) {
+			funargs += ({ fun[i] });
+		    }
+		    
+		    string path = diff_paths(getcwd(), fun[0]);
+		    if (sizeof(path) > sizeof(fun[0])) {
+			path = fun[0];
+		    }
+
+		    bt_args = ({  path, fun[1], function_name(fun[2])||"!!!UNKNOWN!!!" }) + funargs + args;
+
+		    bt_fmt = "[%s]:" + bt_fmt;
 		}
-		
-		string path = diff_paths(getcwd(), fun[0]);
-		if (sizeof(path) > sizeof(fun[0])) {
-		    path = fun[0];
-		}
 
-		args = ({  path, fun[1], function_name(fun[2])||"!!!UNKNOWN!!!" }) + funargs + args;
-
-		tmp_fmt = "[%s]:" + tmp_fmt;
+		tmp_fmt = bt_fmt;
+		tmp_args = left_args + bt_args;
 	    } else {
 		tmp_fmt = "[%s]\t" + fmt;
+		tmp_args = left_args + args;
 	    }
 
-	    args = ({ all_cats || (all_cats = sprintf("%O(%d)", indices(cats)[*], values(cats)[*]) * ", ") }) + args;
+	    object out = stderrs[c] || default_stderr || Stdio.stderr;
 
-	    object out;
+	    if (seen[out] < (want_bt + 1)) {
+		// we need a trampoline here, because otherwise (at least in
+		// pike 7.6.86) tmp_fmt and tmp_args from the very last loop
+		// run are used inside the lambda...
+		function _get_write(object out, string tmp_fmt,
+				    array tmp_args) {
+		    void _f() {
+			out->write(tmp_fmt, @tmp_args);
+		    };
 
-	    if (stderrs[c]) {
-		out = stderrs[c];
-	    } else if (default_stderr) {
-		out = default_stderr;
-	    } else {
-		out = Stdio.stderr;
-	    }
+		    return _f;
+		};
 
-	    if (!has_index(seen, out)) {
-		seen[out]++;
-		out->write(tmp_fmt, @args);
+		scheduled[out] = _get_write(out, tmp_fmt, tmp_args);
 	    }
 	}
     }
+
+    values(scheduled)();
 }
 
 void set_backtrace(string c, int trace) {
