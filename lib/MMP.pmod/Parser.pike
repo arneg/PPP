@@ -51,14 +51,14 @@ void diminish(string key, mixed val) {
     }
 }
 
-//! @params conf
+//! @param conf
 //! @ul 
 //! 	@item "callback"
 //! 		Callback to be called whenever a @[MMP.Packet] has been parsed.
 //! 		Will be called with the @[MMP.Packet] object as the only argument.
 //! 	@item "transform"
 //! 		Callback to perform transformations on parsed values. Will be called like
-//! 		@expr{transform(string key, mixed value)}.
+//! 		@expr{transform(string key, mixed value)@}.
 //! @endul
 void create(mapping conf) {
     
@@ -94,7 +94,7 @@ void _error(string reason) {
     throw(({ reason+"\n", backtrace() }));
 }
 
-//! Concatenates @expr{data} to the buffer and tries to parse. @expr{data} 
+//! Concatenates @expr{data@} to the buffer and tries to parse. @expr{data@} 
 //! does not need to be a complete packet.
 void parse(string data) {
 
