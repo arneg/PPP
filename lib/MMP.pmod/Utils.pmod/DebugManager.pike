@@ -106,6 +106,20 @@ int unset_default_backtrace() {
     return i;
 }
 
+//! Unsets the default debug level.
+//!
+//! @returns
+//!	The current default debug level.
+//!
+//! @seealso
+//!	@[unset_debug()], @[set_default_debug()], @[get_default_debug()]
+int unset_default_debug() {
+    int i = default_lvl;
+
+    default_lvl = 0;
+    return i;
+}
+
 //! @returns
 //!	The current default backtrace level.
 //!
