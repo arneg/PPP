@@ -190,11 +190,13 @@ void create(mapping params) {
     }
 
     int postfilter_notice_unlink(MMP.Packet p, mapping _v) {
+	handle("notify", "unlinked", person);
 	parent->linked = 0;
 	return PSYC.Handler.GOON;
     }
 
     int postfilter_notice_link(MMP.Packet p, mapping _v) {
+	handle("notify", "linked", person);
 	parent->linked = 1;
 	parent->unroll();
 	return PSYC.Handler.GOON;
