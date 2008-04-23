@@ -5,7 +5,7 @@
 .DebugManager _debugmanager;
 
 //! @decl void do_throw(string fmt, mixed ... args)
-//! See @[DebugMananger()->do_throw()]
+//! See @[DebugManager()->do_throw()]
 
 //! @decl void debug(string category, int level, string fmt, mixed ... args)
 //! @decl void debug(mapping(string:int) cats, string fmt, mixed ... args)
