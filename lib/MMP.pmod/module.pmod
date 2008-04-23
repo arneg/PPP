@@ -643,6 +643,7 @@ class Circuit {
 				 // certain parts of neg
 
     int pcount = 0;
+
     //! @[MMP.Uniform] associated with this connection. @expr{localaddr@} and
     //! and @expr{remoteaddr@} include the port, they are therefore not 
     //! necessarily equal to the adresses of the two @[PSYC.Root] objects.
