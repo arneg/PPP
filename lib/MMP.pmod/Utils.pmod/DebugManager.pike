@@ -12,7 +12,7 @@
 //!DebugManager d = DebugManager();
 //!d->debug("my category", 5, "this message will be discarded, "
 //!+ "because default debug level is 0.\n");
-//!d->deubg("another category", 0, "this will be printed for "
+//!d->debug("another category", 0, "this will be printed for "
 //!+ "obvious reasons!\n");
 //!d->set_debug("warn", 5); // print messags from the warn
 //!			    // category up to level 5.
