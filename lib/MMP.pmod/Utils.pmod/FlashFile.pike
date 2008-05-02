@@ -1,6 +1,23 @@
 // vim:syntax=lpc
 inherit Stdio.File;
 
+//! Stdio.File subclass that replys to CrossDomainPolicy requests, 
+//! i.e. on receiving @expr{"<policy-file-request/>\0"@}, by sending
+//! a @expr{cross-domain-policy@}-tag. This is needed to accept tcp 
+//! connections by Adobe Flash Player in some situations.
+//! 
+//! If the first bytes of data received do not match a CrossDomainPolicy
+//! request, no reply is sent. 
+//! After this first thep the socket operates normally.
+//!
+//! @note
+//! 	It is not possible to send data first. Data needs to be received first
+//! 	to determine whether or not a CrossDomainPolicy needs to be sent.
+//! @note
+//! 	This module works asynchronously only! Do not use write or read
+//! 	without callbacks, at least until the CrossDomainPolicy has been
+//! 	sent.
+
 #define REQUEST	"<policy-file-request/>\0"
 
 object _policy;
@@ -74,6 +91,7 @@ void write_policy() {
     }
 }
 
+//! Creates a FlashFile object for some @[CrossDomainPolicy] @expr{policy@}.
 void create(object policy) {
     _policy = policy;
 
