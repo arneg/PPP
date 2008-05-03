@@ -3,7 +3,7 @@
 //! This class may be used to create a CrossDomainPolicy as used by Adobe Flash Player. 
 //!
 //! @seealso
-//! 	If you want to a CrossDomainPolicy for tcp sockets, check out @[FlashFile()].
+//! 	If you want to use a CrossDomainPolicy for tcp sockets, check out @[FlashFile].
 
 string policy;
 mapping _stream_policy = ([]);

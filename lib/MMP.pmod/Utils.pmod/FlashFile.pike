@@ -91,7 +91,7 @@ void write_policy() {
     }
 }
 
-//! Creates a FlashFile object for some @[CrossDomainPolicy] @expr{policy@}.
+//! Creates a @[FlashFile] object for some @[CrossDomainPolicy] @expr{policy@}.
 void create(object policy) {
     _policy = policy;
 
