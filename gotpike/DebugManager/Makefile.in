@@ -1,0 +1,49 @@
+# originally: Id: Makefile.in,v 1.3 2006/05/16 19:27:38 hww3 Exp
+@make_variables@
+VPATH=@srcdir@:@srcdir@/../..:../..
+
+# things we should define.
+
+# the .o files that we need to generate for the module
+# rules will automatically generate these from .c, .cmod, .m and .mmod files.
+OBJS=
+
+# the module directory we put things into. it should be a directory path
+# of .pmod directories, and this must end with a trailing slash.
+MODDIR=Public.pmod/Logger.pmod/
+
+# the module name the resulting dynamic and/or pike module will be 
+# installed as. note that it's just a module or class name without extension.
+MODNAME=ppp
+
+# the pike portion of the module. may be either a file or a directory
+# containing multiple .pike and .pmod files.
+MODULE_PMOD_IN=module.pmod.in
+
+# used by the module repository to scan for autodocs. should be the 
+# list of non pike files containing autodoc markup (ie cmod or c files). 
+AUTODOC_SRC_IN=
+
+# the module name note that there is no error checking, so all of these
+# related variables should agree.
+MODULE_NAME=Public.Logger.ppp
+
+# the module name, with periods replaced with underscores. used to 
+# generate the module distribution.
+MODULE_DIR_NAME=Public_Logger_ppp
+
+# need i say more?
+MODULE_LICENSE=BSD
+
+# we shouldn't need to do anything to the rest of the file.
+
+CFLAGS=@CMOD_CFLAGS@
+LDFLAGS=@CMOD_LIBS@
+
+MODULE_LDFLAGS=@LDFLAGS@
+
+CONFIG_HEADERS=@CONFIG_HEADERS@
+
+@dynamic_module_makefile@
+@dependencies@
+

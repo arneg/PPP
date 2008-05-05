@@ -1,0 +1,8 @@
+# originally: Id: configure.in,v 1.2 2005/09/22 20:23:20 hww3 Exp
+AC_INIT(module.pmod.in/DebugManager.pike)
+
+AC_MODULE_INIT()
+AC_CONFIG_HEADERS()
+
+AC_OUTPUT(Makefile)
+
