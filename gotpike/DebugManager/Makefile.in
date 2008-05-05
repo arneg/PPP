@@ -10,11 +10,11 @@ OBJS=
 
 # the module directory we put things into. it should be a directory path
 # of .pmod directories, and this must end with a trailing slash.
-MODDIR=Public.pmod/Logger.pmod/
+MODDIR=Public.pmod/Logging.pmod/
 
 # the module name the resulting dynamic and/or pike module will be 
 # installed as. note that it's just a module or class name without extension.
-MODNAME=ppp
+MODNAME=PPP
 
 # the pike portion of the module. may be either a file or a directory
 # containing multiple .pike and .pmod files.
@@ -26,11 +26,11 @@ AUTODOC_SRC_IN=
 
 # the module name note that there is no error checking, so all of these
 # related variables should agree.
-MODULE_NAME=Public.Logger.ppp
+MODULE_NAME=Public.Logging.PPP
 
 # the module name, with periods replaced with underscores. used to 
 # generate the module distribution.
-MODULE_DIR_NAME=Public_Logger_ppp
+MODULE_DIR_NAME=Public_Logging_PPP
 
 # need i say more?
 MODULE_LICENSE=BSD
