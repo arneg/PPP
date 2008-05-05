@@ -17,9 +17,13 @@ function do_throw;
 
 //! @param s
 //! 	The @[DebugManager] this object reports to.
-void create(.DebugManager s) {
+void create(.DebugManager|void s) {
     if (!(_debugmanager = s)) {
+#if constant(Public.Logging.PPP)
+	_debugmanager = Public.Logging.PPP.getDefaultManager();
+#else
 	throw(({ "No DebugManager given.\n", backtrace() }));
+#endif
     }
 
     debug = s->debug;
