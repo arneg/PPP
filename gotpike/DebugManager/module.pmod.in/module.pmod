@@ -26,7 +26,7 @@
 //! 	}
 //!
 //! }
-.DebugManager getDefaultManager() {
+.DebugManager get_default_manager() {
     if (!_manager) {
 	_manager = .DebugManager();
     }
