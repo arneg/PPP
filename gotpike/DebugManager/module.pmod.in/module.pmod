@@ -10,7 +10,7 @@
 //!
 //! @example
 //! class X {
-//
+//!
 //! 	inherit Public.Logging.PPP.Debug;
 //! 
 //! 	void test() {
