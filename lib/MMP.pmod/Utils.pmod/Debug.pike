@@ -5,7 +5,7 @@
 // yes, technically we don't really need this reference here, but it might
 // come in handy in the future
 #if constant(Public.Logging.PPP)
-.DebugManager _debugmanager = Public.Logging.PPP.getDefaultManager();
+.DebugManager _debugmanager = Public.Logging.PPP.get_default_manager();
 #else
 .DebugManager _debugmanager;
 #endif
@@ -19,8 +19,8 @@
 
 // so the backtrace won't get messed up
 #if constant(Public.Logging.PPP)
-function debug = Public.Logging.PPP.getDefaultManager()->debug;
-function do_throw = Public.Logging.PPP.getDefaultManager()->do_throw;
+function debug = Public.Logging.PPP.get_default_manager()->debug;
+function do_throw = Public.Logging.PPP.get_default_manager()->do_throw;
 #else
 function debug;
 function do_throw;
@@ -34,7 +34,7 @@ function do_throw;
 //!	for example by the @i{ppp@} and you don't have installed
 //!	Public.Logging.PPP via monger, a VM-global default @[DebugManager]
 //!	will be used, obtainable by calling
-//!	@[Public.Logging.PPP.getDefaultManager()]. In that case,
+//!	@[Public.Logging.PPP.get_default_manager()]. In that case,
 //!	@expr{create()@} may not be called at all (if you inherit this class
 //!	and overload @expr{create()@}), or with an empty argument list, which
 //!	will both lead to the default @[DebugManager] being used.
