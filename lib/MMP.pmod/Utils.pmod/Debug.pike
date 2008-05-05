@@ -28,6 +28,16 @@ function do_throw;
 
 //! @param s
 //! 	The @[DebugManager] this object reports to.
+//!
+//!	If Public.Logging.PPP is present (it usually is, when you installed
+//!	it from/by monger, and might be not if this class is shipped to you
+//!	for example by the @i{ppp@} and you don't have installed
+//!	Public.Logging.PPP via monger, a VM-global default @[DebugManager]
+//!	will be used, obtainable by calling
+//!	@[Public.Logging.PPP.getDefaultManager()]. In that case,
+//!	@expr{create()} may not be called at all (if you inherit this class
+//!	and overload @expr{create()}), or with an empty argument list, which
+//!	will both lead to the default @[DebugManager] being used.
 void create(.DebugManager|void s) {
     if (!(_debugmanager = s)) {
 #if !constant(Public.Logging.PPP)
