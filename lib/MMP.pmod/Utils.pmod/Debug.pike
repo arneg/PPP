@@ -2,7 +2,13 @@
 //! (from @[DebugManager]) can be directly used while the DebugManager
 //! can still be exchanged.
 
+// yes, technically we don't really need this reference here, but it might
+// come in handy in the future
+#if constant(Public.Logging.PPP)
+.DebugManager _debugmanager = Public.Logging.PPP.getDefaultManager();
+#else
 .DebugManager _debugmanager;
+#endif
 
 //! @decl void do_throw(string fmt, mixed ... args)
 //! See @[DebugManager()->do_throw()]
@@ -12,17 +18,22 @@
 //! See @[DebugManager()->debug()]
 
 // so the backtrace won't get messed up
+#if constant(Public.Logging.PPP)
+function debug = Public.Logging.PPP.getDefaultManager()->debug;
+function do_throw = Public.Logging.PPP.getDefaultManager()->do_throw;
+#else
 function debug;
 function do_throw;
+#endif
 
 //! @param s
 //! 	The @[DebugManager] this object reports to.
 void create(.DebugManager|void s) {
     if (!(_debugmanager = s)) {
-#if constant(Public.Logging.PPP)
-	_debugmanager = Public.Logging.PPP.getDefaultManager();
-#else
+#if !constant(Public.Logging.PPP)
 	throw(({ "No DebugManager given.\n", backtrace() }));
+#else
+	return;
 #endif
     }
 
