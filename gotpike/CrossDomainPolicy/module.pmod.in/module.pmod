@@ -6,4 +6,3 @@
 //! 	cfile->assign(file);
 //! 	// use cfile from now on.	
 //! 
- 
