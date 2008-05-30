@@ -10,8 +10,23 @@ void reset() {
     buf = "";
 }
 
-int|.Atom parse(string data) {
+void feed(string data) {
     buf += data;
+}
+
+array(.Atom) parse_all() {
+    array(.Atom) ret = ({});
+    .Atom t;
+
+    while (t = parse()) {
+	ret += ({ t });
+    }
+
+    return ret;
+}
+
+int|.Atom parse(void|string data) {
+    if (data) feed(data);
 
     if (!type) {
 	if (buf[0] != '_') {
