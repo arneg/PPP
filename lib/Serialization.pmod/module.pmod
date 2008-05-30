@@ -1,3 +1,20 @@
+constant STRING  = 1;
+constant ARRAY   = 2;
+constant MAPPING = 3;
+constant INT     = 4;
+constant FLOAT   = 5;
+
+int|program to_type(mixed a) {
+    if (objectp(a)) return object_program(a);
+    if (stringp(a)) return .STRING;
+    if (arrayp(a)) return .ARRAY;
+    if (mappingp(a)) return .MAPPING;
+    if (intp(a)) return .INT;
+    if (floatp(a)) return .FLOAT;
+
+    return 0;
+}
+
 //! Checks if a is a subtype of b.
 int(0..1) is_subtype_of(string a, string b) {
     if (a == b) return 1;
@@ -21,134 +38,58 @@ array(string) subtypes(string type) {
 
     if (!is_type(type)) return 0;
     t = (type / "_")[1..];
-    last = "_";
+    last = "";
 
     for (int i = 0; i < sizeof(t); i++) {
-	t[i] = last + t[i];
+	t[i] = last + "_" + t[i];
 	last = t[i];
     }
 
     return t;
 }
 
-class Reactor {
-    mapping(program:string) program2type = ([]);
-    // type -> mapping(program->transform)
-    .AbbrevHash handlers = .AbbrevHash();
-    .AbbrevHash defaults = .AbbrevHash();
-
-    mixed fission(.Atom a, void|program as, void|object|function with) {
-	if (as) { 
-	    if (with) {
-		if (functionp(with)) {
-		    return with(a, as);
-		} else {
-		    return with->fission(a, as);
-		}
-	    }
-
-	    array(mapping) t = filter(handlers->all_matches(a->type), has_index, as);
-
-	    if (sizeof(t)) {
-		return t[0][as](a, as);
-	    }
-
-	    return UNDEFINED;
-	}
-
-	// not sure if good!
-	// default could be the first transform added for a particular type
-	if (as = defaults[type]) {
-	    return fission(a, as); 
-	}
-
-	return UNDEFINED;
-    }
-
-    .Atom fuse(mixed a, void|string type) {
-
+string|void render_atom(.Atom a, void|String.Buffer buf) {
+    if (!buf) {
+	return sprintf("%s %d %s", a->type, sizeof(a->data), a->data);
+    } else {
+	buf += sprintf("%s %d %s", a->type, sizeof(a->data), a->data);
     }
 }
 
-class Atom {
-    string type;
-    mixed data;
-
-    void create(string type, mixed data) {
-	this->type = type;
-	this->data = data;
-    }
-
-    array(string) subtypes() {
-	return .subtypes(type);	
-    }
-
-    int(0..1) is_subtype_of(this_program a) {
-	return .is_subtype_of(type, a->type);
-    }
-
-    int(0..1) is_supertype_of(this_program a) {
-	return .is_supertype_of(type, a->type);
-    }
+// we want utf8 as default?! 
+.Atom encode_string(string s, string type, object reactor) {
+    return .Atom(type, string_to_utf8(s));
+}
+string decode_string(.Atom a, int|program ptype, object reactor) {
+    if (ptype != .STRING) return UNDEFINED;
+    
+    return utf8_to_string(a->data);
 }
 
-class AtomParser {
-    string type;
-    int bytes;
-    int error = 0;
-    string|String.Buffer buf;
+int decode_int(.Atom a, int|program ptype, object reactor) {
+    int i;
 
-    void reset() {
-	type = 0;
-	bytes = UNDEFINED;
-	buf = "";
+    if (ptype != .INT) return UNDEFINED;
+
+    if (1 == sscanf("%d", a->data, i)) {
+	return i;
     }
 
-    int|Atom parse(string data) {
-	buf += data;
+    return UNDEFINED;
+}
 
-	if (!type) {
-	    if (buf[0] != '_') {
-		error = 1;
-		return 0;
-	    }
+.Atom encode_int(int i, string type, object reactor) {
+    return .Atom(type, sprintf("%d", i));
+}
 
-	    int pos = search(buf, ' ');
+object get_default_reactor() {
+    object reactor = .Reactor();
+    // these hurt our inheritance rules.. examples!
+    reactor->register_fuse("_string_utf8", .STRING, .encode_string);
+    reactor->register_fission("_string_utf8", .STRING, .decode_string);
 
-	    if (pos == -1) {
-		// we may check here is something is wrong.. potentially
-		return 0;
-	    }
-	    
-	    type = buf[0..pos-1];
-	    buf = [pos+1..];
-	}
+    reactor->register_fuse("_integer", .INT, .encode_int);
+    reactor->register_fission("_integer", .INT, .decode_int);
 
-	if (!bytes && zero_type(bytes)) {
-	    int pos = search(buf, ' ');
-
-	    if (pos == -1) {
-		// we could check here if there are chars in the buf
-		// that are not numbers.. and return an error 
-		return 0;
-	    }
-
-	    if (1 != sscanf(buf[0..pos-1], "%d", bytes)) {
-		error = 2;
-		return 0;
-	    }
-
-	    buf = String.Buffer(buf[pos+1..]);
-	}
-
-	if (sizeof(buf) == bytes) {
-	    object atom = Atom(type, (string)buf);
-	    reset();
-	    return atom;
-	} else if (sizeof(buf) > bytes) {
-	    error = 3;
-	}
-
-	return 0;
-    }
+    return reactor;
 }
