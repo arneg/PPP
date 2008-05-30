@@ -82,6 +82,23 @@ int decode_int(.Atom a, int|program ptype, object reactor) {
     return .Atom(type, sprintf("%d", i));
 }
 
+array(.Atom) decode_atom_list(.Atom a, int|program ptype, object reactor) {
+    object parser = AtomParser();
+    parser->feed(a->data);
+    
+    return parser->parse_all();
+}
+
+.Atom encode_atom_list(array(.Atom) a, string type, object reactor) {
+    String.Buffer buf = String.Buffer();
+    
+    foreach (a;; .Atom atom;) {
+	.render_atom(atom, buf);
+    }
+
+    return .Atom(type, (string)buf);
+}
+
 object get_default_reactor() {
     object reactor = .Reactor();
     // these hurt our inheritance rules.. examples!
