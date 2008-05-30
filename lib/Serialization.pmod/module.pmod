@@ -52,7 +52,7 @@ string|void render_atom(.Atom a, void|String.Buffer buf) {
     if (!buf) {
 	return sprintf("%s %d %s", a->type, sizeof(a->data), a->data);
     } else {
-	buf += sprintf("%s %d %s", a->type, sizeof(a->data), a->data);
+	buf->add(sprintf("%s %d %s", a->type, sizeof(a->data), a->data));
     }
 }
 
