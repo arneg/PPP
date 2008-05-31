@@ -362,6 +362,20 @@ MMP.Uniform get_uniform(string unl) {
     }
 }
 
+MMP.Uniform atom_decode_uniform(Serialization.Atom a, int|program ptype, object reactor) {
+    MMP.Uniform uni;
+    if (ptype != MMP.Uniform) return 0;
+    if (mixed err = catch {uni = get_uniform(a->data)}) {
+	return 0;
+    }
+
+    return uni;
+}
+
+Serialization.Atom atom_encode_uniform(MMP.Uniform uni, string type, object reactor) {
+    return MMP.atom_encode_uniform(uni, type, reactor);
+}
+
 void if_localhost(MMP.Uniform candidate, function if_cb, function else_cb,
 		  mixed ... args) {
     _if_localhost(candidate, if_cb, else_cb, 0, args);
