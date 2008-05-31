@@ -18,7 +18,7 @@ int|program to_type(mixed a) {
 //! Checks if a is a subtype of b.
 int(0..1) is_subtype_of(string a, string b) {
     if (a == b) return 1;
-    if (sizeof(a) < sizeof(b)) return 0;
+    if (sizeof(a) <= sizeof(b)) return 0;
     if (has_prefix(a, b) && a[sizeof(b)] == '_') return 1;
     return 0;
 }
@@ -83,9 +83,11 @@ int decode_int(.Atom a, int|program ptype, object reactor) {
 }
 
 array(.Atom) decode_atom_list(.Atom a, int|program ptype, object reactor) {
+    if (ptype != .ARRAY) return UNDEFINED;
     object parser = AtomParser();
+
     parser->feed(a->data);
-    
+
     return parser->parse_all();
 }
 
@@ -94,6 +96,28 @@ array(.Atom) decode_atom_list(.Atom a, int|program ptype, object reactor) {
     
     foreach (a;; .Atom atom;) {
 	.render_atom(atom, buf);
+    }
+
+    return .Atom(type, (string)buf);
+}
+
+mapping(.Atom:.Atom) decode_atom_mapping(.Atom a, int|program ptype, object reactor) {
+    if (ptype != .MAPPING) return UNDEFINED;
+    object parser = AtomParser();
+    parser->feed(a->data);
+    
+    array(.Atom) list = parser->parse_all();
+    if (sizeof(list) & 1) return UNDEFINED;
+
+    return allocate_mapping(list);
+}
+
+.Atom encode_atom_mapping(mapping(.Atom:.Atom) m, string type, object reactor) {
+    String.Buffer buf = String.Buffer();
+    
+    foreach (a;.Atom key; .Atom value) {
+	.render_atom(key, buf);
+	.render_atom(value, buf);
     }
 
     return .Atom(type, (string)buf);
