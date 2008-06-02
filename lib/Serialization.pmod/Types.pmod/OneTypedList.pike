@@ -8,7 +8,7 @@ void create(object type) {
 }
 
 array decode(Serialization.Atom a) {
-    if (!low_can_parse(a)) throw(({}));
+    if (!can_decode(a)) throw(({}));
 
     object parser = Serialization.AtomParser();
 
@@ -33,3 +33,6 @@ Serialization.Atom encode(array a) {
     return Serialization.Atom("_list", (string)buf);
 }
 
+int(0..1) can_encode(mixed a) {
+    return arrayp(a);
+}
