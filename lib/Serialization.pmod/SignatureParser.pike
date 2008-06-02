@@ -1,34 +1,6 @@
 mapping(string:mapping(mixed:object)) caches = ([]);
 mapping(string:function|program) factories = ([]);
 
-class OneTypedList {
-    object type;
-    // TODO:: inherit Something; // providing `|, ...
-
-    void create(object type) {
-	this_program::type = type;
-    }
-
-    array decode(.Atom a) {
-	if (!low_can_parse(a)) ERROR();
-
-	array list = parse_atoms...
-
-	foreach (list;int i;.Atom item) {
-	    // vielleicht macht das type bessser selber
-	    if (!type->low_can_parse(item)) ERROR(); 
-
-	    list[i] = type->decode(item);
-	}
-
-	return list;
-    }
-
-    int(0..1) low_can_parse(.Atom a) {
-	return .is_subtype_of(a->type, "_list");
-    }
-}
-
 class Mangler {
     array container;                                                                                         
     void create(array a) {
@@ -72,16 +44,4 @@ object create_codec(string codec, mixed ... spec) {
     }
 
     return caches[codec][m];
-}
-
-// das muss nicht sein.. allerdings muessen die objekte mit signatures sowas 
-// aehnliches inheriten..
-mixed `->(string index) {
-    if (index == "register_type") {
-	return register_type;
-    }
-
-    if (has_index(factories, index)) {
-	return Function.curry(create_codec)(index);
-    }
 }

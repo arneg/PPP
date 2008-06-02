@@ -82,40 +82,28 @@ int decode_int(.Atom a, int|program ptype, object reactor) {
     return .Atom(type, sprintf("%d", i));
 }
 
-array(.Atom) decode_atom_list(.Atom a, int|program ptype, object reactor) {
-    if (ptype != .ARRAY) return UNDEFINED;
-    object parser = AtomParser();
-
-    parser->feed(a->data);
-
-    return parser->parse_all();
-}
-
-.Atom encode_atom_list(array(.Atom) a, string type, object reactor) {
-    String.Buffer buf = String.Buffer();
-    
-    foreach (a;; .Atom atom;) {
-	.render_atom(atom, buf);
-    }
-
-    return .Atom(type, (string)buf);
-}
-
-mapping(.Atom:.Atom) decode_atom_mapping(.Atom a, int|program ptype, object reactor) {
+// returns a mapping of atoms if no type2program has been specified
+mapping decode_atom_mapping(.Atom a, int|program ptype, object reactor, void|mapping(string:int|program) type2program) {
     if (ptype != .MAPPING) return UNDEFINED;
-    object parser = AtomParser();
+    object parser = .AtomParser();
     parser->feed(a->data);
     
     array(.Atom) list = parser->parse_all();
     if (sizeof(list) & 1) return UNDEFINED;
 
-    return allocate_mapping(list);
+    if (mappingp(type2program) && sizeof(type2program)) foreach (list;int i;.Atom a) {
+	if (has_index(type2program, a->type)) {
+	    list[i] = reactor->fission(a, type2program[a->type]);
+	}
+    }
+
+    return aggregate_mapping(@list);
 }
 
-.Atom encode_atom_mapping(mapping(.Atom:.Atom) m, string type, object reactor) {
+.Atom encode_atom_mapping(mapping(.Atom:.Atom) m, string type, object reactor, void|mapping(int|program:string) program2type) {
     String.Buffer buf = String.Buffer();
     
-    foreach (a;.Atom key; .Atom value) {
+    foreach (m;.Atom key; .Atom value) {
 	.render_atom(key, buf);
 	.render_atom(value, buf);
     }
