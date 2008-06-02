@@ -5,6 +5,7 @@ void create(object o) {
     type_cache = o;
 }
 
+// useless
 mixed `->(string index) {
     werror("%O->%s\n", this, index);
 
@@ -13,4 +14,11 @@ mixed `->(string index) {
     }
 
     return ::`->(index);
+}
+
+// auch nicht so tol
+// beispiel
+function List(mixed ... args) {
+    type_cache[Types.OneTypedList][args]
+    return type_cache->create_codec("List", @args);
 }
