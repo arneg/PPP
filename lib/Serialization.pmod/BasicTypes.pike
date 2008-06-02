@@ -20,3 +20,8 @@ object List(object type, object ... args) {
 
     return o;
 }
+
+object Mapping(array(object) ... args) {
+    // lets say, the order determines what is checked first.
+    // 
+}
