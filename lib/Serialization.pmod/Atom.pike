@@ -1,7 +1,10 @@
 string type;
-mixed data;
+string data;
 
-void create(string type, mixed data) {
+mixed pdata;
+int parsed;
+
+void create(string type, string data) {
     this->type = type;
     this->data = data;
 }

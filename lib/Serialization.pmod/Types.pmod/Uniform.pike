@@ -18,7 +18,11 @@ MMP.Uniform decode(Serialization.Atom a) {
 
 Serialization.Atom encode(MMP.Uniform u) {
     if (MMP.is_uniform(u)) {
-	return Serialization.Atom("_uniform", (string)u);
+	object a = Serialization.Atom("_uniform", (string)u);
+	a->parsed = 1;
+	a->pdata = u;
+
+	return 0;
     }
 
     throw(({}));
