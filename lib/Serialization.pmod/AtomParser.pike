@@ -4,14 +4,25 @@ int bytes = UNDEFINED;
 int error = 0;
 string|String.Buffer buf = "";
 
-void reset() {
+void reset(int bytes) {
     type = 0;
-    bytes = UNDEFINED;
-    buf = "";
+    this_program::bytes = UNDEFINED;
+
+    if (bytes < sizeof(buf)) {
+	buf = ([string]buf)[bytes..];
+    } else if (bytes == sizeof(buf)) {
+	buf = "";
+    } else {
+	throw(({ "bad reset()\n", backtrace() }));
+    }
 }
 
 void feed(string data) {
     buf += data;
+}
+
+int left() {
+    return sizeof(buf);
 }
 
 array(.Atom) parse_all() {
@@ -28,10 +39,11 @@ array(.Atom) parse_all() {
 int|.Atom parse(void|string data) {
     if (data) feed(data);
 
+    if (!sizeof(buf)) return 0;
+
     if (!type) {
 	if (buf[0] != '_') {
-	    error = 1;
-	    return 0;
+	    throw(({ "Broken Atom. Does not start with a type.\n", backtrace() }));
 	}
 
 	int pos = search(buf, ' ');
@@ -55,19 +67,24 @@ int|.Atom parse(void|string data) {
 	}
 
 	if (1 != sscanf(([string]buf)[0..pos-1], "%d", bytes)) {
-	    error = 2;
-	    return 0;
+	    throw(({ "Broken Atom. Cannot parse length.\n", backtrace() }));
 	}
+
+	werror("bytes: %d\n", bytes);
 
 	buf = String.Buffer() + ([string]buf)[pos+1..];
     }
 
-    if (sizeof(buf) == bytes) {
-	object atom = .Atom(type, (string)buf);
-	reset();
+    if (bytes == 0) {
+	object atom = .Atom(type, "");
+	buf = (string)buf;
+	reset(0);
 	return atom;
-    } else if (sizeof(buf) > bytes) {
-	error = 3;
+    } else if (sizeof(buf) >= bytes) {
+	buf = (string)buf;
+	object atom = .Atom(type, ([string]buf)[0..bytes-1]);
+	reset(bytes);	
+	return atom;
     }
 
     return 0;
