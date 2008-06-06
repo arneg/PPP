@@ -22,7 +22,7 @@ Serialization.Atom encode(MMP.Uniform u) {
 	a->parsed = 1;
 	a->pdata = u;
 
-	return 0;
+	return a;
     }
 
     throw(({}));
