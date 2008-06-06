@@ -71,7 +71,7 @@ string find_index(string index) {
     array(string) l = .subtypes(index);
 
     if (sizeof(l) > 1) for(int i = sizeof(l) - 2; i >= 0; i--) {
-	if (has_index(m, l[i])) l[i];
+	if (has_index(m, l[i])) return l[i];
     }
 
     return UNDEFINED;
@@ -79,4 +79,16 @@ string find_index(string index) {
 
 int _sizeof() {
     return sizeof(m);
+}
+
+void fill(mapping(string:mixed) m) {
+    this_program::m += m;
+}
+
+string _sprintf(int c) {
+    if (c == 'O') {
+	return sprintf("AbbrevHash(%O)", m);
+    }
+
+    return "";
 }
