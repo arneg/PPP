@@ -70,8 +70,6 @@ int|.Atom parse(void|string data) {
 	    throw(({ "Broken Atom. Cannot parse length.\n", backtrace() }));
 	}
 
-	werror("bytes: %d\n", bytes);
-
 	buf = String.Buffer() + ([string]buf)[pos+1..];
     }
 
