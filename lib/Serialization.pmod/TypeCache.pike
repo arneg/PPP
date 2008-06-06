@@ -12,4 +12,12 @@ mixed `[](mixed index) {
     return UNDEFINED;
 }
 
+string _sprintf(int c) {
+    if (c == 'O') {
+	return sprintf("TypeCache(%O)\n", m);
+    }
+
+    return "";
+}
+
 // []= should not be used..!
