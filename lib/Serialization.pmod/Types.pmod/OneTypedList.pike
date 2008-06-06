@@ -8,9 +8,13 @@ void create(object type) {
 }
 
 array decode(Serialization.Atom a) {
+    array list;
+
     if (!low_can_decode(a)) throw(({}));
 
     if (!a->parsed) low_decode(a);
+
+    list = allocate(sizeof(a->pdata));
 
     foreach (a->pdata;int i;Serialization.Atom item) {
 	list[i] = type->decode(item);
