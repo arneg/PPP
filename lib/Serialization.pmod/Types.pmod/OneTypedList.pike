@@ -44,6 +44,7 @@ Serialization.Atom encode(array a) {
 }
 
 int(0..1) can_decode(Serialization.Atom a) {
+    if (!low_can_decode(a)) return 0;
     if (!a->parsed) low_decode(a);
 
     foreach (a->pdata;;Serialization.Atom i) {

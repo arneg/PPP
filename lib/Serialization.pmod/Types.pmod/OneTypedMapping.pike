@@ -26,7 +26,7 @@ void low_decode(Serialization.Atom a) {
 }
 
 array decode(Serialization.Atom a) {
-    if (!can_decode(a)) throw(({}));
+    if (!low_can_decode(a)) throw(({}));
 
     if (!a->parsed) low_decode(a);
 
