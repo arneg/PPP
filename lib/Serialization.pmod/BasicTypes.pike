@@ -15,12 +15,51 @@ object List(object type, object ... args) {
     return o;
 }
 
-object Mapping(array(object) ... args) {
-    // lets say, the order determines what is checked first.
-    // 
+object Mapping(object|mapping(object:object) m, object|void type2, object ... args) {
+    if (mappingp(m)) {
+	if (objectp(type2)) {
+	    throw(({ "Evil!", backtrace() }))
+	}
+
+	array args = allocate(sizeof(m)*2);
+
+	foreach (sort(indices(m));int i; object ktype) {
+	    args[i] = ktype;
+	    args[i+1] = m[ktype];
+	}
+
+	return Mapping(@args);
+    } else if (objectp(m) && objectp(type2)) {
+	if (sizeof(args)) {
+	    args = ({ m, type2 }) + args;
+
+	    if (sizeof(args) & 1) {
+		throw(({ "uh", backtrace() }));
+	    }
+
+	    object mangler = Serialization.Mangler(args);
+
+	    if (!(o = this->type_cache[MultiTypedMapping][mangler])) {
+		o = MultiTypedMapping(@args);
+		this->type_cache[MultiTypedMapping][mangler] = o;
+	    }
+
+	} else {
+	    object mangler = Serialization.Mangler(({ m, type2 }));	
+
+	    if (!(o = this->type_cache[OneTypedMapping][mangler])) {
+		o = OneTypedMapping(m, type2);
+		this->type_cache[OneTypedMapping][mangler] = o;
+	    }
+	}
+    } else {
+	throw(({ "uuuh", backtrace() }));
+    }
+
+    return o;
 }
 
-object OOr(object types, object ... types) {
+object Or(object types, object ... types) {
     object o;
 
     if (sizeof(types) == 0) {
@@ -38,6 +77,6 @@ object OOr(object types, object ... types) {
     return o;
 }
 
-object Or(object type, object ... types) {
+object UOr(object type, object ... types) {
     return OOr(sort(({ type }) + types));
 }
