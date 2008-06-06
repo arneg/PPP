@@ -18,19 +18,18 @@ int (0..1) low_can_encode(mixed a) {
 array decode(Serialization.Atom a) {
 
     foreach (types;;object type) {
-	if (type->can_decode(item)
-	    return type->decode(item);
+	if (type->can_decode(a))
+	    return type->decode(a);
     }
 
     throw(({ "Cannot decode!", backtrace() }));
 }
 
 Serialization.Atom encode(array a) {
-    String.Buffer buf = String.Buffer();
     
     foreach (types;; object type) {
 	if (type->can_encode(a)) 
-	    return Serialization.render_atom(type->encode(t), buf);
+	    return type->encode(a);
     }
 
     throw(({ "cannot encode this!", backtrace() }));
@@ -48,11 +47,19 @@ int(0..1) can_decode(Serialization.Atom a) {
 
 int(0..1) can_encode(mixed a) {
 
-    foreach (a;;object type) {
+    foreach (types;;object type) {
 	if (type->can_encode(a)) {
 	    return 1;
 	}
     }
 
     return 0;
+}
+
+string _sprintf(int c) {
+    if (c == 'O') {
+	return "(" + sprintf("%O", types[*]) * " || " + ")";
+    } 
+    
+    return "";
 }

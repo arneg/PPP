@@ -31,3 +31,11 @@ Serialization.Atom encode(MMP.Uniform u) {
 int(0..1) can_encode(mixed a) {
     return MMP.is_uniform(a);
 }
+
+string _sprintf(int c) {
+    if (c == 'O') {
+	return "Uniform()";
+    }
+
+    return "";
+}

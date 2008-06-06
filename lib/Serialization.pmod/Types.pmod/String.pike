@@ -13,7 +13,7 @@ string decode(Serialization.Atom a) {
 }
 
 Serialization.Atom encode(string s) {
-    if (intp(i)) {
+    if (stringp(s)) {
 	return Serialization.Atom("_string", string_to_utf8(s));
     }
 
@@ -22,4 +22,12 @@ Serialization.Atom encode(string s) {
 
 int(0..1) can_encode(mixed a) {
     return stringp(a);
+}
+
+string _sprintf(int c) {
+    if (c == 'O') {
+	return "String()";
+    }
+
+    return "";
 }

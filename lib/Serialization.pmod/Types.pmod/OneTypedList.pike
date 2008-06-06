@@ -68,10 +68,18 @@ int(0..1) can_encode(mixed a) {
     }
 
     foreach (a;;mixed i) {
-	if (!type->can_encode(a)) {
+	if (!type->can_encode(i)) {
 	    return 0;
 	}
     }
 
     return 1;
+}
+
+string _sprintf(int c) {
+    if (c == 'O') {
+	return sprintf("List(%O)", type);
+    }
+
+    return "";
 }

@@ -16,9 +16,11 @@ object List(object type, object ... args) {
 }
 
 object Mapping(object|mapping(object:object) m, object|void type2, object ... args) {
+    object o;
+
     if (mappingp(m)) {
 	if (objectp(type2)) {
-	    throw(({ "Evil!", backtrace() }))
+	    throw(({ "Evil!", backtrace() }));
 	}
 
 	array args = allocate(sizeof(m)*2);
@@ -40,7 +42,7 @@ object Mapping(object|mapping(object:object) m, object|void type2, object ... ar
 	    object mangler = Serialization.Mangler(args);
 
 	    if (!(o = this->type_cache[MultiTypedMapping][mangler])) {
-		o = MultiTypedMapping(@args);
+		o = MultiTypedMapping(args);
 		this->type_cache[MultiTypedMapping][mangler] = o;
 	    }
 
@@ -59,14 +61,14 @@ object Mapping(object|mapping(object:object) m, object|void type2, object ... ar
     return o;
 }
 
-object Or(object types, object ... types) {
+object Or(object type, object ... types) {
     object o;
 
     if (sizeof(types) == 0) {
 	return type;
     }
 
-    types = ({ type }) + args;
+    types = ({ type }) + types;
     object mangler = Serialization.Mangler(types); 
 
     if (!(o = this->type_cache[Serialization.Types.Or][mangler])) {
@@ -78,5 +80,27 @@ object Or(object types, object ... types) {
 }
 
 object UOr(object type, object ... types) {
-    return OOr(sort(({ type }) + types));
+    return Or(@sort(({ type }) + types));
+}
+
+object String() {
+    object o;
+
+    if (!(o = this->type_cache[Serialization.Types.String][0])) {
+	o = Serialization.Types.String();
+	this->type_cache[Serialization.Types.String][0] = o;
+    }
+
+    return o;
+}
+
+object Int() {
+    object o;
+
+    if (!(o = this->type_cache[Serialization.Types.Int][0])) {
+	o = Serialization.Types.Int();
+	this->type_cache[Serialization.Types.Int][0] = o;
+    }
+
+    return o;
 }

@@ -25,7 +25,7 @@ void low_decode(Serialization.Atom a) {
     a->parsed = 1;
 }
 
-array decode(Serialization.Atom a) {
+mapping decode(Serialization.Atom a) {
     if (!low_can_decode(a)) throw(({}));
 
     if (!a->parsed) low_decode(a);
@@ -35,8 +35,8 @@ array decode(Serialization.Atom a) {
     for (int i = 0; i < sizeof(a->pdata); i += 2) {
 	mixed key, value;
 
-	key = ktype->decode(list[i]);
-	value = vtype->decode(list[i+1]);
+	key = ktype->decode(a->pdata[i]);
+	value = vtype->decode(a->pdata[i+1]);
 	m[key] = value;
     }
 
@@ -62,8 +62,8 @@ int(0..1) can_decode(Serialization.Atom a) {
 
     for (int i = 0; i < sizeof(a->pdata); i += 2) {
 
-	if (!ktype->can_decode(list[i])) return 0;
-	if (!vtype->can_decode(list[i+1])) return 0;
+	if (!ktype->can_decode(a->pdata[i])) return 0;
+	if (!vtype->can_decode(a->pdata[i+1])) return 0;
     }
 
     return 1;
@@ -82,4 +82,12 @@ int(0..1) can_encode(mixed a) {
     }
 
     return 1;
+}
+
+string _sprintf(int c) {
+    if (c == 'O') {
+	return sprintf("Mapping(%O : %O)", ktype, vtype);
+    }
+
+    return "";
 }

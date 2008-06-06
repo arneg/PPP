@@ -7,7 +7,7 @@ void create() {
 int decode(Serialization.Atom a) {
     if (can_decode(a)) {
 	int i;
-	if (1 == sscanf("%d", a->data, i)) {
+	if (1 == sscanf(a->data, "%d", i)) {
 	    return i; 
 	}
     }
@@ -17,7 +17,7 @@ int decode(Serialization.Atom a) {
 
 Serialization.Atom encode(int i) {
     if (intp(i)) {
-	object a = Serialization.Atom("_uniform", (string)i);
+	object a = Serialization.Atom("_integer", (string)i);
 	a->parsed = 1;
 	a->pdata = i;
 
@@ -29,4 +29,8 @@ Serialization.Atom encode(int i) {
 
 int(0..1) can_encode(mixed a) {
     return intp(a);
+}
+
+string _sprintf(int c) {
+    return "Int()";
 }

@@ -12,4 +12,6 @@ int (0..1) low_can_encode(mixed a) {
     return 0;
 }
 
-function can_decode = low_can_decode;
+int(0..1) can_decode(Serialization.Atom a) {
+    return low_can_decode(a);
+}
