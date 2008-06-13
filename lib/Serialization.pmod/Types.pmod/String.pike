@@ -29,5 +29,5 @@ string _sprintf(int c) {
 	return "String()";
     }
 
-    return "";
+    return 0;
 }

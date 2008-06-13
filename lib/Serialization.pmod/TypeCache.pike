@@ -17,7 +17,7 @@ string _sprintf(int c) {
 	return sprintf("TypeCache(%O)\n", m);
     }
 
-    return "";
+    return 0;
 }
 
 // []= should not be used..!

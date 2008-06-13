@@ -248,5 +248,5 @@ string _sprintf(int c) {
 	return sprintf("Vars(%O, %O)", hash, ohash);
     }
 
-    return "";
+    return 0;
 }

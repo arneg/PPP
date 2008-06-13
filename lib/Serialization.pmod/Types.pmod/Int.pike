@@ -32,5 +32,9 @@ int(0..1) can_encode(mixed a) {
 }
 
 string _sprintf(int c) {
-    return "Int()";
+    if (c == 'O') {
+	return "Int()";
+    }
+
+    return 0;
 }

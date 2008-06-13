@@ -90,5 +90,5 @@ string _sprintf(int c) {
 	return sprintf("AbbrevHash(%O)", m);
     }
 
-    return "";
+    return 0;
 }

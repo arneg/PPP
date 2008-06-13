@@ -81,5 +81,5 @@ string _sprintf(int c) {
 	return sprintf("List(%O)", type);
     }
 
-    return "";
+    return 0;
 }

@@ -89,5 +89,5 @@ string _sprintf(int c) {
 	return sprintf("Mapping(%O : %O)", ktype, vtype);
     }
 
-    return "";
+    return 0;
 }

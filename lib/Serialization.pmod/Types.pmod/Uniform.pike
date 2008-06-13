@@ -37,5 +37,5 @@ string _sprintf(int c) {
 	return "Uniform()";
     }
 
-    return "";
+    return 0;
 }

@@ -61,5 +61,5 @@ string _sprintf(int c) {
 	return "(" + sprintf("%O", types[*]) * " || " + ")";
     } 
     
-    return "";
+    return 0;
 }

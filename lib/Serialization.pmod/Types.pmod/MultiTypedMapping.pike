@@ -146,5 +146,5 @@ string _sprintf(int c) {
 	return sprintf("Mapping(%O)", mkmapping(ktypes, vtypes));
     }
 
-    return "";
+    return 0;
 }
