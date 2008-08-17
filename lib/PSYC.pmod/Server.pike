@@ -365,7 +365,7 @@ MMP.Uniform get_uniform(string unl) {
 MMP.Uniform atom_decode_uniform(Serialization.Atom a, int|program ptype, object reactor) {
     MMP.Uniform uni;
     if (ptype != MMP.Uniform) return 0;
-    if (mixed err = catch {uni = get_uniform(a->data)}) {
+    if (mixed err = catch {uni = get_uniform(a->data);}) {
 	return 0;
     }
 
