@@ -81,7 +81,8 @@ mixed _transform(string key, mixed value) {
 }
 
 void _reinit() {
-    packet = .Packet(0, copy_value(variable_state));
+    werror("%O\n", MMP.Packet);
+    packet = MMP.Packet(0, copy_value(variable_state));
 
     state = STATE_HEADER;
     _length = UNDEFINED;
