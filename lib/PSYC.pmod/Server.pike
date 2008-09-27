@@ -234,9 +234,11 @@ void create(mapping(string:mixed) config) {
 			  ([ "_implementation" : "PPP" ]),
 			  "You got connected to [_source].");
     MMP.Uniform t = get_uniform("psyc://" + def_localhost);
+    werror("%O\n", t);
     t->islocal = 1;
     root = create_local(params + ([ "uniform" : t ]));
     t->handler = root;
+    werror("%O\n", root);
     debug("local_objects", 8, "created a new PSYC.Server(%s) with root object %O.\n", root->uni, root);
     // not good for nonstandard port?
 }

@@ -33,7 +33,7 @@ void handle(string name, mixed ... args) {
 }
 
 void add_handlers(object ... h) { 
-    debug("handler_management", 3, "add_handler(%O) in %O\n", h, this);
+    debug("handler_management", 5, "add_handler(%O) in %O\n", h, this);
     foreach (h;; object handler) {
 	mapping temp = handler->_;
 

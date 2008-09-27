@@ -178,7 +178,7 @@ class Session {
 
 	params += ([
 	    "uniform" : client->uni,
-	    "sendmmp" : client->sendmmp,
+	    "sendmmp" : client->client_sendmmp,
 	    "parent" : client,
 		   ]);
 

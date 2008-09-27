@@ -20,6 +20,50 @@ void fatal(string cl, string format, mixed ... args) {
 # define THROW(s)        throw(({ (s), 0 }))
 #endif
 
+//! @returns
+//!	@int
+//!	    @value 0
+//!		@expr{var@} is not an MMP variable.
+//!	    @value 1
+//!		@expr{var@} is an MMP variable that should be seen
+//!		by the application layer.
+//!	    @value 2
+//!		@expr{var@} is an MMP variable that should be used
+//!		by the routing layer of your program only.
+//!	@endint
+//! @seealso
+//!	For a description of MMP variables see @[http://psyc.pages.de/mmp.html].
+int(0..2) is_mmpvar(string var) {
+    switch (var) {
+    case "_target":
+    case "_target_relay":
+    case "_source":
+    case "_source_relay":
+    case "_source_location":
+    case "_source_identification":
+    case "_context":
+    case "_length":
+    case "_counter":
+    case "_reply":
+    case "_trace":
+    case "_amount_fragments":
+    case "_fragment":
+	return 1;
+    case "_encoding":
+    case "_list_require_modules":
+    case "_list_require_encoding":
+    case "_list_require_protocols":
+    case "_list_using_protocols":
+    case "_list_using_modules":
+    case "_list_understand_protocols":
+    case "_list_understand_modules":
+    case "_list_understand_encoding":
+	return 2;
+    }
+    return 0;
+}
+
+
 //! Implementation of Uniform (similar to UNLs) as described in
 //! @[http://about.psyc.eu/Uniform].
 //! 
@@ -450,7 +494,7 @@ class Packet {
 	    return vars[id];
 	}
 
-	if (!is_mmpvar(id) && objectp(data)) {
+	if (!MMP.is_mmpvar(id) && objectp(data)) {
 	    P3(("MMP.Packet", "Accessing non-mmp variable (%s) in an mmp-packet.\n", id))
 	    return data[id];
 	}
@@ -466,7 +510,7 @@ class Packet {
     //!	    does not contain an object.
     mixed `[]=(string id, mixed val) {
 
-	if (is_mmpvar(id)) {
+	if (MMP.is_mmpvar(id)) {
 	    return vars[id] = val;
 	}
 	
@@ -586,49 +630,6 @@ class Packet {
 // 0
 // 1 means yes and merge it into psyc
 // 2 means yes but do not merge
-
-//! @returns
-//!	@int
-//!	    @value 0
-//!		@expr{var@} is not an MMP variable.
-//!	    @value 1
-//!		@expr{var@} is an MMP variable that should be seen
-//!		by the application layer.
-//!	    @value 2
-//!		@expr{var@} is an MMP variable that should be used
-//!		by the routing layer of your program only.
-//!	@endint
-//! @seealso
-//!	For a description of MMP variables see @[http://psyc.pages.de/mmp.html].
-int(0..2) is_mmpvar(string var) {
-    switch (var) {
-    case "_target":
-    case "_target_relay":
-    case "_source":
-    case "_source_relay":
-    case "_source_location":
-    case "_source_identification":
-    case "_context":
-    case "_length":
-    case "_counter":
-    case "_reply":
-    case "_trace":
-    case "_amount_fragments":
-    case "_fragment":
-	return 1;
-    case "_encoding":
-    case "_list_require_modules":
-    case "_list_require_encoding":
-    case "_list_require_protocols":
-    case "_list_using_protocols":
-    case "_list_using_modules":
-    case "_list_understand_protocols":
-    case "_list_understand_modules":
-    case "_list_understand_encoding":
-	return 2;
-    }
-    return 0;
-}
 
 //! Implementation of MMP Circuits as described nowhere really.
 class Circuit {

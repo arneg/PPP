@@ -13,7 +13,11 @@ XMPP.S2S.ServerManager bumms;
 # ifdef LOCALHOST
 #  define HOSTNAME	LOCALHOST
 # else
-#  define HOSTNAME	"localhost"
+#  ifdef BIND
+#   define HOSTNAME	BIND
+#  else
+#   define HOSTNAME	"localhost" 
+#  endif
 # endif
 #endif
 #ifndef LOCALHOST // for XMPP
