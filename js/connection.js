@@ -6,8 +6,47 @@ if( typeof XMLHttpRequest == "undefined" ) XMLHttpRequest = function() {
   throw new Error( "This browser does not support XMLHttpRequest." )
 };
 psyc = new Object();
-psyc.render_atom = function() {
-    return this.type + " " + String(this.data.length) + " " + this.data;
+psyc.Uniform = function(str) {
+    if (str.substr(0,7) != "psyc://") {
+	throw("Invalid uniform: " + str);	
+    }
+    this.uniform = str;
+
+    str = str.slice(7);
+
+    var pos = str.indexOf("/");
+
+    if (pos == -1) { // root
+	this.host = str;
+	this.is_user = function() { return 0; }
+	this.is_room = function() { return 0; }
+    } else {
+	this.host = str.substr(0, pos);
+	str = str.slice(pos+1);
+
+	this.object = str;
+	this.type = str.charCodeAt(0);
+	if (this.type == 126) {
+	    this.is_user = function() { return 1; }
+	    this.is_room = function() { return 0; }
+	} else if (this.type == 64) {
+	    this.is_user = function() { return 0; }
+	    this.is_room = function() { return 1; }
+
+	} else {
+	    throw("Invalid uniform: " + this.str);
+	}
+
+	pos = str.indexOf("#");
+
+	if (pos != -1) {
+	    this.base = str.substr(0, pos);
+	    this.channel = str.substr(pos+1, str.length-pos-1);
+	} else {
+	    this.base = this.object;
+	}
+    }
+
 };
 psyc.atom_parser = function() {
     this.buffer = "";
@@ -68,10 +107,10 @@ psyc.atom_parser = function() {
 	var a;
 
 	if (this.length == this.buffer.length) {
-	    a = new psyc.atom(this.type, this.buffer);
+	    a = new psyc.Atom(this.type, this.buffer);
 	    this.buffer = "";
 	} else {
-	    a = new psyc.atom(this.type, this.buffer.substr(0,this.length));
+	    a = new psyc.Atom(this.type, this.buffer.substr(0,this.length));
 	    this.buffer = this.buffer.slice(this.length);
 	}
 	this.reset();
@@ -80,10 +119,49 @@ psyc.atom_parser = function() {
     };
     
 };
-psyc.atom = function(type, data) {
+psyc.Atom = function(type, data) {
     this.type = type;
     this.data = data;
-    this.render = psyc.render_atom;
+    this.render = function() {
+	return this.type + " " + String(this.data.length) + " " + this.data;
+    };
+};
+psyc.Packet = function(mc, data, vars) {
+    this.mc = mc;
+    this.data = data;
+    this.vars = vars;
+};
+psyc.Mapping = function(list) {
+    
+};
+psyc.atom_to_object = function(atom) {
+    switch (atom.type) {
+    case "_string":
+	return atom.data;
+    case "_integer":
+	return parseInt(atom.data);
+    case "_float":
+	return parseFloat(atom.data);
+    case "_list":
+	var p = new psyc.atom_parser();
+	var l = p.parse(atom.data);
+	var i = 0;
+	while (i < l.length) {
+	    l[i] = psyc.atom_to_object(l[i]);
+	    i++;
+	}
+
+	return l;
+    case "_mapping":
+	var p = new psyc.atom_parser();
+	var l = p.parse(atom.data);
+	var i = 0;
+	while (i < l.length) {
+	    l[i] = psyc.atom_to_object(l[i]);
+	    i++;
+	}
+	return l;
+    }
 };
 psyc.connection = function(url, callback, error) {
     this.url = url;
@@ -115,6 +193,7 @@ psyc.connection = function(url, callback, error) {
 	this.xhr.open("POST", this.url, true);
     };
     this.send = function(data) {
+	// check for status
 	this.xhr.send(data);   
     };
 };
