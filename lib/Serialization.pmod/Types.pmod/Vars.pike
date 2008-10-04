@@ -20,7 +20,7 @@ void create(object str, void|mapping(string:object) mandatory, void|mapping(stri
 
 void low_decode(Serialization.Atom a) {
     if (a->parsed) {
-	return 0;
+	return;
     }
 
     object parser = Serialization.AtomParser();
