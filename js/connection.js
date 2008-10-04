@@ -419,237 +419,33 @@ psyc.Atom = function(type, data) {
 	return this.type + " " + String(this.data.length) + " " + this.data;
     };
 };
-psyc.Packet = function(mc, data, vars) {
+psyc.Packet = function(mc, vars, data) {
     this.mc = mc;
-    this.data = data;
-    this.vars = vars;
-};
-psyc.Mapping = function(list) {
-    
-};
-psyc.atom_to_object = function(atom) {
-    switch (atom.type) {
-    case "_string":
-	return atom.data;
-    case "_integer":
-	return parseInt(atom.data);
-    case "_float":
-	return parseFloat(atom.data);
-    case "_list":
-	var p = new psyc.AtomParser();
-	var l = p.parse(atom.data);
-	var i = 0;
-	while (i < l.length) {
-	    l[i] = psyc.atom_to_object(l[i]);
-	    i++;
-	}
-
-	return l;
-    case "_uniform":
-	return new psyc.Uniform(atom.data);
-    }
-};
-psyc.Connection = function(url, callback, error) {
-    this.url = url;
-    this.buffer = "";
-    this.schmu = "sdfsdf";
-    this.callback = callback;
-    this.error = error;
-    this.reconnect = function() {
-
-	if (this.xhr) {
-	    this.xhr.connection = 0;
-	}
-	var xhr = new XMLHttpRequest();
-	this.xhr = xhr;
-	xhr.connection = this;
-
-	if (this.client_id) {
-	    xhr.onreadystatechange = function () {
-		if (xhr.readyState == 4) {
-
-		    if (xhr.status == 200) {
-			xhr.connection.callback(xhr.responseBody);
-			xhr.connection.reconnect();
-		    } else {
-			xhr.connection.error(xhr.statusText);
-		    }
-		} else {
-		    xhr.connection.error("on the way: " + xhr.readyState);
-		    //console.debug("not yet in readyState 4\n");
-		}
-	    };
-
-	    xhr.open("POST", this.url + "?" + this.client_id, true);
-	} else {
-	    xhr.onreadystatechange = function () {
-		if (xhr.readyState == 4) {
-
-		    if (xhr.status == 200) {
-			xhr.connection.client_id = xhr.responseText;
-			alert(xhr.responseText);
-			if (xhr.connection.buffer.length) {
-			    xhr.send(xhr.connection.buffer);
-			    xhr.connection.buffer = "";
-			}
-//			setTimeout(xhr.connection.reconnect, 0);
-			xhr.connection.reconnect();
-		    } else {
-			xhr.connection.error(xhr.statusText);
-		    }
-		} else {
-		    xhr.connection.error("on the way: " + xhr.readyState);
-		    //console.debug("not yet in readyState 4\n");
-		}
-	    };
-	    xhr.open("GET", this.url, true);
-	    xhr.send("");
-	}
-    };
-    this.send = function(data) {
-	// check for status
-	if (this.client_id) {
-	    this.xhr.send(data);   
-	} else {
-	    this.buffer += data;
-	}
-    };
-};
-if( typeof XMLHttpRequest == "undefined" ) XMLHttpRequest = function() {
-  try { return new ActiveXObject("Msxml2.XMLHTTP.6.0") } catch(e) {}
-  try { return new ActiveXObject("Msxml2.XMLHTTP.3.0") } catch(e) {}
-  try { return new ActiveXObject("Msxml2.XMLHTTP") } catch(e) {}
-  try { return new ActiveXObject("Microsoft.XMLHTTP") } catch(e) {}
-  throw new Error( "This browser does not support XMLHttpRequest." )
-};
-psyc = new Object();
-psyc.Uniform = function(str) {
-    if (str.substr(0,7) != "psyc://") {
-	throw("Invalid uniform: " + str);	
-    }
-    this.uniform = str;
-
-    str = str.slice(7);
-
-    var pos = str.indexOf("/");
-
-    if (pos == -1) { // root
-	this.host = str;
-	this.is_user = function() { return 0; }
-	this.is_room = function() { return 0; }
+    if (vars) {
+	this.vars = vars;
     } else {
-	this.host = str.substr(0, pos);
-	str = str.slice(pos+1);
-
-	this.object = str;
-	this.type = str.charCodeAt(0);
-	if (this.type == 126) {
-	    this.is_user = function() { return 1; }
-	    this.is_room = function() { return 0; }
-	} else if (this.type == 64) {
-	    this.is_user = function() { return 0; }
-	    this.is_room = function() { return 1; }
-
-	} else {
-	    throw("Invalid uniform: " + this.str);
-	}
-
-	pos = str.indexOf("#");
-
-	if (pos != -1) {
-	    this.base = str.substr(0, pos);
-	    this.channel = str.substr(pos+1, str.length-pos-1);
-	} else {
-	    this.base = this.object;
-	}
+	this.vars = new Object();
     }
 
+    if (data) {
+	this.data = data;
+    } else {
+	this.data = "";
+    }
 };
-psyc.AtomParser = function() {
-    this.buffer = "";
-    this.reset = function() {
-	this.type = 0;
-	this.length = -1;
-    };
-    this.reset();
-    this.parse = function(str) {
-	this.buffer += str;
+psyc.array_to_mapping = function(list) {
+    var a = new Array();
+    if (list.length & 1) {
+	throw("cannot create mapping from array with odd length.");
+    }
+    for (var i = 0; i < list.length; i+=2) {
+	a[l[i]] = l[i+1];
+    }
 
-	var ret = new Array();
-	var t = 0;
-	while (t = this._parse()) {
-	    ret.push(t);
-	}
-	return ret;
-    };
-    this._parse = function() {
-	if (!this.type) {
-	    var pos = this.buffer.indexOf(" ");
+    a.mapping = 1;
+    a.length = list.length / 2;
 
-	    if (pos == -1) {
-		// check here for bogus data
-//		if (re[0].search(/(_\w+)+/) != 0) {
-//		    throw("bad atom\n");
-//		}
-		return 0;
-	    } else if (pos < 2) {
-		throw("bad atom.");
-	    }
-
-	    this.type = this.buffer.substr(0, pos);
-	    this.buffer = this.buffer.slice(pos+1);
-	}
-
-	if (this.length == -1) {
-	    var pos = this.buffer.indexOf(" ");
-
-	    if (pos == -1) {
-		return 0;
-	    } else if (pos == 0) {
-		throw("bad atom.");
-	    }
-
-	    this.length = parseInt(this.buffer.substr(0, pos));
-	    if (this.length < 0 || this.length.toString() != this.buffer.substr(0, pos)) {
-		throw("bad length in atom.\n");
-	    }
-	    this.buffer = this.buffer.slice(pos+1);
-	}
-
-	if (this.length > this.buffer.length) {
-	    // add a sanity check. we do not want superlarge data strings, i guess
-	    return 0;
-	}
-
-	var a;
-
-	if (this.length == this.buffer.length) {
-	    a = new psyc.Atom(this.type, this.buffer);
-	    this.buffer = "";
-	} else {
-	    a = new psyc.Atom(this.type, this.buffer.substr(0,this.length));
-	    this.buffer = this.buffer.slice(this.length);
-	}
-	this.reset();
-	
-	return a;
-    };
-    
-};
-psyc.Atom = function(type, data) {
-    this.type = type;
-    this.data = data;
-    this.render = function() {
-	return this.type + " " + String(this.data.length) + " " + this.data;
-    };
-};
-psyc.Packet = function(mc, data, vars) {
-    this.mc = mc;
-    this.data = data;
-    this.vars = vars;
-};
-psyc.Mapping = function(list) {
-    
+    return a;
 };
 psyc.atom_to_object = function(atom) {
     switch (atom.type) {
@@ -659,7 +455,7 @@ psyc.atom_to_object = function(atom) {
 	return parseInt(atom.data);
     case "_float":
 	return parseFloat(atom.data);
-    case "_list":
+    case "_list": do {
 	var p = new psyc.AtomParser();
 	var l = p.parse(atom.data);
 	var i = 0;
@@ -669,6 +465,40 @@ psyc.atom_to_object = function(atom) {
 	}
 
 	return l;
+    } while (0);
+    case "_mapping": do {
+	var p = new psyc.AtomParser();
+	var l = p.parse(atom.data);
+	var i = 0;
+	while (i < l.length) {
+	    l[i] = psyc.atom_to_object(l[i]);
+	    i++;
+	}
+
+	return psyc.array_to_mapping(l);
+    } while (0);
+    case "_psyc_packet": do {
+	var p = new psyc.AtomParser();
+	var l = p.parse(atom.data);
+	var mc = l[0].data;
+	var data;
+	var vars;
+
+	if (l.length == 3) {
+	    vars = psyc.atom_to_object(l[1]);		
+	    data = l[1].data; // we assume its a string.
+	} else if (l.length == 2) {
+	    if (l[1].type.substr(0, 8) == "_mapping") { // its teh vars
+		vars = psyc.atom_to_object(l[1]);		
+	    } else {
+		data = l[1].data;	
+	    }
+	} else if (l.length != 1) {
+	    throw("bad _psyc_packet"); 
+	}
+
+	return new psyc.Packet(mc, vars, data);
+    } while (0);
     case "_uniform":
 	return new psyc.Uniform(atom.data);
     }
@@ -676,66 +506,120 @@ psyc.atom_to_object = function(atom) {
 psyc.Connection = function(url, callback, error) {
     this.url = url;
     this.buffer = "";
-    this.schmu = "sdfsdf";
     this.callback = callback;
     this.error = error;
-    this.reconnect = function() {
+    this.connect_incoming = function() {
 
-	if (this.xhr) {
-	    this.xhr.connection = 0;
+	if (this.incoming) {
+	    this.incoming.connection = 0;
+	    try { this.incoming.abort(); } catch (e) {}
 	}
 	var xhr = new XMLHttpRequest();
-	this.xhr = xhr;
+	this.incoming = xhr;
+	xhr.connection = this;
+	xhr.pos = 0;
+
+	xhr.onreadystatechange = function () {
+	    var t = xhr;
+	    if (xhr.readyState >= 3) {
+		//xhr.readyState = 2;
+
+		if (xhr.status == 200) {
+		    if (xhr.responseText.length <= xhr.pos) return;
+
+		    if (xhr.pos) {
+			xhr.connection.callback(xhr.responseText.slice(xhr.pos));
+		    } else {
+			xhr.connection.callback(xhr.responseText);
+		    }
+		    
+		    if (xhr.readyState == 4) {
+			xhr.connection.connect_incoming();
+		    } else {
+			xhr.pos = xhr.responseText.length;
+		    }
+		} else {
+		    xhr.connection.error(xhr.statusText);
+		}
+	    } else {
+		xhr.connection.error("on the way: " + xhr.readyState);
+	    }
+	};
+
+	xhr.open("POST", this.url + "?" + this.client_id, true);
+	xhr.send("");
+    };
+    this.connect_outgoing = function() {
+	if (this.outgoing) {
+	    this.outgoing.connection = 0;
+	}
+	var xhr = new XMLHttpRequest();
+	this.outgoing = xhr;
 	xhr.connection = this;
 
-	if (this.client_id) {
-	    xhr.onreadystatechange = function () {
-		if (xhr.readyState == 4) {
+	xhr.onreadystatechange = function () {
+	    if (xhr.readyState == 4) {
 
-		    if (xhr.status == 200) {
-			xhr.connection.callback(xhr.responseBody);
-			xhr.connection.reconnect();
-		    } else {
-			xhr.connection.error(xhr.statusText);
-		    }
+		if (xhr.status == 200) {
+		    
+		    xhr.connection.connect_outgoing();
 		} else {
-		    xhr.connection.error("on the way: " + xhr.readyState);
-		    //console.debug("not yet in readyState 4\n");
+		    xhr.connection.error(xhr.statusText);
 		}
-	    };
+	    } else {
+		xhr.connection.error("on the way: " + xhr.readyState);
+	    }
+	};
+	
+	xhr.open("POST", this.url + "?" + this.client_id, true);
+	this.ready = 1;
+    };
+    this.init = function() { // fetch the client_id and go
+	var xhr = new XMLHttpRequest();
+	this.init_xhr = xhr;
+	xhr.connection = this;
 
-	    xhr.open("POST", this.url + "?" + this.client_id, true);
-	} else {
-	    xhr.onreadystatechange = function () {
-		if (xhr.readyState == 4) {
+	xhr.onreadystatechange = function () {
+	    if (xhr.readyState == 4) {
 
-		    if (xhr.status == 200) {
-			xhr.connection.client_id = xhr.responseText;
-			alert(xhr.responseText);
-			if (xhr.connection.buffer.length) {
-			    xhr.send(xhr.connection.buffer);
-			    xhr.connection.buffer = "";
-			}
-//			setTimeout(xhr.connection.reconnect, 0);
-			xhr.connection.reconnect();
-		    } else {
-			xhr.connection.error(xhr.statusText);
-		    }
+		if (xhr.status == 200) {
+		    xhr.connection.client_id = xhr.responseText;
+		    xhr.connection.init_xhr = 0;
+		    xhr.connection.connect_outgoing();
+		    xhr.connection.connect_incoming();
 		} else {
-		    xhr.connection.error("on the way: " + xhr.readyState);
-		    //console.debug("not yet in readyState 4\n");
+		    xhr.connection.error(xhr.statusText);
 		}
-	    };
-	    xhr.open("GET", this.url, true);
-	    xhr.send("");
+	    } else {
+		xhr.connection.error("on the way: " + xhr.readyState);
+		//console.debug("not yet in readyState 4\n");
+	    }
+	};
+	xhr.open("GET", this.url, true);
+	xhr.send("");
+    };
+    this.destruct = function() {
+	for (t in [this.init_xhr, this.incoming, this.outgoing]) {
+	    try {
+		if (t) {
+		    t.connection = 0;
+		    t.abort();
+		}
+	    } catch(e) { }
 	}
+	this.init_xhr = 0;
+	this.incoming = 0;
+	this.outgoing = 0;
+
     };
     this.send = function(data) {
 	// check for status
-	if (this.client_id) {
-	    this.xhr.send(data);   
-	} else {
-	    this.buffer += data;
+	this.buffer += data;
+
+	if (this.client_id && this.ready) {
+	    this.outgoing.send(this.buffer);   
+	    this.ready = 0;
+	    this.buffer = "";
 	}
     };
 };
