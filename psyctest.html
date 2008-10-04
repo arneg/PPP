@@ -23,10 +23,13 @@ function cb(err)
 var con = 0;
 
 function test() {
+    if (con) {
+	con.destruct();
+    }
     con = new psyc.Connection("http://localhost:1080/bayeux", cb, error);
 }
 function start() {
-    con.reconnect();
+    con.init();
 }
 function atom() {
     var p = new psyc.Atom("_string", "dslfjsdkfj");
