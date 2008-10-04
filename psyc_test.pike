@@ -16,6 +16,12 @@ void pr(mixed ... args) {
     werror("pr: %O\n", args);
 }
 
+void respond(object session, Serialization.Atom atom) {
+
+    werror("received atom(%O, %O)\n", atom->type, atom->data);
+    session->send(atom); 
+}
+
 void callback(Server.Request r) {
     werror("type: %O\n", r->request_type);
     werror("query: %O\n", r->full_query);
@@ -40,7 +46,7 @@ void callback(Server.Request r) {
 
 	    werror("gave away client-id: %O\n", s);
 
-	    sessions[s] = PSYC.Meteor.Session(s, pr, pr);
+	    sessions[s] = PSYC.Meteor.Session(s, respond, pr);
 
 	    r->response_and_finish(([ 
 		"data" : s,
