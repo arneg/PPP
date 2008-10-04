@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+    	<title>Dojo Toolkit Test Page</title>    
+    
+        <script src="js/connection.js" type="text/javascript"></script>
+        
+	<script type="text/javascript">
+function append(str) {
+    var node = document.createElement("div");
+    node.innerHTML = str;
+    document.body.appendChild(node);
+}
+function error(err)
+{
+    append("<p>"+err+"</p>");
+}
+function cb(err)
+{
+    append("<p>atom: " + err + "</p><br>");
+}
+
+var con = 0;
+
+function test() {
+    con = new psyc.Connection("http://localhost:1080/bayeux", cb, error);
+}
+function start() {
+    con.reconnect();
+}
+function atom() {
+    var p = new psyc.Atom("_string", "dslfjsdkfj");
+
+    con.send(p.render());
+}
+</script>
+<body>
+
+<button onClick="test()">init</button>
+<button onClick="start()">start</button>
+<button onClick="atom()">atom</button>
+
+</body>
