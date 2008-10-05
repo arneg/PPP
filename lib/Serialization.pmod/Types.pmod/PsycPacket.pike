@@ -98,5 +98,5 @@ string _sprintf(int c) {
 	return sprintf("Serialization.Packet(%O, %O, %O)", method, vars, data);
     }
 
-    error("wrong type in sprintf\n");
+    return 0;
 }

@@ -37,5 +37,5 @@ string _sprintf(int type) {
 	}
     }
 
-    error("wrong type used in sprintf.\n");
+    return 0;
 }

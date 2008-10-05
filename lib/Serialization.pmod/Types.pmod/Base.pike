@@ -21,5 +21,5 @@ string _sprintf(int type) {
 	return sprintf("Serialization.Type(%s)", _type);
     }
 
-    error("bad type in _sprintf()\n");
+    return 0;
 }

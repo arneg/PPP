@@ -37,5 +37,5 @@ string _sprintf(int type) {
 	return "Serialization.AnyAtom()";
     }
 
-    error("bad type in _sprintf()\n");
+    return 0;
 }
