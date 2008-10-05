@@ -83,7 +83,7 @@ object UOr(object type, object ... types) {
     return Or(@sort(({ type }) + types));
 }
 
-object String() {
+object UTF8String() {
     object o;
 
     if (!(o = this->type_cache[Serialization.Types.String][0])) {

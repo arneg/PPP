@@ -18,16 +18,41 @@ object Vars(void|mapping(string:object) m, void|mapping(string:object) m2) {
     }
 
     object mangler = Serialization.Mangler(args);
-    object method, o;
-
-    if (!(method = this->type_cache[String][0])) {
-	method = String();
-	this->type_cache[String][0] = o;
-    }
+    object method = Method(), o;
 
     if (!(o = this->type_cache[Serialization.Types.Vars][mangler])) {
 	o = Serialization.Types.Vars(method, m, m2);
 	this->type_cache[Serialization.Types.Vars][mangler] = o;
+    }
+
+    return o;
+}
+
+object Method(string|void base) {
+    object method;
+    if (!base) base = 0;
+
+    if (!(method = this->type_cache[Serialization.Types.Method][base])) {
+	method = Serialization.Types.Method(base);
+	this->type_cache[Serialization.Types.Method][base] = method;
+    }
+    
+    return method;
+}
+
+object PsycPacket(string base, void|object data, void|mapping m, void|mapping m2) {
+    object method, vars;
+    object o;
+
+    if (m || m2) vars = Vars(m, m2);
+
+    method = Method(base);
+     
+    object mangler = Serialization.Mangler(({ method, data, vars }));
+    
+    if (!(o = this->type_cache[Serialization.Types.PsycPacket][mangler])) {
+	o = Serialization.Types.PsycPacket(method, vars, data);
+	this->type_cache[Serialization.Types.PsycPacket][mangler] = o;
     }
 
     return o;
