@@ -225,7 +225,9 @@ void create(mapping(string:mixed) config) {
 	if (!bind_to) bind_to = ip;
 	p->set_id(p);
     } else if (!bind_to) {
-	 throw(({"You either must specify ports to bind to or at least an ip (\"bind_to\") to bind outgoing connections to.\n"}));
+	if (has_index(config, "bind_to"))
+	    throw(({"'ports' are expected to be an array of ips.\n"}));
+	throw(({"You either must specify ports to bind to or at least an ip (\"bind_to\") to bind outgoing connections to.\n"}));
     }
 
     //set_weak_flag(unlcache, Pike.WEAK_VALUES);
