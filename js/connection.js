@@ -304,6 +304,9 @@ psyc.Uniform = function(str) {
 	throw("Invalid uniform: " + str);	
     }
     this.uniform = str;
+    this.toString = function() {
+	return "psyc.Uniform("+str+")";
+    };
 
     str = str.slice(7);
 
@@ -421,11 +424,21 @@ psyc.Atom = function(type, data) {
 };
 psyc.Packet = function(mc, vars, data) {
     this.mc = mc;
+    this.toString = function() {
+	var ret = "psyc.Packet("+this.mc+", ([ ";
+	for (var i in this.vars) {
+	    if (i.substr(0,1) == "_") 
+		ret += i + " : " + this.vars[i] + ", ";
+	}
+	ret += "]))";
+	return ret;
+    };
     if (vars) {
 	this.vars = vars;
     } else {
-	this.vars = new Object();
+	this.vars = new Array();
     }
+    vars.mapping = 1;
 
     if (data) {
 	this.data = data;
@@ -433,13 +446,24 @@ psyc.Packet = function(mc, vars, data) {
 	this.data = "";
     }
 };
+psyc.mapping_length = function(a) {
+    if (!(a instanceof Array) || !a.mapping) {
+	throw("bad argument to mapping_length()");
+    }
+    var i = 0;
+    for (var t in a) {
+	i++;
+    }
+
+    return i;
+};
 psyc.array_to_mapping = function(list) {
     var a = new Array();
     if (list.length & 1) {
 	throw("cannot create mapping from array with odd length.");
     }
     for (var i = 0; i < list.length; i+=2) {
-	a[l[i]] = l[i+1];
+	a[list[i]] = list[i+1];
     }
 
     a.mapping = 1;
@@ -447,10 +471,48 @@ psyc.array_to_mapping = function(list) {
 
     return a;
 };
+psyc.object_to_atom = function(o) {
+    switch (typeof(o)) {
+    case "string":
+	return new psyc.Atom("_string", unescape(encodeURIComponent(o)));
+    case "number":
+	if (o % 1 == 0) {
+	    return new psyc.Atom("_integer", o.toString());
+	} else {
+	    return new psyc.Atom("_float", o.toString());
+	}
+    case "object":
+	if (o instanceof psyc.Packet) {
+	    var vars, data, mc;
+	    if (psyc.mapping_length(o.vars)) {
+			
+	    }
+	} else if (o instanceof psyc.Uniform) {
+	    return new psyc.Atom("_uniform", o.str);
+	} else if (o instanceof Array) {
+	    if (o.mapping) {
+		var str;
+		for (var i in o) {
+		    str += i.render();
+		    str += o[i].render();
+		}
+		return new psyc.Atom("_mapping", str);
+	    } else {
+		var str;
+		for (var i in o) {
+		    str += o[i].render();
+		}
+		return new psyc.Atom("_list", str);
+	    }
+	}
+    }
+};
 psyc.atom_to_object = function(atom) {
     switch (atom.type) {
-    case "_string":
+    case "_method":
 	return atom.data;
+    case "_string":
+	return decodeURIComponent(escape(atom.data));
     case "_integer":
 	return parseInt(atom.data);
     case "_float":

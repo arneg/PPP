@@ -17,10 +17,17 @@ function error(err)
 }
 function cb(err)
 {
-    append("<p>atom: " + err + "</p><br>");
+
+    var list = parser.parse(err);
+
+    for (var i in list) {
+	var o = psyc.atom_to_object(list[i]);
+	append("<p>atom: " + o + "</p><br>");
+    }
 }
 
 var con = 0;
+var parser = new psyc.AtomParser();
 
 function test() {
     if (con) {
