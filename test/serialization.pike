@@ -5,16 +5,20 @@ class Test {
     inherit Serialization.BasicTypes;
     inherit Serialization.PsycTypes;
 
-    object m, p;
+    object m, p, pp;
 
     void init() {
 
-	m = Mapping(String(), Or(Int(), List(Or(String(), List(Int())))));
+	m = Mapping(
+		UTF8String(), Or(Int(), 
+			     List( Or(UTF8String(), List(Int())) )
+				 )
+		    );
 
 	p = Vars(([
-	    "_nick" : String(),
+	    "_nick" : UTF8String(),
 	    "_amount" : Int(),
-	    "_members" : List(String()),
+	    "_members" : List(UTF8String()),
 		  ]));
 
     }
@@ -54,6 +58,16 @@ class Test {
 	    return 1;
 	}
     }
+
+    int test3() {
+	object p = PSYC.Packet("_message_public", ([ "_nick" : "example" ]), "hello you sucker!");
+	pp = PsycPacket("_message", UTF8String());
+
+	Atom t = pp->encode(p);
+	werror("packet: %O\n", t->data);
+
+	return 0;
+    }
 }
 
 
@@ -66,4 +80,5 @@ int main() {
     werror("cache: %O\n", cache);
     werror("test1: %O\n", o->test1());
     werror("test2: %O\n", o->test2());
+    werror("test2: %O\n", o->test3());
 }
