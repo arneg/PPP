@@ -3,7 +3,7 @@ inherit .Base;
 object method, vars, data;
 int length = 1;
 
-void create(object method, void|object data, void|object vars) {
+void create(object method, void|object vars, void|object data) {
     ::create("_psyc_packet"); 
 
     this_program::method = method;
@@ -58,10 +58,10 @@ PSYC.Packet decode(Serialization.Atom a) {
 }
 
 Serialization.Atom encode(PSYC.Packet p) {
-    if (!can_encode(p)) return 0;
+    if (!can_encode(p)) error("%O cannot encode packet %O\n", this, p);
 
     String.Buffer buf = String.Buffer();
-     Serialization.render_atom(methode->encode(p->mc), buf);
+     Serialization.render_atom(method->encode(p->mc), buf);
      if (vars) {
 	 Serialization.render_atom(vars->encode(p->vars), buf);
      }
@@ -77,6 +77,7 @@ int(0..1) can_decode(Serialization.Atom a) {
 
     if (!a->parsed) low_decode(a);
 
+    array t = a->pdata;
     int i = 1;
     return (method->can_decode(t[0]) && (!vars || vars->can_decode(t[i++])) && (!data || data->can_decode(t[i])));
 }
@@ -89,7 +90,7 @@ int(0..1) can_encode(object p) {
     if (!low_can_encode(p)) return 0;
 
     // TODO: this is not quite right.
-    return (method->can_encode(p->mc) && ((!data && !sizeof(p->data)) || data->can_encode(p->data) && ((!vars && !sizeof(p->vars)) || vars->can_encode(p->vars));
+    return (method->can_encode(p->mc) && ((!data && !sizeof(p->data)) || (data && data->can_encode(p->data))) && ((!vars && !sizeof(p->vars)) || (vars && vars->can_encode(p->vars))));
 }
 
 string _sprintf(int c) {
@@ -97,5 +98,5 @@ string _sprintf(int c) {
 	return sprintf("Serialization.Packet(%O, %O, %O)", method, vars, data);
     }
 
-    return error("wrong type in sprintf\n");
+    error("wrong type in sprintf\n");
 }
