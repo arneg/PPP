@@ -474,7 +474,7 @@ psyc.array_to_mapping = function(list) {
 psyc.object_to_atom = function(o) {
     switch (typeof(o)) {
     case "string":
-	return new psyc.Atom("_string", unescape(encodeURIComponent(o)));
+	return new psyc.Atom("_string", UTF8.encode(o));
     case "number":
 	if (o % 1 == 0) {
 	    return new psyc.Atom("_integer", o.toString());
@@ -512,7 +512,7 @@ psyc.atom_to_object = function(atom) {
     case "_method":
 	return atom.data;
     case "_string":
-	return decodeURIComponent(escape(atom.data));
+	return UTF8.decode(atom.data);
     case "_integer":
 	return parseInt(atom.data);
     case "_float":
@@ -565,24 +565,65 @@ psyc.atom_to_object = function(atom) {
 	return new psyc.Uniform(atom.data);
     }
 };
+psyc.BUFFER_MAX = 1 << 16; // limit for incoming buffer, exceeding this buffer triggers a reconnect
 psyc.Connection = function(url, callback, error) {
     this.url = url;
     this.buffer = "";
     this.callback = callback;
     this.error = error;
-    this.connect_incoming = function() {
+    this.connect_new_incoming = function() {
+
+	if (this.new_incoming) {
+	    // we already have one new incoming and are waiting for the
+	    // main one to shut down
+
+	    if (this.new_incoming.readyState == 4) {
+		// someone is too fast for us.	
+		// TODO: we have to check for data in new_incoming,
+		// not sure what to do with it. we can probably savely
+		// parse it in case of atoms.
+	    } else return this.connect_incoming();
+	}
+
+	time.start("new");
+	var xhr = new XMLHttpRequest();
+	this.new_incoming = xhr;
+	xhr.connection = this;
+	xhr.pos = 0;
+		
+	xhr.onreadystatechange = function () {
+	    var t = xhr;
+	    var con = xhr.connection;
+	    //xhr.connection.error("new_incoming state is " + xhr.readyState);
+	    // we should check here for buffer length. maybe set a max
+	    // amount to shut down the main one ungracefully
+	    if (xhr.readyState >= 3) {
+		xhr.connection.connect_incoming();
+	    }
+	};
+
+	xhr.open("POST", this.url + "?" + this.client_id, true);
+	xhr.send("");
+    };
+    this.connect_incoming = function(xhr) {
+
+	if (!xhr) {
+	    if (this.new_incoming) {
+		xhr = this.new_incoming;
+	    } else throw("you need to call new_incoming() first. no this.new_incoming.");
+	}
 
 	if (this.incoming) {
+	    if (this.incoming.readyState != 4) {
+		return;
+	    }
+
 	    this.incoming.connection = 0;
 	    try { this.incoming.abort(); } catch (e) {}
 	}
-	var xhr = new XMLHttpRequest();
-	this.incoming = xhr;
-	xhr.connection = this;
-	xhr.pos = 0;
-
 	xhr.onreadystatechange = function () {
 	    var t = xhr;
+	    //xhr.connection.error("incoming state is " + xhr.readyState);
 	    if (xhr.readyState >= 3) {
 		//xhr.readyState = 2;
 
@@ -594,22 +635,25 @@ psyc.Connection = function(url, callback, error) {
 		    } else {
 			xhr.connection.callback(xhr.responseText);
 		    }
-		    
-		    if (xhr.readyState == 4) {
-			xhr.connection.connect_incoming();
-		    } else {
-			xhr.pos = xhr.responseText.length;
+
+		    xhr.pos = xhr.responseText.length;
+
+		    if (xhr.readyState == 4 || xhr.pos >= psyc.BUFFER_MAX) {
+			xhr.connection.connect_new_incoming();
 		    }
 		} else {
 		    xhr.connection.error(xhr.statusText);
 		}
-	    } else {
-		xhr.connection.error("on the way: " + xhr.readyState);
 	    }
 	};
 
-	xhr.open("POST", this.url + "?" + this.client_id, true);
-	xhr.send("");
+	this.new_incoming = 0;
+	time.stop("new");
+	time.report("new");
+	this.incoming = xhr;
+	xhr.onerror = function() {
+	    xhr.connection.connect_new_incoming();
+	};
     };
     this.connect_outgoing = function() {
 	if (this.outgoing) {
@@ -618,6 +662,7 @@ psyc.Connection = function(url, callback, error) {
 	var xhr = new XMLHttpRequest();
 	this.outgoing = xhr;
 	xhr.connection = this;
+	//xhr.connection.error("outgoing state is " + xhr.readyState);
 
 	xhr.onreadystatechange = function () {
 	    if (xhr.readyState == 4) {
@@ -628,8 +673,6 @@ psyc.Connection = function(url, callback, error) {
 		} else {
 		    xhr.connection.error(xhr.statusText);
 		}
-	    } else {
-		xhr.connection.error("on the way: " + xhr.readyState);
 	    }
 	};
 	
@@ -640,6 +683,7 @@ psyc.Connection = function(url, callback, error) {
 	var xhr = new XMLHttpRequest();
 	this.init_xhr = xhr;
 	xhr.connection = this;
+	//xhr.connection.error("initialization state is " + xhr.readyState);
 
 	xhr.onreadystatechange = function () {
 	    if (xhr.readyState == 4) {
@@ -648,12 +692,10 @@ psyc.Connection = function(url, callback, error) {
 		    xhr.connection.client_id = xhr.responseText;
 		    xhr.connection.init_xhr = 0;
 		    xhr.connection.connect_outgoing();
-		    xhr.connection.connect_incoming();
+		    xhr.connection.connect_new_incoming();
 		} else {
 		    xhr.connection.error(xhr.statusText);
 		}
-	    } else {
-		xhr.connection.error("on the way: " + xhr.readyState);
 		//console.debug("not yet in readyState 4\n");
 	    }
 	};
