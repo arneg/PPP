@@ -16,20 +16,12 @@ string out_buffer;
 int out_pos, write_ready;
 int the_end = 0;
 
-void muh() {
-    if (!connection) return;
-    PSYC.Packet p = PSYC.Packet("_message_public", ([ "_nick" : "hanswurst"+String.int2char(0x011111), "_huhu" : "flupp" ]), "you sucker!");
-    send(packet->encode(p));
-    call_out(muh, 2);
-};
-
-void create(string client_id, function cb, function error) {
+void create(string client_id, void|function cb, void|function error) {
     this_program::client_id = client_id;
     this_program::cb = cb;
     this_program::error = error;
 
     ::create(Serialization.TypeCache());
-    packet  = PsycPacket("_message", UTF8String(), ([ "_nick" : UTF8String() ]), ([ "_huhu" : UTF8String() ]));
 }
 
 void register_new() {
@@ -47,9 +39,6 @@ void register_new() {
     connection->set_write_callback(_write);
     connection->write(headers); // fire and forget
 
-
-    //remove_call_out(muh);
-    call_out(muh, 2);
 
     new_request = 0;
     _write();
@@ -83,7 +72,7 @@ void handle(object request) {
 	    Serialization.Atom a;
 	    mixed err = catch {
 		while (a = parser->parse()) {
-		    call_out(cb, 0, this, a);
+		    call_out(cb, 0, a, this);
 		}
 	    };
 
