@@ -299,6 +299,7 @@ if( typeof XMLHttpRequest == "undefined" ) XMLHttpRequest = function() {
   throw new Error( "This browser does not support XMLHttpRequest." )
 };
 psyc = new Object();
+meteor = new Object();
 psyc.Uniform = function(str) {
     if (str.substr(0,7) != "psyc://") {
 	throw("Invalid uniform: " + str);	
@@ -415,6 +416,32 @@ psyc.AtomParser = function() {
     };
     
 };
+psyc.find_match = function(obj, key) {
+    for (var i in obj) {
+	if (i == key) {
+	    return obj[i];
+	} else if (i.length > key.length) {
+	    if (i.substr(0, key.length) == key && i.charAt(key.length) == "_") {
+		return obj[i];
+	    }
+	}
+    }
+};
+psyc.find_abbrev = function(obj, key) {
+    var t = key;
+
+    while (t.length && obj[t] == undefined) {
+	var i = t.lastIndexOf("_");
+
+	if (i == -1) {
+	    return undefined;
+	} else {
+	    t = t.substr(0, i);
+	}
+    }
+
+    return obj[t];
+};
 psyc.Atom = function(type, data) {
     this.type = type;
     this.data = data;
@@ -422,14 +449,33 @@ psyc.Atom = function(type, data) {
 	return this.type + " " + String(this.data.length) + " " + this.data;
     };
 };
+psyc.print_vars = function(v) {
+    var ret = "";
+    for (var i in v) {
+	if (i.substr(0,1) == "_") 
+	    ret += i + " : " + this.vars[i] + ", ";
+    }
+
+    return ret;
+};
+psyc.MMPPacket = function(vars, data) {
+    this.vars = vars;
+    this.data = data;
+    this.source = function() {
+	return psyc.find_match(this.vars, "_source");	
+    };
+    this.target = function() {
+	return psyc.find_match(this.vars, "_target");	
+    };
+    this.toString = function() {
+	return "psyc.MMPPacket(" + psyc.print_vars(this.vars) + ", " + this.data + ")";
+    }
+};
 psyc.Packet = function(mc, vars, data) {
     this.mc = mc;
     this.toString = function() {
 	var ret = "psyc.Packet("+this.mc+", ([ ";
-	for (var i in this.vars) {
-	    if (i.substr(0,1) == "_") 
-		ret += i + " : " + this.vars[i] + ", ";
-	}
+	ret += psyc.print_vars(this.vars);
 	ret += "]))";
 	return ret;
     };
@@ -483,10 +529,25 @@ psyc.object_to_atom = function(o) {
 	}
     case "object":
 	if (o instanceof psyc.Packet) {
-	    var vars, data, mc;
+	    var str = new psyc.Atom("_method", o.mc);
+	    str = str.render();
+
 	    if (psyc.mapping_length(o.vars)) {
-			
+		str += psyc.object_to_atom(o.vars).render();		
 	    }
+
+	    if (o.data != undefined) {
+		str += psyc.object_to_atom(o.data).render();
+	    }
+	    return new psyc.Atom("_psyc_packet", str);
+	} else if (o instanceof psyc.MMPPacket) {
+	    var str = "";
+	    if (o.data != undefined)
+		str += psyc.object_to_atom(o.data).render();
+
+	    str += psyc.object_to_atom(o.vars).render();
+
+	    return new psyc.Atom("_mmp_packet", str);
 	} else if (o instanceof psyc.Uniform) {
 	    return new psyc.Atom("_uniform", o.str);
 	} else if (o instanceof Array) {
@@ -539,6 +600,31 @@ psyc.atom_to_object = function(atom) {
 
 	return psyc.array_to_mapping(l);
     } while (0);
+    case "_mmp_packet": do {
+	var p = new psyc.AtomParser();
+	var l = p.parse(atom.data);
+	
+	if (l.length == 0) {
+	    throw("bad _mmp_packet");
+	}
+
+	if (l[0].type.substr(0, 8) != "_mapping") {
+	    throw("bad _mmp_packet");
+	}
+
+	var vars = psyc.atom_to_object(l[0]);
+	var p = new psyc.MMPPacket(vars);
+	
+	if (l.length == 1) {
+
+	} else if (l.length == 2) {
+	    p.data = psyc.atom_to_object(l[1]);
+	} else {
+	    throw("too long _mmp_packet");
+	}
+
+	return p;
+    } while (0);
     case "_psyc_packet": do {
 	var p = new psyc.AtomParser();
 	var l = p.parse(atom.data);
@@ -548,7 +634,7 @@ psyc.atom_to_object = function(atom) {
 
 	if (l.length == 3) {
 	    vars = psyc.atom_to_object(l[1]);		
-	    data = l[1].data; // we assume its a string.
+	    data = l[2].data; // we assume its a string.
 	} else if (l.length == 2) {
 	    if (l[1].type.substr(0, 8) == "_mapping") { // its teh vars
 		vars = psyc.atom_to_object(l[1]);		
@@ -565,8 +651,8 @@ psyc.atom_to_object = function(atom) {
 	return new psyc.Uniform(atom.data);
     }
 };
-psyc.BUFFER_MAX = 1 << 16; // limit for incoming buffer, exceeding this buffer triggers a reconnect
-psyc.Connection = function(url, callback, error) {
+meteor.BUFFER_MAX = 1 << 16; // limit for incoming buffer, exceeding this buffer triggers a reconnect
+meteor.Connection = function(url, callback, error) {
     this.url = url;
     this.buffer = "";
     this.callback = callback;
