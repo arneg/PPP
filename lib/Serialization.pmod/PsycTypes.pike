@@ -1,5 +1,7 @@
 import Serialization.Types;
 
+inherit Serialization.BasicTypes;
+
 object Vars(void|mapping(string:object) m, void|mapping(string:object) m2) {
     // get a better mangler
     int a = (mappingp(m)) ? sizeof(m)*2 : 0;
@@ -53,6 +55,19 @@ object PsycPacket(string base, void|object data, void|mapping m, void|mapping m2
     if (!(o = this->type_cache[Serialization.Types.PsycPacket][mangler])) {
 	o = Serialization.Types.PsycPacket(method, vars, data);
 	this->type_cache[Serialization.Types.PsycPacket][mangler] = o;
+    }
+
+    return o;
+}
+
+object MmpPacket(object type) {
+    object o;
+     
+    if (!(o = this->type_cache[Serialization.Types.MMPPacket][type])) {
+	vars = Mapping(Method(), Or(Uniform(), String(), Int(), List(Uniform), Atom()));
+
+	o = Serialization.Types.MMPPacket(vars, data);
+	this->type_cache[Serialization.Types.MMPPacket][type] = o;
     }
 
     return o;
