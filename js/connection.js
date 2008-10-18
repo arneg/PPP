@@ -446,6 +446,11 @@ psyc.Atom = function(type, data) {
     this.render = function() {
 	return this.type + " " + String(this.data.length) + " " + this.data;
     };
+    // we don't really need this (yet), but i just wanted to!
+    this.length = function() {
+	return this.type.length + new String(this.data.length).length
+		+ this.data.length + 2;
+    };
 };
 psyc.print_vars = function(v) {
     var ret = new Array();
