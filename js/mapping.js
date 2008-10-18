@@ -101,42 +101,53 @@ along with the Program.
 
 function Mapping() {
     this.m = new Object();
+    this.n = new Object();
     this.length = 0;
 
+    this.sfy = function(key) { // sfy ==> stringify
+	return typeof(key) + "\0" + key;
+    };
+
     this.set = function(key, val) {
-	if (!this.m.hasOwnProperty(key)) {
+	var key2 = this.sfy(key);
+
+	if (!this.m.hasOwnProperty(key2)) {
 	    this.length++;
 	}
 
-	this.m[key] = val;
+	this.m[key2] = val;
+	this.n[key2] = key;
     };
 
     this.get = function(key) {
-	return this.m[key];
+	return this.m[this.sfy(key)];
     };
 
     // IE doesn't like this being called "delete", so, beware!
     this.remove = function(key) {
+	var key2 = this.sfy(key);
+
 	if (this.hasIndex(key)) {
 	    this.length--;
 	}
 
-	delete this.m[key];
+	delete this.m[key2];
+	delete this.n[key2];
     };
 
     this.indices = function() {
 	var ret = new Array();
 	
-	for (var i in this.m) {
-	    ret.push(i);
+	for (var i in this.n) {
+	    ret.push(this.n[i]);
 	}
 
 	return ret;
     };
 
     this.foreach = function(cb) {
-	for (var i in this.m) {
-	    cb(i);
+	for (var i in this.n) {
+	    cb(this.n[i]);
 	}
     };
 
@@ -145,7 +156,7 @@ function Mapping() {
     };
 
     this.hasIndex = function(key) {
-	return this.m.hasOwnProperty(key);
+	return this.m.hasOwnProperty(this.sfy(key));
     };
 
     this.reset = function() {
