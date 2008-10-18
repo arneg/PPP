@@ -418,12 +418,10 @@ psyc.AtomParser = function() {
 };
 psyc.find_match = function(obj, key) {
     for (var i in obj) {
-	if (i == key) {
+	if (i == key || i.length > key.length
+		&& i.substr(0, key.length) == key
+		&& i.charAt(key.length) == "_") {
 	    return obj[i];
-	} else if (i.length > key.length) {
-	    if (i.substr(0, key.length) == key && i.charAt(key.length) == "_") {
-		return obj[i];
-	    }
 	}
     }
 };
