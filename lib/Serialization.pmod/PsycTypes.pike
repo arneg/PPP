@@ -42,6 +42,7 @@ object Method(string|void base) {
     return method;
 }
 
+/*
 object PsycPacket(string base, void|object data, void|mapping m, void|mapping m2) {
     object method, vars;
     object o;
@@ -72,3 +73,4 @@ object MmpPacket(object type) {
 
     return o;
 }
+*/
