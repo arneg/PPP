@@ -4,7 +4,8 @@ void create(string type) {
     _type = type;
 }
 
-int(0..1) low_can_decode(Serialization.Atom a) {
+int(0..1) low_can_decode(mixed a) {
+    if (object_program(a) != Serialization.Atom) return 0;
     return Serialization.is_subtype_of(a->type, _type);
 }
 
@@ -21,5 +22,9 @@ string _sprintf(int type) {
 	return sprintf("Serialization.Type(%s)", _type);
     }
 
+    return 0;
+}
+
+int(0..1) has_action(string action) {
     return 0;
 }

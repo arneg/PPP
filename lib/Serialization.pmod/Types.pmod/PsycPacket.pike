@@ -1,7 +1,6 @@
 inherit .Base;
 
 object method, vars, data;
-int length = 1;
 
 void create(object method, void|object vars, void|object data) {
     ::create("_psyc_packet"); 
@@ -20,26 +19,18 @@ void create(object method, void|object vars, void|object data) {
 }
 
 void low_decode(Serialization.Atom a) {
-    if (a->parsed) {
-        return;
-    }
-
     object parser = Serialization.AtomParser();
 
     parser->feed(a->data);
     array(Serialization.Atom) list = parser->parse_all();
 
-    if (sizeof(list) != length) error("bad _psyc_packet: %O\n", a);
-
-    // we keep the array.. more convenient
     a->pdata = list;
-    a->parsed = 1;
 }
 
 PSYC.Packet decode(Serialization.Atom a) {
     if (!low_can_decode(a)) error("expected _psyc_packet, got %s\n", a->type);
 
-    if (!a->parsed) low_decode(a);
+    if (!a->pdata) low_decode(a);
 
     array t = a->pdata;
     int i = 1;

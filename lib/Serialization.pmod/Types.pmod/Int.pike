@@ -15,19 +15,21 @@ int decode(Serialization.Atom a) {
     throw(({}));
 }
 
-Serialization.Atom encode(int i) {
-    if (intp(i)) {
-	object a = Serialization.Atom("_integer", (string)i);
-	a->parsed = 1;
-	a->pdata = i;
+Serialization.Atom encode(Serialization.Atom|int i) {
+    if (low_can_encode(i)) return i;
+    if (!intp(i)) error("cannot encode non-integer %O\n", i);
 
-	return a;
-    }
+    object a = Serialization.Atom("_integer", 0);
+    a->typed_data[this] = i;
+    a->signature = this;
+}
 
-    throw(({}));
+string render(int i) { 
+    return (string)i;
 }
 
 int(0..1) can_encode(mixed a) {
+    if (low_can_encode(a)) return 1;
     return intp(a);
 }
 

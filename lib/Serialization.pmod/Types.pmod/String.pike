@@ -12,15 +12,21 @@ string decode(Serialization.Atom a) {
     throw(({}));
 }
 
-Serialization.Atom encode(string s) {
-    if (stringp(s)) {
-	return Serialization.Atom("_string", string_to_utf8(s));
-    }
+Serialization.Atom encode(Serialization.Atom|string s) {
+    if (low_can_decode(s)) return s;
+    if (!stringp(s)) error("cannot encode non string %O\n", s);
 
-    throw(({}));
+    Serialization.Atom atom = Serialization.Atom("_string", 0);
+    atom->typed_data[this] = s;
+    atom->signature = this;
+    
+    return atom;
 }
 
+function render = string_to_utf8;
+
 int(0..1) can_encode(mixed a) {
+    if (low_can_decode(a)) return 1;
     return stringp(a);
 }
 

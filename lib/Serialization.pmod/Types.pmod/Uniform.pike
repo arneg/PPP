@@ -9,26 +9,30 @@ void create(object server) {
 }
 
 MMP.Uniform decode(Serialization.Atom a) {
-    if (can_decode(a)) {
-	return server->get_uniform(a->data);
-    }
+    if (a->typed_data[this]) return a->typed_data[this];
 
-    throw(({}));
+    if (!can_decode(a)) error("cannot decode %O\n", a);
+
+    if (!a->data) low_render();
+
+    return server->get_uniform(a->data);
 }
 
 Serialization.Atom encode(MMP.Uniform u) {
-    if (MMP.is_uniform(u)) {
-	object a = Serialization.Atom("_uniform", (string)u);
-	a->parsed = 1;
-	a->pdata = u;
+    if (low_can_decode(u)) return u;
+    if (!MMP.is_uniform(u)) error("cannot encode %O\n", u);
 
-	return a;
-    }
+    object a = Serialization.Atom("_uniform", 0);
+    a->typed_data[this] = u;
+    return a;
+}
 
-    throw(({}));
+string render(MMP.Uniform u) {
+    return (string)u;
 }
 
 int(0..1) can_encode(mixed a) {
+    if (low_can_decode(u)) return 1;
     return MMP.is_uniform(a);
 }
 

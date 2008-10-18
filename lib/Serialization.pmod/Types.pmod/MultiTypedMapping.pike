@@ -25,27 +25,24 @@ void create(array(object) ktypes, void|array(object) vtypes) {
     this_program::vtypes = vtypes;
 }
 
-void low_decode(Serialization.Atom a) {
-    if (a->parsed) {
-	return 0;
-    }
-
+int(0..1) low_decode(Serialization.Atom a) {
     object parser = Serialization.AtomParser();
 
     parser->feed(a->data);
     array(Serialization.Atom) list = parser->parse_all();
 
-    if (sizeof(list) & 1) throw(({}));
+    if (sizeof(list) & 1) return 0;
 
     // we keep the array.. more convenient
     a->pdata = list;
-    a->parsed = 1;
+    return 1;
 }
 
 mapping decode(Serialization.Atom a) {
-    if (!low_can_decode(a)) throw(({}));
+    if (!low_can_decode(a)) error("cannot decode %O\n", a);
 
-    if (!a->parsed) low_decode(a);
+    if (!a->pdata 
+	&& !low_decode(a)) error("odd number of entries dont make a mapping.");
 
     mapping m = ([]);
 
