@@ -417,8 +417,14 @@ psyc.AtomParser = function() {
     
 };
 psyc.find_match = function(obj, key) {
+    // i guess we should find direct matches first...
+
+    if (obj[key] != undefined) {
+	return obj[key];
+    }
+
     for (var i in obj) {
-	if (i == key || i.length > key.length
+	if (i.length > key.length
 		&& i.substr(0, key.length) == key
 		&& i.charAt(key.length) == "_") {
 	    return obj[i];
