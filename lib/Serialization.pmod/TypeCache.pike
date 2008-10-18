@@ -1,5 +1,9 @@
 mapping(program:mapping(mixed:object)) m = ([]);
 
+void create() {
+    set_weak_flag(m, Pike.WEAK);
+}
+
 mixed `[](mixed index) {
     if (programp(index)) {
 	if (!has_index(m, index)) {
