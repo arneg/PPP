@@ -450,13 +450,13 @@ psyc.Atom = function(type, data) {
     };
 };
 psyc.print_vars = function(v) {
-    var ret = "";
+    var ret = new Array();
     for (var i in v) {
 	if (i.substr(0,1) == "_") 
-	    ret += i + " : " + this.vars[i] + ", ";
+	    ret.push(i + " : " + this.vars[i]);
     }
 
-    return ret;
+    return ret.join(", ");
 };
 psyc.MMPPacket = function(vars, data) {
     this.vars = vars;
