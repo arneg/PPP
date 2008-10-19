@@ -18,6 +18,56 @@ void create(object str, void|mapping(string:object) mandatory, void|mapping(stri
     this_program::str = str;
 }
 
+Serialization.Atom add(mapping v, void|function ret) {
+    Serialization.Atom a = encode(v);
+    a->action = "_add";
+
+    if (ret) {
+	return ret(a);
+    } else {
+	return a;
+    }
+}
+
+Serialization.Atom sub(mapping v, void|function ret) {
+    Serialization.Atom a = encode(v);
+    a->action = "_sub";
+
+    if (ret) {
+	return ret(a);
+    } else {
+	return a;
+    }
+}
+
+object index(string key, void|function ret) {
+    write("index(%O)\n", key);
+    if (!str->can_encode(key)) {
+	error("bad index\n");
+    }
+
+    object vtype = hash[key] || ohash[key];
+
+    if (vtype) {
+	Serialization.Atom a = Serialization.Atom("_mapping", 0);
+	a->action = "_index";
+	Serialization.Atom f(Serialization.Atom v) {
+	    write("return(%O)\n", key);
+	    a->pdata = ({ str->encode(key), v });
+	    if (ret) {
+		return ret(a);
+	    } else {
+		return a;
+	    }
+	};
+
+	return Serialization.CurryObject(vtype, f);
+    } else {
+	error("unknown index.\n");
+    }
+
+}
+
 mapping apply(Serialization.Atom a, mapping state) {
     if (!a->action) {
 	error("cannot apply data atom to a state.\n");

@@ -8,6 +8,49 @@ void create(object ktype, object vtype) {
     this_program::vtype = vtype;
 }
 
+Serialization.Atom add(mapping v, void|function ret) {
+    Serialization.Atom a = encode(v);
+    a->action = "_add";
+
+    if (ret) {
+	return ret(a);
+    } else {
+	return a;
+    }
+}
+
+Serialization.Atom sub(mapping v, void|function ret) {
+    Serialization.Atom a = encode(v);
+    a->action = "_sub";
+
+    if (ret) {
+	return ret(a);
+    } else {
+	return a;
+    }
+}
+
+object index(mixed key, void|function ret) {
+    write("index(%O)\n", key);
+    if (!ktype->can_encode(key)) {
+	error("bad index\n");
+    }
+
+    Serialization.Atom a = Serialization.Atom("_mapping", 0);
+    a->action = "_index";
+    Serialization.Atom f(Serialization.Atom v) {
+	write("return(%O)\n", key);
+	a->pdata = ({ ktype->encode(key), v });
+	if (ret) {
+	    return ret(a);
+	} else {
+	    return a;
+	}
+    };
+
+    return Serialization.CurryObject(vtype, f);
+}
+
 mapping apply(Serialization.Atom a, mapping state) {
     if (!a->action) {
 	error("cannot apply data atom to a state.\n");
@@ -18,6 +61,7 @@ mapping apply(Serialization.Atom a, mapping state) {
 
     switch (a->action) {
     case "_add":
+	werror("_add %O state: %O\n", a, state);
 	t = decode(a);
 	if (!state) return t;
 	return state + t;

@@ -1,11 +1,56 @@
 inherit .Base;
 object type;
-object index;
+object itype;
 
 void create(object type) {
     ::create("_list");
     
     this_program::type = type;
+}
+
+Serialization.Atom add(array v, void|function ret) {
+    Serialization.Atom a = encode(v);
+    a->action = "_add";
+
+    if (ret) {
+	return ret(a);
+    } else {
+	return a;
+    }
+}
+
+Serialization.Atom sub(array v, void|function ret) {
+    Serialization.Atom a = encode(v);
+    a->action = "_sub";
+
+    if (ret) {
+	return ret(a);
+    } else {
+	return a;
+    }
+}
+
+object index(int n, void|function ret) {
+    write("index(%O)\n", n);
+    if (!itype) itype = Serialization.Types.Int();
+    if (!itype->can_encode(n)) {
+	error("bad index\n");
+    }
+
+    Serialization.Atom a = Serialization.Atom("_list", 0);
+    Serialization.Atom b = itype->encode(n);
+    a->action = "_index";
+    Serialization.Atom f(Serialization.Atom v) {
+	write("return(%O) %O\n", n, b);
+	a->pdata = ({ b, v });
+	if (ret) {
+	    return ret(a);
+	} else {
+	    return a;
+	}
+    };
+
+    return Serialization.CurryObject(type, f);
 }
 
 array apply(Serialization.Atom a, array state) {
@@ -29,15 +74,15 @@ array apply(Serialization.Atom a, array state) {
 	if (sizeof(a->pdata) & 1) error("need index+action.\n");
 
 	// this is baad!
-	if (!index) index = Serialization.Types.Int();
+	if (!itype) itype = Serialization.Types.Int();
 	for (int i = 0; i < sizeof(a->pdata); i+=2) {
-	    int key = index->decode(a->pdata[i]);
+	    int key = itype->decode(a->pdata[i]);
 	    
 	    if (key >= sizeof(state)) {
 		error("indexing non-existing entry.\n");
 	    }
 	    
-	    state[key] = type->handle(a->pdata[i+1], state[key]);
+	    state[key] = type->apply(a->pdata[i+1], state[key]);
 	}
 	return state;
     default:
