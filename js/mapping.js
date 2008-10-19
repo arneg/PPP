@@ -114,12 +114,15 @@ along with the Program.
 // this means that strings, booleans and numbers can safely be used as indices.
 // additionally, any other types where this gives sufficient distinction can
 // be used totally or at least partially, e.g. arrays: arrays of numbers and
-// booleans and strings which do NOT have "," in them can be used safely.
+// booleans and strings which do NOT have "," in them or are "true" or "false"
+// can be used safely.
 //
 // an example of indices that do not work well (together):
 // var mapping = new Mapping();
 // mapping.set([2,3], "hey");
 // mapping.get(["2,3"]); // returns "hey" which might not be desired.
+//
+// you get the picture.
 //
 // =======================================================================
 // =======================================================================
