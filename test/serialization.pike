@@ -11,32 +11,31 @@ class Test {
 	p = Vars(([]),([
 	    "_nick" : UTF8String(),
 	    "_amount" : Int(),
-	    "_members" : m = List(UTF8String()),
+	    "_members" : List(Mapping(UTF8String(), Int())),
 		  ]));
 
     }
     int test2() {
 	mapping t = ([ 
-	     "_members" : ({ "sdkfh", "mich", "sldkjf" }),
+	     "_members" : ({ ([ "sdkfh" : 3 ]), ([ "mich" : 45 ]), ([ "sldkjf" : 123 ]) }),
 	     "_amount_wurst" : 2,
 	     "_nick" : "kalle",
 	     "_some" : ({ "uhu" }),
 	]);
 
+	/*
 	Atom a = p->encode(t);
-	Atom b = m->encode(({ "wuuhu", "duuhu" }));
-	b->action = "_add";
-	b = p->encode(([ "_members" : b ]));
-	b->action = "_index";
-	t = p->apply(b, t);
-
-	werror("state: %O\n", t);
-
 	mapping t2 = p->decode(a);
 
 	if (equal(t, t2)) {
 	    return 1;
 	}
+	*/
+	Atom b = p->index("_members")->index(1)->add(([ "wuuu" : 23234234 ]));
+	werror("state: %O\n", t);
+	werror("%O\n", b);
+	p->apply(b, t);
+	werror("state: %O\n", t);
     }
 }
 
