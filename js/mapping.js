@@ -172,7 +172,7 @@ function Mapping() {
 
     this.foreach = function(cb) {
 	for (var i in this.n) {
-	    cb(this.n[i]);
+	    cb(this.n[i], this.m[i]);
 	}
     };
 
