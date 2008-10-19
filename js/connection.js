@@ -502,7 +502,7 @@ psyc.Packet = function(mc, vars, data) {
     }
 };
 psyc.mapping_length = function(a) {
-    if (!(a instanceof Array) || !a.mapping) {
+    if (!a.mapping) {
 	throw("bad argument to mapping_length()");
     }
     var i = 0;
@@ -513,7 +513,8 @@ psyc.mapping_length = function(a) {
     return i;
 };
 psyc.array_to_mapping = function(list) {
-    var a = new Array();
+    var a = new Object(); // we'll need a real mapping class anyway, but Array
+			  // was just a stupid base.
     if (list.length & 1) {
 	throw("cannot create mapping from array with odd length.");
     }
@@ -521,7 +522,7 @@ psyc.array_to_mapping = function(list) {
 	a[list[i]] = list[i+1];
     }
 
-    a.mapping = 1;
+    a.mapping = true;
     a.length = list.length / 2;
 
     return a;
