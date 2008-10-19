@@ -99,6 +99,31 @@ and give any other recipients of the Program a copy of this License
 along with the Program.
 */
 
+// =======================================================================
+// =======================================================================
+// __                                          .         
+// | \   _   __     ._ _   __  ._  _|_  _  _|_    _  ._  
+// |  ) / \ /   | | | | | /__) | \  |  / |  |  | / \ | \ 
+// |_/  \_/ \__ |_|_| | | \___ | (_ |_ \_|_ |_ |_\_/ | (_
+//
+// =======================================================================
+// everybody complains when there is none, so now better read it!!
+// =======================================================================
+//
+// this mapping class uses typeof(x) + "\1" + x; as hashing method.
+// this means that strings, booleans and numbers can safely be used as indices.
+// additionally, any other types where this gives sufficient distinction can
+// be used totally or at least partially, e.g. arrays: arrays of numbers and
+// booleans and strings which do NOT have "," in them can be used safely.
+//
+// an example of indices that do not work well (together):
+// var mapping = new Mapping();
+// mapping.set([2,3], "hey");
+// mapping.get(["2,3"]); // returns "hey" which might not be desired.
+//
+// =======================================================================
+// =======================================================================
+
 function Mapping() {
     this.m = new Object();
     this.n = new Object();
@@ -164,3 +189,7 @@ function Mapping() {
 	this.length = 0;
     };
 }
+
+// =======================================================================
+// if your head hurts now, you should've just read the documentation.
+// =======================================================================
