@@ -5,6 +5,9 @@ void create() {
 }
 
 int decode(Serialization.Atom a) {
+    
+    if (has_index(a->typed_data, this)) return a->typed_data[this];
+
     if (can_decode(a)) {
 	int i;
 	if (1 == sscanf(a->data, "%d", i)) {
@@ -12,16 +15,18 @@ int decode(Serialization.Atom a) {
 	}
     }
 
-    throw(({}));
+    error("cannot decode %O\n", a);
 }
 
 Serialization.Atom encode(Serialization.Atom|int i) {
     if (low_can_encode(i)) return i;
     if (!intp(i)) error("cannot encode non-integer %O\n", i);
 
-    object a = Serialization.Atom("_integer", 0);
+    Serialization.Atom a = Serialization.Atom("_integer", 0);
     a->typed_data[this] = i;
     a->signature = this;
+
+    return a;
 }
 
 string render(int i) { 
