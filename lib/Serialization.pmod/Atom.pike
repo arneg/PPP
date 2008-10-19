@@ -65,6 +65,6 @@ string|String.Buffer render(void|String.Buffer buf) {
 
 string _sprintf(int t) {
     if (t == 'O') {
-	return sprintf("Atom(%s, %O, %O)", type, action, signature);
+	return sprintf("Atom(%s, %O)", type, action);
     }
 }
