@@ -125,15 +125,18 @@ along with the Program.
 // =======================================================================
 
 function Mapping() {
-    this.m = new Object();
-    this.n = new Object();
-    this.length = 0;
+}
 
-    this.sfy = function(key) { // sfy ==> stringify
+Mapping.prototype = {
+    m : new Object(),
+    n : new Object(),
+    length : 0,
+
+    sfy : function(key) { // sfy ==> stringify
 	return typeof(key) + ";" + key;
-    };
+    },
 
-    this.set = function(key, val) {
+    set : function(key, val) {
 	var key2 = this.sfy(key);
 
 	if (!this.m.hasOwnProperty(key2)) {
@@ -142,14 +145,14 @@ function Mapping() {
 
 	this.m[key2] = val;
 	this.n[key2] = key;
-    };
+    },
 
-    this.get = function(key) {
+    get : function(key) {
 	return this.m[this.sfy(key)];
-    };
+    },
 
     // IE doesn't like this being called "delete", so, beware!
-    this.remove = function(key) {
+    remove : function(key) {
 	var key2 = this.sfy(key);
 
 	if (this.hasIndex(key)) {
@@ -158,9 +161,9 @@ function Mapping() {
 
 	delete this.m[key2];
 	delete this.n[key2];
-    };
+    },
 
-    this.indices = function() {
+    indices : function() {
 	var ret = new Array();
 	
 	for (var i in this.n) {
@@ -168,27 +171,27 @@ function Mapping() {
 	}
 
 	return ret;
-    };
+    },
 
-    this.foreach = function(cb) {
+    forEach : function(cb) {
 	for (var i in this.n) {
 	    cb(this.n[i], this.m[i]);
 	}
-    };
+    },
 
-    this.toString = function() {
+    toString : function() {
 	return "Mapping(:" + this.length + ")";
-    };
+    },
 
-    this.hasIndex = function(key) {
+    hasIndex : function(key) {
 	return this.m.hasOwnProperty(this.sfy(key));
-    };
+    },
 
-    this.reset = function() {
+    reset : function() {
 	this.m = new Object();
 	this.length = 0;
-    };
-}
+    },
+};
 
 // =======================================================================
 // if your head hurts now, you should've just read the documentation.
