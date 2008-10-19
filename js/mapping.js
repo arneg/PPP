@@ -110,7 +110,7 @@ along with the Program.
 // everybody complains when there is none, so now better read it!!
 // =======================================================================
 //
-// this mapping class uses typeof(x) + "\1" + x; as hashing method.
+// this mapping class uses typeof(x) + ";" + x; as hashing method.
 // this means that strings, booleans and numbers can safely be used as indices.
 // additionally, any other types where this gives sufficient distinction can
 // be used totally or at least partially, e.g. arrays: arrays of numbers and
@@ -130,7 +130,7 @@ function Mapping() {
     this.length = 0;
 
     this.sfy = function(key) { // sfy ==> stringify
-	return typeof(key) + "\0" + key;
+	return typeof(key) + ";" + key;
     };
 
     this.set = function(key, val) {
