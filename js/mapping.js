@@ -185,6 +185,16 @@ Mapping.prototype = {
 	return ret;
     },
 
+    values : function() {
+	var ret = new Array();
+	
+	for (var i in this.m) {
+	    ret.push(this.m[i]);
+	}
+
+	return ret;
+    },
+
     forEach : function(cb) {
 	for (var i in this.n) {
 	    cb(this.n[i], this.m[i]);
