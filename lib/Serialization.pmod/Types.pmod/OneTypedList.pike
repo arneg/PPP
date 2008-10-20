@@ -53,7 +53,7 @@ object index(int n, void|function ret) {
     return Serialization.CurryObject(type, f);
 }
 
-array apply(Serialization.Atom a, array state) {
+mixed apply(Serialization.Atom a, array state, void|function set) {
     if (!a->action) {
 	error("cannot apply data atom to a state.\n");
     }
@@ -63,28 +63,31 @@ array apply(Serialization.Atom a, array state) {
     switch (a->action) {
     case "_add":
 	t = decode(a);
-	if (!state) return t;
-	return state + t;
+	if (!state) set(t);
+	else set(state + t);
+	break;
     case "_sub":
 	t = decode(a);
-	if (!state) return 0; // silently ignore non-existing
-	return state - t;
+	if (!state) break; // silently ignore non-existing
+	set(state - t);
+	break;
     case "_index":
 	if (!a->pdata) low_decode(a);
-	if (sizeof(a->pdata) & 1) error("need index+action.\n");
+	if (sizeof(a->pdata) != 2) error("need index+action.\n");
 
 	// this is baad!
 	if (!itype) itype = Serialization.Types.Int();
-	for (int i = 0; i < sizeof(a->pdata); i+=2) {
-	    int key = itype->decode(a->pdata[i]);
-	    
-	    if (key >= sizeof(state)) {
-		error("indexing non-existing entry.\n");
-	    }
-	    
-	    state[key] = type->apply(a->pdata[i+1], state[key]);
+	int key = itype->decode(a->pdata[0]);
+	
+	if (key >= sizeof(state)) {
+	    error("indexing non-existing entry.\n");
 	}
-	return state;
+
+	void s(mixed val) {
+	    state[key] = val;
+	};
+	
+	return type->apply(a->pdata[1], state[key], s);
     default:
 	error("unsupported action.\n");
     }
