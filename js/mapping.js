@@ -114,26 +114,41 @@ along with the Program.
 // this means that strings, booleans and numbers can safely be used as indices.
 // additionally, any other types where this gives sufficient distinction can
 // be used totally or at least partially, e.g. arrays: arrays of numbers and
-// booleans and strings which do NOT have "," in them can be used safely.
+// booleans and strings which do NOT have "," in them or are "true" or "false"
+// can be used safely.
 //
 // an example of indices that do not work well (together):
 // var mapping = new Mapping();
 // mapping.set([2,3], "hey");
 // mapping.get(["2,3"]); // returns "hey" which might not be desired.
 //
+// you get the picture.
+//
 // =======================================================================
 // =======================================================================
 
 function Mapping() {
-    this.m = new Object();
-    this.n = new Object();
-    this.length = 0;
+}
 
-    this.sfy = function(key) { // sfy ==> stringify
-	return typeof(key) + ";" + key;
-    };
+Mapping.prototype = {
+    m : new Object(),
+    n : new Object(),
+    length : 0,
 
-    this.set = function(key, val) {
+    sfy : function(key) { // sfy ==> stringify
+	// better use if (key.__proto__ == String.prototype) { ??
+	// also there is somewhere something like isPrototypeOf(proto, instance). what about that?
+	// for sure subclasses of String shouldn't be matched here.
+	// on the other hand, subclasses of strings are strings. i made up
+	// my mind and now think it's the right thing to adhere to that.
+	if (key instanceof String) {
+	    return "string;" + key;
+	} else {
+	    return typeof(key) + ";" + key;
+	}
+    },
+
+    set : function(key, val) {
 	var key2 = this.sfy(key);
 
 	if (!this.m.hasOwnProperty(key2)) {
@@ -142,14 +157,14 @@ function Mapping() {
 
 	this.m[key2] = val;
 	this.n[key2] = key;
-    };
+    },
 
-    this.get = function(key) {
+    get : function(key) {
 	return this.m[this.sfy(key)];
-    };
+    },
 
     // IE doesn't like this being called "delete", so, beware!
-    this.remove = function(key) {
+    remove : function(key) {
 	var key2 = this.sfy(key);
 
 	if (this.hasIndex(key)) {
@@ -158,9 +173,9 @@ function Mapping() {
 
 	delete this.m[key2];
 	delete this.n[key2];
-    };
+    },
 
-    this.indices = function() {
+    indices : function() {
 	var ret = new Array();
 	
 	for (var i in this.n) {
@@ -168,27 +183,27 @@ function Mapping() {
 	}
 
 	return ret;
-    };
+    },
 
-    this.foreach = function(cb) {
+    forEach : function(cb) {
 	for (var i in this.n) {
 	    cb(this.n[i], this.m[i]);
 	}
-    };
+    },
 
-    this.toString = function() {
+    toString : function() {
 	return "Mapping(:" + this.length + ")";
-    };
+    },
 
-    this.hasIndex = function(key) {
+    hasIndex : function(key) {
 	return this.m.hasOwnProperty(this.sfy(key));
-    };
+    },
 
-    this.reset = function() {
+    reset : function() {
 	this.m = new Object();
 	this.length = 0;
-    };
-}
+    },
+};
 
 // =======================================================================
 // if your head hurts now, you should've just read the documentation.
