@@ -136,7 +136,14 @@ Mapping.prototype = {
     length : 0,
 
     sfy : function(key) { // sfy ==> stringify
-	return typeof(key) + ";" + key;
+	// better use if (key.__proto__ == String.prototype) { ??
+	// also there is somewhere something like isPrototypeOf(proto, instance). what about that?
+	// for sure subclasses of String shouldn't be matched here.
+	if (key instanceof String) {
+	    return "string;" + key;
+	} else {
+	    return typeof(key) + ";" + key;
+	}
     },
 
     set : function(key, val) {
