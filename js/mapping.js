@@ -139,6 +139,8 @@ Mapping.prototype = {
 	// better use if (key.__proto__ == String.prototype) { ??
 	// also there is somewhere something like isPrototypeOf(proto, instance). what about that?
 	// for sure subclasses of String shouldn't be matched here.
+	// on the other hand, subclasses of strings are strings. i made up
+	// my mind and now think it's the right thing to adhere to that.
 	if (key instanceof String) {
 	    return "string;" + key;
 	} else {
