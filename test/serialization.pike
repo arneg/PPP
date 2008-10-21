@@ -13,7 +13,12 @@ class Test {
 	    "_amount" : Int(),
 	    "_members" : List(Mapping(UTF8String(), Int())),
 		  ]));
-
+	pp = Types.Polymorphic();
+	pp->register_type("string", "_method", Method());
+	pp->register_type("string", "_string", UTF8String());
+	pp->register_type("int", "_integer", Int());
+	pp->register_type("mapping", "_mapping", Mapping(pp,pp));
+	pp->register_type("array", "_list", List(pp));
     }
     int test2() {
 	mapping t = ([ 
@@ -33,8 +38,8 @@ class Test {
 	*/
 	Atom b = p->index("_members")->index(1)->add(([ "wuuu" : 23234234 ]));
 	werror("state: %O\n", t);
-	werror("%O\n", b);
-	p->apply(b, t);
+	werror("%O\n", b->render());
+	pp->apply(b, t);
 	werror("state: %O\n", t);
     }
 }
