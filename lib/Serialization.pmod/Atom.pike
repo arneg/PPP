@@ -46,7 +46,19 @@ void low_render() {
 }
 
 string|String.Buffer render(void|String.Buffer buf) {
-    if (!data) low_render();
+    if (!data) {
+	if (!pdata) {
+	    low_render();
+	} else {
+	    String.Buffer t = String.Buffer();
+
+	    foreach (pdata;;Serialization.Atom a) {
+		a->render(t);
+	    }
+
+	    data = t->get();
+	}
+    }
 
     string ttype;
 
