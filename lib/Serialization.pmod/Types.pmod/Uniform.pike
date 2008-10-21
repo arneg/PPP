@@ -8,6 +8,11 @@ void create(object server) {
     this_program::server = server;
 }
 
+MMP.Uniform get_uniform(string s) {
+    if (server) return server->get_uniform(s);
+    else return MMP.Uniform(s);
+}
+
 MMP.Uniform decode(Serialization.Atom a) {
     if (a->typed_data[this]) return a->typed_data[this];
 
@@ -15,7 +20,7 @@ MMP.Uniform decode(Serialization.Atom a) {
 
     if (!a->data) low_render();
 
-    return server->get_uniform(a->data);
+    return get_uniform(a->data);
 }
 
 Serialization.Atom encode(MMP.Uniform u) {
