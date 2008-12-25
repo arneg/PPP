@@ -28,3 +28,20 @@ string _sprintf(int type) {
 int(0..1) has_action(string action) {
     return 0;
 }
+
+Serialization.Atom query() {
+    return Serialization.Atom(_type+":_query", 0);
+}
+
+mixed apply(Serialization.Atom a, mixed state) {
+    if (!a->action) {
+	error("cannot apply data atom to a state.\n");
+    }
+
+    switch (a->action) {
+    case "_query":
+	return state;
+    default:
+	error("unsupported action.\n");
+    }
+}
