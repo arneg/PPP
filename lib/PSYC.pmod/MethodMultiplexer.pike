@@ -10,23 +10,36 @@ class Handler {
 class StageIterator {
     array(string) mlist;
     string id;
-    int index;
+    int index2, index3 = -1;
     object stage;
 
     void create(object stage, string method) {
 	mlist = (method/"_");
-	index = sizeof(mlist)-1;
+	index2 = sizeof(mlist)-1;
 	this_program::stage = stage;
 	find_next();
     }
 
     void find_next() {
-	while (1) { 
-	    if (index >= 0) {
-		id = mlist[0..index]*"_";
+	for (;;) { 
+	    if (index2 >=0 ) {
+		if (--index3 >= 0) {
+		    object h = stage->handler[id][index3];
 
-		index--;
-		if (has_index(state->handler, id)) return;
+		    if (h && !h->dead) { // race here
+			return;	
+		    } else {
+			continue;
+		    }
+		} else {
+		    id = mlist[0..index2]*"_";
+
+		    index2--;
+		    if (has_index(stage->handler, id)) {
+			index3 = sizeof(stage->handler);
+			continue;
+		    }
+		}
 	    } else {
 		id = UNDEFINED;
 		return;
@@ -39,13 +52,13 @@ class StageIterator {
     }
 
     int(0..1) next() {
-	id = find_next();
+	find_next();
 
 	return !!id;
-    }
+    } 
 
     mixed value() {
-	if (id) return stage->handlers[id];
+	if (id && index3 > -1) return stage->handlers[id][index3];
 	else return UNDEFINED;
     }
 
@@ -73,14 +86,22 @@ class StageIterator {
 }
 
 class Stage {
-    mapping(string:object) handler = ([]);
+    mapping(string:array(object)) handler = ([]);
 
     void create() {
-	set_weak_flag(handler, Pike.WEAK_VALUES);
     }
 
     .StageIterator get_iterator(string method) {
 	return .StageIterator(this, method);
+    }
+
+    void add_handler(object h, string base) {
+	if (!handler[base]) {
+	    handler[base] = ({ });
+	    set_weak_flag(handler[base], Pike.WEAK_VALUES);
+	}
+
+	handler[base] += ({ h });
     }
 }
 
@@ -89,26 +110,30 @@ mapping(string:object) stages = ([]);
 
 int get_new_id() {
     int i;
-    while (has_index(handler, i = random(Int.NATIVE_MAX))) {} 
+    while (has_index(handler, i = random(Int.NATIVE_MAX)));
 
     return i;
 }
 
-int add_method(mapping specs) {
+int add_method(mapping specs, object child) {
     .Handler h = .Handler();
 
     h->stage = specs["stage"];
     h->msig = specs["method"];
     h->vsig = specs["vars"];
     h->dsig = specs["data"];
+
+    if (!stages[h->stage]) error("I am in no such state! Shut your bloody piehole!");
+    stages[h->stage]->add_handler(h, base);
+
     string base = h->msig->base;
 
-    mixed f = `->(this, "prefetch_"+h->stage+"_"+base);
+    mixed f = `->(child, "prefetch_"+h->stage+"_"+base);
     if (callablep(f)) {
 	h->prefetch = f;	
     }
 
-    if (callablep(f = `->(this, h->stage+"_"+base))) {
+    if (callablep(f = `->(child, h->stage+"_"+base))) {
 	h->postfetch = f;	
     }
 
