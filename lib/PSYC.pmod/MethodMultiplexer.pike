@@ -111,12 +111,22 @@ class Stage {
 
 mapping(int:object) handler = ([]);
 mapping(string:object) stages = ([]);
+string start_stage = "start";
 
 int get_new_id() {
     int i;
     while (has_index(handler, i = random(Int.NATIVE_MAX)));
 
     return i;
+}
+
+void set_start_stage(string start_stage) {
+    this_program::start_stage = start_stage;
+}
+
+void add_stage(string name, object stage) {
+    if (stages[name]) error("Sir, I am very sorry, but that seat is already taken.\n");
+    stages[name] = stage;
 }
 
 int add_method(mapping specs, object child) {
