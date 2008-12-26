@@ -4,7 +4,7 @@ class Handler {
     array(Serialization.Atom) sdata;
     string stage;
     object msig, vsig, dsig;
-    int dead = 0;
+    int dead, async, ordered;
 }
 
 class StageIterator {
@@ -136,6 +136,9 @@ int add_method(mapping specs, object child) {
     h->msig = specs["method"];
     h->vsig = specs["vars"];
     h->dsig = specs["data"];
+    if (specs["ordered"]) h->ordered = 1;
+    if (specs["async"]) h->async = 1;
+    if (specs["dead"]) h->dead = 1;
 
     if (!stages[h->stage]) error("I am in no such state! Shut your bloody piehole!");
     stages[h->stage]->add_handler(h, base);
