@@ -1,9 +1,34 @@
 object vsig, dsig;
 
-mapping state, vars, deleted = (< >);
+mapping state, vars;
+multiset deleted = (< >);
 int id;
 
+object snapshot;
+
 object bridge;
+
+// +===========================================+
+// ||                 Message                 ||
+// ||=========================================||
+// || + vsig : object                         ||
+// || + dsig : object                         ||
+// || + state : mapping                       ||
+// || + vars : mapping                        ||
+// || + deleted : multiset                    ||
+// || + id : int                              ||
+// || + object : bridge                       ||
+// ||=========================================||
+// ||=========================================||
+// || + void assign(mixed, mixed)             ||
+// || + void change_state(Serialization.Atom) ||
+// || + mixed `[]=(mixed, mixed)              ||
+// || + mixed `[](mixed)                      ||
+// || + Iterator _get_iterator(void)          ||
+// || + mixed `->(mixed)                      ||
+// || + mixed `->(mixed, mixed)               ||
+// || + void create(mapping)                  ||
+// +===========================================+
 
 class Bridge {
     mixed `[](mixed index) {
@@ -112,12 +137,13 @@ void create(mapping params) {
     if (params["vsig"]) vsig = params["vsig"];
     if (params["dsig"]) dsig = params["dsig"];
     if (params["state"]) {
-	state = vsig->decode(params["state"]);
+	snapshot = params["snapshot"];
+	state = vsig->decode(snapshot->raw_state);
     }
     id = params["id"];
 }
 
-mixed `->=(string index, value) {
+mixed `->=(string index, mixed value) {
     switch (index) {
     case "source":
 	if (!mmp_packet) mmp_packet = MMP.Packet();
@@ -191,9 +217,45 @@ mixed `[]=(mixed key, mixed val) {
     return this->vars[key] = val;
 }
 
-// ads key->val to state and adds a state change entry
-// to the psyc-packet if necessary (i.e. if the state
-// was different before)
-void assign(mixed key, mixed val) {
-    do_throw("Sir, I kindly refuse your offer.");
+void change_state(Serialization.Atom a) {
+    snapshot->parent->apply(a, id);
 }
+                                                          
+                             //\
+                            // \\
+                           //   \\
+                          //     \\
+                         //       \\
+                        //         \\
+                       //           \\
+                      //             \\
+                     //               \\
+                    //                 \\
+                   //                   \\
+                  //                     \\
+                 //                       \\
+                //                         \\
+               //                           \\
+              //                             \\
+             //_______________________________\\
+            //_________________________________\\
+           //                                   \\
+          //                                     \\
+         //                                       \\
+        //                                         \\
+       //                                           \\
+      //                                             \\
+     //                                               \\
+    //                                                 \\
+   //                                                   \\
+  // ads key->val to state and adds a state change entry \\
+ // to the psyc-packet if necessary (i.e. if the state    \\
+// was different before)                                   \\
+void assign(mixed key, mixed val) {
+    if (state[key] != val) {
+	Serialization.Atom a = vsig->encode(([ key : val ]));
+	a->action = "_add";
+	change_state(a);
+    }
+}
+
