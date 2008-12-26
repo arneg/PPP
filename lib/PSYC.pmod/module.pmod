@@ -99,15 +99,13 @@ int(0..1) abbrev(string haystack, string needle) {
 //! @endcode
 class Packet {
 
-    //! The mc of the packet.
+    Serialization.Atom vars;
+    array(Serialization.Atom) state_changes;
     string mc;
+    Serialization.Atom data;
 
     string cache;
-    mapping (string:mixed) vars;
-    
-    //! Packet payload. Always needs to be a string, never make it 0!
-    //! May contain a template to render the packet or arbitrary data.
-    string data;
+
 
     //! @param mc
     //!		The mc of the Packet.
@@ -122,6 +120,22 @@ class Packet {
 	this_program::data = data || "";
     }
 
+    string _sprintf(int format) {
+	switch (format) {
+	    case 'O':
+#if defined(DEBUG) && DEBUG > 10
+		return sprintf("PSYC.Packet(%O, %O, %O)", mc, vars, data);
+#elif defined(DEBUG) && DEBUG > 1
+		return sprintf("PSYC.Packet(%O, %O)", mc, vars);
+#else
+		return sprintf("PSYC.Packet(%O)", mc);
+#endif
+	    case 's':
+		return (string)this;
+	}
+    }
+
+    /*
     //! Casts the packet to different types.
     //! @param type
     //! 	@string
@@ -141,21 +155,6 @@ class Packet {
 	    return String.Buffer() + (string)this;
 	default:
 	    return UNDEFINED;
-	}
-    }
-
-    string _sprintf(int format) {
-	switch (format) {
-	    case 'O':
-#if defined(DEBUG) && DEBUG > 10
-		return sprintf("PSYC.Packet(%O, %O, %O)", mc, vars, data);
-#elif defined(DEBUG) && DEBUG > 1
-		return sprintf("PSYC.Packet(%O, %O)", mc, vars);
-#else
-		return sprintf("PSYC.Packet(%O)", mc);
-#endif
-	    case 's':
-		return (string)this;
 	}
     }
 
@@ -187,7 +186,6 @@ class Packet {
     mixed `[](mixed id) {
 	return vars[id];
     }
-
     //! Clones the @[Packet] - this basically means that a new @[Packet] with
     //! identical data, mc and a first level copy of vars (@expr{vars + ([ ])@})
     //! is created and returned.
@@ -201,6 +199,8 @@ class Packet {
     this_program clone() {
 	return this_program(mc, vars + ([ ]), data);
     }
+
+    */
 }
 
 #if 0
