@@ -15,7 +15,7 @@ Serialization.Atom apply(array(Serialization.Atom) changes) {
     state = copy_value(state);
 
     foreach (changes;; Serialization.Atom change) {
-	signature;->apply(change, state);
+	signature->apply(change, state);
     }
 
     raw_state = 0;
