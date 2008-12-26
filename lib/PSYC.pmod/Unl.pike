@@ -12,6 +12,7 @@ inherit Serialization.PsycTypes;
 object storage;
 
 object server;
+object state = .State();
 MMP.Uniform uni;
 mapping(MMP.Uniform:int) counter = ([]);
 
@@ -95,38 +96,61 @@ void msg(MMP.Packet p) {
     debug("packet_flow", 3, "%O: msg(%O)\n", this, p);
     
     if (p["content_type"] == "psyc") {
-	if (stringp(p->data)) {
+	int f;
+	switch (sprintf("%t", p->data)) {
+	case "string":
 	    object parser = Serialization.AtomParser();
 	    object a = parser->parse(p->data);
 
 	    if (!a) do_throw("uuuahahah");
 	    p->data = a;
-
-	} 
-	
-	if (objectp(p->data)) {
-	    if (Program.inherits(object_program(p->data)), Serialization.Atom) {
+	    f = 1;
+	case "object":
+	    if (f || Program.inherits(object_program(p->data), Serialization.Atom)) {
 		object parser = Serialization.AtomParser();
 		array(Serialization.Atom) t = parser->parse_all();
+		PSYC.Packet packet = PSYC.Packet();
 
-		foreach (t;int i; Serialization.Atom atom) {
-		    if (atom->is_subtype_of(method)) {
-			mc = method->decode(atom);
-			stages[start_stage]->handle_message(p, mc);
+		int i;
+
+		for (i = 0;i < sizeof(t); i++) {
+		    Serialization.atom = t[i];
+		    if (atom->is_subtype_of("_mapping") && !atom->action) {
+			if (i > 0) {
+			    packet->state_changes = t[0..i-1];
+			}
+			packet->vars = t[i];
+
+			i++;
 			break;
-		    }
+		    } 
 		}
-	    }
+		if (t[i]->is_subtype_of(method)) {
+		    packet->mc = method->decode(t[i]);
+		    if (sizeof(t) == ++i) {
+			packet->data = t[i];
+		    } else if (sizeof(t) > i){
+			error("more than one data. looks broken.\n");
+		    }
+		} else {
+		    error("broken psyc packet.\n");
+		}
 
-	    if (Program.inherits(object_program(p->data), PSYC.Packet)) {
+		p->data = packet;
 		stages[start_stage]->handle_message(p, p->data->mc);
+		break;
+	    } else if (Program.inherits(object_program(p->data), Serialization.Atom)) {
+		stages[start_stage]->handle_message(p, p->data->mc);
+		break;
 	    } else {
 		do_throw("p->data is an object, but neither of class PSYC.Packet nor Serialization.Atom\n");
 	    }
-	} else {
+	    break;
+	    default:
 	    debug("packet_flow", 1, "Got Packet without data. maybe state changes?\n");
-	    return;
+	    break;
 	}
+	
     }
 }
 
