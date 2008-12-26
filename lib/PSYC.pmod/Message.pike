@@ -195,5 +195,5 @@ mixed `[]=(mixed key, mixed val) {
 // to the psyc-packet if necessary (i.e. if the state
 // was different before)
 void assign(mixed key, mixed val) {
-
+    do_throw("Sir, I kindly refuse your offer.");
 }
