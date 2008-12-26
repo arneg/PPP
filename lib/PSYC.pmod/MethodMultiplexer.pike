@@ -8,10 +8,14 @@ class Handler {
 }
 
 class StageIterator {
+    inherit Iterator;
+
     array(string) mlist;
     string id;
     int index2, index3 = -1;
     object stage;
+
+    Iterator _get_iterator() { return this; }
 
     void create(object stage, string method) {
 	mlist = (method/"_");
