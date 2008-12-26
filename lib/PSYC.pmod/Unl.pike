@@ -5,12 +5,17 @@
 //! Remote Authentication and Reply using uthe 
 
 inherit PSYC.Handling;
+inherit Serialization.Signature : signature;
+inherit Serialization.BaseTypes;
+inherit Serialization.PsycTypes;
 
 object storage;
 
 object server;
 MMP.Uniform uni;
 mapping(MMP.Uniform:int) counter = ([]);
+
+object method;
 
 mixed cast(string type) {
     if (type == "string") return sprintf("Unl(%s)", qName());
@@ -23,6 +28,8 @@ MMP.Uniform qName() {
 void check_authentication(MMP.Uniform t, function cb, mixed ... args) {
     call_out(cb, 0, uni == t, @args);
 }
+
+void NOP(mixed ... args) { }
 
 //! @param u
 //! 	The @[MMP.Uniform] of the new entity.
@@ -38,6 +45,7 @@ void check_authentication(MMP.Uniform t, function cb, mixed ... args) {
 //! 	tries to reach a non-present entity.
 void create(mapping params) {
     ::create(params); 
+    signature::create(Serialization.TypeCache());
     enforce(MMP.is_uniform(uni = params["uniform"]));
     enforce(objectp(server = params["server"]));
     enforce(objectp(storage = params["storage"]));
@@ -48,11 +56,80 @@ void create(mapping params) {
     PSYC.MethodMultiplexer(params + ([ "handling" : this ]));
     PSYC.NotifyHandling(params + ([ "handling" : this ]));
 
+    method = Method();
+
+    object display = .StageHandler(([ PSYC.Handler.GOON : NOP,
+				      PSYC.Handler.STOP : NOP,
+				      PSYC.Handler.DISPLAY : NOP ]));
+    object postfilter = .StageHandler(([ PSYC.Handler.GOON : display->handle_message,
+				         PSYC.Handler.STOP : display->handle_message,
+				 	 PSYC.Handler.DISPLAY : display->handle_message ]));
+    object filter = .StageHandler(([ PSYC.Handler.STOP : NOP,
+				     PSYC.Handler.GOON : postfilter->handle_message,
+				     PSYC.Handler.DISPLAY : display->handle_message
+				     ]));
+    object prefilter = .StageHandler(([ PSYC.Handler.STOP : NOP,
+				        PSYC.Handler.GOON : filter->handle_message,
+					PSYC.Handler.DISPLAY : display->handle_message
+					]));
+
+    add_stage("prefilter", prefilter);
+    add_stage("filter", filter);
+    add_stage("postfilter", postfilter);
+    add_stage("display", display);
+
+    set_start_stage("prefilter");
+
     add_handlers(
 		 PSYC.Handler.Auth(handler_params),
 		 PSYC.Handler.Reply(handler_params)
 		 );
 }
+
+//! Entry point for processing PSYC messages through this handler framework.
+//! @param p
+//! 	An @[MMP.Packet] containing parseable PSYC as a string or @[PSYC.Packet].
+//!
+//! 	This will do everything from throwing to nothing if you provide something else.
+void msg(MMP.Packet p) {
+    debug("packet_flow", 3, "%O: msg(%O)\n", this, p);
+    
+    if (p["content_type"] == "psyc") {
+	if (stringp(p->data)) {
+	    object parser = Serialization.AtomParser();
+	    object a = parser->parse(p->data);
+
+	    if (!a) do_throw("uuuahahah");
+	    p->data = a;
+
+	} 
+	
+	if (objectp(p->data)) {
+	    if (Program.inherits(object_program(p->data)), Serialization.Atom) {
+		object parser = Serialization.AtomParser();
+		array(Serialization.Atom) t = parser->parse_all();
+
+		foreach (t;int i; Serialization.Atom atom) {
+		    if (atom->is_subtype_of(method)) {
+			mc = method->decode(atom);
+			stages[start_stage]->handle_message(p, mc);
+			break;
+		    }
+		}
+	    }
+
+	    if (Program.inherits(object_program(p->data), PSYC.Packet)) {
+		stages[start_stage]->handle_message(p, p->data->mc);
+	    } else {
+		do_throw("p->data is an object, but neither of class PSYC.Packet nor Serialization.Atom\n");
+	    }
+	} else {
+	    debug("packet_flow", 1, "Got Packet without data. maybe state changes?\n");
+	    return;
+	}
+    }
+}
+
 
 //! Send an @[MMP.Packet]. MMP routing variables of the packet will be set automatically if possible.
 //! @param target
@@ -81,34 +158,3 @@ void sendmmp(MMP.Uniform target, MMP.Packet packet) {
     server->deliver(target, packet);
 }
 
-//! Entry point for processing PSYC messages through this handler framework.
-//! @param p
-//! 	An @[MMP.Packet] containing parseable PSYC as a string or @[PSYC.Packet].
-//!
-//! 	This will do everything from throwing to nothing if you provide something else.
-void msg(MMP.Packet p) {
-    debug("packet_flow", 3, "%O: msg(%O)\n", this, p);
-    
-    object factory() {
-	return JSON.UniformBuilder(this->server->get_uniform);
-    };
-
-    mixed parse_JSON(string d) {
-	return JSON.parse(d, 0, 0, ([ '\'' : factory ]));
-    };
-    
-    if (p->data) {
-	if (stringp(p->data)) {
-#ifdef LOVE_TELNET
-	    p->data = PSYC.parse(p->data, parse_JSON, p->newline);
-#else
-	    p->data = PSYC.parse(p->data, parse_JSON);
-#endif
-	}
-    } else {
-	debug("packet_flow", 1, "Got Packet without data. maybe state changes?\n");
-	return;
-    }
-
-    handle("prefilter", p, ([]));
-}
