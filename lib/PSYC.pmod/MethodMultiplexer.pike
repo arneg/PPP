@@ -249,10 +249,10 @@ void msg(MMP.Packet p) {
 		}
 
 		p->data = packet;
-		stages[start_stage]->handle_message(PSYC.Request(p, state->get_snapshot()), p->data->mc);
+		stages[start_stage]->handle_message(PSYC.Request(p, get_instate(p)->get_snapshot()), p->data->mc);
 		break;
 	    } else if (Program.inherits(object_program(p->data), Serialization.Atom)) {
-		stages[start_stage]->handle_message(PSYC.Request(p, state->get_snapshot()), p->data->mc);
+		stages[start_stage]->handle_message(PSYC.Request(p, get_instate(p)->get_snapshot()), p->data->mc);
 		break;
 	    } else {
 		do_throw("p->data is an object, but neither of class PSYC.Packet nor Serialization.Atom\n");
