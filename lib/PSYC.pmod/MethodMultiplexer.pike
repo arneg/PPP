@@ -73,11 +73,7 @@ class StageIterator {
 }
 
 class Stage {
-    mapping(string:object) handler = ([]);
-
-    void create() {
-	set_weak_flag(handler, Pike.WEAK_VALUES);
-    }
+    mapping(string:object) handler = set_weak_flag(([]), Pike.WEAK_VALUES);
 
     .StageIterator get_iterator(string method) {
 	return .StageIterator(this, method);
@@ -86,7 +82,9 @@ class Stage {
 
 mapping(int:object) handler = ([]);
 mapping(string:object) stages = ([]);
-mapping(string:object) signatures = ([]);
+// TODO: these may not be cleaned up early enough because types are shared and
+// stay alive. however, it may be good to allow state changes anyhow.
+mapping(string:object) signatures = set_weak_flag(([]), Pike.WEAK);
 
 int get_new_id() {
     int i;
