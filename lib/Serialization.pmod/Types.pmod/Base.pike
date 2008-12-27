@@ -4,6 +4,14 @@ void create(string type) {
     _type = type;
 }
 
+int(0..1) is_subtype_of(object a) {
+    return Serialization.is_subtype_of(_type, a->_type);
+}
+
+int(0..1) is_supertype_of(object a) {
+    return Serialization.is_supertype_of(_type, a->_type);
+}
+
 int(0..1) low_can_decode(mixed a) {
     if (object_program(a) != Serialization.Atom) return 0;
     return Serialization.is_subtype_of(a->type, _type);
