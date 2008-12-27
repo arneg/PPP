@@ -15,8 +15,28 @@ object server;
 object state = .State();
 MMP.Uniform uni;
 mapping(MMP.Uniform:int) counter = ([]);
+mapping(MMP.Uniform:object) outstate = ([]);
+mapping(MMP.Uniform:object) intstate = ([]);
 
 object method;
+
+object get_outstate(MMP.Packet p) {
+    if (!p["_context"]) {
+	if (!outstate[p["_target"]]) outstate[p["_target"]] = .State(([]));
+	return outstate[p["_target"]];
+    }
+
+    error("no mc state for now.\n");
+}
+
+object get_intstate(MMP.Packet p) {
+    if (!p["_context"]) {
+	if (!outstate[p["_source"]]) outstate[p["_source"]] = .State(([]));
+	return outstate[p["_source"]];
+    }
+
+    error("no mc state for now.\n");
+}
 
 mixed cast(string type) {
     if (type == "string") return sprintf("Unl(%s)", qName());
