@@ -1,9 +1,8 @@
 object stage;
 mapping _fun;
+mapping oqueues = ([ ]);
 
 array(int) last_out = ({ 0, 0 });
-
-object oqueue;
 
 int smaller(array a, array b) {
     return a[1]["_id"] < b[1]["_id"];
@@ -13,32 +12,38 @@ int is_ok(array a) {
     return a[1]["_id"] == last_out[1]+1;
 }
 
+int is_ok_weak(array a) {
+    return !(last_out[0] == a[0]-1 && last_out[1] != a[1]-1);
+}
 void create(object stage, mapping(int:function) retfun) {
     this_program::stage = stage;
     _fun = retfun;
-    oqueue = PSYC.OrderedQueue(smaller, is_ok);
 }
 
-void handle_message(MMP.Packet p, string mc, mapping misc) {
-    handle_step(stage->get_iterator(mc), p, mc, misc);
+void handle_message(object r, string mc) {
+    handle_step(stage->get_iterator(mc), r, mc);
 }
 
-void handle_step(object iterator, MMP.Packet p, string mc, mapping misc) {
-    prefetch(iterator, p, mc, misc);
+void handle_step(object iterator, object r, string mc) {
+    prefetch(iterator, r, mc);
 }
 
-void prefetch(object iterator, MMP.Packet p, string mc, mapping misc) {
+void prefetch(object iterator, object r, string mc) {
     int seen;
     void fun(int|Serialization.Atom a) {
 	if (objectp(a)) {
-	    MMP.invoke_later(fetch, a, iterator, p, mc, misc);
+	    MMP.invoke_later(fetch, a, iterator, r, mc);
 	    return;
 	}
 
 	if (ret != PSYC.Handler.GOON) {
-	    MMP.invoke_later(_fun[ret], p, misc);
+	    if (!_fun[ret]) {
+		do_throw("Handler gave invalid return result %O.\n", ret);
+	    }
+
+	    MMP.invoke_later(_fun[ret], r);
 	} else {
-	    MMP.invoke_later(fetch, 0, iterator, p, mc, misc);
+	    MMP.invoke_later(fetch, 0, iterator, r, mc);
 	}
     };
 
@@ -47,10 +52,22 @@ void prefetch(object iterator, MMP.Packet p, string mc, mapping misc) {
 	seen = 1;
 
 	if (handler->ordered) {
-	    oqueue->add(({ iterator, p, mc, misc }));
+	    if (!handler->oqueue) handler->oqueue = PSYC.OrderedQueue(@handler->orderd);
+
+	    handler->oqueue->add(({ iterator, r, mc }));
+	    oqueues[handler->oqueue]++;
 
 	    try_unroll();
 	    return;
+	}
+	// apply state if possible
+	foreach (r->state_changes;Serialization.Atom change;) {
+
+	    if (vsig->can_decode(change)) {
+		state->apply(vsig, change);
+		// flagellate the applied one
+		m_delete(r->state_changes, change);
+	    }
 	}
 	// prefetch
 	//
@@ -109,10 +126,14 @@ void postfetch(mapping data, object iterator, MMP.Packet p, mapping misc) {
 }
 
 void try_unroll() {
-    array a = oqueue->get();
-
-    if (a) {
-	MMP.invoke_later(prefetch, @a);
+    foreach (oqueues;; queue) {
+	while (array a = oqueue->get()) {
+	    MMP.invoke_later(prefetch, @a);
+	    if (!--oqueues[queue]) {
+		m_delete(oqueues, queue);
+		break; // optimization
+	    }
+	}
     }
 }
 

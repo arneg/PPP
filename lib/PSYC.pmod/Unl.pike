@@ -73,7 +73,10 @@ void create(mapping params) {
 				        PSYC.Handler.GOON : filter->handle_message,
 					PSYC.Handler.DISPLAY : display->handle_message
 					]));
+    object statestage = .StageHandler(([ PSYC.Handler.STOP : prefilter->handle_message,
+				         PSYC.Handler.GOON : prefilter->handle_message ]));
 
+    add_stage("state", statestage);
     add_stage("prefilter", prefilter);
     add_stage("filter", filter);
     add_stage("postfilter", postfilter);
@@ -87,72 +90,6 @@ void create(mapping params) {
 		 );
 }
 
-//! Entry point for processing PSYC messages through this handler framework.
-//! @param p
-//! 	An @[MMP.Packet] containing parseable PSYC as a string or @[PSYC.Packet].
-//!
-//! 	This will do everything from throwing to nothing if you provide something else.
-void msg(MMP.Packet p) {
-    debug("packet_flow", 3, "%O: msg(%O)\n", this, p);
-    
-    if (p["content_type"] == "psyc") {
-	int f;
-	switch (sprintf("%t", p->data)) {
-	case "string":
-	    object parser = Serialization.AtomParser();
-	    object a = parser->parse(p->data);
-
-	    if (!a) do_throw("uuuahahah");
-	    p->data = a;
-	    f = 1;
-	case "object":
-	    if (f || Program.inherits(object_program(p->data), Serialization.Atom)) {
-		object parser = Serialization.AtomParser();
-		array(Serialization.Atom) t = parser->parse_all();
-		PSYC.Packet packet = PSYC.Packet();
-
-		int i;
-
-		for (i = 0;i < sizeof(t); i++) {
-		    Serialization.atom = t[i];
-		    if (atom->is_subtype_of("_mapping") && !atom->action) {
-			if (i > 0) {
-			    packet->state_changes = t[0..i-1];
-			}
-			packet->vars = t[i];
-
-			i++;
-			break;
-		    } 
-		}
-		if (t[i]->is_subtype_of(method)) {
-		    packet->mc = method->decode(t[i]);
-		    if (sizeof(t) == ++i) {
-			packet->data = t[i];
-		    } else if (sizeof(t) > i){
-			error("more than one data. looks broken.\n");
-		    }
-		} else {
-		    error("broken psyc packet.\n");
-		}
-
-		p->data = packet;
-		stages[start_stage]->handle_message(p, p->data->mc);
-		break;
-	    } else if (Program.inherits(object_program(p->data), Serialization.Atom)) {
-		stages[start_stage]->handle_message(p, p->data->mc);
-		break;
-	    } else {
-		do_throw("p->data is an object, but neither of class PSYC.Packet nor Serialization.Atom\n");
-	    }
-	    break;
-	    default:
-	    debug("packet_flow", 1, "Got Packet without data. maybe state changes?\n");
-	    break;
-	}
-	
-    }
-}
 
 
 //! Send an @[MMP.Packet]. MMP routing variables of the packet will be set automatically if possible.
