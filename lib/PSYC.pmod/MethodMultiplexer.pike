@@ -4,29 +4,47 @@ class Handler {
     array(Serialization.Atom) sdata;
     string stage;
     object msig, vsig, dsig;
-    int dead = 0;
+    int dead, async, ordered;
+    object oqueue;
 }
 
 class StageIterator {
+    inherit Iterator;
+
     array(string) mlist;
     string id;
-    int index;
+    int index2, index3 = -1;
     object stage;
+
+    Iterator _get_iterator() { return this; }
 
     void create(object stage, string method) {
 	mlist = (method/"_");
-	index = sizeof(mlist)-1;
+	index2 = sizeof(mlist)-1;
 	this_program::stage = stage;
 	find_next();
     }
 
     void find_next() {
-	while (1) { 
-	    if (index >= 0) {
-		id = mlist[0..index]*"_";
+	for (;;) { 
+	    if (index2 >=0 ) {
+		if (--index3 >= 0) {
+		    object h = stage->handler[id][index3];
 
-		index--;
-		if (has_index(state->handler, id)) return;
+		    if (h && !h->dead) { // race here
+			return;	
+		    } else {
+			continue;
+		    }
+		} else {
+		    id = mlist[0..index2]*"_";
+
+		    index2--;
+		    if (has_index(stage->handler, id)) {
+			index3 = sizeof(stage->handler);
+			continue;
+		    }
+		}
 	    } else {
 		id = UNDEFINED;
 		return;
@@ -39,13 +57,13 @@ class StageIterator {
     }
 
     int(0..1) next() {
-	id = find_next();
+	find_next();
 
 	return !!id;
-    }
+    } 
 
     mixed value() {
-	if (id) return stage->handlers[id];
+	if (id && index3 > -1) return stage->handlers[id][index3];
 	else return UNDEFINED;
     }
 
@@ -78,6 +96,15 @@ class Stage {
     .StageIterator get_iterator(string method) {
 	return .StageIterator(this, method);
     }
+
+    void add_handler(object h, string base) {
+	if (!handler[base]) {
+	    handler[base] = ({ });
+	    set_weak_flag(handler[base], Pike.WEAK_VALUES);
+	}
+
+	handler[base] += ({ h });
+    }
 }
 
 mapping(int:object) handler = ([]);
@@ -85,29 +112,58 @@ mapping(string:object) stages = ([]);
 // TODO: these may not be cleaned up early enough because types are shared and
 // stay alive. however, it may be good to allow state changes anyhow.
 mapping(string:object) signatures = set_weak_flag(([]), Pike.WEAK);
+string start_stage = "start";
 
 int get_new_id() {
     int i;
-    while (has_index(handler, i = random(Int.NATIVE_MAX))) {} 
+    while (has_index(handler, i = random(Int.NATIVE_MAX)));
 
     return i;
 }
 
-int add_method(mapping specs) {
-    .Handler h = .Handler();
+void set_start_stage(string start_stage) {
+    this_program::start_stage = start_stage;
+}
 
-    h->stage = specs["stage"];
+void add_stage(string name, object stage) {
+    if (stages[name]) error("Sir, I am very sorry, but that seat is already taken.\n");
+    stages[name] = stage;
+}
+
+int add_method(mapping specs, object child) {
+    .Handler h = .Handler();
+    object stage;
+
+    h->stage = stages[specs["stage"]];
+    if (!h->stage) error("non supported stage %O.\n", specs["stage"]);
     h->msig = specs["method"];
     h->vsig = specs["vars"];
     h->dsig = specs["data"];
+    if (1 == specs["ordered"]) {
+	h->ordered = ({ h->stage->smaller,
+		        h->stage->is_ok });
+    } else if (arrayp(specs["ordered"])) {
+	h->ordered = ({ specs["ordered"][0] || h->stage->smaller,
+		        specs["ordered"][1] || h->stage->is_ok });
+    } else {
+	h->ordered = ({ h->stage->smaller,
+		        h->stage->is_ok_weak });
+    }
+
+    if (specs["async"]) h->async = 1;
+    if (specs["dead"]) h->dead = 1;
+
+    if (!stages[h->stage]) error("I am in no such state! Shut your bloody piehole!");
+    stages[h->stage]->add_handler(h, base);
+
     string base = h->msig->base;
 
-    mixed f = `->(this, "prefetch_"+h->stage+"_"+base);
+    mixed f = `->(child, "prefetch_"+h->stage+"_"+base);
     if (callablep(f)) {
 	h->prefetch = f;	
     }
 
-    if (callablep(f = `->(this, h->stage+"_"+base))) {
+    if (callablep(f = `->(child, h->stage+"_"+base))) {
 	h->postfetch = f;	
     }
 
@@ -155,4 +211,71 @@ void remove_method(int id) {
 
 void remove_handler(int id) {
     m_delete(handler, id)->dead = 1;
+}
+
+//! Entry point for processing PSYC messages through this handler framework.
+//! @param p
+//! 	An @[MMP.Packet] containing parseable PSYC as a string or @[PSYC.Packet].
+//!
+//! 	This will do everything from throwing to nothing if you provide something else.
+void msg(MMP.Packet p) {
+    debug("packet_flow", 3, "%O: msg(%O)\n", this, p);
+    
+    if (p["content_type"] == "psyc") {
+	int f;
+	switch (sprintf("%t", p->data)) {
+	case "string":
+	    object parser = Serialization.AtomParser();
+	    object a = parser->parse(p->data);
+
+	    if (!a) do_throw("uuuahahah");
+	    p->data = a;
+	    f = 1;
+	case "object":
+	    if (f || Program.inherits(object_program(p->data), Serialization.Atom)) {
+		object parser = Serialization.AtomParser();
+		array(Serialization.Atom) t = parser->parse_all();
+		PSYC.Packet packet = PSYC.Packet();
+
+		int i;
+
+		for (i = 0;i < sizeof(t); i++) {
+		    Serialization.atom = t[i];
+		    if (atom->is_subtype_of("_mapping") && !atom->action) {
+			if (i > 0) {
+			    packet->state_changes = t[0..i-1];
+			}
+			packet->vars = t[i];
+
+			i++;
+			break;
+		    } 
+		}
+		if (t[i]->is_subtype_of(method)) {
+		    packet->mc = method->decode(t[i]);
+		    if (sizeof(t) == ++i) {
+			packet->data = t[i];
+		    } else if (sizeof(t) > i){
+			error("more than one data. looks broken.\n");
+		    }
+		} else {
+		    error("broken psyc packet.\n");
+		}
+
+		p->data = packet;
+		stages[start_stage]->handle_message(PSYC.Request(p, get_instate(p)->get_snapshot()), p->data->mc);
+		break;
+	    } else if (Program.inherits(object_program(p->data), Serialization.Atom)) {
+		stages[start_stage]->handle_message(PSYC.Request(p, get_instate(p)->get_snapshot()), p->data->mc);
+		break;
+	    } else {
+		do_throw("p->data is an object, but neither of class PSYC.Packet nor Serialization.Atom\n");
+	    }
+	    break;
+	    default:
+	    debug("packet_flow", 1, "Got Packet without data. maybe state changes?\n");
+	    break;
+	}
+	
+    }
 }

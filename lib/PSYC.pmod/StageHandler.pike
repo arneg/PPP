@@ -1,178 +1,145 @@
-// vim:syntax=lpc
-#include <new_assert.h>
+object stage;
+mapping _fun;
+mapping oqueues = ([ ]);
 
-// TODO
-// - let the check function return variables to request.
+array(int) last_out = ({ 0, 0 });
 
-inherit MMP.Utils.Debug;
-
-object storage;
-mapping table = ([]);
-mapping requested = ([]);
-function goon, stop, error, display;
-string prefix;
-
-void create(mapping params) {
-
-    ::create(params["debug"]);
-    prefix = params["prefix"];
-
-    enforce(callablep(goon = params["goon"]));
-    enforce(callablep(stop = params["stop"]));
-    error = params["error"];
-    display = params["display"];
-
-    enforce(objectp(storage = params["storage"]));
+int smaller(array a, array b) {
+    return a[1]["_id"] < b[1]["_id"];
 }
 
-#ifdef DEBUG
-string _sprintf(int type) {
-    if (type == 'O') {
-	return sprintf("StageHandler(%O)", function_object(stop));
-    }
-}
-#endif
-
-
-void add(string mc, object handler, void|mapping|array(string) d) {
-    PSYC.AR result;
-
-    debug("handler_management", 3, "%O->add(%O, %O)\n", prefix, mc, handler);
-    if (!has_index(table, mc)) table[mc] = ({ }); 
-
-    result = PSYC.handler_parser(d);
-
-    result->handler = `->(handler, prefix + mc);
-    enforcer(functionp(result->handler),
-	     sprintf("No method %s defined in %O.\n", prefix+mc, handler));
-
-    if (result->check) {
-	result->check = `->(handler, result->check);
-	enforcer(functionp(result->check),
-		 sprintf("No method %s is defined in %O.\n", d["check"], handler));
-    }
-    table[mc] += ({ result });
-
+int is_ok(array a) {
+    return a[1]["_id"] == last_out[1]+1;
 }
 
-void handle(MMP.Packet p, mapping _m) {
-
-    debug("packet_flow", 3, "%s:handle(%s)\n", prefix, p->data->mc);
-
-    array(string) l = p->data->mc / "_";
-    MMP.Utils.Queue liste = MMP.Utils.Queue(); 
-
-    for (int i = sizeof(l)-1; i >= 0; i--) {
-	string temp = l[0..i] * "_";
-	if (has_index(table, temp)) {
-	    foreach(table[temp];; object a) {
-		liste->push(a);
-	    }
-	}
-    }
-
-#if DEBUG > 1
-    if (!sizeof(liste)) {
-	debug(([ "packet_flow" : 1, "handler" : 2 ]), "%O: no stack for method %s.\n", prefix, p->data->mc);
-    } else {
-	debug(([ "packet_flow" : 3, "handler" : 4 ]), "%O: stack for %s is %O\n", prefix, p->data->mc, (array)liste);
-    }
-#endif
-    progress(liste, p, _m);
+int is_ok_weak(array a) {
+    return !(last_out[0] == a[0]-1 && last_out[1] != a[1]-1);
+}
+void create(object stage, mapping(int:function) retfun) {
+    this_program::stage = stage;
+    _fun = retfun;
 }
 
-void progress(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
-    debug("packet_flow", 3, "%O: progressing %O.\n", prefix, stack);
+void handle_message(object r, string mc) {
+    handle_step(stage->get_iterator(mc), r, mc);
+}
 
-    if (stack->isEmpty()) {
-	call_out(goon, 0, p, _m);
+void handle_step(object iterator, object r, string mc) {
+    prefetch(iterator, r, mc);
+}
 
-	return;
-    }
-    
-    PSYC.AR o = stack->shift_();
-
-    if (o->check && !o->check(p, _m)) {
-	debug("packet_flow", 2, "%O: %O->check() returned Null.\n", prefix, o);
-	stack->shift();
-	call_out(progress, 0, stack, p, _m);
-	return;
-    }
-
-    void fail(MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
-	debug("storage", 0, "fetching data for %O failed in stack %O.\n", p, stack);
-    };
-
-    array(mixed) args = ({ storage, o->lvars && (multiset)o->lvars, o->wvars && (multiset)o->wvars, call_handler, fail, stack, p, _m });
-
-    // we have to check prior to fetching!!! otherwise we will fetch broken stuff prior to initialization.
-    // alternative: lock init vars.. ,)
-    // better: do both
-    if (has_index(function_object(o->handler)->_, "_")) {
-	object handler = function_object(o->handler);
-
-	if (!handler->is_inited()) {
-	    debug("handler_init", -1, "%O not inited yet. queueing %O.\n", handler, p->data);
-	    handler->init_cb_add(PSYC.Storage.multifetch, @args);
+void prefetch(object iterator, object r, string mc) {
+    int seen;
+    void fun(int|Serialization.Atom a) {
+	if (objectp(a)) {
+	    MMP.invoke_later(fetch, a, iterator, r, mc);
 	    return;
 	}
+
+	if (ret != PSYC.Handler.GOON) {
+	    if (!_fun[ret]) {
+		do_throw("Handler gave invalid return result %O.\n", ret);
+	    }
+
+	    MMP.invoke_later(_fun[ret], r);
+	} else {
+	    MMP.invoke_later(fetch, 0, iterator, r, mc);
+	}
+    };
+
+    foreach (iterator;; object handler) {
+	.Message m;
+	seen = 1;
+
+	if (handler->ordered) {
+	    if (!handler->oqueue) handler->oqueue = PSYC.OrderedQueue(@handler->orderd);
+
+	    handler->oqueue->add(({ iterator, r, mc }));
+	    oqueues[handler->oqueue]++;
+
+	    try_unroll();
+	    return;
+	}
+	// apply state if possible
+	foreach (r->state_changes;Serialization.Atom change;) {
+
+	    if (vsig->can_decode(change)) {
+		state->apply(vsig, change);
+		// flagellate the applied one
+		m_delete(r->state_changes, change);
+	    }
+	}
+	// prefetch
+	//
+	if (handler->prefetch) {
+	    m = .Message(([
+			    "mmp" : p,
+			    "vsig" : handler->vsig,
+			    "dsig" : handler->dsig,
+			    "packet" : p->data,
+			    "snapshot" : snapshot,
+			 ]));
+	    if (handler->async) {
+		MMP.invoke_later(handler->prefetch, p, misc, fun);
+	    } else {
+		MMP.invoke_later(fun, handler->prefetch(p, misc));
+	    }
+
+	    return;
+	}
+
+	MMP.invoke_later(fetch, handler->ssig, iterator, p, mc, misc);
+	return;
     }
 
-    PSYC.Storage.multifetch(@args);
-
+    if (!seen) werror("no handler found.");
 }
 
-void call_handler(mapping _v, MMP.Utils.Queue stack, MMP.Packet p, mapping _m) {
-    PSYC.AR o = stack->shift();
-    debug("packet_flow", 3, "Calling %O for %O with misc: %O.\n", o->handler, p, _m);
+void fetch(Serialization.Atom sig, object iterator, MMP.Packet p, mapping misc) {
+    storage->apply(sig, postfetch, iterator, p, mc, misc);
+}
 
+void postfetch(mapping data, object iterator, MMP.Packet p, mapping misc) {
+    object handler = iterator->value();
 
-    int in_progress = 1;
+    // do async
     
-    if (o->async) {
-	void callback(int i) {
-	    if (in_progress) {
-		throw(({ "callback called, but handler didn't yet return. "
-			 "use call_out, stupid!", backtrace() }));
-	    }
-
-	    // copied code comes here.
-	    switch (i) {
-	    case PSYC.Handler.GOON:
-		progress(stack, p, _m);
-		break;
-	    case PSYC.Handler.STOP:
-		debug("packet_flow", 1, "%O stopped in %O\n", p, o->handler);
-		stop(p, _m);
-		break;
-	    case PSYC.Handler.DISPLAY:
-		if (display) display(p, _m);
-		break;
-	    default:
-		do_throw("Illegal return type from Handler function %O.\n", o->handler);
-	    }
-	};
-
-	debug("packet_flow", 3, "attempting to call %O.\n", o->handler);
-
-	o->handler(p, _v, _m, callback);
-	in_progress = 0;
-    } else {
-	int ret = o->handler(p, _v, _m);
-	switch (ret) {
-	case PSYC.Handler.GOON:
-	    progress(stack, p, _m);
-	    break;
-	case PSYC.Handler.STOP:
-	    debug("packet_flow", 1, "%O stopped in %O\n", p, o->handler);
-	    stop(p, _m);
-	    break;
-	case PSYC.Handler.DISPLAY:
-	    if (display) display(p, _m);
-	    break;
-	default:
-	    do_throw("Illegal return type from Handler function %O.\n", o->handler);
+    void fun(int ret) {
+	if (!has_index(_fun, ret)) {
+	    error("invalid return value: %O\n", ret);
 	}
+
+	if (ret != PSYC.Handler.GOON) {
+	    MMP.invoke_later(_fun[ret], p, misc);
+	} else {
+	    MMP.invoke_later(handle_message, iterator, p, misc);
+	}
+    };
+
+    if (handler->async) {
+	handler->postfetch(data, p, misc, fun);
+    } else {
+	fun(handler->postfetch(data, p, misc);
     }
 
+    return;
+}
+
+void try_unroll() {
+    foreach (oqueues;; queue) {
+	while (array a = oqueue->get()) {
+	    MMP.invoke_later(prefetch, @a);
+	    if (!--oqueues[queue]) {
+		m_delete(oqueues, queue);
+		break; // optimization
+	    }
+	}
+    }
+}
+
+void leave(mapping data, object iterator, MMP.Packet p, mapping misc) {
+    //last_out = max(last_out[*], ({ p["_state_id"], p["_id"] })[*]);
+    last_out[0] = max(last_out[0], p["_state_id"]);
+    last_out[1] = max(last_out[1], p["_id"]);
+    try_unroll();
 }

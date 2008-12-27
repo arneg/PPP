@@ -8,6 +8,7 @@ inherit MMP.Utils.Debug;
 object parent;
 function sendmmp;
 MMP.Uniform uni;
+mapping outgoing = ([ ]);
 
 // we tried optional, but that doesn't work - might be a bug, we'll ask the
 // pikers soon. in the meantime, we'll use static.
@@ -74,3 +75,19 @@ string send_tagged_v(MMP.Uniform target, PSYC.Packet m, multiset(string)|mapping
     return m["_tag"];
 }
 
+void register_outgoing(mapping spec) {
+    outgoing[spec["method"]->base] = spec;
+}
+
+.Message get_message(string mc, MMP.Packet p) {
+    mapping handler = outgoing[mc];
+
+    return .Message(([
+		    "mmp" : p,
+		    "vsig" : handler->vsig,
+		    "dsig" : handler->dsig,
+		    "packet" : p->data,
+		    "snapshot" : parent->get_outstate(p)->get_snapshot(),
+		 ]));
+
+}
