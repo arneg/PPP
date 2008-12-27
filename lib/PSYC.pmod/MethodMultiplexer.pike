@@ -86,6 +86,7 @@ class Stage {
 
 mapping(int:object) handler = ([]);
 mapping(string:object) stages = ([]);
+mapping(string:object) signatures = ([]);
 
 int get_new_id() {
     int i;
@@ -131,6 +132,20 @@ int add_method(mapping specs) {
 
 int add_handler(object h) {
     int id = get_new_id();
+
+    object vsig = h->vsig;
+
+    foreach (vsig->hash->m+vsig->ohash->m; string key; object sig) {
+	if (signatures[key]) {
+	    if (signatures[key]->is_subtype_of(sig)) {
+		signatures[key] = sig;
+	    } else if (!sig->is_subtype_of(signatures[key])) {
+		error("trying to add non compatible type\n.");	
+	    }
+	} else {
+	    signatures[key] = sig;
+	}
+    }
 
     handler[id] = h;
     return id;
