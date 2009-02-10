@@ -56,3 +56,7 @@ void register_outgoing(mapping spec) {
 void send_message(.Message m) {
     _send_message(m);
 }
+
+void register_storage(string name, object signature) {
+    storage->register_storage(name, signature);
+}
