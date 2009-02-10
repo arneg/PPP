@@ -1,12 +1,15 @@
 #include <new_assert.h>
 inherit MMP.Utils.Debug;
+inherit Serialization.Signature;
+inherit Serialization.BasicTypes;
+inherit Serialization.PsycTypes;
 
 //! Tools for message handlers
 //! @note
 //!	This class gets inherited by @[Handler.Base] and @[Commands.Base] as a minimal set of functionality.
 
 object parent;
-function sendmmp;
+function _send_message;
 MMP.Uniform uni;
 mapping outgoing = ([ ]);
 
@@ -25,62 +28,20 @@ mapping outgoing = ([ ]);
 //! @seealso
 //!	@[Handler.Base], @[Commands.Base]
 static void create(mapping params) {
-    ::create(params["debug"]);
+    MMP.Utils.Debug::create(params["debug"]);
+    Serialization.Signature::create(params["type_cache"]);
 
     enforce(objectp(parent = params["parent"]));
     enforce(MMP.is_uniform(uni = params["uniform"]));
-    enforce(callablep(sendmmp = params["sendmmp"]));
-}
-
-//! Send a unicast packet
-//! @param target
-//!	Intended receiver of the @[PSYC.Packet].
-//! @param m
-//!	@[PSYC.Packet] to be sent.
-void sendmsg(MMP.Uniform target, PSYC.Packet m) {
-    debug("packet-flow", 2, "sendmsg(%O, %O)\n", target, m);
-    MMP.Packet p = MMP.Packet(m);
-    sendmmp(target, p);    
-}
-
-//! @decl string send_tagged(MMP.Uniform target, PSYC.Packet m, function callback, mixed ... args);
-//! @decl string send_tagged_v(MMP.Uniform target, PSYC.Packet m, multiset(string)|mapping wvars, function callback, mixed ... args);
-//! Tag and send a unicast packet.
-//! @param target
-//!	Intended receiver of the @[PSYC.Packet].
-//! @param m
-//!	@[PSYC.Packet] to be sent.
-//! @param wvars
-//!	Storage variables that should be fetched and passed on to the callback.
-//! @param callback
-//! 	Callback to call when the reply arrives. Will be called as
-//!@code
-//!void callback(MMP.Packet p, mapping storage_vars, mixed ... args) // signature of callback for send_tagged_v
-//!void callback(MMP.Packet p, mixed ... args) // signature of callback for send_tagged
-//!@endcode
-//! @param args
-//!	Optional arguments that will be passed on to the callback.
-//! @returns
-//! 	The tag that the packet got assigned.
-
-string send_tagged(MMP.Uniform target, PSYC.Packet m, 
-		   function callback, mixed ... args) {
-    return send_tagged_v(target, m, 0, callback, @args);
-}
-
-string send_tagged_v(MMP.Uniform target, PSYC.Packet m, multiset(string)|mapping wvars,
-		     function callback, mixed ... args) {
-    m->vars["_tag"] = parent->make_reply(callback, wvars, @args);
-    call_out(sendmsg, 0, target, m);
-    return m["_tag"];
+    enforce(callablep(_send_message = params["send_message"]));
 }
 
 void register_outgoing(mapping spec) {
     outgoing[spec["method"]->base] = spec;
 }
 
-.Message get_message(string mc, MMP.Packet p) {
-    mapping handler = outgoing[mc];
+.Message get_message(MMP.Packet p) {
+    mapping handler = outgoing[p->data->mc];
 
     return .Message(([
 		    "mmp" : p,
@@ -90,4 +51,8 @@ void register_outgoing(mapping spec) {
 		    "snapshot" : parent->get_outstate(p)->get_snapshot(),
 		 ]));
 
+}
+
+void send_message(.Message m) {
+    _send_message(m);
 }

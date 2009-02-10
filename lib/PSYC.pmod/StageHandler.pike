@@ -2,6 +2,8 @@ object stage;
 mapping _fun;
 mapping oqueues = ([ ]);
 
+// this is not the last one that left the stage but rather the last one that
+// was used to apply state
 array(int) last_out = ({ 0, 0 });
 
 int smaller(array a, array b) {
@@ -20,15 +22,15 @@ void create(object stage, mapping(int:function) retfun) {
     _fun = retfun;
 }
 
-void handle_message(object r, string mc) {
+void handle_message(.Request r, string mc) {
     handle_step(stage->get_iterator(mc), r, mc);
 }
 
-void handle_step(object iterator, object r, string mc) {
+void handle_step(object iterator, .Request r, string mc) {
     prefetch(iterator, r, mc);
 }
 
-void prefetch(object iterator, object r, string mc) {
+void prefetch(object iterator, .Request r, string mc) {
     int seen;
     void fun(int|Serialization.Atom a) {
 	if (objectp(a)) {
@@ -60,15 +62,6 @@ void prefetch(object iterator, object r, string mc) {
 	    try_unroll();
 	    return;
 	}
-	// apply state if possible
-	foreach (r->state_changes;Serialization.Atom change;) {
-
-	    if (vsig->can_decode(change)) {
-		state->apply(vsig, change);
-		// flagellate the applied one
-		m_delete(r->state_changes, change);
-	    }
-	}
 	// prefetch
 	//
 	if (handler->prefetch) {
@@ -80,26 +73,26 @@ void prefetch(object iterator, object r, string mc) {
 			    "snapshot" : snapshot,
 			 ]));
 	    if (handler->async) {
-		MMP.invoke_later(handler->prefetch, p, misc, fun);
+		MMP.invoke_later(handler->prefetch, r->p, misc, fun);
 	    } else {
-		MMP.invoke_later(fun, handler->prefetch(p, misc));
+		MMP.invoke_later(fun, handler->prefetch(r->p, misc));
 	    }
 
 	    return;
 	}
 
-	MMP.invoke_later(fetch, handler->ssig, iterator, p, mc, misc);
+	MMP.invoke_later(fetch, handler->ssig, iterator, r, mc, misc);
 	return;
     }
 
     if (!seen) werror("no handler found.");
 }
 
-void fetch(Serialization.Atom sig, object iterator, MMP.Packet p, mapping misc) {
-    storage->apply(sig, postfetch, iterator, p, mc, misc);
+void fetch(Serialization.Atom sig, object iterator, .Request r, mapping misc) {
+    storage->apply(sig, postfetch, iterator, r, mc, misc);
 }
 
-void postfetch(mapping data, object iterator, MMP.Packet p, mapping misc) {
+void postfetch(mapping data, object iterator, .Request r, mapping misc) {
     object handler = iterator->value();
 
     // do async
@@ -110,16 +103,16 @@ void postfetch(mapping data, object iterator, MMP.Packet p, mapping misc) {
 	}
 
 	if (ret != PSYC.Handler.GOON) {
-	    MMP.invoke_later(_fun[ret], p, misc);
+	    MMP.invoke_later(_fun[ret], r, misc);
 	} else {
-	    MMP.invoke_later(handle_message, iterator, p, misc);
+	    MMP.invoke_later(handle_message, iterator, r, misc);
 	}
     };
 
     if (handler->async) {
-	handler->postfetch(data, p, misc, fun);
+	handler->postfetch(data, r->p, misc, fun);
     } else {
-	fun(handler->postfetch(data, p, misc);
+	fun(handler->postfetch(data, r->p, misc);
     }
 
     return;
@@ -137,9 +130,9 @@ void try_unroll() {
     }
 }
 
-void leave(mapping data, object iterator, MMP.Packet p, mapping misc) {
+void leave(mapping data, object iterator, .Request r, mapping misc) {
     //last_out = max(last_out[*], ({ p["_state_id"], p["_id"] })[*]);
-    last_out[0] = max(last_out[0], p["_state_id"]);
-    last_out[1] = max(last_out[1], p["_id"]);
+    last_out[0] = max(last_out[0], r->p["_state_id"]);
+    last_out[1] = max(last_out[1], r->p["_id"]);
     try_unroll();
 }

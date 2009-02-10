@@ -1,6 +1,7 @@
 MMP.Packet p;
 mapping misc = ([]);
-mapping state_changes;
+// change -> applied
+mapping(Serialization.Atom:int) state_changes;
 object snapshot;
 
 void create(MMP.Packet p, object snapshot) {

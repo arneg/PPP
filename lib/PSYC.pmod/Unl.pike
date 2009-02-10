@@ -4,15 +4,14 @@
 //! The simplest PSYC speaking object in whole @i{PSYCSPACE@}. Does
 //! Remote Authentication and Reply using uthe 
 
-inherit PSYC.Handling;
-inherit Serialization.Signature : signature;
+inherit PSYC.MethodMultiplexer;
+inherit Serialization.Signature;
 inherit Serialization.BaseTypes;
 inherit Serialization.PsycTypes;
 
 object storage;
 
 object server;
-object state = .State();
 MMP.Uniform uni;
 mapping(MMP.Uniform:int) counter = ([]);
 mapping(MMP.Uniform:object) outstate = ([]);
@@ -29,10 +28,10 @@ object get_outstate(MMP.Packet p) {
     error("no mc state for now.\n");
 }
 
-object get_intstate(MMP.Packet p) {
+object get_instate(MMP.Packet p) {
     if (!p["_context"]) {
-	if (!outstate[p["_source"]]) outstate[p["_source"]] = .State(([]));
-	return outstate[p["_source"]];
+	if (!instate[p["_source"]]) instate[p["_source"]] = .State(([]));
+	return instate[p["_source"]];
     }
 
     error("no mc state for now.\n");
@@ -40,10 +39,6 @@ object get_intstate(MMP.Packet p) {
 
 mixed cast(string type) {
     if (type == "string") return sprintf("Unl(%s)", qName());
-}
-
-MMP.Uniform qName() {
-    return uni;
 }
 
 void check_authentication(MMP.Uniform t, function cb, mixed ... args) {
@@ -65,17 +60,15 @@ void NOP(mixed ... args) { }
 //! 	callbacks to the @[PSYC.Server] that will get called if someone
 //! 	tries to reach a non-present entity.
 void create(mapping params) {
-    ::create(params); 
-    signature::create(Serialization.TypeCache());
+    Serialization.Signature::create(params["type_cache"]);
+    PSYC.MethodMultiplexer::create(params); 
     enforce(MMP.is_uniform(uni = params["uniform"]));
     enforce(objectp(server = params["server"]));
     enforce(objectp(storage = params["storage"]));
     debug("local_object", 2, "Uniform created for %s.\n", uni);
 
-    mapping handler_params = params + ([ "parent" : this, "sendmmp" : sendmmp ]);
-
-    PSYC.MethodMultiplexer(params + ([ "handling" : this ]));
-    PSYC.NotifyHandling(params + ([ "handling" : this ]));
+    mapping handler_params = params + ([ "parent" : this, "send_message" : send_message,
+				         ]);
 
     method = Method();
 
@@ -93,6 +86,7 @@ void create(mapping params) {
 				        PSYC.Handler.GOON : filter->handle_message,
 					PSYC.Handler.DISPLAY : display->handle_message
 					]));
+    // apply state afterwards
     object statestage = .StageHandler(([ PSYC.Handler.STOP : prefilter->handle_message,
 				         PSYC.Handler.GOON : prefilter->handle_message ]));
 
@@ -104,38 +98,9 @@ void create(mapping params) {
 
     set_start_stage("prefilter");
 
-    add_handlers(
-		 PSYC.Handler.Auth(handler_params),
-		 PSYC.Handler.Reply(handler_params)
-		 );
 }
 
-
-
-//! Send an @[MMP.Packet]. MMP routing variables of the packet will be set automatically if possible.
-//! @param target
-//!	The target to be used if there is not a target specified in @expr{packet@}.
-//! 	Otherwise only the hostname of this will be used as the physical target, all other needed informations 
-//!	will be fetched from @expr{packet@}.
-//! @param packet
-//! 	The @[MMP.Packet] to send.
-void sendmmp(MMP.Uniform target, MMP.Packet packet) {
-    debug("packet_flow", 1, "%O->sendmmp(%O, %O)\n", this, target, packet);
-    
-    if (!has_index(packet->vars, "_context")) {
-	if (!has_index(packet->vars, "_target")) {
-	    packet["_target"] = target;
-	}
-
-	if (!has_index(packet->vars, "_source")) {
-	    packet["_source"] = uni;
-	}
-
-	if (!has_index(packet->vars, "_counter")) {
-	    packet["_counter"] = counter[packet["_source"]]++;
-	}
-    }
-
-    server->deliver(target, packet);
+void send_message(PSYC.Message m) {
+    server->send_message(m);
 }
 

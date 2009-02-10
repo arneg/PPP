@@ -111,7 +111,7 @@ mapping(int:object) handler = ([]);
 mapping(string:object) stages = ([]);
 // TODO: these may not be cleaned up early enough because types are shared and
 // stay alive. however, it may be good to allow state changes anyhow.
-mapping(string:object) signatures = set_weak_flag(([]), Pike.WEAK);
+object state_sig;
 string start_stage = "start";
 
 int get_new_id() {
@@ -189,16 +189,12 @@ int add_handler(object h) {
 
     object vsig = h->vsig;
 
-    foreach (vsig->hash->m+vsig->ohash->m; string key; object sig) {
-	if (signatures[key]) {
-	    if (signatures[key]->is_subtype_of(sig)) {
-		signatures[key] = sig;
-	    } else if (!sig->is_subtype_of(signatures[key])) {
-		error("trying to add non compatible type\n.");	
-	    }
-	} else {
-	    signatures[key] = sig;
-	}
+    if (state_sig) {
+	// this may break stuff, user has to check
+	if (vsig != state_sig)
+	    state_sig = Vars(state_sig->hash+vsig->hash, state_sig->ohash + vsig->ohash);
+    } else {
+	state_sig = vsig;
     }
 
     handler[id] = h;
@@ -279,3 +275,4 @@ void msg(MMP.Packet p) {
 	
     }
 }
+
