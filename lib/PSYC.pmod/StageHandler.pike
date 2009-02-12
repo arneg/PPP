@@ -65,6 +65,7 @@ void prefetch(object iterator, .Request r, string mc) {
 	// prefetch
 	//
 	if (handler->prefetch) {
+	    /*
 	    m = .Message(([
 			    "mmp" : p,
 			    "vsig" : handler->vsig,
@@ -72,27 +73,48 @@ void prefetch(object iterator, .Request r, string mc) {
 			    "packet" : p->data,
 			    "snapshot" : snapshot,
 			 ]));
+	    */
 	    if (handler->async) {
-		MMP.invoke_later(handler->prefetch, r->p, misc, fun);
+		MMP.invoke_later(handler->prefetch, r->p, r->misc, fun);
 	    } else {
-		MMP.invoke_later(fun, handler->prefetch(r->p, misc));
+		MMP.invoke_later(fun, handler->prefetch(r->p, r->misc));
 	    }
 
 	    return;
 	}
 
-	MMP.invoke_later(fetch, handler->ssig, iterator, r, mc, misc);
+	MMP.invoke_later(fetch, handler->fetch, iterator, r);
 	return;
     }
 
     if (!seen) werror("no handler found.");
 }
 
-void fetch(Serialization.Atom sig, object iterator, .Request r, mapping misc) {
-    storage->apply(sig, postfetch, iterator, r, mc, misc);
+void fetch(mapping(string:Serialization.Atom|int)|string fetch, object iterator, .Request r) {
+    if (mappingp(fetch) {
+	void callback(int ok, mapping value) {
+	    if (ok) {
+		MMP.invoke_later(postfetch, value, iterator, r);
+	    } else {
+		werror("could not fetch data from storage.\n");
+	    }
+	};
+
+	storage->multi_apply(fetch, callback);
+    } else { 
+	void callback(int ok, mixed value) {
+	    if (ok) {
+		MMP.invoke_later(postfetch, ([ fetch : value ]), iterator, r);
+	    } else {
+		werror("could not fetch data from storage.\n");
+	    }
+	};
+	
+	storage->get(fetch, callback);
+    } 
 }
 
-void postfetch(mapping data, object iterator, .Request r, mapping misc) {
+void postfetch(mapping data, object iterator, .Request r) {
     object handler = iterator->value();
 
     // do async
@@ -103,16 +125,16 @@ void postfetch(mapping data, object iterator, .Request r, mapping misc) {
 	}
 
 	if (ret != PSYC.Handler.GOON) {
-	    MMP.invoke_later(_fun[ret], r, misc);
+	    MMP.invoke_later(_fun[ret], r);
 	} else {
-	    MMP.invoke_later(handle_message, iterator, r, misc);
+	    MMP.invoke_later(handle_message, iterator, r);
 	}
     };
 
     if (handler->async) {
-	handler->postfetch(data, r->p, misc, fun);
+	handler->postfetch(data, r->p, r->misc, fun);
     } else {
-	fun(handler->postfetch(data, r->p, misc);
+	fun(handler->postfetch(data, r->p, r->misc));
     }
 
     return;
@@ -130,7 +152,7 @@ void try_unroll() {
     }
 }
 
-void leave(mapping data, object iterator, .Request r, mapping misc) {
+void leave(mapping data, object iterator, .Request r) {
     //last_out = max(last_out[*], ({ p["_state_id"], p["_id"] })[*]);
     last_out[0] = max(last_out[0], r->p["_state_id"]);
     last_out[1] = max(last_out[1], r->p["_id"]);
