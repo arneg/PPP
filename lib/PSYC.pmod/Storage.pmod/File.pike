@@ -1,5 +1,4 @@
 // vim:syntax=lpc
-#include <debug.h>
 inherit .Volatile;
 
 //! Storage class that operates on @[FlatFile].
@@ -8,12 +7,24 @@ inherit .Volatile;
 //! 	Name of the file that contains the serialized mappinglike structure.
 //! 	If the file is empty, this storage class operates on @expr{([ ])@}.
 //! 	The file will then be created when data is saved.
-//! @param codec
-//! 	Codec object to use for serialization of @[MMP.Uniform] objects.
-void create(string filename, object codec) {
-    ::create(.FlatFile(filename, codec));
+void create(string filename) {
+    Serialization.AtomParser parser = Serialization.AtomParser();
+
+    if (!Stdio.is_file(filename)) {
+	Stdio.mkdirhier(dirname(filename));
+	raw_data = data = ([]);
+    } else {
+	string fdata = Stdio.read_file(filename);
+	raw_data = parser->parse_all(fdata);
+
+	if (parser->left()) {
+	    error("Data in file %s seems to be broken.\n", filename);
+	}
+
+	data = ([]);
+    }
 }
 
 void save() {
-    data->save();
+    Stdio.write_file(filename, render());
 }

@@ -6,7 +6,6 @@ inherit .Factory;
 
 string basepath;
 function namify = aggregate;
-object codec_object;
 
 //! @param basepath
 //! 	The path where serialized storage should be stored in.
@@ -17,10 +16,9 @@ object codec_object;
 //! 	@expr{basepath + result * "/"@} will then be the path of the file.
 //! @param codec
 //! 	Codec object to use for serialization.
-void create(string basepath, function|void namify, void|object codec) {
+void create(string basepath, function|void namify) {
     this_program::basepath = basepath + "/";
     if (namify) this_program::namify = namify;
-    codec_object = codec;
     ::create();
 }
 
@@ -77,5 +75,5 @@ object createStorage(MMP.Uniform storagee) {
 	buf->add("root.o");
     }
 
-    return PSYC.Storage.File(buf->get(), codec_object);
+    return PSYC.Storage.File(buf->get());
 }
