@@ -147,7 +147,9 @@ void add_plugin(object o) {
     p->plugin = o;
     plugins[o] = p;
 
-    call_out(o->init_handler, 0);
+    int ret = o->init_handler();
+
+    if (ret) o->set_inited();
 }
 
 void remove_plugin(object o) {
