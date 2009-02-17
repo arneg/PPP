@@ -5,6 +5,10 @@ mapping(string:object) signatures;
 
 void save();
 
+void register_storage(string key, object signature) {
+    signatures[key] = signature;
+}
+
 void set(string key, mixed value, function callback) {
     object signature = signatures[key];
     if (!signature) {
