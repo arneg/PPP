@@ -2,14 +2,9 @@
 
 inherit PSYC.Handler.Base;
 
-constant _ = ([
-    "postfilter" : ([
-	"" : ([ "check" : "has_target" ]),
-    ]),
-    "notify" : ([
-	"castmsg" : 0,
-    ]),
-]);
+void init_handler() {
+    register_incoming(([ "stage" : "postfilter", "method" : Method("") ]));
+}
 
 mapping(MMP.Uniform:object) channels = ([]);
 
@@ -39,7 +34,7 @@ void add_channel(MMP.Uniform channel, object o) {
     parent->create_channel(channel, o->enter, o->leave);
 }
 
-int postfilter(MMP.Packet p, mapping _v, mapping _m) {
+int prefetch_postfilter(MMP.Packet p, mapping misc) {
     MMP.Uniform target = p["_target"];
 
     if ((target->super||target) == uni) { // paranoid.
@@ -56,10 +51,3 @@ int postfilter(MMP.Packet p, mapping _v, mapping _m) {
 	debug("ChannelMultiplexer", 2, "packet with wrong target (%O) got here, god knows how.\n", target);	
     }
 }
-
-void notify_castmsg(MMP.Packet p, MMP.Uniform channel) {
-    if (has_index(channels, channel)) {
-	channels[channel]->handle("casted", p);
-    }
-}
-

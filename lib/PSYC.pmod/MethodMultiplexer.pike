@@ -1,11 +1,22 @@
 class Handler {
     // probably more to come, could also be inherited and extended
     function prefetch, postfetch;
-    array(Serialization.Atom) sdata;
+    string|mapping(string:Serialization.Atom|int) fetch;
     string stage;
     object msig, vsig, dsig;
-    int dead, async, ordered;
+    int active, dead, async, ordered;
     object oqueue;
+
+    void activate() {
+	dead = 0;
+    }
+}
+
+// these are convenience objects to remove all handlers from one
+// plugin at a time.
+class Plugin {
+    object plugin;
+    mapping(int:object) handler = set_weak_flag(([]), Pike.WEAK_VALUES);
 }
 
 class StageIterator {
@@ -108,15 +119,14 @@ class Stage {
 }
 
 mapping(int:object) handler = ([]);
+mapping(int:object) plugins = ([]);
 mapping(string:object) stages = ([]);
-// TODO: these may not be cleaned up early enough because types are shared and
-// stay alive. however, it may be good to allow state changes anyhow.
-object state_sig;
+
 string start_stage = "start";
 
-int get_new_id() {
+int get_new_id(mapping m) {
     int i;
-    while (has_index(handler, i = random(Int.NATIVE_MAX)));
+    while (has_index(m, i = random(Int.NATIVE_MAX)));
 
     return i;
 }
@@ -128,6 +138,31 @@ void set_start_stage(string start_stage) {
 void add_stage(string name, object stage) {
     if (stages[name]) error("Sir, I am very sorry, but that seat is already taken.\n");
     stages[name] = stage;
+}
+
+void add_plugin(object o) {
+    .Plugin p = .Plugin();
+
+    // this is circular. will clean up by hand, promise.
+    p->plugin = o;
+    plugins[o] = p;
+
+    call_out(o->init_handler, 0);
+}
+
+void remove_plugin(object o) {
+    if (!has_index(plugins, o)) {
+	error("dont know nothing about this plugin.");
+    }
+
+    .Plugin p = plugins[o];
+
+    foreach (p->handler;int id;object handler) {
+	remove_method(id);
+    }
+
+    p->plugin = 0;
+    m_delete(plugins, o);
 }
 
 int add_method(mapping specs, object child) {
@@ -152,6 +187,14 @@ int add_method(mapping specs, object child) {
 
     if (specs["async"]) h->async = 1;
     if (specs["dead"]) h->dead = 1;
+
+    // this type of activation prevents packets that come in prior
+    // to initialization from being handled. 
+    if (child->is_inited()) {
+	h->active = 1;
+    } else {
+	child->init_cb_add(`->=, child, "active", 1); 
+    }
 
     if (!stages[h->stage]) error("I am in no such state! Shut your bloody piehole!");
     stages[h->stage]->add_handler(h, base);
@@ -181,7 +224,13 @@ int add_method(mapping specs, object child) {
 
     h->sdata = f;
 
-    return add_handler(h);
+    int id = add_handler(h);
+
+    if (has_index(plugins, child)) {
+	plugins[child]->handler[id] = h;
+    }
+
+    return id;
 }
 
 int add_handler(object h) {
