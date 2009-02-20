@@ -179,10 +179,6 @@ void create(mapping(string:mixed) config) {
 	"storage_factory" : storage_factory,
     ]);
 
-    if (!storage_factory->codec_object) {
-	storage_factory->codec_object = PSYC.Codec(params);
-    }
-
     if (has_index(config, "deliver_remote")) {
 	external_deliver_remote = config["deliver_remote"];
     } else {
