@@ -57,20 +57,11 @@ constant export = ({
     "castmsg", "create_channel", "channel_remove", "channel_exists", "channel_add"
 });
 
-int is_us(MMP.Packet p, mapping _m) {
-    mapping vars = p->data->vars;
-
-    if (!has_index(p->vars, "_context") && has_index(vars, "_group")) {
-	MMP.Uniform group = vars["_group"];
-	if ((group->channel ? group->super : group) == uni) {
-	    debug("multicast_routing", 2, "is_us check true for %O.\n", p);
-	    return 1;
-	}
-    }
-    
-    debug("multicast_routing", 2, "is_us check is false for %O.\n", p);
-    return 0;
+void init_handler() {
+    register_incoming(([ "stage" : "postfilter", "method":Method("_request_context_enter"), "vars":Vars(([ "_group" : Uniform(), "_supplicant" : Uniform() ])), "async" : 1 ]));
+    register_incoming(([ "stage" : "postfilter", "method":Method("_request_context_leave"), "vars":Vars(([ "_group" : Uniform(), "_supplicant" : Uniform() ])) ]));
 }
+
 
 int channel_exists(MMP.Uniform channel) {
     return has_index(callbacks, channel);
@@ -109,6 +100,21 @@ void create_channel(MMP.Uniform channel, function|void enter, void|function leav
     callbacks[channel] = ({ enter, leave, on_castmsg });
 }
 
+int prefetch_postfilter_request_context_enter(MMP.Packet p, mapping misc) {
+    mapping vars = p->data->vars;
+
+    if (!has_index(p->vars, "_context")) {
+	MMP.Uniform group = vars["_group"];
+	if ((group->channel ? group->super : group) == uni) {
+	    debug("multicast_routing", 2, "is_us check true for %O.\n", p);
+	    return PSYC.Handler.GOON;
+	}
+    }
+    
+    debug("multicast_routing", 2, "is_us check is false for %O.\n", p);
+    return PSYC.Handler.STOP;
+}
+
 void postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m, function cb) {
     MMP.Uniform source = p->source();
     PSYC.Packet m = p->data;
@@ -143,6 +149,10 @@ void postfilter_request_context_enter(MMP.Packet p, mapping _v, mapping _m, func
     callbacks[group][ENTER](supplicant, callback, p);
 
     call_out(cb, 0, PSYC.Handler.STOP);
+}
+
+int prefetch_postfilter_request_context_leave(MMP.Packet p, mapping misc) {
+    return prefetch_postfilter_request_context_enter(p, misc);
 }
 
 int postfilter_request_context_leave(MMP.Packet p, mapping _v, mapping _m) {
