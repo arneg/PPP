@@ -2,6 +2,8 @@ object vsig, dsig;
 
 mapping state, vars;
 multiset deleted = (< >);
+MMP.Packet mmp_packet;
+PSYC.Packet packet;
 int id;
 
 object snapshot;
@@ -42,8 +44,8 @@ class Bridge {
 	vars[index] = value;
     }
 
-    int(0..1) has_index(mixed index) {
-	return !deleted[index] && has_index(state) || has_index(value);
+    int(0..1) _has_index(mixed index) {
+	return !deleted[index] && has_index(state, index) || has_index(vars, index);
     }
 
     mixed _m_delete(mixed index) {
@@ -72,39 +74,38 @@ class BridgeIterator {
     constant STATE = 1;
     constant VARS = 2;
 
-    int state = STATE;
+    int mstate = STATE;
     object it;
 
     void create(void|object iterator) {
 	it = iterator || get_iterator(state);
-	list = indices(state + vars - deleted);
     }
 
     int(0..1) next() {
 	for (;;) {
 	    int ret = it->next();
 
-	    if (!ret && state == STATE) {
+	    if (!ret && mstate == STATE) {
 		it = get_iterator(vars);
-		state = VARS;
+		mstate = VARS;
 		continue;
 	    }
 
 	    mixed key = it->index();
 	    
-	    if (delted[key]) continue;
-	    if (state == STATE && has_index(vars, key)) continue;
+	    if (deleted[key]) continue;
+	    if (mstate == STATE && has_index(vars, key)) continue;
 
 	    break;
 	}
     }
 
     void first() {
-	if (state == STATE) {
+	if (mstate == STATE) {
 	    it->first();
 	} else {
 	    it = get_iterator(state);
-	    state = STATE;
+	    mstate = STATE;
 	}
     }
 
@@ -122,7 +123,7 @@ class BridgeIterator {
 
     this_program `+(int steps) {
 	object new_it = this_program(it+0);
-	new_it->state = state;
+	new_it->mstate = mstate;
 	new_it += steps; // looks dangerous but is totally safe.. hopefully.
 	return new_it;
     }
@@ -167,7 +168,7 @@ mixed `->=(string index, mixed value) {
 	vars = vsig->decode(packet->vars)+([]);
 
 	if (!bridge) {
-	    bridge = .Bridge();
+	    bridge = Bridge();
 	}
 
 	return bridge;
@@ -195,7 +196,7 @@ mixed `->(string index) {
 	if (!vars) {
 	    if (!packet) return UNDEFINED;
 	    vars = vsig->decode(packet->vars)+([]);
-	    bridge = .Bridge();
+	    bridge = Bridge();
 	}
 
 	return bridge;
@@ -205,7 +206,7 @@ mixed `->(string index) {
 }
 
 Iterator _get_iterator() {
-    return .BridgeIterator();
+    return BridgeIterator();
 }
 
 mixed `[](mixed key) {
