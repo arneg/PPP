@@ -4,9 +4,9 @@
 //! The simplest PSYC speaking object in whole @i{PSYCSPACE@}. Does
 //! Remote Authentication and Reply using uthe 
 
-inherit PSYC.MethodMultiplexer;
-inherit Serialization.Signature;
-inherit Serialization.BaseTypes;
+inherit PSYC.MethodMultiplexer : plex;
+inherit Serialization.Signature : sig;
+inherit Serialization.BasicTypes;
 inherit Serialization.PsycTypes;
 
 object storage;
@@ -15,13 +15,13 @@ object server;
 MMP.Uniform uni;
 mapping(MMP.Uniform:int) counter = ([]);
 mapping(MMP.Uniform:object) outstate = ([]);
-mapping(MMP.Uniform:object) intstate = ([]);
+mapping(MMP.Uniform:object) instate = ([]);
 
 object method;
 
 object get_outstate(MMP.Packet p) {
     if (!p["_context"]) {
-	if (!outstate[p["_target"]]) outstate[p["_target"]] = .State(([]));
+	if (!outstate[p["_target"]]) outstate[p["_target"]] = .State();
 	return outstate[p["_target"]];
     }
 
@@ -30,7 +30,7 @@ object get_outstate(MMP.Packet p) {
 
 object get_instate(MMP.Packet p) {
     if (!p["_context"]) {
-	if (!instate[p["_source"]]) instate[p["_source"]] = .State(([]));
+	if (!instate[p["_source"]]) instate[p["_source"]] = .State();
 	return instate[p["_source"]];
     }
 
@@ -38,7 +38,7 @@ object get_instate(MMP.Packet p) {
 }
 
 mixed cast(string type) {
-    if (type == "string") return sprintf("Unl(%s)", qName());
+    if (type == "string") return sprintf("Unl(%s)", (string)uni);
 }
 
 void check_authentication(MMP.Uniform t, function cb, mixed ... args) {
@@ -60,8 +60,8 @@ void NOP(mixed ... args) { }
 //! 	callbacks to the @[PSYC.Server] that will get called if someone
 //! 	tries to reach a non-present entity.
 void create(mapping params) {
-    Serialization.Signature::create(params["type_cache"]);
-    PSYC.MethodMultiplexer::create(params); 
+    sig::create(params["type_cache"]);
+    plex::create(params["debug"]); 
     enforce(MMP.is_uniform(uni = params["uniform"]));
     enforce(objectp(server = params["server"]));
     enforce(objectp(storage = params["storage"]));
