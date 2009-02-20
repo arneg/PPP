@@ -39,3 +39,20 @@ string|void render_atom(.Atom a, void|String.Buffer buf) {
     }
 }
 
+array(.Atom) parse_atoms(string s) {
+    .AtomParser parser = .AtomParser();
+    parser->feed(s);
+
+    array(.Atom) ret = ({});
+    .Atom t;
+
+    while (t = parser->parse()) {
+	ret += ({ t });
+    }
+
+    if (parser->left()) {
+	error("Trying to parse incomplete atom.\n");
+    }
+
+    return ret;
+}

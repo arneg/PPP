@@ -36,7 +36,7 @@ object Mapping(object|mapping(object:object) m, object|void type2, object ... ar
 	    args = ({ m, type2 }) + args;
 
 	    if (sizeof(args) & 1) {
-		throw(({ "uh", backtrace() }));
+		error("odd number of keys and values.\n");
 	    }
 
 	    object mangler = Serialization.Mangler(args);
@@ -55,7 +55,7 @@ object Mapping(object|mapping(object:object) m, object|void type2, object ... ar
 	    }
 	}
     } else {
-	throw(({ "uuuh", backtrace() }));
+	error("dont know what to do with those arguments.\n");
     }
 
     return o;
@@ -76,6 +76,21 @@ object Or(object type, object ... types) {
 	this->type_cache[Serialization.Types.Or][mangler] = o;
     }
     
+    return o;
+}
+
+object Any() {
+    return Atom();
+}
+
+object Atom() {
+    object o;
+
+    if (!(o = this->type_cache[Serialization.Types.Atom][0])) {
+	o = Serialization.Types.Atom();
+	this->type_cache[Serialization.Types.Atom][0] = o;
+    }
+
     return o;
 }
 

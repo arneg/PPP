@@ -25,17 +25,6 @@ int left() {
     return sizeof(buf);
 }
 
-array(.Atom) parse_all() {
-    array(.Atom) ret = ({});
-    .Atom t;
-
-    while (t = parse()) {
-	ret += ({ t });
-    }
-
-    return ret;
-}
-
 int|.Atom parse(void|string data) {
     if (data) feed(data);
 

@@ -1,6 +1,3 @@
-void create(string type) {
-}
-
 int(0..1) low_can_decode(Serialization.Atom a) {
     return 1;
 }
