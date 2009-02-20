@@ -48,7 +48,7 @@ void get(string key, function callback) {
 	    werror("Unknown entry %s\n");
 	}
 	
-	data[key] = ret = signature->decode(a);
+	data[key] = ret = signature->decode(ret);
     }
 
     call_out(callback, 0, 1, key, ret);
@@ -81,7 +81,7 @@ void apply(string key, Serialization.Atom a, function callback) {
     };
 
     mixed ret;
-    err = catch {
+    mixed err = catch {
 	ret = signature->apply(a, value, s);
     };
 
@@ -120,9 +120,9 @@ void multi_apply(mapping(string:int|Serialization.Atom) stuff, function callback
 	}
 	if (!(--num)) {
 	    if (failed) {
-		MMP.invoke_later(callback, 0);
+		MMP.Utils.invoke_later(callback, 0);
 	    } else {
-		MMP.invoke_later(callback, ret);
+		MMP.Utils.invoke_later(callback, ret);
 	    }
 	}
     };
