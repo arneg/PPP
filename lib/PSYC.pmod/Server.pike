@@ -177,6 +177,7 @@ void create(mapping(string:mixed) config) {
 	"server" : this,
 	"debug" : config["debug"],
 	"storage_factory" : storage_factory,
+	"type_cache" : config["type_cache"]||Serialization.TypeCache(),
     ]);
 
     if (has_index(config, "deliver_remote")) {
@@ -230,7 +231,7 @@ void create(mapping(string:mixed) config) {
 
     circuit_established = PSYC.Packet("_notice_circuit_established", 
 			  ([ "_implementation" : "PPP" ]),
-			  "You got connected to [_source].");
+			  Serialization.Atom("string", "You got connected to [_source]."));
     MMP.Uniform t = get_uniform("psyc://" + def_localhost);
     werror("%O\n", t);
     t->islocal = 1;

@@ -206,20 +206,22 @@ int add_method(mapping specs, object child) {
     }
 
     string base = h->msig->base;
-    h->stage->add_handler(h, base);
+    
+
+    h->stage->stage->add_handler(h, base);
 
 
-    mixed f = `->(child, "prefetch_"+specs["stage"]+"_"+base);
+    mixed f = `->(child, "prefetch_"+specs["stage"]+base);
     if (callablep(f)) {
 	h->prefetch = f;	
     }
 
-    if (callablep(f = `->(child, specs["stage"]+"_"+base))) {
+    if (callablep(f = `->(child, specs["stage"]+base))) {
 	h->postfetch = f;	
     }
 
     if (!h->prefetch && !h->postfetch) {
-	error("no callback found.");
+	error("no callback found.\n");
     }
 
     f = specs["fetch"];
@@ -230,7 +232,7 @@ int add_method(mapping specs, object child) {
 	f = ({ f });
     }
 
-    h->sdata = f;
+    h->fetch = f;
 
     int id = add_handler(h);
 
