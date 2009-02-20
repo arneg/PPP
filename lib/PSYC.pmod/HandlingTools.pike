@@ -1,6 +1,6 @@
 #include <new_assert.h>
-inherit MMP.Utils.Debug;
-inherit Serialization.Signature;
+inherit MMP.Utils.Debug : deb;
+inherit Serialization.Signature : ser;
 inherit Serialization.BasicTypes;
 inherit Serialization.PsycTypes;
 
@@ -28,8 +28,8 @@ mapping outgoing = ([ ]);
 //! @seealso
 //!	@[Handler.Base], @[Commands.Base]
 static void create(mapping params) {
-    MMP.Utils.Debug::create(params["debug"]);
-    Serialization.Signature::create(params["type_cache"]);
+    deb::create(params["debug"]);
+    ser::create(params["type_cache"]);
 
     enforce(objectp(parent = params["parent"]));
     enforce(MMP.is_uniform(uni = params["uniform"]));
@@ -38,6 +38,10 @@ static void create(mapping params) {
 
 void register_outgoing(mapping spec) {
     outgoing[spec["method"]->base] = spec;
+}
+
+void register_incoming(mapping spec) {
+    parent->add_method(spec, this);
 }
 
 .Message get_message(MMP.Packet p) {
@@ -58,5 +62,5 @@ void send_message(.Message m) {
 }
 
 void register_storage(string name, object signature) {
-    storage->register_storage(name, signature);
+    parent->storage->register_storage(name, signature);
 }
