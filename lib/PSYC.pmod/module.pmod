@@ -99,7 +99,7 @@ int(0..1) abbrev(string haystack, string needle) {
 //! @endcode
 class Packet {
 
-    Serialization.Atom vars;
+    mapping(string:mixed) vars;
     array(Serialization.Atom) state_changes;
     string mc;
     Serialization.Atom data;
@@ -114,7 +114,7 @@ class Packet {
     //! @param data
     //! 	The packet's payload.
     void create(string|void mc, mapping(string:mixed)|void vars,
-		string|void data) {
+		mixed|void data) {
 	if (mc) this_program::mc = mc;
 	this_program::vars = vars || ([ ]);
 	this_program::data = data || "";
