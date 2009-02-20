@@ -1,22 +1,16 @@
-object signature;
-Serialization.Atom raw_state;
 mapping state = ([]);
+int changed = 0;
 Snapshot last;
 
 class Snapshot {
     array prev_a = set_weak_flag(({ UNDEFINED }), Pike.WEAK_VALUES);
     Snapshot next;
-    object raw_state;
+    mapping state;
     object parent;
 
-    void create(object raw_state, object parent) {
-	if (!raw_state) raw_state = signature->encode(state);
-	this_program::raw_state = raw_state;
+    void create(object parent) {
 	this_program::parent = parent;
-    }
-
-    object get_state() {
-	return raw_state;
+	state = parent->state;
     }
 
     object get_parent() {
@@ -31,7 +25,7 @@ class Snapshot {
 	return this[index];
     }
 
-    mixed `->(mixed index, mixed value) {
+    mixed `->=(mixed index, mixed value) {
 	if (index == "prev") {
 	    return prev_a[0] = value;
 	}
@@ -40,22 +34,19 @@ class Snapshot {
     }
 }
 
-void create(Serialization.Atom state) {
-    if (!raw_state) {
-	    raw_state = signature->encode(state);
-    }
-    raw_state = state->clone();
+void create(mapping|void state) {
+    if (state) this_program::state = state; 
+    else this_program::state = ([]);
 }
 
 this_program clone() {
-    object t = this_program(raw_state->clone());
-    t->state = copy_value(state);
+    return this_program(copy_value(state));
 }
 
 Snapshot get_snapshot() {
-    switch (!!!!!!!!!!!!!!!!!!!!!!!!!raw_state) {
+    switch (!!!!!!!!!!!!!!!!!!!!!!!!!!changed) {
 	case 0:
-	    if (!last) last = Snapshot(raw_state, this);
+	    if (!last) last = Snapshot(this);
 	    return last;
 	case 1:
 	    return get_new_snapshot();
@@ -63,17 +54,15 @@ Snapshot get_snapshot() {
 }
 
 Snapshot get_new_snapshot() {
-    raw_state = signature->encode(state);
-    object new = Snapshot(raw_state, this);
+    object new = Snapshot(this);
+    changed = 0;
     return last = (new->prev = last)->next = new;
 }
 
-Serialization.Atom apply(array(Serialization.Atom) changes) {
+void apply(object signature, Serialization.Atom change) {
     state = copy_value(state);
 
-    foreach (changes;; Serialization.Atom change) {
-	signature->apply(change, state);
-    }
+    signature->apply(change, state);
 
-    raw_state = 0;
+    changed = 1;
 }
