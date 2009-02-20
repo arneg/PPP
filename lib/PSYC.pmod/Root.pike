@@ -7,24 +7,20 @@ inherit PSYC.Unl;
 void create(mapping params) {
     ::create(params);
 
-    mapping handler_params = params + ([ "parent" : this, "sendmmp" : sendmmp ]);
+    mapping handler_params = params + ([ "parent" : this, "send_message" : send_message ]);
 
-    add_handlers(
-		 Circuit(handler_params),
-		 Signaling(handler_params),
-    );
+    add_plugin(Circuit(handler_params));
+//		 Signaling(handler_params),
 }
 
 class Circuit {
 
     inherit PSYC.Handler.Base;
 
-    constant _ = ([
-	"postfilter" : ([
-	    "_notice_circuit_established" : 0,
-	    "_status_circuit" : 0,
-	]),
-    ]);
+    void init_handler() {
+	register_incoming(([ "stage" : "postfilter", "method":Method("_notice_circuit_established") ]));
+	register_incoming(([ "stage" : "postfilter", "method":Method("_status_circuit") ]));
+    }
 
     int postfilter_notice_circuit_established(MMP.Packet p, mapping _v, mapping _m) {
 	// TODO: is a _source_identification valid here _at all_ ? doesnt make too much sense.
@@ -44,6 +40,7 @@ class Circuit {
 
 }
 
+#if 0
 class Signaling {
     // basic, abstract routing functionality
     // TODO: move the storage stuff to the Context objects! it sux in this 
@@ -362,4 +359,4 @@ class Signaling {
 
 
 }
-
+#endif 
