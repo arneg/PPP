@@ -1,16 +1,25 @@
+inherit MMP.Utils.Debug;
+
+object Method(string|void);
+object Mapping(object, object);
+object Any();
+object get_instate(MMP.Packet);
+
 class Handler {
     // probably more to come, could also be inherited and extended
     function prefetch, postfetch;
     string|mapping(string:Serialization.Atom|int) fetch;
-    string stage;
+    object stage;
     object msig, vsig, dsig;
-    int active, dead, async, ordered;
+    int active, dead, async;
+    array(function) ordered;
     object oqueue;
 
     void activate() {
 	dead = 0;
     }
 }
+
 
 // these are convenience objects to remove all handlers from one
 // plugin at a time.
@@ -78,7 +87,7 @@ class StageIterator {
 	else return UNDEFINED;
     }
 
-    .this_program `+=(int steps) {
+    this_program `+=(int steps) {
 	if (steps < 0) error("Cannot move backwards.\n");
 
 	while (steps-- > 0 && id) {
@@ -88,10 +97,10 @@ class StageIterator {
 	return this;
     }
 
-    .this_program `+(int steps) {
+    this_program `+(int steps) {
 	if (steps < 0) error("Cannot move backwards.\n");
 
-	.this_program new = .this_program(stage, mlist*"_");
+	this_program new = this_program(stage, mlist*"_");
 	new->index = index;
 	new->id = id;
 
@@ -102,16 +111,15 @@ class StageIterator {
 }
 
 class Stage {
-    mapping(string:object) handler = set_weak_flag(([]), Pike.WEAK_VALUES);
+    mapping(string:array(object)) handler = ([]);
 
-    .StageIterator get_iterator(string method) {
-	return .StageIterator(this, method);
+    .MethodMultiplexer.StageIterator get_iterator(string method) {
+	return .MethodMultiplexer.StageIterator(this, method);
     }
 
     void add_handler(object h, string base) {
 	if (!handler[base]) {
-	    handler[base] = ({ });
-	    set_weak_flag(handler[base], Pike.WEAK_VALUES);
+	    handler[base] = set_weak_flag(({}), Pike.WEAK_VALUES);
 	}
 
 	handler[base] += ({ h });
@@ -119,7 +127,7 @@ class Stage {
 }
 
 mapping(int:object) handler = ([]);
-mapping(int:object) plugins = ([]);
+mapping(object:object) plugins = ([]);
 mapping(string:object) stages = ([]);
 
 string start_stage = "start";
@@ -141,7 +149,7 @@ void add_stage(string name, object stage) {
 }
 
 void add_plugin(object o) {
-    .Plugin p = .Plugin();
+    .MethodMultiplexer.Plugin p = .MethodMultiplexer.Plugin();
 
     // this is circular. will clean up by hand, promise.
     p->plugin = o;
@@ -157,7 +165,7 @@ void remove_plugin(object o) {
 	error("dont know nothing about this plugin.");
     }
 
-    .Plugin p = plugins[o];
+    .MethodMultiplexer.Plugin p = plugins[o];
 
     foreach (p->handler;int id;object handler) {
 	remove_method(id);
@@ -168,8 +176,7 @@ void remove_plugin(object o) {
 }
 
 int add_method(mapping specs, object child) {
-    .Handler h = .Handler();
-    object stage;
+    .MethodMultiplexer.Handler h = .MethodMultiplexer.Handler();
 
     h->stage = stages[specs["stage"]];
     if (!h->stage) error("non supported stage %O.\n", specs["stage"]);
@@ -198,17 +205,16 @@ int add_method(mapping specs, object child) {
 	child->init_cb_add(`->=, child, "active", 1); 
     }
 
-    if (!stages[h->stage]) error("I am in no such state! Shut your bloody piehole!");
-    stages[h->stage]->add_handler(h, base);
-
     string base = h->msig->base;
+    h->stage->add_handler(h, base);
 
-    mixed f = `->(child, "prefetch_"+h->stage+"_"+base);
+
+    mixed f = `->(child, "prefetch_"+specs["stage"]+"_"+base);
     if (callablep(f)) {
 	h->prefetch = f;	
     }
 
-    if (callablep(f = `->(child, h->stage+"_"+base))) {
+    if (callablep(f = `->(child, specs["stage"]+"_"+base))) {
 	h->postfetch = f;	
     }
 
@@ -220,7 +226,7 @@ int add_method(mapping specs, object child) {
 
     if (!f) {
 	f = ({});
-    } else if (!array(f)) {
+    } else if (!arrayp(f)) {
 	f = ({ f });
     }
 
@@ -236,17 +242,7 @@ int add_method(mapping specs, object child) {
 }
 
 int add_handler(object h) {
-    int id = get_new_id();
-
-    object vsig = h->vsig;
-
-    if (state_sig) {
-	// this may break stuff, user has to check
-	if (vsig != state_sig)
-	    state_sig = Vars(state_sig->hash+vsig->hash, state_sig->ohash + vsig->ohash);
-    } else {
-	state_sig = vsig;
-    }
+    int id = get_new_id(handler);
 
     handler[id] = h;
     return id;
@@ -272,34 +268,33 @@ void msg(MMP.Packet p) {
 	int f;
 	switch (sprintf("%t", p->data)) {
 	case "string":
-	    object parser = Serialization.AtomParser();
-	    object a = parser->parse(p->data);
+	    array(Serialization.Atom) a = Serialization.parse_atoms(p->data);
 
-	    if (!a) do_throw("uuuahahah");
-	    p->data = a;
+	    if (sizeof(a) != 1) do_throw("uuuahahah");
+	    p->data = a[0];
 	    f = 1;
 	case "object":
 	    if (f || Program.inherits(object_program(p->data), Serialization.Atom)) {
-		object parser = Serialization.AtomParser();
-		array(Serialization.Atom) t = parser->parse_all();
+		array(Serialization.Atom) t = Serialization.parse_atoms(p->data->data);
 		PSYC.Packet packet = PSYC.Packet();
 
 		int i;
 
 		for (i = 0;i < sizeof(t); i++) {
-		    Serialization.atom = t[i];
-		    if (atom->is_subtype_of("_mapping") && !atom->action) {
+		    Serialization.Atom atom = t[i];
+		    if (Serialization.is_subtype_of("_mapping", atom->type) && !atom->action) {
 			if (i > 0) {
 			    packet->state_changes = t[0..i-1];
 			}
-			packet->vars = t[i];
+			packet->vars = Mapping(Method(), Any())->decode(t[i]);
 
 			i++;
 			break;
 		    } 
 		}
-		if (t[i]->is_subtype_of(method)) {
-		    packet->mc = method->decode(t[i]);
+
+		if (Serialization->is_subtype_of("_method", t[i]->type)) {
+		    packet->mc = Method()->decode(t[i]);
 		    if (sizeof(t) == ++i) {
 			packet->data = t[i];
 		    } else if (sizeof(t) > i){
