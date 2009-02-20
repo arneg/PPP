@@ -1,8 +1,10 @@
 // vim:syntax=lpc
 //
 PSYC.Server dings;
-TELNET.Server da;
+//TELNET.Server da;
 PSYC.Storage.Factory dumms;
+inherit Serialization.Signature;
+inherit Serialization.BasicTypes;
 
 #ifdef HAS_XMPP
 XMPP.S2S.ClientManager rumms;
@@ -50,6 +52,10 @@ string my_key = MIME.decode_base64(
   "jwsOclu4b+H8zopfzpAaoB8xMcbs0heN+GNNI0h/dQ==\n");
 #endif
 
+void create(mixed ... args) {
+    type_cache = Serialization.TypeCache();
+    ::create(type_cache);
+}
 
 int main(int argc, array(string) argv) {
     function textdb = PSYC.Text.FileTextDBFactoryFactory(
@@ -58,9 +64,9 @@ int main(int argc, array(string) argv) {
 #else
 							 "../default/"
 #endif
-							 );
+							);
 
-    dumms = PSYC.Storage.FileFactory(DATA_PATH); 
+    dumms = PSYC.Storage.FileFactory(DATA_PATH, Mapping(UTF8String(), Any())); 
 
     object debug = MMP.Utils.DebugManager();
     debug->set_default_backtrace(1);
@@ -104,6 +110,7 @@ int main(int argc, array(string) argv) {
      "secret" : "thesecret"
 	 ]));
 #endif
+#if 0
     da = TELNET.Server(([
 	 "psyc_server" : dings,
 	     "ports" : ({ 
@@ -115,6 +122,7 @@ int main(int argc, array(string) argv) {
 			+ ":2000" }),
 	     "textdb" : textdb,
 			]));
+#endif
 
     write("220 %s ESMTP Sendmail 8.13.7/8.13.7; %s\n", LOCALHOST, Calendar.ISO.now()->format_smtp());
     return -1;
@@ -141,18 +149,7 @@ object create_local(mapping params) {
 
     write("creating object for %O.\n", uni);
     if (uni->resource && sizeof(uni->resource) > 1) {
-
-	switch (uni->resource[0]) {
-	case '~':
-	    // TODO check for the path...
-	    params += ([ "storage" : params["storage_factory"]->getStorage(uni) ]);
-	    return PSYC.Person(params);
-	case '@':
-	    params += ([ "storage" : params["storage_factory"]->getStorage(uni) ]);
-	    return PSYC.Place(params);
-	default:
-	    return 0;
-	}
+	return PSYC.Unl(params);
     } else {
 	params += ([ "storage" : params["storage_factory"]->getStorage(uni) ]);
 	return PSYC.Root(params);
