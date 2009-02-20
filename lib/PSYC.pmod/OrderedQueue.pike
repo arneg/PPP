@@ -1,6 +1,6 @@
 function smaller, is_ok;
 
-array head;
+array head, last;
 
 void create(function smaller, function is_ok) {
     this_program::smaller = smaller;
