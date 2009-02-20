@@ -1,3 +1,9 @@
+inherit MMP.Utils.Debug;
+
+object storage() {
+    return stage->storage();
+}
+
 object stage;
 mapping _fun;
 mapping oqueues = ([ ]);
@@ -17,8 +23,9 @@ int is_ok(array a) {
 int is_ok_weak(array a) {
     return !(last_out[0] == a[0]-1 && last_out[1] != a[1]-1);
 }
-void create(object stage, mapping(int:function) retfun) {
-    this_program::stage = stage;
+
+void create(mapping(int:function) retfun) {
+    stage = .MethodMultiplexer.Stage();
     _fun = retfun;
 }
 
@@ -34,18 +41,18 @@ void prefetch(object iterator, .Request r, string mc) {
     int seen;
     void fun(int|Serialization.Atom a) {
 	if (objectp(a)) {
-	    MMP.invoke_later(fetch, a, iterator, r, mc);
+	    MMP.Utils.invoke_later(fetch, a, iterator, r, mc);
 	    return;
 	}
 
-	if (ret != PSYC.Handler.GOON) {
-	    if (!_fun[ret]) {
-		do_throw("Handler gave invalid return result %O.\n", ret);
+	if (a != PSYC.Handler.GOON) {
+	    if (!_fun[a]) {
+		do_throw("Handler gave invalid return result %O.\n", a);
 	    }
 
-	    MMP.invoke_later(_fun[ret], r);
+	    MMP.Utils.invoke_later(_fun[a], r);
 	} else {
-	    MMP.invoke_later(fetch, 0, iterator, r, mc);
+	    MMP.Utils.invoke_later(fetch, 0, iterator, r, mc);
 	}
     };
 
@@ -75,15 +82,15 @@ void prefetch(object iterator, .Request r, string mc) {
 			 ]));
 	    */
 	    if (handler->async) {
-		MMP.invoke_later(handler->prefetch, r->p, r->misc, fun);
+		MMP.Utils.invoke_later(handler->prefetch, r->p, r->misc, fun);
 	    } else {
-		MMP.invoke_later(fun, handler->prefetch(r->p, r->misc));
+		MMP.Utils.invoke_later(fun, handler->prefetch(r->p, r->misc));
 	    }
 
 	    return;
 	}
 
-	MMP.invoke_later(fetch, handler->fetch, iterator, r);
+	MMP.Utils.invoke_later(fetch, handler->fetch, iterator, r);
 	return;
     }
 
@@ -91,26 +98,26 @@ void prefetch(object iterator, .Request r, string mc) {
 }
 
 void fetch(mapping(string:Serialization.Atom|int)|string fetch, object iterator, .Request r) {
-    if (mappingp(fetch) {
+    if (mappingp(fetch)) {
 	void callback(int ok, mapping value) {
 	    if (ok) {
-		MMP.invoke_later(postfetch, value, iterator, r);
+		MMP.Utils.invoke_later(postfetch, value, iterator, r);
 	    } else {
 		werror("could not fetch data from storage.\n");
 	    }
 	};
 
-	storage->multi_apply(fetch, callback);
+	storage()->multi_apply(fetch, callback);
     } else { 
 	void callback(int ok, mixed value) {
 	    if (ok) {
-		MMP.invoke_later(postfetch, ([ fetch : value ]), iterator, r);
+		MMP.Utils.invoke_later(postfetch, ([ fetch : value ]), iterator, r);
 	    } else {
 		werror("could not fetch data from storage.\n");
 	    }
 	};
 	
-	storage->get(fetch, callback);
+	storage()->get(fetch, callback);
     } 
 }
 
@@ -125,9 +132,9 @@ void postfetch(mapping data, object iterator, .Request r) {
 	}
 
 	if (ret != PSYC.Handler.GOON) {
-	    MMP.invoke_later(_fun[ret], r);
+	    MMP.Utils.invoke_later(_fun[ret], r);
 	} else {
-	    MMP.invoke_later(handle_message, iterator, r);
+	    MMP.Utils.invoke_later(handle_message, iterator, r);
 	}
     };
 
@@ -141,9 +148,9 @@ void postfetch(mapping data, object iterator, .Request r) {
 }
 
 void try_unroll() {
-    foreach (oqueues;; queue) {
-	while (array a = oqueue->get()) {
-	    MMP.invoke_later(prefetch, @a);
+    foreach (oqueues;object queue;int size) {
+	while (array a = queue->get()) {
+	    MMP.Utils.invoke_later(prefetch, @a);
 	    if (!--oqueues[queue]) {
 		m_delete(oqueues, queue);
 		break; // optimization
