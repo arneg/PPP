@@ -51,18 +51,28 @@ object index(mixed key, void|function ret) {
 
 }
 
-mapping apply(Serialization.Atom a, mapping state, void|function set) {
+mapping apply(Serialization.Atom a, Serialization.Atom state, void|function set) {
     if (!a->action) {
 	error("cannot apply data atom to a state.\n");
     }
 
-    mapping t;
+    Serialization.Atom t;
     int create;
 
     switch (a->action) {
     case "_query":
 	return state;
     case "_add":
+	if (state->typed_data[this]) {
+	    state->set_tdata(state->typed_data[this] + decode(t));
+	} else if (state->pdata) {
+	    if (!a->pdata) {
+		low_decode(a);
+	    }
+	    state->set_pdata(state->pdata + a->pdata);
+	} else {
+	    state->set_data(state->data
+	}
 	t = decode(a);
 	if (!state) set(t);
 	else set(state + t);

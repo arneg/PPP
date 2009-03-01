@@ -28,6 +28,23 @@ void create(string type, string data) {
     set_weak_flag(typed_data, Pike.WEAK_INDICES);
 }
 
+void set_pdata(array(Signature.Atom) a) {
+    typed_data = ([]);
+    data = 0;
+    pdata = a;
+}
+
+void set_data(string data) {
+    typed_data = ([]);
+    this_program::data = data;
+    pdata = 0;
+}
+
+void set_tdata(object signature, mapping m) {
+    typed_data = ([ signature : m ]);
+    this_program::signature = signature;
+}
+
 array(string) subtypes() {
     return .subtypes(type);	
 }
@@ -43,6 +60,10 @@ int(0..1) is_supertype_of(this_program a) {
 void low_render() {
     if (!signature) error("cannot render unfinished atom without signature.\n");
     data = signature->render(typed_data[signature]);
+}
+
+string `data() {
+    if (
 }
 
 string|String.Buffer render(void|String.Buffer buf) {
