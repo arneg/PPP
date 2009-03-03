@@ -51,7 +51,7 @@ object index(mixed key, void|function ret) {
 
 }
 
-mapping apply(Serialization.Atom a, mapping state, void|function set) {
+mapping apply(Serialization.Atom a, Serialization.Atom state, void|function set) {
     if (!a->action) {
 	error("cannot apply data atom to a state.\n");
     }
@@ -63,41 +63,37 @@ mapping apply(Serialization.Atom a, mapping state, void|function set) {
     case "_query":
 	return state;
     case "_add":
-	t = decode(a);
-	if (!state) set(t);
-	else set(state + t);
+	// array(Atom)
+	// ØPTIMIZE LATER!
+	state->pdata += a->pdata;
 	break;
     case "_sub":
-	t = decode(a);
-	if (!state) break; // silently ignore non-existing
-	set(state - t);
+	state->typed_data[this] -= decode(a);
 	break;
     case "_index_create":
 	create = 1;
     case "_index":
-	if (!a->pdata && !low_decode(a)) error("odd number of atoms dont make a mapping. %O\n", a->pdata);
+	if (!a->pdata) error("bad index: %O\n", a->pdata);
 	if (sizeof(a->pdata) != 2) error("bad index.\n");
-
 	object ktype = get_ktype(a->pdata[0]);
 	mixed key = ktype->decode(a->pdata[0]);
-	
-	if (!has_index(state, key) && !create) {
-	    error("indexing non-existing entry.\n");
-	}
-
 	object vtype = get_vtype(key, ktype, a->pdata[1]);
 
-	void s(mixed val) {
-	    state[key] = val;
-	};
-	
-	// TODO: maybe issue a warning on else
-	if (!vtype) error("unsupported action in index.\n");
+	// optimize! this is linear search!
+	for (int i =0; i < sizeof(state->pdata); i+=2) {
+	    if (state->pdata[i] == a->pdata[0]) {
+		array t = state->pdata;
+		t[i+1] = vtype->apply(a->pdata[1], t[i+1]);
+		state->pdata = t;
+		return t[i+1];
+	    }
+	}
 
-	return vtype->apply(a->pdata[1], state[key], s);
+	error("Index %O not found.\n", a->pdata[0]);
     default:
 	error("unsupported action.\n");
     }
+    return state;
 }
 
 
