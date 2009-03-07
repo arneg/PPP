@@ -20,6 +20,7 @@ class Test {
 	pp->register_type("mapping", "_mapping", Mapping(pp,pp));
 	pp->register_type("array", "_list", List(pp));
     }
+
     int test2() {
 	mapping t = ([ 
 	     "_members" : ({ ([ "sdkfh" : 3 ]), ([ "mich" : 45 ]), ([ "sldkjf" : 123 ]) }),
@@ -36,11 +37,16 @@ class Test {
 	    return 1;
 	}
 	*/
-	Atom b = p->index("_members")->index(1)->add(([ "wuuu" : 23234234 ]));
+	Serialization.Atom state = p->encode(t);
+	Serialization.Atom b = p->index("_members")->index(1)->add(([ "wuuu" : 23234234 ]));
+	Serialization.Atom c = p->index("_members")->index(1)->query();
 	werror("state: %O\n", t);
-	werror("%O\n", b->render());
-	pp->apply(b, t);
-	werror("state: %O\n", t);
+	werror("QUERY: %O\n", c->render());
+	object misc = Serialization.ApplyInfo();
+	mixed d = pp->apply(c, state, misc);
+	werror("QUERY RESULT: %O\n", d);
+	//d = d->clone();
+	//mixed a = pp->apply(b, state, misc);
     }
 }
 
@@ -51,6 +57,5 @@ int main() {
     object o = Test(cache);
 
     o->init();
-    werror("cache: %O\n", cache);
-    werror("test2: %O\n", o->test2());
+    o->test2();
 }
