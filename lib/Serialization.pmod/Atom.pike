@@ -1,15 +1,17 @@
-// raw items
-string type;
-string action;
-string data;
+// raw data
+string type, action, data;
 
+// intermediate stuff (apply works on this)
+// the type of this is psyc type specific
+// needs a signature for downgrading to raw
 mixed pdata;
 
-// this may be the signature of the creator, needed for late rendering
+// keep the most recent for late encoding
 object signature;
 
 // this would be signature->data
-mapping(object:mixed) typed_data  = ([]);
+// readily parsed data
+mapping(object:mixed) typed_data = set_weak_flag(([]), Pike.WEAK_INDICES);
 
 void create(string type, string data) {
 
@@ -23,26 +25,83 @@ void create(string type, string data) {
     }
 
     this_program::data = data;
-
-    // if a signature dissapears, drop the corresponding data
-    set_weak_flag(typed_data, Pike.WEAK_INDICES);
 }
 
-void set_pdata(array(Signature.Atom) a) {
-    typed_data = ([]);
-    data = 0;
-    pdata = a;
+this_program clone() {
+    make_raw();
+    this_program atom = this_program(type, data);
+    atom->action = action;
+    atom->signature = signature;
+    atom->pdata = copy_value(pdata);
+    atom->typed_data = copy_value(typed_data);
+
+    return atom;
 }
 
-void set_data(string data) {
-    typed_data = ([]);
-    this_program::data = data;
+void set_raw(string type, string action, string data) {
+
+    if (type != this_program::type) {
+	// this is no use anymore
+	signature = 0;
+	this_program::type = type;
+    }
+
+    this_program::action = action;
+    this_program::data = action;
+
+    typed_data = set_weak_flag(([]), Pike.WEAK_INDICES);
     pdata = 0;
 }
 
-void set_tdata(object signature, mapping m) {
-    typed_data = ([ signature : m ]);
+void set_pdata(mixed a) {
+    if (!signature) {
+	error("This will render the Atom unusable.\n");	
+    }
+    pdata = a;
+    data = 0;
+    typed_data = set_weak_flag(([]), Pike.WEAK_INDICES);
+}
+
+void set_typed_data(object signature, mixed d) {
     this_program::signature = signature;
+    typed_data[signature] = d;
+    pdata = 0;
+    data = 0;
+}
+
+void make_raw() {
+    if (data) {
+	return;
+    }
+
+    if (!signature) {
+	error("Cannot make %O raw without signature.\n", this);
+    }
+
+    signature->to_raw(this);
+}
+
+mixed get_pdata(void|object signature) {
+    object sig;
+
+    if (pdata) return pdata;
+
+    if (signature) {
+	sig = signature;
+	if (!this_program::signature) this_program::signature = signature;
+    } else {
+	sig = this_program::signature;
+    }
+
+    if (!sig) error("Cannot produce pdata without signature.\n");
+
+    if (has_index(typed_data, sig)) {
+	sig->done_to_medium(this);
+    } else {
+	sig->raw_to_medium(this);
+    }
+
+    return pdata;
 }
 
 array(string) subtypes() {
@@ -57,31 +116,10 @@ int(0..1) is_supertype_of(this_program a) {
     return .is_supertype_of(type, a->type);
 }
 
-void low_render() {
-    if (!signature) error("cannot render unfinished atom without signature.\n");
-    data = signature->render(typed_data[signature]);
-}
-
-string `data() {
-    if (
-}
-
 string|String.Buffer render(void|String.Buffer buf) {
-    if (!data) {
-	if (!pdata) {
-	    low_render();
-	} else {
-	    String.Buffer t = String.Buffer();
-
-	    foreach (pdata;;Serialization.Atom a) {
-		a->render(t);
-	    }
-
-	    data = t->get();
-	}
-    }
-
     string ttype;
+
+    if (!data) make_raw();
 
     if (action) {
 	ttype = type + ";" + action;
@@ -98,6 +136,21 @@ string|String.Buffer render(void|String.Buffer buf) {
 
 string _sprintf(int t) {
     if (t == 'O') {
-	return sprintf("Atom(%s, %O)", type, action);
+	return sprintf("Atom(%s, %O)", type, data|| pdata||random(typed_data));
     }
+}
+
+// there is some room for optimizations here.
+int(0..1) `==(mixed a) {
+    if (!objectp(a) || !Program.inherits(object_program(a), this_program)) {
+	return 0;
+    }
+
+    make_raw();
+
+    return a->type == type && action == a->action && a->data == data;
+}
+
+int __hash() {
+    return hash(render());
 }

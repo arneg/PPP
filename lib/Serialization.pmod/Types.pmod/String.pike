@@ -4,12 +4,13 @@ void create() {
     ::create("_string");
 }
 
-string decode(Serialization.Atom a) {
-    if (can_decode(a)) {
-	return utf8_to_string(a->data);
+string decode(Serialization.Atom atom) {
+    if (!can_decode(atom)) {
+	error("Cannot decode %O\n", atom);
     }
 
-    throw(({}));
+    to_done(atom);
+    return atom->typed_data[this];
 }
 
 Serialization.Atom encode(Serialization.Atom|string s) {
@@ -23,10 +24,21 @@ Serialization.Atom encode(Serialization.Atom|string s) {
     return atom;
 }
 
-function render = string_to_utf8;
+void to_done(Serialization.Atom atom) {
+    if (has_index(atom->typed_data, this)) return;
+    if (!stringp(atom->data)) error("No raw state.\n");
+
+    atom->typed_data[this] = utf8_to_string(atom->data);
+}
+
+void to_raw(Serialization.Atom atom) {
+    if (stringp(atom->data)) return;
+    if (!has_index(atom->typed_data, this)) error("No done state.\n");
+
+    atom->data = string_to_utf8(atom->typed_data[this]);
+}
 
 int(0..1) can_encode(mixed a) {
-    if (low_can_decode(a)) return 1;
     return stringp(a);
 }
 

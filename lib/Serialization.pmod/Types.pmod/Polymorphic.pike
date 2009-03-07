@@ -4,15 +4,21 @@ Serialization.AbbrevHash atypes = Serialization.AbbrevHash();
 // we could think about supporting inheritance at some point
 mapping ptypes = ([]);
 
-mixed apply(Serialization.Atom a, mixed state, void|function set) {
+mixed apply(Serialization.Atom a, mixed state, void|object misc) {
     multiset t;
 
+    if (!misc) misc = Serialization.ApplyInfo();
+
     if (t = atypes[a->type]) foreach (t; object type;) {
-	if (functionp(type->apply) && type->can_decode(a)) return type->apply(a, state, set);
+	if (functionp(type->apply) && type->low_can_decode(a)) {
+	    mixed ret = type->apply(a, state, misc);   
+	    return ret;
+	}
     }
 
-    werror("%O\n", atypes);
-    error("Could not apply %O.\n", a);
+    misc->faildepth = misc->depth;
+    misc->failed = 1;
+    return state;
 }
 
 void register_type(string|program ptype, string atype, object type) {

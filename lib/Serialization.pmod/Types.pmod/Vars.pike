@@ -20,82 +20,66 @@ void create(object str, void|mapping(string:object) mandatory, void|mapping(stri
 
 object get_ktype(mixed key) { return str; }
 object get_vtype(mixed key, object ktype, mixed value) {
-    if (stringp(key)) {
-	return hash[key] || ohash[key];
-    }
-}
-
-mapping decode(Serialization.Atom a) {
-
-    if (a->typed_data[this]) return a->typed_data[this];
-
-    if (!low_can_decode(a)) error("cannot decode %O\n", a);
-
-    if (!a->pdata && !low_decode(a)) error("odd number of elements dont make a mapping.\n");
-
-    mapping m = ([]);
-    array(Serialization.Atom) list = a->pdata;
-    int needed = sizeof(hash);
-
-    for (int i = 0; i < sizeof(list); i += 2) {
-	string key;
-	mixed value;
-
-	if (str->can_decode(list[i])) {
-	    key = str->decode(list[i]);
-	    string index = hash->find_index(key);
-
-	    if (index) {
-		object type = hash->m[index];
-
-		if (type->can_decode(list[i+1])) {
-		    value = type->decode(list[i+1]);
-		} else {
-		    error("evil, cannot decode value!\n");
-		}
-
-		if (!has_index(m, index)) 
-		    needed--;
-		m[index] = value;
-		continue;
-	    }
-
-	    index = ohash->find_index(key);
-
-	    if (index) { // we dont complain about junk. could be an extension to the packet.
-		object type = hash->m[index];
-
-		if (type->can_decode(list[i+1])) {
-		    value = type->decode(list[i+1]);
-		} else {
-		    error("evil, cannot decode value!\n");
-		}
-
-		m[index] = value;
-		continue;
-	    } 
-
-	    m[key] = list[i+1];
-	} else {
-	    error("Could not decode key!\n");
+    if (objectp(key)) {
+	if (str->can_decode(key)) {
+	    key = str->decode(key);
 	}
     }
 
-    if (needed) {
-	error("Mandatory variables missing.\n");
-    }
-
-    a->typed_data[this] = m;
-
-    return m;
+    if (stringp(key)) {
+	return hash[key] || ohash[key];
+    } 
 }
 
 int(0..1) can_decode(Serialization.Atom a) {
-    if (mixed err = catch { decode(a); }) {
+    if (mixed err = catch { to_medium(a); }) {
 	return 0;
     }
 
     return 1;
+}
+
+// these two ignore unknown keys
+void done_to_medium(Serialization.Atom atom) {
+    if (has_pdata(atom)) return;
+    if (!has_index(atom->typed_data, this)) error("No done state.\n");
+
+    mapping m = ([]), done = atom->typed_data[this];
+
+    foreach (done; mixed key; mixed value) {
+	object ktype = get_ktype(key);
+	if (!ktype) continue;
+	object vtype = get_vtype(key, ktype, value);
+	if (!vtype) continue;
+	Serialization.Atom mkey = ktype->encode(key);
+	Serialization.Atom mval = vtype->encode(value);
+	m[mkey] = mval;
+    }
+
+    atom->pdata = m;
+}
+
+void medium_to_done(Serialization.Atom atom) {
+    if (!mappingp(atom->pdata)) error("No medium state.\n");
+    if (has_index(atom->typed_data, this)) return;
+
+    mapping done = ([]), m = atom->pdata;
+
+    foreach (m;Serialization.Atom mkey;Serialization.Atom mval) {
+	object ktype = get_ktype(mkey);
+	if (!ktype) continue;
+	object vtype = get_vtype(mkey, ktype, mval);
+	if (!vtype) {
+	    werror("No vtype for %O:%O\n", mkey, mval);
+	    continue;
+	}
+
+	mixed key = ktype->decode(mkey);
+	mixed val = vtype->decode(mval);
+	done[key] = val;
+    }
+
+    atom->typed_data[this] = done;
 }
 
 int(0..1) can_encode(mixed m) {
@@ -130,6 +114,7 @@ int(0..1) can_encode(mixed m) {
 	    object type = ohash->m[index];
 
 	    if (!type->can_encode(value)) {
+		werror("%O cannot encode %O\n", type, value);
 		return 0;
 	    }
 	    

@@ -22,11 +22,20 @@ Serialization.Atom decode(Serialization.Atom a) {
     }
     return a; 
 }
+
 Serialization.Atom encode(Serialization.Atom a) { 
     if (!can_encode(a)) {
 	error("cannot encode %O.\n", a);
     }
     return a;
+}
+
+void to_done(Serialization.Atom atom) {
+    // we may think about cycling the atom here..  
+}
+
+void to_raw(Serialization.Atom atom) {
+    if (!stringp(atom->data)) error("Cannot really decode or encode anything.\n");
 }
 
 string _sprintf(int type) {

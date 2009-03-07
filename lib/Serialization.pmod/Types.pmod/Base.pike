@@ -37,11 +37,21 @@ int(0..1) has_action(string action) {
     return 0;
 }
 
-Serialization.Atom query() {
-    return Serialization.Atom(_type+":_query", 0);
+Serialization.Atom query(void|function ret) {
+    Serialization.Atom atom = Serialization.Atom(_type+":_query", "");
+    atom->signature = this;
+    
+    if (ret) {
+	return ret(atom);
+    } else {
+	return atom;
+    }
 }
 
-mixed apply(Serialization.Atom a, mixed state) {
+void to_raw(Serialization.Atom);
+void to_done(Serialization.Atom);
+
+mixed apply(Serialization.Atom a, Serialization.Atom state, void|object misc) {
     if (!a->action) {
 	error("cannot apply data atom to a state.\n");
     }

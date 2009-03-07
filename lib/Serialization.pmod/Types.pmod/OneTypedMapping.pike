@@ -11,33 +11,6 @@ void create(object ktype, object vtype) {
 object get_ktype(mixed key) { return ktype; }
 object get_vtype(mixed key, object ktype, mixed val) { return vtype; }
 
-mapping decode(Serialization.Atom a) {
-
-    if (a->typed_data[this]) {
-	return a->typed_data[this];
-    }
-
-    if (!low_can_decode(a)) error("cannot decode %O using %O.\n", a, this);
-
-    if (!a->pdata) {
-	if (!low_decode(a)) error("odd number of atoms dont make a mapping.\n");
-    }
-
-    mapping m = ([]);
-
-    for (int i = 0; i < sizeof(a->pdata); i += 2) {
-	mixed key, value;
-
-	key = ktype->decode(a->pdata[i]);
-	value = vtype->decode(a->pdata[i+1]);
-	m[key] = value;
-    }
-
-    a->typed_data[this] = m;
-
-    return m;
-}
-
 // its probably a good idea to decode right away. its pretty unlikely that we
 // will just check and not use the data often.
 int(0..1) can_decode(Serialization.Atom a) {

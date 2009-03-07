@@ -6,16 +6,10 @@ void create() {
 
 int decode(Serialization.Atom a) {
     
-    if (has_index(a->typed_data, this)) return a->typed_data[this];
+    to_done(a);
+    return a->typed_data[this];
 
-    if (can_decode(a)) {
-	int i;
-	if (1 == sscanf(a->data, "%d", i)) {
-	    return i; 
-	}
-    }
 
-    error("cannot decode %O\n", a);
 }
 
 Serialization.Atom encode(Serialization.Atom|int i) {
@@ -29,8 +23,26 @@ Serialization.Atom encode(Serialization.Atom|int i) {
     return a;
 }
 
-string render(int i) { 
-    return (string)i;
+void to_done(Serialization.Atom atom) {
+    if (has_index(atom->typed_data, this)) return;
+    if (!stringp(atom->data)) error("No raw state in %O.\n", atom);
+
+    if (can_decode(atom)) {
+	int i;
+	if (1 == sscanf(atom->data, "%d", i)) {
+	    atom->typed_data[this] = i; 
+	    return;
+	}
+    }
+
+    error("cannot decode %O\n", atom);
+}
+
+void to_raw(Serialization.Atom atom) {
+    if (stringp(atom->data)) return;
+    if (!has_index(atom->typed_data, this)) error("No done state.\n");
+
+    atom->data = (string)atom->typed_data[this];
 }
 
 int(0..1) can_encode(mixed a) {
@@ -44,4 +56,12 @@ string _sprintf(int c) {
     }
 
     return 0;
+}
+
+int(0..1) `==(mixed a) {
+    return objectp(a) && object_program(a) == this_program;
+}
+
+int __hash() {
+    return hash_value(this_program);
 }
