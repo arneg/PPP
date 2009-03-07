@@ -3,9 +3,11 @@ import Serialization.Types;
 // make the compiler complain if no argument is given...
 object List(object type, object ... args) {
     object o;
+#if 0
     if (sizeof(args)) {
 	type = Or(@args);
     } 
+#endif
 
     if (!(o = this->type_cache[OneTypedList][type])) {
 	o = OneTypedList(type);
@@ -32,6 +34,7 @@ object Mapping(object|mapping(object:object) m, object|void type2, object ... ar
 
 	return Mapping(@args);
     } else if (objectp(m) && objectp(type2)) {
+#if 0
 	if (sizeof(args)) {
 	    args = ({ m, type2 }) + args;
 
@@ -46,7 +49,9 @@ object Mapping(object|mapping(object:object) m, object|void type2, object ... ar
 		this->type_cache[MultiTypedMapping][mangler] = o;
 	    }
 
-	} else {
+	} else 
+#endif
+	{
 	    object mangler = Serialization.Mangler(({ m, type2 }));	
 
 	    if (!(o = this->type_cache[OneTypedMapping][mangler])) {
@@ -61,6 +66,7 @@ object Mapping(object|mapping(object:object) m, object|void type2, object ... ar
     return o;
 }
 
+#if 0
 object Or(object type, object ... types) {
     object o;
 
@@ -78,6 +84,7 @@ object Or(object type, object ... types) {
     
     return o;
 }
+#endif
 
 object Any() {
     return Atom();
@@ -94,9 +101,11 @@ object Atom() {
     return o;
 }
 
+#if 0
 object UOr(object type, object ... types) {
     return Or(@sort(({ type }) + types));
 }
+#endif
 
 object UTF8String() {
     object o;
