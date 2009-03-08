@@ -64,23 +64,17 @@ Serialization.Atom apply(Serialization.Atom atom, Serialization.Atom state, void
     case "_query":
 	break;
     case "_add":
-	to_medium(state);
-	to_medium(atom);
-	state->set_pdata(state->pdata + atom->pdata);
+	state->set_pdata(to_medium(state) + to_medium(atom));
 	misc->changed = 1;
 	break;
     case "_sub":
 	// optimize
-	to_medium(state);
-	to_medium(atom);
-	state->set_pdata(state->pdata - atom->pdata);
+	state->set_pdata(to_medium(state) - to_medium(atom));
 	misc->changed = 1;
 	break;
     case "_index":
-	to_medium(state);
-	to_medium(atom);
-	array index = atom->pdata;
-	array astate = state->pdata;
+	array index = to_medium(atom);
+	array astate = to_medium(state);
 
 	// this is baad!
 	int key = itype->decode(index[0]);
@@ -106,105 +100,34 @@ Serialization.Atom apply(Serialization.Atom atom, Serialization.Atom state, void
     return state;
 }
 
-array decode(Serialization.Atom a) {
-    to_done(a);
-    return a->typed_data[this];
-}
-
 // dont use this
 // TODO: may not throw due to can_decode
 void raw_to_medium(Serialization.Atom atom) {
-    if (arrayp(atom->pdata)) return;
-    if (!stringp(atom->data)) error("No raw state.\n");
     atom->pdata = Serialization.parse_atoms(atom->data);
 }
 
 void medium_to_raw(Serialization.Atom atom) {
-    if (stringp(atom->data)) return;
-    if (!arrayp(atom->pdata)) error("No raw state.\n");
-    
+    if (!arrayp(atom->pdata)) error("broken pdata: %O\n", atom->pdata);
     String.Buffer buf = String.Buffer();
 
     if (atom->action == "_index") {
-	itype->to_raw(atom->pdata[0]);
-	buf = atom->pdata[0]->render(buf);
-	type->to_raw(atom->pdata[1]);
-	buf = atom->pdata[1]->render(buf);
-    } else {
-	foreach (atom->pdata;;Serialization.Atom a) {
-	    type->to_raw(a);
-	    buf = a->render(buf);	
-	}
+	buf += itype->render(atom->pdata[0]);
+	buf += type->render(atom->pdata[1]);
+    } else foreach (atom->pdata;;Serialization.Atom a) {
+	buf += render(a);	
     }
 
     atom->data = (string)buf;
 }
 
 void medium_to_done(Serialization.Atom atom) {
-    if (has_index(atom->typed_data, this)) return;
-    if (!arrayp(atom->pdata)) error("No medium state.\n");
+    if (!arrayp(atom->pdata)) error("broken pdata: %O\n", atom->pdata);
     atom->typed_data[this] = map(atom->pdata, type->decode);
 }
 
 void done_to_medium(Serialization.Atom atom) {
-    if (arrayp(atom->pdata)) return;
-    if (!has_index(atom->typed_data, this)) error("No done state.\n");
+    if (!arrayp(atom->typed_data[this])) error("broken typed_data: %O\n", atom->typed_data[this]);
     atom->pdata = map(atom->typed_data[this], type->encode);
-}
-
-void to_done(Serialization.Atom atom) {
-    if (has_index(atom->typed_data, this)) return;
-
-    raw_to_medium(atom);
-    medium_to_done(atom);
-}
-
-void to_raw(Serialization.Atom atom) {
-    if (atom->data) return;
-
-    done_to_medium(atom);
-    medium_to_raw(atom);
-}
-
-void to_medium(Serialization.Atom atom) {
-    if (has_index(atom->typed_data, this)) {
-	done_to_medium(atom);
-    } else if (this != atom->signature && atom->signature && has_index(atom->signature, "to_medium")) {
-	atom->signature->to_medium(atom);
-    } else {
-	raw_to_medium(atom);
-    }
-}
-
-Serialization.Atom encode(Serialization.Atom|array a) {
-    if (low_can_decode(a)) return a;
-    // we want late rendering...!!!
-    foreach (a;; mixed t) {
-	if (!type->can_encode(t)) {
-	    error("%O cannot encode %O.", type, t);
-	}
-    }
-
-    Serialization.Atom atom = Serialization.Atom("_list", 0);
-    atom->typed_data[this] = a;
-    atom->signature = this;
-
-    return atom;
-}
-
-int(0..1) can_decode(Serialization.Atom a) {
-    if (a->typed_data[this]) return 1;
-    if (!low_can_decode(a)) return 0;
-
-    to_medium(a);
-
-    foreach (a->pdata;;Serialization.Atom i) {
-	if (!type->can_decode(i)) {
-	    return 0;
-	}
-    }
-
-    return 1;
 }
 
 int (0..1) low_can_encode(mixed a) {
@@ -213,9 +136,7 @@ int (0..1) low_can_encode(mixed a) {
 
 int(0..1) can_encode(mixed a) {
     if (low_can_decode(a)) return 1;
-    if (!arrayp(a)) {
-	return 0;
-    }
+    if (!arrayp(a)) return 0;
 
     foreach (a;;mixed i) {
 	if (!type->can_encode(i)) {

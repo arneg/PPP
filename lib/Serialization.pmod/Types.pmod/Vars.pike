@@ -31,20 +31,10 @@ object get_vtype(mixed key, object ktype, mixed value) {
     } 
 }
 
-int(0..1) can_decode(Serialization.Atom a) {
-    if (mixed err = catch { to_medium(a); }) {
-	return 0;
-    }
-
-    return 1;
-}
-
 // these two ignore unknown keys
 void done_to_medium(Serialization.Atom atom) {
-    if (has_pdata(atom)) return;
-    if (!has_index(atom->typed_data, this)) error("No done state.\n");
-
     mapping m = ([]), done = atom->typed_data[this];
+    if (!mappingp(done)) error("Broken done state.\n");
 
     foreach (done; mixed key; mixed value) {
 	object ktype = get_ktype(key);
@@ -60,10 +50,8 @@ void done_to_medium(Serialization.Atom atom) {
 }
 
 void medium_to_done(Serialization.Atom atom) {
-    if (!mappingp(atom->pdata)) error("No medium state.\n");
-    if (has_index(atom->typed_data, this)) return;
-
     mapping done = ([]), m = atom->pdata;
+    if (!mappingp(m)) error("Broken medium state.\n");
 
     foreach (m;Serialization.Atom mkey;Serialization.Atom mval) {
 	object ktype = get_ktype(mkey);

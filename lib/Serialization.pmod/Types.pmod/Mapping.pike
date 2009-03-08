@@ -23,7 +23,6 @@ Serialization.Atom sub(mapping v, void|function ret) {
 }
 
 object index(mixed key, void|function ret) {
-    write("index(%O)\n", key);
     object ktype = get_ktype(key);
     if (!ktype->can_encode(key)) {
 	error("bad index\n");
@@ -123,9 +122,6 @@ object get_vtype(mixed key, object ktype, mixed value);
 int(0..1) can_encode(mixed m);
 
 void done_to_medium(Serialization.Atom atom) {
-    if (has_pdata(atom)) return;
-    if (!has_index(atom->typed_data, this)) error("No done state.\n");
-
     mapping m = ([]), done = atom->typed_data[this];
 
     foreach (done; mixed key; mixed value) {
@@ -142,9 +138,6 @@ void done_to_medium(Serialization.Atom atom) {
 }
 
 void medium_to_done(Serialization.Atom atom) {
-    if (!mappingp(atom->pdata)) error("No medium state.\n");
-    if (has_index(atom->typed_data, this)) return;
-
     mapping done = ([]), m = atom->pdata;
 
     foreach (m;Serialization.Atom mkey;Serialization.Atom mval) {
@@ -162,8 +155,6 @@ void medium_to_done(Serialization.Atom atom) {
 }
 
 void raw_to_medium(Serialization.Atom atom) {
-    if (has_pdata(atom)) return;
-
     if (!stringp(atom->data)) error("No raw state.\n");
 
     if (atom->action == "_query") {
@@ -194,9 +185,6 @@ void raw_to_medium(Serialization.Atom atom) {
 }
 
 void medium_to_raw(Serialization.Atom atom) {
-    if (stringp(atom->data)) return;
-    if (!has_pdata(atom)) error("No medium state.\n");
-
     String.Buffer buf = String.Buffer();
 
     if (atom->action == "_index") {
@@ -213,48 +201,6 @@ void medium_to_raw(Serialization.Atom atom) {
     atom->data = (string)buf;
 }
 
-void to_raw(Serialization.Atom atom) {
-    if (stringp(atom->data)) return; 
-
-    done_to_medium(atom);
-    medium_to_raw(atom);
-}
-
-void to_medium(Serialization.Atom atom) {
-    if (has_pdata(atom)) return;
-
-    if (has_index(atom->typed_data, this)) {
-	done_to_medium(atom);
-    } else if (atom->signature && has_index(atom->signature, "to_medium")) {
-	atom->signature->to_medium(atom);
-    } else {
-	raw_to_medium(atom);
-    }
-}
-
-void to_done(Serialization.Atom atom) {
-    if (has_index(atom->typed_data, this)) return;
-
-    raw_to_medium(atom);
-    medium_to_done(atom);
-}
-
-mapping decode(Serialization.Atom atom) {
-    to_done(atom);
-    return atom->typed_data[this];
-}
-
-Serialization.Atom encode(Serialization.Atom|mixed m) {
-    if (low_can_decode(m)) return m;
-    if (!can_encode(m)) error("%O: cannot encode %O\n", this, m);
-
-    Serialization.Atom atom = Serialization.Atom("_mapping", 0);
-    atom->set_typed_data(this, m);
-
-    return atom;
-}
-
 int(0..1) low_can_encode(mixed a) {
     return mappingp(a);
 }
-

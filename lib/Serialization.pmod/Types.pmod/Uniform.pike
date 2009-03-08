@@ -13,31 +13,16 @@ MMP.Uniform get_uniform(string s) {
     else return MMP.Uniform(s);
 }
 
-MMP.Uniform decode(Serialization.Atom a) {
-    if (a->typed_data[this]) return a->typed_data[this];
-
-    if (!can_decode(a)) error("cannot decode %O\n", a);
-
-    if (!a->data) low_render();
-
-    return get_uniform(a->data);
+void raw_to_medium(Serialization.Atom atom) {
+    atom->pdata = get_uniform(atom->data);
 }
 
-Serialization.Atom encode(MMP.Uniform u) {
-    if (low_can_decode(u)) return u;
-    if (!MMP.is_uniform(u)) error("cannot encode %O\n", u);
-
-    object a = Serialization.Atom("_uniform", 0);
-    a->typed_data[this] = u;
-    return a;
-}
-
-string render(MMP.Uniform u) {
-    return (string)u;
+void medium_to_raw(Serialization.Atom atom) {
+    if (!MMP.is_uniform(atom->pdata)) error("cannot encode %O\n", u);
+    atom->data = (string)atom->pdata;
 }
 
 int(0..1) can_encode(mixed a) {
-    if (low_can_decode(u)) return 1;
     return MMP.is_uniform(a);
 }
 

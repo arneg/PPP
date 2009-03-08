@@ -2,43 +2,37 @@ inherit .Base;
 
 string base;
 
+#define OK(x)		(stringp(s) && String.width(s) == 8 && (!base || has_prefix((x), base)))
+#define CHECK(x)	do { if (!OK(x)) error("%O is not a submethod of '%s'.\n", (x), base); } while(0);
+
 void create(void|string base) {
     ::create("_method");
 
     if (base) this_program::base = base;
 }
 
-string decode(Serialization.Atom atom) {
-    to_done(atom);
-    return atom->typed_data[this];
+int(0..1) can_encode(mixed a) {
+    return OK(a);
 }
 
-Serialization.Atom encode(string s) {
-    if (!can_encode(s)) error("cannot encode %O to a method.", s);
-
-    return Serialization.Atom("_method", s);
+void raw_to_medium(Serialization.atom atom) {
+    CHECK(atom->data);
+    atom->pdata = data;
 }
 
-int(0..1) can_encode(mixed s) {
-    return stringp(s) && String.width(s) == 8 && (!base || has_prefix(s, base));
+void medium_to_raw(Serialization.Atom atom) { 
+    CHECK(atom->pdata);
+    atom->data = atom->pdata;
 }
 
-void to_raw(Serialization.Atom atom) { 
-    if (stringp(atom->data)) return;
-    if (!has_index(atom->typed_data, this)) error("No done state.\n");
-    atom->data = atom->typed_data[this];
+void medium_to_done(Serialization.Atom atom) { 
+    CHECK(atom->pdata);
+    atom->typed_data[this] = atom->pdata;
 }
 
-void to_done(Serialization.Atom atom) { 
-    if (has_index(atom->typed_data, this)) return;
-    if (!stringp(atom->data)) error("No raw state.\n");
-
-    if (can_decode(atom) && (!base || has_prefix(atom->data, base))) {
-	atom->typed_data[this] = atom->data;
-	return;
-    }
-
-    error("cannot decode %O to a method.", atom);
+void done_to_medium(Serialization.Atom atom) {
+    CHECK(atom->typed_data[this]);
+    atom->pdata = atom->typed_data[this];
 }
 
 string _sprintf(int type) {
