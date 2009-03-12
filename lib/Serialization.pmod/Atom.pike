@@ -4,7 +4,53 @@ string type, action, data;
 // intermediate stuff (apply works on this)
 // the type of this is psyc type specific
 // needs a signature for downgrading to raw
+int(0..1) _has_pdata = 0;
+
+#if __MINOR__ >= 7 && __MAJOR__ >= 7
+mixed _pdata;
+
+mixed `pdata() {
+    if (_has_pdata) return _pdata;
+    return UNDEFINED;
+}
+
+mixed `pdata=(mixed value) {
+    _pdata = value;
+    _has_pdata = 1;
+}
+
+void delete_pdata() {
+    _pdata = _has_pdata = 0;
+}
+#else 
 mixed pdata;
+mixed `->(string key) {
+    if (key == "pdata") {
+	if (_has_pdata) return pdata;
+	return UNDEFINED;
+    }
+
+    return ::`->(key);
+}
+
+mixed `->=(string key, mixed value) {
+    if (key == "pdata") {
+	pdata = value;
+	_has_pdata = 1;
+    }
+
+    return ::`->=(key, value);
+}
+void delete_pdata() {
+    pdata = _has_pdata = 0;
+}
+#endif
+
+int(0..1) has_pdata() {
+    return _has_pdata;
+}
+
+
 
 // keep the most recent for late encoding
 object signature;
@@ -13,27 +59,19 @@ object signature;
 // readily parsed data
 mapping(object:mixed) typed_data = set_weak_flag(([]), Pike.WEAK_INDICES);
 
-void create(string type, string data) {
+void create(string type, string data, void|string action) {
 
     int i;
 
-    if (-1 != (i = search(type, ';'))) {
-	this_program::type = type[0..i-1];
-	action = type[i+1..];
-    } else {
-	this_program::type = type;
-    }
-
+    this_program::type = type;
     this_program::data = data;
+    if (action) this_program::action = action;
 }
 
 this_program clone() {
     make_raw();
-    this_program atom = this_program(type, data);
-    atom->action = action;
+    this_program atom = this_program(type, data, action);
     atom->signature = signature;
-    atom->pdata = copy_value(pdata);
-    atom->typed_data = copy_value(typed_data);
 
     return atom;
 }
@@ -50,7 +88,7 @@ void set_raw(string type, string action, string data) {
     this_program::data = action;
 
     typed_data = set_weak_flag(([]), Pike.WEAK_INDICES);
-    pdata = 0;
+    delete_pdata();
 }
 
 void set_pdata(mixed a) {
@@ -65,7 +103,7 @@ void set_pdata(mixed a) {
 void set_typed_data(object signature, mixed d) {
     this_program::signature = signature;
     typed_data[signature] = d;
-    pdata = 0;
+    delete_pdata();
     data = 0;
 }
 
@@ -122,7 +160,7 @@ string|String.Buffer render(void|String.Buffer buf) {
     if (!data) make_raw();
 
     if (action) {
-	ttype = type + ";" + action;
+	ttype = type + ":" + action;
     } else {
 	ttype = type;
     }
@@ -136,7 +174,7 @@ string|String.Buffer render(void|String.Buffer buf) {
 
 string _sprintf(int t) {
     if (t == 'O') {
-	return sprintf("Atom(%s, %O)", type, data|| pdata||random(typed_data));
+	return sprintf("Atom(%s, %O)", type, data || (has_pdata() ? pdata : (signature && has_index(typed_data, signature) ? typed_data[signature] : UNDEFINED)));
     }
 }
 
