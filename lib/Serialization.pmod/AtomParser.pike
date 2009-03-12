@@ -1,11 +1,12 @@
 // vim:syntax=c
 string type;
+string action;
 int bytes = UNDEFINED;
 int error = 0;
 string|String.Buffer buf = "";
 
 void reset(int bytes) {
-    type = 0;
+    type = action = 0;
     this_program::bytes = UNDEFINED;
 
     if (bytes < sizeof(buf)) {
@@ -44,6 +45,11 @@ int|.Atom parse(void|string data) {
 	
 	type = ([string]buf)[0..pos-1];
 	buf = ([string]buf)[pos+1..];
+
+	if (-1 != (pos = search(type, ':'))) {
+	    action = type[pos+1..];
+	    type = type[0..pos-1];
+	}
     }
 
     if (!bytes && zero_type(bytes)) {
@@ -63,13 +69,13 @@ int|.Atom parse(void|string data) {
     }
 
     if (bytes == 0) {
-	object atom = .Atom(type, "");
+	object atom = .Atom(type, "", action);
 	buf = (string)buf;
 	reset(0);
 	return atom;
     } else if (sizeof(buf) >= bytes) {
 	buf = (string)buf;
-	object atom = .Atom(type, ([string]buf)[0..bytes-1]);
+	object atom = .Atom(type, ([string]buf)[0..bytes-1], action);
 	reset(bytes);	
 	return atom;
     }
