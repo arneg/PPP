@@ -4,7 +4,7 @@ void create() {
     ::create("_integer");
 }
 
-void raw_to_medium() {
+void raw_to_medium(Serialization.Atom atom) {
     if (can_decode(atom)) {
 	int i;
 	if (1 == sscanf(atom->data, "%d", i)) {
@@ -29,7 +29,6 @@ void done_to_medium(Serialization.Atom atom) {
 }
 
 int(0..1) can_encode(mixed a) {
-    if (low_can_encode(a)) return 1;
     return intp(a);
 }
 

@@ -114,7 +114,7 @@ Serialization.Atom apply(Serialization.Atom atom, Serialization.Atom state, void
 	error("unsupported action.\n");
     }
 
-    return state;
+    return state->clone();
 }
 
 object get_ktype(mixed key);

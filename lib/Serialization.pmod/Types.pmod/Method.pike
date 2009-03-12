@@ -2,7 +2,7 @@ inherit .Base;
 
 string base;
 
-#define OK(x)		(stringp(s) && String.width(s) == 8 && (!base || has_prefix((x), base)))
+#define OK(x)		(stringp(x) && String.width(x) == 8 && (!base || has_prefix((x), base)))
 #define CHECK(x)	do { if (!OK(x)) error("%O is not a submethod of '%s'.\n", (x), base); } while(0);
 
 void create(void|string base) {
@@ -15,9 +15,9 @@ int(0..1) can_encode(mixed a) {
     return OK(a);
 }
 
-void raw_to_medium(Serialization.atom atom) {
+void raw_to_medium(Serialization.Atom atom) {
     CHECK(atom->data);
-    atom->pdata = data;
+    atom->pdata = atom->data;
 }
 
 void medium_to_raw(Serialization.Atom atom) { 

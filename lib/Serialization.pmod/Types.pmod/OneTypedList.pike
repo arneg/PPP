@@ -1,11 +1,11 @@
 inherit .Base;
-object type;
+object etype;
 object itype = Serialization.Types.Int();
 
 void create(object type) {
     ::create("_list");
     
-    this_program::type = type;
+    this_program::etype = type;
 }
 
 Serialization.Atom add(array v, void|function ret) {
@@ -31,7 +31,6 @@ Serialization.Atom sub(array v, void|function ret) {
 }
 
 object index(int n, void|function ret) {
-    write("index(%O)\n", n);
     if (!itype->can_encode(n)) {
 	error("bad index\n");
     }
@@ -50,7 +49,7 @@ object index(int n, void|function ret) {
 	}
     };
 
-    return Serialization.CurryObject(type, f);
+    return Serialization.CurryObject(etype, f);
 }
 
 Serialization.Atom apply(Serialization.Atom atom, Serialization.Atom state, void|object misc) {
@@ -87,7 +86,7 @@ Serialization.Atom apply(Serialization.Atom atom, Serialization.Atom state, void
 	    return astate[key];    
 	} else if (sizeof(atom->pdata) == 2) {
 	    misc->depth++;
-	    mixed ret = type->apply(atom->pdata[1], astate[key], misc);
+	    mixed ret = etype->apply(atom->pdata[1], astate[key], misc);
 	    misc->depth--;
 	    if (misc->changed) state->set_pdata(astate);
 	    werror("list returning %O\n", ret->data||ret->pdata);
@@ -97,7 +96,7 @@ Serialization.Atom apply(Serialization.Atom atom, Serialization.Atom state, void
 	error("unsupported action.\n");
     }
 
-    return state;
+    return state->clone();
 }
 
 // dont use this
@@ -112,9 +111,9 @@ void medium_to_raw(Serialization.Atom atom) {
 
     if (atom->action == "_index") {
 	buf += itype->render(atom->pdata[0]);
-	buf += type->render(atom->pdata[1]);
+	buf += etype->render(atom->pdata[1]);
     } else foreach (atom->pdata;;Serialization.Atom a) {
-	buf += render(a);	
+	buf += etype->render(a);	
     }
 
     atom->data = (string)buf;
@@ -122,12 +121,12 @@ void medium_to_raw(Serialization.Atom atom) {
 
 void medium_to_done(Serialization.Atom atom) {
     if (!arrayp(atom->pdata)) error("broken pdata: %O\n", atom->pdata);
-    atom->typed_data[this] = map(atom->pdata, type->decode);
+    atom->typed_data[this] = map(atom->pdata, etype->decode);
 }
 
 void done_to_medium(Serialization.Atom atom) {
     if (!arrayp(atom->typed_data[this])) error("broken typed_data: %O\n", atom->typed_data[this]);
-    atom->pdata = map(atom->typed_data[this], type->encode);
+    atom->pdata = map(atom->typed_data[this], etype->encode);
 }
 
 int (0..1) low_can_encode(mixed a) {
@@ -139,7 +138,7 @@ int(0..1) can_encode(mixed a) {
     if (!arrayp(a)) return 0;
 
     foreach (a;;mixed i) {
-	if (!type->can_encode(i)) {
+	if (!etype->can_encode(i)) {
 	    return 0;
 	}
     }
@@ -149,7 +148,7 @@ int(0..1) can_encode(mixed a) {
 
 string _sprintf(int c) {
     if (c == 'O') {
-	return sprintf("List(%O)", type);
+	return sprintf("List(%O)", etype);
     }
 
     return 0;
