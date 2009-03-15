@@ -39,8 +39,8 @@ string _sprintf(int t) {
     return 0;
 }
 
-Serialization.Atom query(void|function ret) {
-    Serialization.Atom atom = Serialization.Atom(type, "", "_query");
+Serialization.Atom generic(void|function ret, string action) {
+    Serialization.Atom atom = Serialization.Atom(type, "", action);
     atom->signature = this;
     
     if (ret) {
@@ -50,6 +50,19 @@ Serialization.Atom query(void|function ret) {
     }
 }
 
+Serialization.Atom query(void|function ret) {
+    return generic(ret, "_query");
+}
+
+Serialization.Atom query_lock(void|function ret) {
+    return generic(ret, "_query_lock");
+}
+Serialization.Atom lock(void|function ret) {
+    return generic(ret, "_lock");
+}
+Serialization.Atom unlock(void|function ret) {
+    return generic(ret, "_unlock");
+}
 
 mixed to_done(Serialization.Atom atom) {
     if (!low_can_decode(atom)) error("Incompatible types.\n");
@@ -151,11 +164,15 @@ mixed apply(Serialization.Atom a, Serialization.Atom state, void|object misc) {
 	error("cannot apply data atom to a state.\n");
     }
 
+    if (!misc) misc = .ApplyInfo();
+
+    misc->path += ({ state });
+
     switch (a->action) {
     case "_query":
-	return state;
+	return .OK;
     default:
-	error("unsupported action.\n");
+	return .UNSUPPORTED;
     }
 }
 
