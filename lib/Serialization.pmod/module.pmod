@@ -6,12 +6,6 @@ int(0..1) is_subtype_of(string a, string b) {
     return 0;
 }
 
-class ApplyInfo {
-    int changed = 0;
-    int depth = 0;
-    int faildepth = 0;
-    int failed = 0;
-}
 
 //! Checks if a is a supertype of b.
 int(0..1) is_supertype_of(string a, string b) {
