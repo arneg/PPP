@@ -7,7 +7,7 @@ mapping ptypes = ([]);
 mixed apply(Serialization.Atom a, mixed state, void|object misc) {
     multiset t;
 
-    if (!misc) misc = Serialization.ApplyInfo();
+    if (!misc) misc = .ApplyInfo();
 
     if (t = atypes[a->type]) foreach (t; object type;) {
 	if (functionp(type->apply) && type->low_can_decode(a)) {
@@ -18,7 +18,7 @@ mixed apply(Serialization.Atom a, mixed state, void|object misc) {
 
     misc->faildepth = misc->depth;
     misc->failed = 1;
-    return state;
+    return .UNSUPPORTED;
 }
 
 void register_type(string|program ptype, string atype, object type) {
