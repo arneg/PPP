@@ -1,6 +1,8 @@
 // raw data
 string type, action, data;
 
+inherit .Lock;
+
 // intermediate stuff (apply works on this)
 // the type of this is psyc type specific
 // needs a signature for downgrading to raw
@@ -51,13 +53,24 @@ int(0..1) has_pdata() {
 }
 
 
-
 // keep the most recent for late encoding
 object signature;
 
 // this would be signature->data
 // readily parsed data
 mapping(object:mixed) typed_data = set_weak_flag(([]), Pike.WEAK_INDICES);
+
+object child;
+
+array(object) path() {
+    if (!signature) error("Atom doesnt know its signature. Dont use sig_list() with raw atoms.\n");
+
+    if (child) {
+	return ({ signature }) + child->path();
+    } else {
+	return ({ signature });
+    }
+}
 
 void create(string type, string data, void|string action) {
 
@@ -175,6 +188,8 @@ string|String.Buffer render(void|String.Buffer buf) {
 string _sprintf(int t) {
     if (t == 'O') {
 	return sprintf("Atom(%s, %O)", type, data || (has_pdata() ? pdata : (signature && has_index(typed_data, signature) ? typed_data[signature] : UNDEFINED)));
+    } else if (t == 's') {
+	return sprintf("Atom(%s)", type);
     }
 }
 
