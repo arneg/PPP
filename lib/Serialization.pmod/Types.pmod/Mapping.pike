@@ -1,3 +1,7 @@
+// vim:syntax=c
+
+#include "lock.h"
+
 inherit .Base;
 
 Serialization.Atom add(mapping v, void|function ret) {
@@ -37,6 +41,8 @@ object index(mixed key, void|function ret) {
 	Serialization.Atom f(Serialization.Atom v) {
 	    write("return(%O)\n", key);
 	    a->pdata = ({ ktype->encode(key), v });
+	    a->child = v;
+
 	    if (ret) {
 		return ret(a);
 	    } else {
@@ -55,40 +61,33 @@ int(0..1) has_pdata(Serialization.Atom atom) {
     return mappingp(atom->pdata) || (atom->action == "_index" && arrayp(atom->pdata)) || (atom->action == "_query");
 }
 
-Serialization.Atom apply(Serialization.Atom atom, Serialization.Atom state, void|object misc) {
+int apply(Serialization.Atom atom, Serialization.Atom state, void|object misc) {
     if (!atom->action) {
 	error("cannot apply data atom to a state.\n");
     }
 
-    if (!misc) misc = Serialization.ApplyInfo();
+    if (!misc) misc = .ApplyInfo();
 
-    int create;
+    misc->path += ({ state });
 
-    switch (atom->action) {
-    case "_query":
-	break;
-    case "_add":
-	// ØPTIMIZE LATER:
-	// we can perform the addiction/substraction
-	// on all typed representations aswell and thus
-	// saving some reparsings. this may not be worth
-	// the effort in all cases... hard to tell
+
+    if (has_suffix(atom->action, "_unlock")) {
+	if (!state->_locked) error("Trying to unlock unlocked state.\n");
+	UNLOCK_WALK();
+
+	if (atom->action == "_unlock") {
+	    return .OK;
+	}
+    }
+
+    if (atom->action != "_query") {
 	to_medium(state);
 	to_medium(atom);
-	state->set_pdata(state->pdata + atom->pdata);
-	misc->changed = 1;
-	break;
-    case "_sub":
-	to_medium(state);
-	to_medium(atom);
-	state->set_pdata(state->pdata - atom->pdata);
-	misc->changed = 1;
-	break;
-    case "_index_create":
-	create = 1;
-    case "_index":
-	to_medium(state);
-	to_medium(atom);
+    }
+
+    if (atom->action == "_query") {
+	return .OK;
+    } else if (Serialization.is_subtype_of(atom->action, "_index")) {
 	mapping m = state->pdata;
 	array index = atom->pdata;
 	Serialization.Atom key = index[0];
@@ -102,19 +101,66 @@ Serialization.Atom apply(Serialization.Atom atom, Serialization.Atom state, void
 	} else if (sizeof(index) == 2) {
 	    object vtype = get_vtype(key, get_ktype(key), index[1]);
 	    misc->depth++;
-	    mixed ret = vtype->apply(index[1], m[key], misc);
+	    if (atom->_locked) {
+		// this will hit the _one_ locked, so we can error
+		if (misc->locked_above) error("Found nested lock!\n");
+		misc->locked_above = 1;
+		misc->lock = atom;
+	    }
+	    int ret = vtype->apply(index[1], m[key], misc);
 	    misc->depth--;
-
-	    if (!state->signature) state->signature = this;
-	    if (misc->changed) state->set_pdata(m);
 
 	    return ret;
 	}
-    default:
-	error("unsupported action.\n");
     }
 
-    return state->clone();
+    // a pure query may always succeed. we dont care about inconsistency then
+    // for the rest we have to shout
+    if (misc->locked_above) {
+	return .LOCKED;
+    }
+
+    CHECK_LOCK();
+
+    switch (atom->action) {
+    case "_query_lock":
+	CHECK_LOCK();
+	LOCK_WALK();
+	werror("LOCKING %O\n", state);
+	return .OK;
+    case "_add_lock":
+	CHECK_LOCKS();
+	LOCK_WALK();
+    case "_add":
+	// check if we would overwrite any locked keys
+	if (sizeof(state->children)) foreach (atom->pdata;Serialization.Atom key;) {
+	    if (has_index(state->pdata, key)) {
+		CHECK_CHILD(state->pdata[key]);
+	    }
+	}
+	// ØPTIMIZE LATER:
+	// we can perform the addiction/substraction
+	// on all typed representations aswell and thus
+	// saving some reparsings. this may not be worth
+	// the effort in all cases... hard to tell
+	state->set_pdata(state->pdata + atom->pdata);
+	misc->changed = 1;
+	return .OK;
+    case "_sub_lock":
+	CHECK_LOCKS();
+	LOCK_WALK();
+    case "_sub":
+	if (sizeof(state->children)) foreach (atom->pdata;Serialization.Atom key;) {
+	    if (has_index(state->pdata, key)) {
+		CHECK_CHILD(state->pdata[key]);
+	    }
+	}
+	state->set_pdata(state->pdata - atom->pdata);
+	misc->changed = 1;
+	return .OK;
+    default:
+	return .UNSUPPORTED;
+    }
 }
 
 object get_ktype(mixed key);
