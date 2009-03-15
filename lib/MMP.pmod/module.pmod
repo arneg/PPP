@@ -1,6 +1,6 @@
 // vim:syntax=lpc
 //
-#include <debug.h>
+#include "../debug.h"
 // generating a backtrace for a _normal_ throw is a bit too much...
 void debug(string cl, string format, mixed ... args) {
     // erstmal nix weiter
@@ -1227,17 +1227,5 @@ int(0..1) is_person(mixed o) {
 //!	@[is_thing()], @[is_person()], @[is_uniform()]
 int(0..1) is_place(mixed o) {
     return is_thing(o, '@');
-}
-
-// does not set the server, etc... uniform needs to be registered. In that 
-// case we need a similar wrapper in PSYC.Server.
-.Uniform atom_decode_uniform(Serialization.Atom a, int|program ptype, object reactor) {
-    if (ptype != .Uniform) return 0;
-    
-    return .Uniform(a->data);
-}
-
-Serialization.Atom atom_encode_uniform(.Uniform uni, string type, object reactor) {
-    return Serialization.Atom(type, (string)uni);
 }
 

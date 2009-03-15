@@ -179,7 +179,7 @@ void async_srv_to_all_ip /* ip means "Ips and Ports" here */ (string host, funct
 	result = objectp(reply) ? reply->result : reply;
 
 	if (arrayp(result) && sizeof(result)) {
-	    int count;
+//	    int count;
 
 	    foreach (result;; mapping answer) {
 		string target = answer->target;
