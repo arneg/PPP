@@ -21,7 +21,7 @@ void lock(void|object child) {
 }
 
 int(0..1) locked(void|object child) {
-    return locked || (child ? has_index(children, child) : sizeof(children));
+    return _locked || (child ? has_index(children, child) : sizeof(children));
 }
 
 void on_unlock(function callback, mixed ... args) {
@@ -62,7 +62,7 @@ void unlock(void|object child) {
 }
 
 void unroll() {
-    while (sizeof(children)) {
+    while (sizeof(callbacks)) {
 	[function callback, array(mixed) args] = callbacks->shift();
 //	MMP.Utils.invoke_later(callback, @args);
     }
