@@ -69,10 +69,12 @@ class Test1 {
     int test_locking() {
 	Serialization.Atom state = p->encode(t);
 	Serialization.Atom b = p->index("_members")->index(2)->query_lock();
+	Serialization.Atom d = p->index("_members")->index(0)->query_lock();
 	Serialization.Atom add = p->index("_members")->index(2)->add(([ "uuuh" : 234324 ]));
 	Serialization.Atom unlock = p->index("_members")->index(2)->unlock();
+	Serialization.Atom e = p->index("_members")->index(0)->unlock();
 	
-	foreach (({ b, add, unlock, add });;Serialization.Atom change) {
+	foreach (({ b, add, d, unlock, add, e });;Serialization.Atom change) {
 	    array(object) path = change->path();
 	    object misc = Serialization.Types.ApplyInfo();
 	    int i = pp->apply(change, state, misc);
