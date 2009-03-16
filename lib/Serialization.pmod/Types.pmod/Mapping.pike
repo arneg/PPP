@@ -1,6 +1,7 @@
 // vim:syntax=c
 
 #include "lock.h"
+#include "type.h"
 
 inherit .Base;
 
@@ -108,6 +109,7 @@ int apply(Serialization.Atom atom, Serialization.Atom state, void|object misc) {
 		misc->lock = atom;
 	    }
 	    int ret = vtype->apply(index[1], m[key], misc);
+
 	    misc->depth--;
 
 	    return ret;
@@ -145,6 +147,7 @@ int apply(Serialization.Atom atom, Serialization.Atom state, void|object misc) {
 	// the effort in all cases... hard to tell
 	state->set_pdata(state->pdata + atom->pdata);
 	misc->changed = 1;
+	CLEAR_WALK();
 	return .OK;
     case "_sub_lock":
 	CHECK_LOCKS();
@@ -157,6 +160,7 @@ int apply(Serialization.Atom atom, Serialization.Atom state, void|object misc) {
 	}
 	state->set_pdata(state->pdata - atom->pdata);
 	misc->changed = 1;
+	CLEAR_WALK();
 	return .OK;
     default:
 	return .UNSUPPORTED;
