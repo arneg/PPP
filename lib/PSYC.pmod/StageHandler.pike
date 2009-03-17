@@ -97,31 +97,27 @@ void prefetch(object iterator, .Request r, string mc) {
     if (!seen) werror("no handler found.");
 }
 
-void fetch(mapping(string:Serialization.Atom|int)|string fetch, object iterator, .Request r) {
-    if (mappingp(fetch)) {
-	void callback(int ok, mapping value) {
-	    if (ok) {
-		MMP.Utils.invoke_later(postfetch, value, iterator, r);
-	    } else {
-		werror("could not fetch data from storage.\n");
-	    }
-	};
+void fetch(array(array) fetch, object iterator, .Request r) {
+    object handler = iterator->value();
 
-	storage()->multi_apply(fetch, callback);
-    } else { 
-	void callback(int ok, mixed value) {
-	    if (ok) {
-		MMP.Utils.invoke_later(postfetch, ([ fetch : value ]), iterator, r);
+    void callback(array(array) a) {
+	array values = allocate(sizeof(a));
+	foreach (a; int i; array t) {
+	    if (t[0] != Serialization.Types.OK) {
+		werror("Fetching data from db failed.\n");
 	    } else {
-		werror("could not fetch data from storage.\n");
+		values[i] = handler->signatures[i]->decode(t[1]->state());	
 	    }
-	};
-	
-	storage()->get(fetch, callback);
-    } 
+	}
+
+	MMP.Utils.invoke_later(postfetch, values, iterator, r);
+    };
+
+    if (sizeof(fetch)) storage()->multi_apply(fetch, callback);
+    else MMP.Utils.invoke_later(postfetch, ({ }), iterator, r);
 }
 
-void postfetch(mapping data, object iterator, .Request r) {
+void postfetch(array data, object iterator, .Request r) {
     object handler = iterator->value();
 
     // do async
@@ -159,7 +155,7 @@ void try_unroll() {
     }
 }
 
-void leave(mapping data, object iterator, .Request r) {
+void leave(array data, object iterator, .Request r) {
     //last_out = max(last_out[*], ({ p["_state_id"], p["_id"] })[*]);
     last_out[0] = max(last_out[0], r->p["_state_id"]);
     last_out[1] = max(last_out[1], r->p["_id"]);

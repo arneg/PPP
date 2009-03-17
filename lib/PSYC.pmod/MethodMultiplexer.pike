@@ -14,6 +14,7 @@ class Handler {
     int active, dead, async;
     array(function) ordered;
     object oqueue;
+    array(object) signatures;
 
     void activate() {
 	dead = 0;
@@ -232,7 +233,13 @@ int add_method(mapping specs, object child) {
 	f = ({ f });
     }
 
-    h->fetch = f;
+    array fetch = allocate(sizeof(f));
+    array signatures = allocate(sizeof(f));
+
+    foreach (f;int i;object atom) {
+	fetch[i] = ({ atom->signature, atom });
+	signature[i] = atom->path[-1];
+    }
 
     int id = add_handler(h);
 
