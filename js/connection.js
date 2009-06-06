@@ -667,159 +667,175 @@ meteor.Connection = function(url, callback, error) {
     this.buffer = "";
     this.callback = callback;
     this.error = error;
-    this.connect_new_incoming = function() {
-
+	this.client_id = 0;
+	this.new_incoming = 0;
+	this.incoming = 0;
+	this.outgoing = 0;
+	this.init_xhr = 0;
+}
+meteor.Connection.prototype.new_incoming_state_change = function() {
+	var con = this.meteor;
+	con.error("new_incoming state is " + this.readyState);
+	// we should check here for buffer length. maybe set a max
+	// amount to shut down the main one ungracefully
+	if (this.readyState >= 3) {
+		con.connect_incoming();
+	}
+}
+meteor.Connection.prototype.connect_new_incoming = function() {
 	if (this.new_incoming) {
-	    // we already have one new incoming and are waiting for the
-	    // main one to shut down
+		// we already have one new incoming and are waiting for the
+		// main one to shut down
 
-	    if (this.new_incoming.readyState == 4) {
+		if (this.new_incoming.readyState == 4) {
 		// someone is too fast for us.	
 		// TODO: we have to check for data in new_incoming,
 		// not sure what to do with it. we can probably savely
 		// parse it in case of atoms.
-	    } else return this.connect_incoming();
+		} else return this.connect_incoming();
 	}
 
-	time.start("new");
 	var xhr = new XMLHttpRequest();
 	this.new_incoming = xhr;
-	xhr.connection = this;
 	xhr.pos = 0;
 		
-	xhr.onreadystatechange = function () {
-	    var t = xhr;
-	    var con = xhr.connection;
-	    //xhr.connection.error("new_incoming state is " + xhr.readyState);
-	    // we should check here for buffer length. maybe set a max
-	    // amount to shut down the main one ungracefully
-	    if (xhr.readyState >= 3) {
-		xhr.connection.connect_incoming();
-	    }
-	};
-
 	xhr.open("POST", this.url + "?" + this.client_id, true);
+	xhr.onreadystatechange = this.new_incoming_state_change;
+	xhr.meteor = this;
 	xhr.send("");
-    };
-    this.connect_incoming = function(xhr) {
+}
+meteor.Connection.prototype.incoming_state_change = function() {
+	var con = this.meteor;
+	con.error("incoming state is " + this.readyState);
+	if (this.readyState >= 3) {
+		//this.readyState = 2;
 
+		if (this.status == 200) {
+			if (this.responseText.length <= this.pos) return;
+
+			if (this.pos) {
+				con.callback(this.responseText.slice(this.pos));
+			} else {
+				con.callback(this.responseText);
+			}
+
+			this.pos = this.responseText.length;
+
+			if (this.readyState == 4 || this.pos >= psyc.BUFFER_MAX) {
+				con.connect_new_incoming();
+			}
+		} else {
+			con.error(this.statusText);
+		}
+	}
+}
+meteor.Connection.prototype.incoming_on_error = function() {
+	this.connect_new_incoming();
+}
+meteor.Connection.prototype.connect_incoming = function(xhr) {
 	if (!xhr) {
-	    if (this.new_incoming) {
-		xhr = this.new_incoming;
-	    } else throw("you need to call new_incoming() first. no this.new_incoming.");
+		if (this.new_incoming) {
+			xhr = this.new_incoming;
+		} else throw("you need to call new_incoming() first. no this.new_incoming.");
 	}
-
-	if (this.incoming) {
-	    if (this.incoming.readyState != 4) {
-		return;
-	    }
-
-	    this.incoming.connection = 0;
-	    try { this.incoming.abort(); } catch (e) {}
-	}
-	xhr.onreadystatechange = function () {
-	    var t = xhr;
-	    //xhr.connection.error("incoming state is " + xhr.readyState);
-	    if (xhr.readyState >= 3) {
-		//xhr.readyState = 2;
-
-		if (xhr.status == 200) {
-		    if (xhr.responseText.length <= xhr.pos) return;
-
-		    if (xhr.pos) {
-			xhr.connection.callback(xhr.responseText.slice(xhr.pos));
-		    } else {
-			xhr.connection.callback(xhr.responseText);
-		    }
-
-		    xhr.pos = xhr.responseText.length;
-
-		    if (xhr.readyState == 4 || xhr.pos >= psyc.BUFFER_MAX) {
-			xhr.connection.connect_new_incoming();
-		    }
-		} else {
-		    xhr.connection.error(xhr.statusText);
-		}
-	    }
-	};
-
-	this.new_incoming = 0;
-	time.stop("new");
-	time.report("new");
-	this.incoming = xhr;
-	xhr.onerror = function() {
-	    xhr.connection.connect_new_incoming();
-	};
-    };
-    this.connect_outgoing = function() {
-	if (this.outgoing) {
-	    this.outgoing.connection = 0;
-	}
-	var xhr = new XMLHttpRequest();
-	this.outgoing = xhr;
-	xhr.connection = this;
-	//xhr.connection.error("outgoing state is " + xhr.readyState);
-
-	xhr.onreadystatechange = function () {
-	    if (xhr.readyState == 4) {
-
-		if (xhr.status == 200) {
-		    
-		    xhr.connection.connect_outgoing();
-		} else {
-		    xhr.connection.error(xhr.statusText);
-		}
-	    }
-	};
 	
-	xhr.open("POST", this.url + "?" + this.client_id, true);
-	this.ready = 1;
-    };
-    this.init = function() { // fetch the client_id and go
-	var xhr = new XMLHttpRequest();
-	this.init_xhr = xhr;
-	xhr.connection = this;
-	//xhr.connection.error("initialization state is " + xhr.readyState);
-
-	xhr.onreadystatechange = function () {
-	    if (xhr.readyState == 4) {
-
-		if (xhr.status == 200) {
-		    xhr.connection.client_id = xhr.responseText;
-		    xhr.connection.init_xhr = 0;
-		    xhr.connection.connect_outgoing();
-		    xhr.connection.connect_new_incoming();
-		} else {
-		    xhr.connection.error(xhr.statusText);
+	if (this.incoming) {
+		if (this.incoming.readyState != 4) {
+			return;
 		}
+
+		try { this.incoming.abort(); } catch (e) {}
+	}
+
+	xhr.onreadystatechange = this.incoming_state_change;
+	xhr.onerror = this.incoming_on_error;
+	this.error("moved new incoming to incoming.\n");
+	this.new_incoming = 0;
+	this.incoming = xhr;
+	meteor.Connection.prototype.incoming_state_change.call(xhr);
+}
+meteor.Connection.prototype.outgoing_state_change = function() {
+	var con = this.meteor;
+
+	if (this.readyState == 4) {
+
+		if (this.status == 200) {
+			
+			con.connect_outgoing();
+		} else {
+			con.error(xhr.statusText);
+		}
+	}
+}
+meteor.Connection.prototype.connect_outgoing = function() {
+	var xhr;
+
+	if (this.outgoing) {
+		this.outgoing.abort();
+		xhr = this.outgoing;
+	} else {
+		xhr = new XMLHttpRequest();
+		this.outgoing = xhr;
+	}
+	//this.error("outgoing state is " + xhr.readyState);
+
+	xhr.open("POST", this.url + "?" + this.client_id, true);
+	xhr.onreadystatechange = this.outgoing_state_change;
+	xhr.meteor = this;
+	this.ready = 1;
+}
+meteor.Connection.prototype.init_state_change = function(change_event) { // fetch the client_id and go
+	var con = this.meteor;
+	if (this.readyState == 4) {
+		if (this.status == 200) {
+			con.client_id = this.responseText;
+			if (meteor.debug) meteor.debug("got client ID " + con.client_id);
+			con.init_xhr = null;
+			con.connect_outgoing();
+			con.connect_new_incoming();
+		} else {
+			con.error(this.statusText);
+		}
+		this.meteor = null;
 		//console.debug("not yet in readyState 4\n");
-	    }
-	};
+	}
+}
+meteor.Connection.prototype.init = function() { // fetch the client_id and go
+	var xhr = new XMLHttpRequest();
+	xhr.meteor = this;
+	this.init_xhr = xhr;
+	//this.error("initialization state is " + xhr.readyState);
+
+	xhr.onreadystatechange = this.init_state_change;
+	xhr.meteor = this;
 	xhr.open("GET", this.url, true);
 	xhr.send("");
-    };
-    this.destruct = function() {
-	for (t in [this.init_xhr, this.incoming, this.outgoing]) {
-	    try {
-		if (t) {
-		    t.connection = 0;
-		    t.abort();
-		}
-	    } catch(e) { }
+}
+meteor.Connection.prototype.destruct = function() {
+	var list = [this.init_xhr, this.new_incoming, this.incoming, this.outgoing];
+	for (var t in list) {
+		t = list[t];
+		try {
+			if (t) {
+				t.abort();
+				t.meteor = null;
+			}
+		} catch(e) { }
 	}
-	this.init_xhr = 0;
-	this.incoming = 0;
-	this.outgoing = 0;
-
-    };
-    this.send = function(data) {
+	this.init_xhr = null;
+	this.incoming = null;
+	this.new_incoming = null;
+	this.outgoing = null;
+	this.callback = null;
+	this.error = null;
+}
+meteor.Connection.prototype.send = function(data) {
 	// check for status
 	this.buffer += data;
 
 	if (this.client_id && this.ready) {
-	    this.outgoing.send(this.buffer);   
-	    this.ready = 0;
-	    this.buffer = "";
+		this.outgoing.send(this.buffer);   
+		this.ready = 0;
+		this.buffer = "";
 	}
-    };
-};
+}
