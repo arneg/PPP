@@ -18,7 +18,7 @@ void raw_to_medium(Serialization.Atom atom) {
 }
 
 void medium_to_raw(Serialization.Atom atom) {
-    if (!MMP.is_uniform(atom->pdata)) error("cannot encode %O\n", u);
+    if (!MMP.is_uniform(atom->pdata)) error("cannot encode %O\n", atom->pdata);
     atom->data = (string)atom->pdata;
 }
 
