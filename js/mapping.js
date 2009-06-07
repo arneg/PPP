@@ -128,8 +128,11 @@ along with the Program.
 // =======================================================================
 
 function Mapping() {
+	if (arguments.length & 1) throw("odd number of mapping members.");
+	for (var i = 0; i < arguments.length; i += 2) {
+		this.set(arguments[i], arguments[i+1]);
+	}
 }
-
 Mapping.prototype = {
     m : new Object(),
     n : new Object(),
@@ -196,9 +199,9 @@ Mapping.prototype = {
     },
 
     forEach : function(cb) {
-	for (var i in this.n) {
-	    cb(this.n[i], this.m[i]);
-	}
+		for (var i in this.n) {
+			cb(this.n[i], this.m[i]);
+		}
     },
 
     toString : function() {
