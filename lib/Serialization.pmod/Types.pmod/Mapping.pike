@@ -208,27 +208,27 @@ void raw_to_medium(Serialization.Atom atom) {
     if (!stringp(atom->data)) error("No raw state.\n");
 
     if (atom->action == "_query") {
-	if (atom->data == "") {
-	    return;
-	} else {
-	    error("Malformed _query action!");
-	}
+		if (atom->data == "") {
+			return;
+		} else {
+			error("Malformed _query action!");
+		}
     }
 
     array(Serialization.Atom) list = Serialization.parse_atoms(atom->data);
 
     if (atom->action == "_index") {
-	atom->pdata = list;
-	return;
+		atom->pdata = list;
+		return;
     }
 
-    mapping m;
+    mapping m = ([]);
 
     if (sizeof(list) & 1) return 0;
 
     // we keep the array.. more convenient
     for (int i=0;i<sizeof(list);i+=2) {
-	m[list[i]] = m[list[i+1]];
+		m[list[i]] = list[i+1];
     }
 
     atom->pdata = m;
@@ -238,14 +238,14 @@ void medium_to_raw(Serialization.Atom atom) {
     String.Buffer buf = String.Buffer();
 
     if (atom->action == "_index") {
-	foreach (atom->pdata;; Serialization.Atom value) {
-	    buf = value->render(buf);
-	}
+		foreach (atom->pdata;; Serialization.Atom value) {
+			buf = value->render(buf);
+		}
     } else if (atom->action != "_query") {
-	foreach (atom->pdata;Serialization.Atom key; Serialization.Atom value) {
-	    buf = key->render(buf);
-	    buf = value->render(buf);
-	}
+		foreach (atom->pdata;Serialization.Atom key; Serialization.Atom value) {
+			buf = key->render(buf);
+			buf = value->render(buf);
+		}
     }
 
     atom->data = (string)buf;
