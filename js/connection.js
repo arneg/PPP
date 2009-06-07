@@ -450,12 +450,12 @@ psyc.Atom = function(type, data) {
     this.type = type;
     this.data = data;
     this.render = function() {
-	return this.type + " " + String(this.data.length) + " " + this.data;
+		return this.type + " " + new String(this.data.length) + " " + this.data;
     };
     // we don't really need this (yet), but i just wanted to!
     this.length = function() {
-	return this.type.length + new String(this.data.length).length
-		+ this.data.length + 2;
+		return this.type.length + new String(this.data.length).length 
+			+ this.data.length + 2;
     };
 };
 psyc.print_vars = function(v) {
@@ -480,185 +480,201 @@ psyc.MMPPacket = function(vars, data) {
 	return "psyc.MMPPacket(" + psyc.print_vars(this.vars) + ", " + this.data + ")";
     }
 };
-psyc.Packet = function(mc, vars, data) {
+psyc.Message = function(mc, vars, data) {
     this.mc = mc;
     this.toString = function() {
-	var ret = "psyc.Packet("+this.mc+", ([ ";
-	ret += psyc.print_vars(this.vars);
-	ret += "]))";
-	return ret;
+		var ret = "psyc.Packet("+this.mc+", ([ ";
+		ret += psyc.print_vars(this.vars);
+		ret += "]))";
+		return ret;
     };
     if (vars) {
-	this.vars = vars;
+		this.vars = vars;
     } else {
-	this.vars = new Array();
+		this.vars = new Array();
     }
     vars.mapping = 1;
 
     if (data) {
-	this.data = data;
+		this.data = data;
     } else {
-	this.data = "";
+		this.data = "";
     }
 };
 psyc.mapping_length = function(a) {
     if (!a.mapping) {
-	throw("bad argument to mapping_length()");
+		throw("bad argument to mapping_length()");
     }
+
     var i = 0;
     for (var t in a) {
-	i++;
+		i++;
     }
 
     return i;
 };
-psyc.array_to_mapping = function(list) {
-    var a = new Object(); // we'll need a real mapping class anyway, but Array
-			  // was just a stupid base.
-    if (list.length & 1) {
-	throw("cannot create mapping from array with odd length.");
+// check the keys
+psyc.Vars = function() {
+	if (arguments.length & 1) throw("odd number of mapping members.");
+    for (var i = 0; i < arguments.length; i += 2) {
+        this.set(arguments[i], arguments[i+1]);
     }
-    for (var i = 0; i < list.length; i+=2) {
-	a[list[i]] = list[i+1];
-    }
-
-    a.mapping = true;
-    a.length = list.length / 2;
-
-    return a;
 };
+psyc.Vars.prototype = new Mapping();
 psyc.object_to_atom = function(o) {
     switch (typeof(o)) {
     case "string":
-	return new psyc.Atom("_string", UTF8.encode(o));
+		return new psyc.Atom("_string", UTF8.encode(o));
     case "number":
-	if (o % 1 == 0) {
-	    return new psyc.Atom("_integer", o.toString());
-	} else {
-	    return new psyc.Atom("_float", o.toString());
-	}
+		if (o % 1 == 0) {
+			return new psyc.Atom("_integer", o.toString());
+		} else {
+			return new psyc.Atom("_float", o.toString());
+		}
     case "object":
-	if (o instanceof psyc.Packet) {
-	    var str = new psyc.Atom("_method", o.mc);
-	    str = str.render();
+		if (o instanceof psyc.Message) {
+			var str = "";
+			if (psyc.mapping_length(o.vars)) {
+				str += psyc.object_to_atom(o.vars).render();		
+			}
 
-	    if (psyc.mapping_length(o.vars)) {
-		str += psyc.object_to_atom(o.vars).render();		
-	    }
+			str += (new psyc.Atom("_method", o.mc)).render();
 
-	    if (o.data != undefined) {
-		str += psyc.object_to_atom(o.data).render();
-	    }
-	    return new psyc.Atom("_psyc_packet", str);
-	} else if (o instanceof psyc.MMPPacket) {
-	    var str = "";
-	    if (o.data != undefined)
-		str += psyc.object_to_atom(o.data).render();
+			if (o.data != undefined) {
+				str += psyc.object_to_atom(o.data).render();
+			}
 
-	    str += psyc.object_to_atom(o.vars).render();
+			return new psyc.Atom("_message", str);
+		} else if (o instanceof psyc.MMPPacket) {
+			var str = "";
+			if (o.data != undefined)
+			str += psyc.object_to_atom(o.data).render();
 
-	    return new psyc.Atom("_mmp_packet", str);
-	} else if (o instanceof psyc.Uniform) {
-	    return new psyc.Atom("_uniform", o.str);
-	} else if (o instanceof Array) {
-	    if (o.mapping) {
-		var str;
-		for (var i in o) {
-		    str += i.render();
-		    str += o[i].render();
+			str += psyc.object_to_atom(o.vars).render();
+
+			return new psyc.Atom("_mmp_packet", str);
+		} else if (o instanceof psyc.Uniform) {
+			return new psyc.Atom("_uniform", o.uniform);
+		} else if (o instanceof psyc.Vars) {
+			var str = "";
+
+			o.forEach(function (key, val) {
+				if (typeof(key) != "string") {
+					throw("Vars mapping with non-string key found.");
+				}
+
+				str += new psyc.Atom("_method", key).render();	
+				str += psyc.object_to_atom(val).render();	
+			});
+			
+			return new psyc.Atom("_mapping", str);
+		} else if (o instanceof Mapping) {
+			var str = "";
+
+			o.forEach(function (key, val) {
+				str += psyc.object_to_atom(key).render();	
+				str += psyc.object_to_atom(val).render();	
+			});
+			
+			return new psyc.Atom("_mapping", str);
+		} else if (o instanceof Array) {
+			var str;
+			for (var i in o) {
+				str += psyc.object_to_atom(o[i]).render();
+			}
+			return new psyc.Atom("_list", str);
 		}
-		return new psyc.Atom("_mapping", str);
-	    } else {
-		var str;
-		for (var i in o) {
-		    str += o[i].render();
-		}
-		return new psyc.Atom("_list", str);
-	    }
-	}
     }
 };
 psyc.atom_to_object = function(atom) {
     switch (atom.type) {
     case "_method":
-	return atom.data;
+		return atom.data;
     case "_string":
-	return UTF8.decode(atom.data);
+		return UTF8.decode(atom.data);
     case "_integer":
-	return parseInt(atom.data);
+		return parseInt(atom.data);
     case "_float":
-	return parseFloat(atom.data);
+		return parseFloat(atom.data);
     case "_list": do {
-	var p = new psyc.AtomParser();
-	var l = p.parse(atom.data);
-	var i = 0;
-	while (i < l.length) {
-	    l[i] = psyc.atom_to_object(l[i]);
-	    i++;
-	}
+		var p = new psyc.AtomParser();
+		var l = p.parse(atom.data);
+		var i = 0;
+		while (i < l.length) {
+			l[i] = psyc.atom_to_object(l[i]);
+			i++;
+		}
 
-	return l;
+		return l;
     } while (0);
     case "_mapping": do {
-	var p = new psyc.AtomParser();
-	var l = p.parse(atom.data);
-	var i = 0;
-	while (i < l.length) {
-	    l[i] = psyc.atom_to_object(l[i]);
-	    i++;
-	}
+		var p = new psyc.AtomParser();
+		var l = p.parse(atom.data);
+		var m = new Mapping();
 
-	return psyc.array_to_mapping(l);
+		if (l.length & 1) throw("Malformed mapping.\n");
+		
+		for (var i = 0;i < l.length; i+=2) {
+			var key = psyc.atom_to_object(l[i]);
+			var val = psyc.atom_to_object(l[i+1]);
+			m.set(key, val);
+		}
+
+		return m;
     } while (0);
     case "_mmp_packet": do {
-	var p = new psyc.AtomParser();
-	var l = p.parse(atom.data);
-	
-	if (l.length == 0) {
-	    throw("bad _mmp_packet");
-	}
+		var p = new psyc.AtomParser();
+		var l = p.parse(atom.data);
+		
+		if (l.length == 0) {
+			throw("bad _mmp_packet");
+		}
 
-	if (l[0].type.substr(0, 8) != "_mapping") {
-	    throw("bad _mmp_packet");
-	}
+		if (l[0].type.substr(0, 8) != "_mapping") {
+			throw("bad _mmp_packet");
+		}
 
-	var vars = psyc.atom_to_object(l[0]);
-	var p = new psyc.MMPPacket(vars);
-	
-	if (l.length == 1) {
+		var vars = psyc.atom_to_object(l[0]);
+		var p = new psyc.MMPPacket(vars);
+		
+		if (l.length == 1) {
 
-	} else if (l.length == 2) {
-	    p.data = psyc.atom_to_object(l[1]);
-	} else {
-	    throw("too long _mmp_packet");
-	}
+		} else if (l.length == 2) {
+			p.data = psyc.atom_to_object(l[1]);
+		} else {
+			throw("too long _mmp_packet");
+		}
 
-	return p;
+		return p;
     } while (0);
-    case "_psyc_packet": do {
-	var p = new psyc.AtomParser();
-	var l = p.parse(atom.data);
-	var mc = l[0].data;
-	var data;
-	var vars;
+    case "_message": do {
+		var p = new psyc.AtomParser();
+		var l = p.parse(atom.data);
+		var mc;
+		var data;
+		var vars;
 
-	if (l.length == 3) {
-	    vars = psyc.atom_to_object(l[1]);		
-	    data = l[2].data; // we assume its a string.
-	} else if (l.length == 2) {
-	    if (l[1].type.substr(0, 8) == "_mapping") { // its teh vars
-		vars = psyc.atom_to_object(l[1]);		
-	    } else {
-		data = l[1].data;	
-	    }
-	} else if (l.length != 1) {
-	    throw("bad _psyc_packet"); 
-	}
+		if (l.length == 3) {
+			vars = psyc.atom_to_object(l[0]);		
+			data = l[2].data; // we assume its a string.
+			mc = l[1].data;
+		} else if (l.length == 2) {
+			if (l[0].type.substr(0, 7) == "_method") { // its teh vars
+				mc = l[0].data;
+				data = psyc.atom_to_object(l[1]);	
+			} else {
+				vars = psyc.atom_to_object(l[0]);		
+				mc = l[1].data;
+				data = 0;
+			}
+		} else if (l.length != 1) {
+			throw("bad _message"); 
+		}
 
-	return new psyc.Packet(mc, vars, data);
+		return new psyc.Message(mc, vars, data);
     } while (0);
     case "_uniform":
-	return new psyc.Uniform(atom.data);
+		return new psyc.Uniform(atom.data);
     }
 };
 meteor.BUFFER_MAX = 1 << 16; // limit for incoming buffer, exceeding this buffer triggers a reconnect
