@@ -13,3 +13,11 @@ string _sprintf(int type) {
 
     return 0;
 }
+
+mixed decode(Serialization.Atom atom) {
+	return atom;
+}
+
+mixed encode(Serialization.Atom atom) {
+	return atom;
+}
