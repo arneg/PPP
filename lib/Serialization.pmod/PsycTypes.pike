@@ -54,8 +54,8 @@ object PsycPacket(string base, void|object data, void|mapping m, void|mapping m2
     object mangler = Serialization.Mangler(({ method, data, vars }));
     
     if (!(o = this->type_cache[Serialization.Types.PsycPacket][mangler])) {
-	o = Serialization.Types.PsycPacket(method, vars, data);
-	this->type_cache[Serialization.Types.PsycPacket][mangler] = o;
+		o = Serialization.Types.PsycPacket(method, vars, data);
+		this->type_cache[Serialization.Types.PsycPacket][mangler] = o;
     }
 
     return o;

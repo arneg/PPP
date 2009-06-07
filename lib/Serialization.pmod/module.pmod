@@ -33,11 +33,11 @@ array(string) subtypes(string type) {
 }
 
 string|void render_atom(.Atom a, void|String.Buffer buf) {
-    if (!buf) {
-	return sprintf("%s %d %s", a->type, sizeof(a->data), a->data);
-    } else {
-	buf->add(sprintf("%s %d %s", a->type, sizeof(a->data), a->data));
-    }
+	if (!buf) {
+		return sprintf("%s %d %s", a->type, sizeof(a->data), a->data);
+	} else {
+		buf->add(sprintf("%s %d %s", a->type, sizeof(a->data), a->data));
+	}
 }
 
 array(.Atom) parse_atoms(string s) {

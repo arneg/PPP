@@ -8,11 +8,11 @@ void create(object str, void|mapping(string:object) mandatory, void|mapping(stri
     ::create("_mapping");
     
     if (mandatory) {
-	hash->fill(mandatory);
+		hash->fill(mandatory);
     }
 
     if (rest) {
-	ohash->fill(rest);
+		ohash->fill(rest);
     }
     
     this_program::str = str;
@@ -21,13 +21,13 @@ void create(object str, void|mapping(string:object) mandatory, void|mapping(stri
 object get_ktype(mixed key) { return str; }
 object get_vtype(mixed key, object ktype, mixed value) {
     if (objectp(key)) {
-	if (str->can_decode(key)) {
-	    key = str->decode(key);
-	}
+		if (str->can_decode(key)) {
+			key = str->decode(key);
+		}
     }
 
     if (stringp(key)) {
-	return hash[key] || ohash[key];
+		return hash[key] || ohash[key];
     } 
 }
 
@@ -54,17 +54,17 @@ void medium_to_done(Serialization.Atom atom) {
     if (!mappingp(m)) error("Broken medium state.\n");
 
     foreach (m;Serialization.Atom mkey;Serialization.Atom mval) {
-	object ktype = get_ktype(mkey);
-	if (!ktype) continue;
-	object vtype = get_vtype(mkey, ktype, mval);
-	if (!vtype) {
-	    werror("No vtype for %O:%O\n", mkey, mval);
-	    continue;
-	}
+		object ktype = get_ktype(mkey);
+		if (!ktype) continue;
+		object vtype = get_vtype(mkey, ktype, mval);
+		if (!vtype) {
+			werror("No vtype for %O:%O\n", mkey, mval);
+			continue;
+		}
 
-	mixed key = ktype->decode(mkey);
-	mixed val = vtype->decode(mval);
-	done[key] = val;
+		mixed key = ktype->decode(mkey);
+		mixed val = vtype->decode(mval);
+		done[key] = val;
     }
 
     atom->typed_data[this] = done;
