@@ -480,10 +480,10 @@ psyc.MMPPacket = function(vars, data) {
 	return "psyc.MMPPacket(" + psyc.print_vars(this.vars) + ", " + this.data + ")";
     }
 };
-psyc.Message = function(mc, vars, data) {
-    this.mc = mc;
+psyc.Message = function(method, vars, data) {
+    this.method = method;
     this.toString = function() {
-		var ret = "psyc.Packet("+this.mc+", ([ ";
+		var ret = "psyc.Packet("+this.method+", ([ ";
 		ret += psyc.print_vars(this.vars);
 		ret += "]))";
 		return ret;
@@ -491,7 +491,7 @@ psyc.Message = function(mc, vars, data) {
     if (vars) {
 		this.vars = vars;
     } else {
-		this.vars = new Array();
+		this.vars = new Vars();
     }
     vars.mapping = 1;
 
@@ -538,7 +538,7 @@ psyc.object_to_atom = function(o) {
 				str += psyc.object_to_atom(o.vars).render();		
 			}
 
-			str += (new psyc.Atom("_method", o.mc)).render();
+			str += (new psyc.Atom("_method", o.method)).render();
 
 			if (o.data != undefined) {
 				str += psyc.object_to_atom(o.data).render();
@@ -650,28 +650,28 @@ psyc.atom_to_object = function(atom) {
     case "_message": do {
 		var p = new psyc.AtomParser();
 		var l = p.parse(atom.data);
-		var mc;
+		var method;
 		var data;
 		var vars;
 
 		if (l.length == 3) {
 			vars = psyc.atom_to_object(l[0]);		
 			data = l[2].data; // we assume its a string.
-			mc = l[1].data;
+			method = l[1].data;
 		} else if (l.length == 2) {
 			if (l[0].type.substr(0, 7) == "_method") { // its teh vars
-				mc = l[0].data;
+				method = l[0].data;
 				data = psyc.atom_to_object(l[1]);	
 			} else {
 				vars = psyc.atom_to_object(l[0]);		
-				mc = l[1].data;
+				method = l[1].data;
 				data = 0;
 			}
 		} else if (l.length != 1) {
 			throw("bad _message"); 
 		}
 
-		return new psyc.Message(mc, vars, data);
+		return new psyc.Message(method, vars, data);
     } while (0);
     case "_uniform":
 		return new psyc.Uniform(atom.data);
@@ -853,5 +853,38 @@ meteor.Connection.prototype.send = function(data) {
 		this.outgoing.send(this.buffer);   
 		this.ready = 0;
 		this.buffer = "";
+	}
+}
+meteor.AutoClient = function(url) {
+	this.callbacks = Mapping();
+	this.connection = new meteor.Connection(url, this.incoming, this.error);
+	this.connection.init();
+}
+meteor.AutoClient.prototype.register_method = function(method, cb) {
+	this.callbacks.set(method, cb);
+}
+meteor.AutoClient.prototype.unregister_method = function(method) {
+	this.callbacks.remove(method);
+}
+meteor.AutoClient.prototype.send = function(message) {
+	if (!message.vars.get("_target")) {
+		throw("Message without _target is baaad!");
+	}
+
+	connection.send(psyc.object_to_atom(message));
+}
+meteor.AutoClient.prototype.incoming = function (atom) {
+	var m = psyc.atom_to_object(atom);
+	if (m instanceof psyc.Message) {
+		var method = m.method;	
+
+		// TODO implement method inheritance
+		var cb = this.callbacks.get(method);
+
+		if (cb) return cb(m);
+
+		if (meteor.debug) meteor.debug("No callback registered for "+method);
+	} else {
+		if (meteor.debug) meteor.debug("Got non _message atom from "+connection.toString());
 	}
 }
