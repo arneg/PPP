@@ -346,75 +346,74 @@ psyc.Uniform = function(str) {
 
 };
 psyc.AtomParser = function() {
-    this.buffer = "";
-    this.reset = function() {
-	this.type = 0;
-	this.length = -1;
-    };
-    this.reset();
-    this.parse = function(str) {
-	this.buffer += str;
-
-	var ret = new Array();
-	var t = 0;
-	while (t = this._parse()) {
-	    ret.push(t);
-	}
-	return ret;
-    };
-    this._parse = function() {
-	if (!this.type) {
-	    var pos = this.buffer.indexOf(" ");
-
-	    if (pos == -1) {
-		// check here for bogus data
-//		if (re[0].search(/(_\w+)+/) != 0) {
-//		    throw("bad atom\n");
-//		}
-		return 0;
-	    } else if (pos < 2) {
-		throw("bad atom.");
-	    }
-
-	    this.type = this.buffer.substr(0, pos);
-	    this.buffer = this.buffer.slice(pos+1);
-	}
-
-	if (this.length == -1) {
-	    var pos = this.buffer.indexOf(" ");
-
-	    if (pos == -1) {
-		return 0;
-	    } else if (pos == 0) {
-		throw("bad atom.");
-	    }
-
-	    this.length = parseInt(this.buffer.substr(0, pos));
-	    if (this.length < 0 || this.length.toString() != this.buffer.substr(0, pos)) {
-		throw("bad length in atom.\n");
-	    }
-	    this.buffer = this.buffer.slice(pos+1);
-	}
-
-	if (this.length > this.buffer.length) {
-	    // add a sanity check. we do not want superlarge data strings, i guess
-	    return 0;
-	}
-
-	var a;
-
-	if (this.length == this.buffer.length) {
-	    a = new psyc.Atom(this.type, this.buffer);
-	    this.buffer = "";
-	} else {
-	    a = new psyc.Atom(this.type, this.buffer.substr(0,this.length));
-	    this.buffer = this.buffer.slice(this.length);
-	}
+	this.buffer = "";
+	this.reset = function() {
+		this.type = 0;
+		this.length = -1;
+	};
 	this.reset();
-	
-	return a;
+	this.parse = function(str) {
+		this.buffer += str;
+
+		var ret = new Array();
+		var t = 0;
+		while (t = this._parse()) {
+			ret.push(t);
+		}
+		return ret;
+	};
+	this._parse = function() {
+		if (!this.type) {
+			var pos = this.buffer.indexOf(" ");
+
+			if (pos == -1) {
+			// check here for bogus data
+	//		if (re[0].search(/(_\w+)+/) != 0) {
+	//		    throw("bad atom\n");
+	//		}
+				return 0;
+			} else if (pos < 2) {
+				throw("bad atom.");
+			}
+
+			this.type = this.buffer.substr(0, pos);
+			this.buffer = this.buffer.slice(pos+1);
+		}
+
+		if (this.length == -1) {
+			var pos = this.buffer.indexOf(" ");
+
+			if (pos == -1) {
+				return 0;
+			} else if (pos == 0) {
+				throw("bad atom.");
+			}
+
+			this.length = parseInt(this.buffer.substr(0, pos));
+			if (this.length < 0 || this.length.toString() != this.buffer.substr(0, pos)) {
+				throw("bad length in atom.\n");
+			}
+			this.buffer = this.buffer.slice(pos+1);
+		}
+
+		if (this.length > this.buffer.length) {
+			// add a sanity check. we do not want superlarge data strings, i guess
+			return 0;
+		}
+
+		var a;
+
+		if (this.length == this.buffer.length) {
+			a = new psyc.Atom(this.type, this.buffer);
+			this.buffer = "";
+		} else {
+			a = new psyc.Atom(this.type, this.buffer.substr(0,this.length));
+			this.buffer = this.buffer.slice(this.length);
+		}
+		this.reset();
+		
+		return a;
     };
-    
 };
 psyc.find_match = function(obj, key) {
     // i guess we should find direct matches first...
@@ -516,6 +515,10 @@ psyc.mapping_length = function(a) {
 // check the keys
 psyc.Vars = function() {
 	if (arguments.length & 1) throw("odd number of mapping members.");
+
+	this.n = new Object();
+	this.m = new Object();
+
     for (var i = 0; i < arguments.length; i += 2) {
         this.set(arguments[i], arguments[i+1]);
     }
@@ -583,7 +586,9 @@ psyc.object_to_atom = function(o) {
 				str += psyc.object_to_atom(o[i]).render();
 			}
 			return new psyc.Atom("_list", str);
-		}
+		} 
+	default:
+		throw("Unknown object type. Cannot serialize: "+o);
     }
 };
 psyc.atom_to_object = function(atom) {
@@ -675,6 +680,8 @@ psyc.atom_to_object = function(atom) {
     } while (0);
     case "_uniform":
 		return new psyc.Uniform(atom.data);
+	default:
+		throw("Unknown atom type. Cannot decode " + atom);
     }
 };
 meteor.BUFFER_MAX = 1 << 16; // limit for incoming buffer, exceeding this buffer triggers a reconnect
@@ -728,11 +735,18 @@ meteor.Connection.prototype.incoming_state_change = function() {
 
 		if (this.status == 200) {
 			if (this.responseText.length <= this.pos) return;
+			var str;
 
 			if (this.pos) {
-				con.callback(this.responseText.slice(this.pos));
+				str = (this.responseText.slice(this.pos));
 			} else {
-				con.callback(this.responseText);
+				str = (this.responseText);
+			}
+
+			if (con.callback.obj) {
+				con.callback.call(con.callback.obj, str);
+			} else {
+				con.callback(str);
 			}
 
 			this.pos = this.responseText.length;
@@ -741,12 +755,14 @@ meteor.Connection.prototype.incoming_state_change = function() {
 				con.connect_new_incoming();
 			}
 		} else {
-			con.error(this.statusText);
+		// this throws an exception in firefox. brain
+		//	con.error(this.statusText);
+			if (meteor.debug) meteor.debug("http status code: "+this.status);
 		}
 	}
 }
 meteor.Connection.prototype.incoming_on_error = function() {
-	this.connect_new_incoming();
+	this.meteor.connect_new_incoming();
 }
 meteor.Connection.prototype.connect_incoming = function(xhr) {
 	if (!xhr) {
@@ -779,7 +795,7 @@ meteor.Connection.prototype.outgoing_state_change = function() {
 			
 			con.connect_outgoing();
 		} else {
-			con.error(xhr.statusText);
+			con.error(this.statusText);
 		}
 	}
 }
@@ -856,9 +872,12 @@ meteor.Connection.prototype.send = function(data) {
 	}
 }
 meteor.AutoClient = function(url) {
-	this.callbacks = Mapping();
+	this.callbacks = new Mapping();
 	this.connection = new meteor.Connection(url, this.incoming, this.error);
 	this.connection.init();
+	this.parser = new psyc.AtomParser();
+	this.incoming.obj = this;
+	this.error.obj = this;
 }
 meteor.AutoClient.prototype.register_method = function(method, cb) {
 	this.callbacks.set(method, cb);
@@ -866,25 +885,42 @@ meteor.AutoClient.prototype.register_method = function(method, cb) {
 meteor.AutoClient.prototype.unregister_method = function(method) {
 	this.callbacks.remove(method);
 }
+meteor.AutoClient.prototype.error = function(err) {
+	if (meteor.debug) meteor.debug(err);
+}
 meteor.AutoClient.prototype.send = function(message) {
-	if (!message.vars.get("_target")) {
-		throw("Message without _target is baaad!");
+	if (!(message.vars.get("_target") instanceof psyc.Uniform)) {
+		if (meteor.debug) meteor.debug("Message without _target is baaad!");
 	}
 
-	connection.send(psyc.object_to_atom(message));
+	try {
+		this.connection.send(psyc.object_to_atom(message).render());
+	} catch (error) {
+		if (meteor.debug) meteor.debug("send() failed: "+error);
+	}
 }
-meteor.AutoClient.prototype.incoming = function (atom) {
-	var m = psyc.atom_to_object(atom);
-	if (m instanceof psyc.Message) {
-		var method = m.method;	
+meteor.AutoClient.prototype.incoming = function (data) {
+	data = this.parser.parse(data);
+	for (var i in data) {
+		var m = psyc.atom_to_object(data[i]);
+		if (m instanceof psyc.Message) {
+			var method = m.method;	
 
-		// TODO implement method inheritance
-		var cb = this.callbacks.get(method);
+			// TODO implement method inheritance
+			var cb = this.callbacks.get(method);
 
-		if (cb) return cb(m);
+			if (meteor.debug) meteor.debug("calling "+cb);
 
-		if (meteor.debug) meteor.debug("No callback registered for "+method);
-	} else {
-		if (meteor.debug) meteor.debug("Got non _message atom from "+connection.toString());
+			if (cb) {
+				if (cb.obj) {
+					return cb.call(cb.obj);
+				}
+				return cb(m);
+			}
+
+			if (meteor.debug) meteor.debug("No callback registered for "+method);
+		} else {
+			if (meteor.debug) meteor.debug("Got non _message atom from "+connection.toString());
+		}
 	}
 }
