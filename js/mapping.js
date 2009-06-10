@@ -129,73 +129,72 @@ along with the Program.
 
 function Mapping() {
 	if (arguments.length & 1) throw("odd number of mapping members.");
+	this.n = new Object();
+	this.m = new Object();
 	for (var i = 0; i < arguments.length; i += 2) {
 		this.set(arguments[i], arguments[i+1]);
 	}
 }
 Mapping.prototype = {
-    m : new Object(),
-    n : new Object(),
-    length : 0,
-
+	length : 0,
     sfy : function(key) { // sfy ==> stringify
-	// better use if (key.__proto__ == String.prototype) { ??
-	// also there is somewhere something like isPrototypeOf(proto, instance). what about that?
-	// for sure subclasses of String shouldn't be matched here.
-	// on the other hand, subclasses of strings are strings. i made up
-	// my mind and now think it's the right thing to adhere to that.
-	if (key instanceof String) {
-	    return "string;" + key;
-	} else {
-	    return typeof(key) + ";" + key;
-	}
+		// better use if (key.__proto__ == String.prototype) { ??
+		// also there is somewhere something like isPrototypeOf(proto, instance). what about that?
+		// for sure subclasses of String shouldn't be matched here.
+		// on the other hand, subclasses of strings are strings. i made up
+		// my mind and now think it's the right thing to adhere to that.
+		if (key instanceof String) {
+			return "string;" + key;
+		} else {
+			return typeof(key) + ";" + key;
+		}
     },
 
     set : function(key, val) {
-	var key2 = this.sfy(key);
+		var key2 = this.sfy(key);
 
-	if (!this.m.hasOwnProperty(key2)) {
-	    this.length++;
-	}
+		if (!this.m.hasOwnProperty(key2)) {
+			this.length++;
+		}
 
-	this.m[key2] = val;
-	this.n[key2] = key;
+		this.m[key2] = val;
+		this.n[key2] = key;
     },
 
     get : function(key) {
-	return this.m[this.sfy(key)];
+		return this.m[this.sfy(key)];
     },
 
     // IE doesn't like this being called "delete", so, beware!
     remove : function(key) {
-	var key2 = this.sfy(key);
+		var key2 = this.sfy(key);
 
-	if (this.hasIndex(key)) {
-	    this.length--;
-	}
+		if (this.hasIndex(key)) {
+			this.length--;
+		}
 
-	delete this.m[key2];
-	delete this.n[key2];
+		delete this.m[key2];
+		delete this.n[key2];
     },
 
     indices : function() {
-	var ret = new Array();
-	
-	for (var i in this.n) {
-	    ret.push(this.n[i]);
-	}
+		var ret = new Array();
+		
+		for (var i in this.n) {
+			ret.push(this.n[i]);
+		}
 
-	return ret;
+		return ret;
     },
 
     values : function() {
-	var ret = new Array();
-	
-	for (var i in this.m) {
-	    ret.push(this.m[i]);
-	}
+		var ret = new Array();
+		
+		for (var i in this.m) {
+			ret.push(this.m[i]);
+		}
 
-	return ret;
+		return ret;
     },
 
     forEach : function(cb) {
@@ -205,16 +204,16 @@ Mapping.prototype = {
     },
 
     toString : function() {
-	return "Mapping(:" + this.length + ")";
+		return "Mapping(:" + this.length + ")";
     },
 
     hasIndex : function(key) {
-	return this.m.hasOwnProperty(this.sfy(key));
+		return this.m.hasOwnProperty(this.sfy(key));
     },
 
     reset : function() {
-	this.m = new Object();
-	this.length = 0;
+		this.m = new Object();
+		this.length = 0;
     },
 };
 
