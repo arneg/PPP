@@ -291,6 +291,9 @@ YOU OR THIRD PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER
 PROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGES.
 */
+intp = function(i) {
+	return (typeof(i) == "number" && i%1 == 0);
+};
 if( typeof XMLHttpRequest == "undefined" ) XMLHttpRequest = function() {
   try { return new ActiveXObject("Msxml2.XMLHTTP.6.0") } catch(e) {}
   try { return new ActiveXObject("Msxml2.XMLHTTP.3.0") } catch(e) {}
@@ -581,8 +584,8 @@ psyc.object_to_atom = function(o) {
 			
 			return new psyc.Atom("_mapping", str);
 		} else if (o instanceof Array) {
-			var str;
-			for (var i in o) {
+			var str = "";
+			for (var i = 0; i < o.length; i++) {
 				str += psyc.object_to_atom(o[i]).render();
 			}
 			return new psyc.Atom("_list", str);
@@ -878,6 +881,7 @@ meteor.AutoClient = function(url) {
 	this.parser = new psyc.AtomParser();
 	this.incoming.obj = this;
 	this.error.obj = this;
+	this.icount = 0;
 }
 meteor.AutoClient.prototype.register_method = function(method, cb) {
 	this.callbacks.set(method, cb);
@@ -898,14 +902,50 @@ meteor.AutoClient.prototype.send = function(message) {
 	} catch (error) {
 		if (meteor.debug) meteor.debug("send() failed: "+error);
 	}
+	if (meteor.debug) meteor.debug("send successfull.");
+}
+// request all messages including count
+meteor.AutoClient.prototype.sync = function(count) {
+	var list = new Array(count - this.icount);
+	for (var i = 0; this.icount+i+1 <= count; i++) {
+		list[i] = this.icount+i+1;
+	}
+	if (meteor.debug) meteor.debug("Asking for missing messages "+list.toString());
+	var message = new psyc.Message("_request_history", new psyc.Vars("_messages", list, "_target", this.uniform));
+	meteor.debug("REQUEST_HISTORY: "+psyc.object_to_atom(message).render());
+	this.send(message);
 }
 meteor.AutoClient.prototype.incoming = function (data) {
-	data = this.parser.parse(data);
+	try {
+		data = this.parser.parse(data);
+	} catch (error) {
+		if (meteor.debug) meteor.debug("failed to parse: "+data);
+	}
 	for (var i in data) {
 		var m = psyc.atom_to_object(data[i]);
 		if (m instanceof psyc.Message) {
 			var method = m.method;	
+			var count = m.vars.get("_id");	
 
+			if (method == "_status_circuit") {
+				var last_id = m.vars.get("_last_id");
+				this.uniform = m.vars.get("_source");
+
+				if (intp(last_id) && this.icount < last_id) {
+					this.sync(last_id);
+					this.icount = count;
+				}
+			} 
+			
+			if (intp(count)) {
+				if (this.icount+1 < count) {
+					// request all up to count-1
+					this.sync(count-1);
+
+				} else if (this.icount == count - 1) {
+					this.icount = count;
+				} else if (meteor.debug) meteor.debug("historical message "+count);
+			}
 			// TODO implement method inheritance
 			var cb = this.callbacks.get(method);
 
