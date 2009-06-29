@@ -53,7 +53,7 @@ int(0..1) can_decode(Serialization.Atom a) {
     multiset t;
 
     if (t = atypes[a->type]) foreach (t; object type;) {
-	if (type->can_decode(a)) return 1;
+		if (type->can_decode(a)) return 1;
     }
 
     return 0;
@@ -63,8 +63,10 @@ mixed decode(Serialization.Atom a) {
     multiset t;
 
     if (t = atypes[a->type]) foreach (t; object type;) {
-	if (type->can_decode(a)) return type->decode(a); 
-    }
+		if (type->can_decode(a)) return type->decode(a); 
+    } else {
+		error("No potential type for %s\n", a->type);
+	}
 
     error("Cannot decode %O\n", a);
 }
