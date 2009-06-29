@@ -5,13 +5,12 @@ void create() {
 }
 
 void raw_to_medium(Serialization.Atom atom) {
-    if (can_decode(atom)) {
 	int i;
+
 	if (1 == sscanf(atom->data, "%d", i)) {
 	    atom->pdata = i; 
 	    return;
 	}
-    }
 
     error("cannot decode %O\n", atom);
 }
