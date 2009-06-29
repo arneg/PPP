@@ -7,6 +7,8 @@ object itype = Serialization.Types.Int();
 
 void create(object type) {
     ::create("_list");
+
+	if (!objectp(type)) error("Bad type %O\n", type);
     
     this_program::etype = type;
 }
@@ -169,10 +171,10 @@ void medium_to_raw(Serialization.Atom atom) {
     String.Buffer buf = String.Buffer();
 
     if (atom->action == "_index") {
-	buf += itype->render(atom->pdata[0]);
-	buf += etype->render(atom->pdata[1]);
+		buf = atom->pdata[0]->render(buf);
+		buf = atom->pdata[1]->render(buf);
     } else foreach (atom->pdata;;Serialization.Atom a) {
-	buf += etype->render(a);	
+		buf = a->render();	
     }
 
     atom->data = (string)buf;
@@ -207,7 +209,7 @@ int(0..1) can_encode(mixed a) {
 
 string _sprintf(int c) {
     if (c == 'O') {
-	return sprintf("List(%O)", etype);
+		return sprintf("List(%O)", etype);
     }
 
     return 0;
