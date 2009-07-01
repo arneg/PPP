@@ -294,6 +294,9 @@ POSSIBILITY OF SUCH DAMAGES.
 intp = function(i) {
 	return (typeof(i) == "number" && i%1 == 0);
 };
+arrayp = function(a) {
+	return (typeof(a) == "object" && a instanceof Array);
+};
 if( typeof XMLHttpRequest == "undefined" ) XMLHttpRequest = function() {
   try { return new ActiveXObject("Msxml2.XMLHTTP.6.0") } catch(e) {}
   try { return new ActiveXObject("Msxml2.XMLHTTP.3.0") } catch(e) {}
@@ -503,18 +506,17 @@ psyc.Message = function(method, vars, data) {
 		this.data = "";
     }
 };
-psyc.mapping_length = function(a) {
-    if (!a.mapping) {
-		throw("bad argument to mapping_length()");
-    }
-
-    var i = 0;
-    for (var t in a) {
-		i++;
-    }
-
-    return i;
-};
+psyc.abbrev = function(method) {
+	var i = method.lastIndexOf("_");
+	if (i == -1) {
+		return 0;
+	} else if (i == 0) {
+		if (method.length == 1) return 0;
+		return "_";
+	} else {
+		return method.substr(0, i+1);
+	}
+}
 // check the keys
 psyc.Vars = function() {
 	if (arguments.length & 1) throw("odd number of mapping members.");
@@ -532,7 +534,7 @@ psyc.object_to_atom = function(o) {
     case "string":
 		return new psyc.Atom("_string", UTF8.encode(o));
     case "number":
-		if (o % 1 == 0) {
+		if (intp(o)) {
 			return new psyc.Atom("_integer", o.toString());
 		} else {
 			return new psyc.Atom("_float", o.toString());
@@ -874,7 +876,7 @@ meteor.Connection.prototype.send = function(data) {
 		this.buffer = "";
 	}
 }
-meteor.AutoClient = function(url) {
+meteor.Client = function(url) {
 	this.callbacks = new Mapping();
 	this.connection = new meteor.Connection(url, this.incoming, this.error);
 	this.connection.init();
@@ -883,16 +885,58 @@ meteor.AutoClient = function(url) {
 	this.error.obj = this;
 	this.icount = 0;
 }
-meteor.AutoClient.prototype.register_method = function(method, cb) {
-	this.callbacks.set(method, cb);
+// the params handed by the user could be prototyped with a
+// msg and something more
+meteor.CallbackWrapper = function(params, mapping) {
+	this.mapping = mapping;
+	this.params = params;	
 }
-meteor.AutoClient.prototype.unregister_method = function(method) {
-	this.callbacks.remove(method);
+meteor.CallbackWrapper.prototype.msg = function(message) {
+	if (params.source == 0 || params.source == message.source) {
+		if (params.object) {
+			if (params.cb) {
+				params.cb.call(params.object, message, this);
+			} else {
+				params.object.msg(message, this);
+			}
+		} else {
+			params.cb(message, this);
+		}
+	}
 }
-meteor.AutoClient.prototype.error = function(err) {
+meteor.CallbackWrapper.prototype.active = function() {
+	return this.mapping == 0 ? 0 : 1;
+}
+meteor.CallbackWrapper.prototype.unregister = function() {
+	if (this.mapping == 0) return;
+
+	var list = this.mapping.get(params.method);
+
+	for (var i = 0; i < list.length; i++) {
+		if (list[i] == this) {
+			list.splice(i, 1);
+		}
+	}
+
+	this.mapping = 0;
+}
+// params = ( method : "_message", source : Uniform }
+meteor.Client.prototype.register_method = function(params) {
+	var wrapper = new meteor.CallbackWrapper(params, this.callbacks);
+	
+	if (this.callbacks.hasIndex(params.method)) {
+		var list = this.callbacks.get(params.method);
+		list.push(wrapper);
+	} else {
+		this.callbacks.set(params.method, new Array( wrapper ) );
+	}
+
+	return wrapper;
+}
+meteor.Client.prototype.error = function(err) {
 	if (meteor.debug) meteor.debug(err);
 }
-meteor.AutoClient.prototype.send = function(message) {
+meteor.Client.prototype.send = function(message) {
 	if (!(message.vars.get("_target") instanceof psyc.Uniform)) {
 		if (meteor.debug) meteor.debug("Message without _target is baaad!");
 	}
@@ -905,17 +949,17 @@ meteor.AutoClient.prototype.send = function(message) {
 	if (meteor.debug) meteor.debug("send successfull.");
 }
 // request all messages including count
-meteor.AutoClient.prototype.sync = function(count) {
+meteor.Client.prototype.sync = function(count) {
 	var list = new Array(count - this.icount);
 	for (var i = 0; this.icount+i+1 <= count; i++) {
 		list[i] = this.icount+i+1;
 	}
 	if (meteor.debug) meteor.debug("Asking for missing messages "+list.toString());
 	var message = new psyc.Message("_request_history", new psyc.Vars("_messages", list, "_target", this.uniform));
-	meteor.debug("REQUEST_HISTORY: "+psyc.object_to_atom(message).render());
+	if (meteor.debug) meteor.debug("REQUEST_HISTORY: "+psyc.object_to_atom(message).render());
 	this.send(message);
 }
-meteor.AutoClient.prototype.incoming = function (data) {
+meteor.Client.prototype.incoming = function (data) {
 	try {
 		data = this.parser.parse(data);
 	} catch (error) {
@@ -946,19 +990,23 @@ meteor.AutoClient.prototype.incoming = function (data) {
 					this.icount = count;
 				} else if (meteor.debug) meteor.debug("historical message "+count);
 			}
-			// TODO implement method inheritance
-			var cb = this.callbacks.get(method);
 
-			if (meteor.debug) meteor.debug("calling "+cb);
+			var none = 1;
 
-			if (cb) {
-				if (cb.obj) {
-					return cb.call(cb.obj);
+			for (var t = method; t != 0; t = psyc.abbrev(t)) {
+				if (!this.callbacks.hasIndex(t)) continue;
+
+				none = 0;
+				var list = this.callbacks.get(t);
+
+				if (meteor.debug) meteor.debug("calling "+list);
+
+				for (var o in list) {
+					o.msg(m);
 				}
-				return cb(m);
 			}
 
-			if (meteor.debug) meteor.debug("No callback registered for "+method);
+			if (meteor.debug && none) meteor.debug("No callback registered for "+method);
 		} else {
 			if (meteor.debug) meteor.debug("Got non _message atom from "+connection.toString());
 		}
