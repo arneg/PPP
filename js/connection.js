@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2008 Arne Goedeke
+    Copyright (C) 2008-2009 Arne Goedeke
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -305,6 +305,16 @@ if( typeof XMLHttpRequest == "undefined" ) XMLHttpRequest = function() {
   throw new Error( "This browser does not support XMLHttpRequest." )
 };
 psyc = new Object();
+psyc.uniform_cache = new Mapping();
+psyc.get_uniform = function(str) {
+	if (this.uniform_cache.hasIndex(str)) {
+		return this.uniform_cache.get(str);
+	}
+
+	var uniform = psyc.Uniform(str);
+	this.uniform_cache.set(str, uniform);
+	return uniform;
+};
 meteor = new Object();
 psyc.Uniform = function(str) {
     if (str.substr(0,7) != "psyc://") {
@@ -312,7 +322,7 @@ psyc.Uniform = function(str) {
     }
     this.uniform = str;
     this.toString = function() {
-	return "psyc.Uniform("+str+")";
+	return str;
     };
 
     str = str.slice(7);
@@ -498,13 +508,32 @@ psyc.Message = function(method, vars, data) {
     } else {
 		this.vars = new Vars();
     }
-    vars.mapping = 1;
 
     if (data) {
 		this.data = data;
     } else {
 		this.data = "";
     }
+};
+// okay, the rationale of this is, that we allow templates to
+// contain arbitrary stuff, however. user supplied data is escaped
+psyc.render_template = function(t, m) {
+	var reg = new RegExp("\[[\w]\]", "g");
+	var cb = function(s, m) {
+		s = s.substr(1, -1);
+
+		if (s == "data") {
+			return XSS.html_string_encode(m.data);
+		} else if (s == "method") {
+			return XSS.html_string_encode(m.method);
+		} else if (m.vars.hasIndex(s)) {
+			return XSS.html_string_encode(m.vars.get(s));
+		} else {
+			return "["+s+"]";
+		}
+	};
+
+	return UTIL.replace(reg, t, cb, m);
 };
 psyc.abbrev = function(method) {
 	var i = method.lastIndexOf("_");
@@ -684,7 +713,7 @@ psyc.atom_to_object = function(atom) {
 		return new psyc.Message(method, vars, data);
     } while (0);
     case "_uniform":
-		return new psyc.Uniform(atom.data);
+		return new psyc.get_uniform(atom.data);
 	default:
 		throw("Unknown atom type. Cannot decode " + atom);
     }
@@ -700,7 +729,7 @@ meteor.Connection = function(url, callback, error) {
 	this.incoming = 0;
 	this.outgoing = 0;
 	this.init_xhr = 0;
-}
+};
 meteor.Connection.prototype.new_incoming_state_change = function() {
 	var con = this.meteor;
 	con.error("new_incoming state is " + this.readyState);
@@ -709,7 +738,7 @@ meteor.Connection.prototype.new_incoming_state_change = function() {
 	if (this.readyState >= 3) {
 		con.connect_incoming();
 	}
-}
+};
 meteor.Connection.prototype.connect_new_incoming = function() {
 	if (this.new_incoming) {
 		// we already have one new incoming and are waiting for the
@@ -731,7 +760,7 @@ meteor.Connection.prototype.connect_new_incoming = function() {
 	xhr.onreadystatechange = this.new_incoming_state_change;
 	xhr.meteor = this;
 	xhr.send("");
-}
+};
 meteor.Connection.prototype.incoming_state_change = function() {
 	var con = this.meteor;
 	con.error("incoming state is " + this.readyState);
@@ -765,10 +794,10 @@ meteor.Connection.prototype.incoming_state_change = function() {
 			if (meteor.debug) meteor.debug("http status code: "+this.status);
 		}
 	}
-}
+};
 meteor.Connection.prototype.incoming_on_error = function() {
 	this.meteor.connect_new_incoming();
-}
+};
 meteor.Connection.prototype.connect_incoming = function(xhr) {
 	if (!xhr) {
 		if (this.new_incoming) {
@@ -790,7 +819,7 @@ meteor.Connection.prototype.connect_incoming = function(xhr) {
 	this.new_incoming = 0;
 	this.incoming = xhr;
 	meteor.Connection.prototype.incoming_state_change.call(xhr);
-}
+};
 meteor.Connection.prototype.outgoing_state_change = function() {
 	var con = this.meteor;
 
@@ -803,7 +832,7 @@ meteor.Connection.prototype.outgoing_state_change = function() {
 			con.error(this.statusText);
 		}
 	}
-}
+};
 meteor.Connection.prototype.connect_outgoing = function() {
 	var xhr;
 
@@ -820,7 +849,7 @@ meteor.Connection.prototype.connect_outgoing = function() {
 	xhr.onreadystatechange = this.outgoing_state_change;
 	xhr.meteor = this;
 	this.ready = 1;
-}
+};
 meteor.Connection.prototype.init_state_change = function(change_event) { // fetch the client_id and go
 	var con = this.meteor;
 	if (this.readyState == 4) {
@@ -836,7 +865,7 @@ meteor.Connection.prototype.init_state_change = function(change_event) { // fetc
 		this.meteor = null;
 		//console.debug("not yet in readyState 4\n");
 	}
-}
+};
 meteor.Connection.prototype.init = function() { // fetch the client_id and go
 	var xhr = new XMLHttpRequest();
 	xhr.meteor = this;
@@ -847,7 +876,7 @@ meteor.Connection.prototype.init = function() { // fetch the client_id and go
 	xhr.meteor = this;
 	xhr.open("GET", this.url, true);
 	xhr.send("");
-}
+};
 meteor.Connection.prototype.destruct = function() {
 	var list = [this.init_xhr, this.new_incoming, this.incoming, this.outgoing];
 	for (var t in list) {
@@ -865,7 +894,7 @@ meteor.Connection.prototype.destruct = function() {
 	this.outgoing = null;
 	this.callback = null;
 	this.error = null;
-}
+};
 meteor.Connection.prototype.send = function(data) {
 	// check for status
 	this.buffer += data;
@@ -875,7 +904,7 @@ meteor.Connection.prototype.send = function(data) {
 		this.ready = 0;
 		this.buffer = "";
 	}
-}
+};
 meteor.Client = function(url) {
 	this.callbacks = new Mapping();
 	this.connection = new meteor.Connection(url, this.incoming, this.error);
@@ -884,33 +913,33 @@ meteor.Client = function(url) {
 	this.incoming.obj = this;
 	this.error.obj = this;
 	this.icount = 0;
-}
+};
 // the params handed by the user could be prototyped with a
 // msg and something more
 meteor.CallbackWrapper = function(params, mapping) {
 	this.mapping = mapping;
 	this.params = params;	
-}
+};
 meteor.CallbackWrapper.prototype.msg = function(message) {
-	if (params.source == 0 || params.source == message.source) {
-		if (params.object) {
-			if (params.cb) {
-				params.cb.call(params.object, message, this);
-			} else {
-				params.object.msg(message, this);
+	if (this.params.source == 0 || this.params.source == message.source) {
+		if (this.params.object) {
+			if (this.params.cb) {
+				return this.params.cb.call(this.params.object, message, this);
 			}
+
+			return this.params.object.msg(message, this);
 		} else {
-			params.cb(message, this);
+			return this.params.cb(message, this);
 		}
 	}
-}
+};
 meteor.CallbackWrapper.prototype.active = function() {
 	return this.mapping == 0 ? 0 : 1;
-}
+};
 meteor.CallbackWrapper.prototype.unregister = function() {
 	if (this.mapping == 0) return;
 
-	var list = this.mapping.get(params.method);
+	var list = this.mapping.get(this.params.method);
 
 	for (var i = 0; i < list.length; i++) {
 		if (list[i] == this) {
@@ -919,7 +948,7 @@ meteor.CallbackWrapper.prototype.unregister = function() {
 	}
 
 	this.mapping = 0;
-}
+};
 // params = ( method : "_message", source : Uniform }
 meteor.Client.prototype.register_method = function(params) {
 	var wrapper = new meteor.CallbackWrapper(params, this.callbacks);
@@ -932,10 +961,10 @@ meteor.Client.prototype.register_method = function(params) {
 	}
 
 	return wrapper;
-}
+};
 meteor.Client.prototype.error = function(err) {
 	if (meteor.debug) meteor.debug(err);
-}
+};
 meteor.Client.prototype.send = function(message) {
 	if (!(message.vars.get("_target") instanceof psyc.Uniform)) {
 		if (meteor.debug) meteor.debug("Message without _target is baaad!");
@@ -947,7 +976,7 @@ meteor.Client.prototype.send = function(message) {
 		if (meteor.debug) meteor.debug("send() failed: "+error);
 	}
 	if (meteor.debug) meteor.debug("send successfull.");
-}
+};
 // request all messages including count
 meteor.Client.prototype.sync = function(count) {
 	var list = new Array(count - this.icount);
@@ -958,7 +987,7 @@ meteor.Client.prototype.sync = function(count) {
 	var message = new psyc.Message("_request_history", new psyc.Vars("_messages", list, "_target", this.uniform));
 	if (meteor.debug) meteor.debug("REQUEST_HISTORY: "+psyc.object_to_atom(message).render());
 	this.send(message);
-}
+};
 meteor.Client.prototype.incoming = function (data) {
 	try {
 		data = this.parser.parse(data);
@@ -1002,7 +1031,7 @@ meteor.Client.prototype.incoming = function (data) {
 				if (meteor.debug) meteor.debug("calling "+list);
 
 				for (var o in list) {
-					o.msg(m);
+					if (psyc.STOP == o.msg(m)) break;
 				}
 			}
 
@@ -1011,4 +1040,69 @@ meteor.Client.prototype.incoming = function (data) {
 			if (meteor.debug) meteor.debug("Got non _message atom from "+connection.toString());
 		}
 	}
-}
+};
+meteor.ChatWindow = function(div, name) {
+	this.div = div;
+	this.name = name;
+};
+meteor.ChatWindow.prototype.hide = function() {
+	this.div.className = "chatwindow_hidden";
+};
+meteor.ChatWindow.prototype.show = function() {
+	this.div.className = "chatwindow_normal";
+};
+meteor.ChatWindow.prototype.msg = function(m) {
+	var p = document.createElement("p");
+	p.title = psyc.render_template("[_source] says: [data]", m);
+	this.div.appendChild(p);
+};
+meteor.Chat = function(client, div) {
+	this.client = client;
+	this.div = div;
+	this.windows = new Mapping();
+	var status_window = new meteor.ChatWindow(document.createElement("div"), client.uniform.toString());
+	this.ul = document.createElement("ul");
+	div.insertBefore(this.ul, div.firstChild);
+	this.active = status_windows;
+	this.add_window(status_window);
+	client.register({ method : "_", source : null, object : this });
+	client.register({ method : "_", source : client.uniform, object : status_window });
+};
+meteor.Chat.prototype.msg = function(msg) {
+	if (msg.vars.get("_source") != this.client.uniform) {
+		var new_window = new meteor.ChatWindow(document.createElement("div"));
+		this.client.register({ method : "_", source : msg.vars.get("_source"), object : new_window });
+		this.add_window(new_window);
+	}
+};
+meteor.Chat.prototype.add_window = function(win) {
+	this.windows.set(win.name, win);
+	var li = document.createElement("li");
+	var a = document.createElement("a");
+	var cb = function(event) {
+		this.chat.activate(this.title);
+	};
+	a.href = "javascript:void(null)";
+	a.title = win.name; // TODO: do we need to escape?
+	a.onclick = cb;
+	a.chat = this;
+	li.appendChild(a);
+	this.nav.appendChild(li);
+	this.div.appendChild(win);
+};
+meteor.Chat.prototype.remove_window = function(win) {
+	this.window.remove(win.name);
+};
+meteor.Chat.prototype.activate = function(id) {
+	if (typeof(id) == "string") {
+		id = psyc.get_uniform(id);	
+	}
+
+	if (!this.windows.hasIndex(id)) {
+		throw("Trying to activate non-existing window "+id.toString());
+	}
+
+	this.active.hide();
+	this.active = this.windows.get(id);
+	this.active.show();
+};
