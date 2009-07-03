@@ -81,7 +81,7 @@ XSS.html_string_decode = function(s) {
 };
 // this can be optimized.
 XSS.html_string_encode = function(s) {
-	string ret = "";
+	var ret = "";
 
 	for (var i = 0; i < s.length; i++) {
 		var c = s.charCodeAt(i);
