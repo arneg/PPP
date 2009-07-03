@@ -6,12 +6,14 @@ UTIL.replace = function(reg, s, cb) {
 	var extra;
 
 	if (arguments.length > 3) {
-		extra = arguments.slice(4);	
+		extra = new Array();
+		for (var i = 3; i < arguments.length; i++) extra[i-3] = arguments[i];
 	}
 
 	while (null != (res = reg.exec(s))) {
-		ret += s.substr(last, reg.lastIndex - res.length - last) + (extra ? cb.apply(null, [res].concat(extra)) : cb(res));
-		last = reg.lastIndex + res.length + 1;
+		ret += s.substr(last, reg.lastIndex - res[0].length - last); 
+		ret += (extra ? cb.apply(null, [res].concat(extra)) : cb(res));
+		last = reg.lastIndex;
 	}
 
 	if (last < s.length) {
