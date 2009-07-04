@@ -1094,6 +1094,7 @@ meteor.Chat.prototype.add_window = function(win) {
 	li.appendChild(a);
 	this.ul.appendChild(li);
 	this.div.appendChild(win.div);
+	win.hide();
 };
 meteor.Chat.prototype.remove_window = function(win) {
 	this.window.remove(win.name);
@@ -1107,7 +1108,7 @@ meteor.Chat.prototype.activate = function(id) {
 		throw("Trying to activate non-existing window "+id.toString());
 	}
 
-	this.active.hide();
+	if (this.active) this.active.hide();
 	this.active = this.windows.get(id);
 	this.active.show();
 };
