@@ -1094,7 +1094,10 @@ meteor.Chat.prototype.add_window = function(win) {
 	li.appendChild(a);
 	this.ul.appendChild(li);
 	this.div.appendChild(win.div);
-	win.hide();
+	if (!this.active) {
+		this.active = win;
+		win.show();
+	}
 };
 meteor.Chat.prototype.remove_window = function(win) {
 	this.window.remove(win.name);
