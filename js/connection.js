@@ -559,6 +559,15 @@ psyc.Vars = function() {
     }
 };
 psyc.Vars.prototype = new Mapping();
+psyc.Vars.prototype.find_abbrev = function(str) {
+	do {
+		if (this.hasIndex(str)) {
+			return this.get(str);
+		}
+	} while (str = psyc.abbrev(str));
+
+	return undefined;
+};
 psyc.object_to_atom = function(o) {
     switch (typeof(o)) {
     case "string":
@@ -768,6 +777,7 @@ meteor.Connection.prototype.incoming_state_change = function() {
 	if (this.readyState >= 3) {
 		//this.readyState = 2;
 
+		// TODO: this line errors on IE
 		if (this.status == 200) {
 			if (this.responseText.length <= this.pos) return;
 			var str;
@@ -1048,13 +1058,35 @@ meteor.ChatWindow = function(div, name) {
 };
 meteor.ChatWindow.prototype.hide = function() {
 	this.div.className = "chatwindow_hidden";
+
+	if (this.li) {
+		this.li.className = "chatheader_hidden";
+	}
+
+	if (this.a) {
+		this.a.className = "chatlink_hidden";
+	}
 };
 meteor.ChatWindow.prototype.show = function() {
-	this.div.className = "chatwindow_normal";
+	this.div.className = "chatwindow_active";
+	if (this.li) {
+		this.li.className = "chatheader_active";
+	}
+
+	if (this.a) {
+		this.a.className = "chatlink_active";
+	}
 };
 meteor.ChatWindow.prototype.msg = function(m) {
 	var p = document.createElement("p");
-	var title = psyc.render_template("[_source] says: [data]", m);
+	var title = (psyc.templates) ? psyc.render_template(psyc.templates.find_abbrev(m.method), m) : psyc.render_template("[_source] says: [data]", m);
+	var t = "";
+	var method = m.method;
+	while (method != 0) {
+		t += " "+method;
+		method = psyc.abbrev(method);
+	}
+	p.className = t;
 	p.appendChild(document.createTextNode(title));
 	this.div.appendChild(p);
 };
@@ -1063,6 +1095,7 @@ meteor.Chat = function(client, div) {
 	this.div = div;
 	this.windows = new Mapping();
 	this.ul = document.createElement("ul");
+	this.ul.className = "chatheader_list";
 	div.insertBefore(this.ul, div.firstChild);
 	client.register_method({ method : "_", source : null, object : this });
 };
@@ -1083,6 +1116,8 @@ meteor.Chat.prototype.add_window = function(win) {
 	this.windows.set(win.name, win);
 	var li = document.createElement("li");
 	var a = document.createElement("a");
+	win.li = li;
+	win.a = a;
 	var cb = function(event) {
 		this.chat.activate(this.title);
 	};
@@ -1094,9 +1129,12 @@ meteor.Chat.prototype.add_window = function(win) {
 	li.appendChild(a);
 	this.ul.appendChild(li);
 	this.div.appendChild(win.div);
+
 	if (!this.active) {
 		this.active = win;
 		win.show();
+	} else {
+		win.hide();
 	}
 };
 meteor.Chat.prototype.remove_window = function(win) {
@@ -1114,4 +1152,12 @@ meteor.Chat.prototype.activate = function(id) {
 	if (this.active) this.active.hide();
 	this.active = this.windows.get(id);
 	this.active.show();
+};
+meteor.Chat.prototype.enter_room = function(uniform) {
+	var message = new psyc.Message("_request_enter", new psyc.Vars("_target", uniform));
+	this.client.send(message);
+};
+meteor.Chat.prototype.leave_room = function(uniform) {
+	var message = new psyc.Message("_request_leave", new psyc.Vars("_target", uniform));
+	this.client.send(message);
 };
