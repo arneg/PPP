@@ -122,11 +122,11 @@ void set_typed_data(object signature, mixed d) {
 
 void make_raw() {
     if (data) {
-	return;
+		return;
     }
 
     if (!signature) {
-	error("Cannot make %O raw without signature.\n", this);
+		error("Cannot make %O raw without signature.\n", this);
     }
 
     signature->to_raw(this);
@@ -173,23 +173,23 @@ string|String.Buffer render(void|String.Buffer buf) {
     if (!data) make_raw();
 
     if (action) {
-	ttype = type + ":" + action;
+		ttype = type + ":" + action;
     } else {
-	ttype = type;
+		ttype = type;
     }
 
     if (buf) {
-	buf->add(sprintf("%s %d ", ttype, sizeof(data)));
-	buf->add(data);
-	return buf;
+		buf->add(sprintf("%s %d ", ttype, sizeof(data)));
+		buf->add(data);
+		return buf;
     } else return sprintf("%s %d %s", ttype, sizeof(data), data);
 }
 
 string _sprintf(int t) {
     if (t == 'O') {
-	return sprintf("Atom(%s, %O)", type, data || (has_pdata() ? pdata : (signature && has_index(typed_data, signature) ? typed_data[signature] : UNDEFINED)));
+		return sprintf("Atom(%s, %O)", type, data || (has_pdata() ? pdata : (signature && has_index(typed_data, signature) ? typed_data[signature] : UNDEFINED)));
     } else if (t == 's') {
-	return sprintf("Atom(%s)", type);
+		return sprintf("Atom(%s)", type);
     }
 }
 
