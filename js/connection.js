@@ -291,9 +291,15 @@ YOU OR THIRD PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER
 PROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGES.
 */
+/**
+ * @returns true if given value is an integer number.
+ */
 intp = function(i) {
 	return (typeof(i) == "number" && i%1 == 0);
 };
+/**
+ * @returns true if given value is array.
+ */
 arrayp = function(a) {
 	return (typeof(a) == "object" && a instanceof Array);
 };
@@ -304,9 +310,12 @@ if( typeof XMLHttpRequest == "undefined" ) XMLHttpRequest = function() {
   try { return new ActiveXObject("Microsoft.XMLHTTP") } catch(e) {}
   throw new Error( "This browser does not support XMLHttpRequest." )
 };
+/**
+ * @namespace PSYC namespace.
+ */
 psyc = new Object();
 psyc.uniform_cache = new Mapping();
-psyc.STOP = 1;
+psyc.STOP = 1; 
 psyc.get_uniform = function(str) {
 	if (psyc.uniform_cache.hasIndex(str)) {
 		return psyc.uniform_cache.get(str);
@@ -316,7 +325,15 @@ psyc.get_uniform = function(str) {
 	psyc.uniform_cache.set(str, uniform);
 	return uniform;
 };
+
+/**
+ * @namespace Meteor js connection namespace.
+ */
 meteor = new Object();
+/**
+ * Class representing uniforms.
+ * @constructor
+ */
 psyc.Uniform = function(str) {
     if (str.substr(0,7) != "psyc://") {
 		throw("Invalid uniform: " + str);	
@@ -362,6 +379,10 @@ psyc.Uniform = function(str) {
     }
 
 };
+/**
+ * Atom parser class.
+ * @constructor
+ */
 psyc.AtomParser = function() {
 	this.buffer = "";
 	this.reset = function() {
@@ -369,6 +390,12 @@ psyc.AtomParser = function() {
 		this.length = -1;
 	};
 	this.reset();
+
+	/**
+	 * Parse one or more Atom objects from a string.
+	 * @returns An array of psyc#Atom objects.
+	 * @param {String} str Input string that to parse.
+	 */
 	this.parse = function(str) {
 		this.buffer += str;
 
@@ -462,9 +489,19 @@ psyc.find_abbrev = function(obj, key) {
 
     return obj[t];
 };
+/**
+ * Atom class.
+ * @constructor
+ * @param {String} type Atom type, e.g. _integer
+ * @param {String} data String representation of the value
+ */
 psyc.Atom = function(type, data) {
     this.type = type;
     this.data = data;
+	
+	/**
+	 * @returns The serialized atom.
+	 */
     this.render = function() {
 		return this.type + " " + new String(this.data.length) + " " + this.data;
     };
@@ -483,19 +520,13 @@ psyc.print_vars = function(v) {
 
     return ret.join(", ");
 };
-psyc.MMPPacket = function(vars, data) {
-    this.vars = vars;
-    this.data = data;
-    this.source = function() {
-	return psyc.find_match(this.vars, "_source");	
-    };
-    this.target = function() {
-	return psyc.find_match(this.vars, "_target");	
-    };
-    this.toString = function() {
-	return "psyc.MMPPacket(" + psyc.print_vars(this.vars) + ", " + this.data + ")";
-    }
-};
+/**
+ * PSYC message class.
+ * @constructor
+ * @param {String} method PSYC method
+ * @param {psyc#Vars} vars variables
+ * @param {String} data Payload
+ */
 psyc.Message = function(method, vars, data) {
     this.method = method;
     this.toString = function() {
@@ -536,6 +567,10 @@ psyc.render_template = function(t, m) {
 
 	return UTIL.replace(reg, t, cb, m);
 };
+/**
+ * Does a one-step abbreviation of a psyc method. For instance, _message_public turns into _message. Returns 0 if no further abbreviation is possible.
+ * @param {String} method PSYC method
+ */
 psyc.abbrev = function(method) {
 	var i = method.lastIndexOf("_");
 	if (i == -1) {
@@ -547,7 +582,11 @@ psyc.abbrev = function(method) {
 		return method.substr(0, i);
 	}
 }
-// check the keys
+/**
+ * Generic PSYC Variable class. This should be used to represent PSYC message variables. 
+ * @constructor
+ * @augments Mapping
+ */
 psyc.Vars = function() {
 	if (arguments.length & 1) throw("odd number of mapping members.");
 
@@ -559,15 +598,22 @@ psyc.Vars = function() {
     }
 };
 psyc.Vars.prototype = new Mapping();
-psyc.Vars.prototype.find_abbrev = function(str) {
+/**
+ * Returns the value associated with key or an abbreviation of key.
+ * @param {String} key PSYC variable name.
+ */
+psyc.Vars.prototype.find_abbrev = function(key) {
 	do {
-		if (this.hasIndex(str)) {
-			return this.get(str);
+		if (this.hasIndex(key)) {
+			return this.get(key);
 		}
-	} while (str = psyc.abbrev(str));
+	} while (key = psyc.abbrev(key));
 
 	return undefined;
 };
+/**
+ * Transforms a javascript object into the corresponding object. Supports _string, _integer, _float, _method, _mapping, _list, _message and _uniform.
+ */
 psyc.object_to_atom = function(o) {
     switch (typeof(o)) {
     case "string":
@@ -592,14 +638,6 @@ psyc.object_to_atom = function(o) {
 			}
 
 			return new psyc.Atom("_message", str);
-		} else if (o instanceof psyc.MMPPacket) {
-			var str = "";
-			if (o.data != undefined)
-			str += psyc.object_to_atom(o.data).render();
-
-			str += psyc.object_to_atom(o.vars).render();
-
-			return new psyc.Atom("_mmp_packet", str);
 		} else if (o instanceof psyc.Uniform) {
 			return new psyc.Atom("_uniform", o.uniform);
 		} else if (o instanceof psyc.Vars) {
@@ -635,6 +673,9 @@ psyc.object_to_atom = function(o) {
 		throw("Unknown object type. Cannot serialize: "+o);
     }
 };
+/**
+ * Transforms an psyc#Atom into the corresponding javascript object.
+ */
 psyc.atom_to_object = function(atom) {
     switch (atom.type) {
     case "_method":
@@ -671,31 +712,6 @@ psyc.atom_to_object = function(atom) {
 
 		return m;
     } while (0);
-    case "_mmp_packet": do {
-		var p = new psyc.AtomParser();
-		var l = p.parse(atom.data);
-		
-		if (l.length == 0) {
-			throw("bad _mmp_packet");
-		}
-
-		if (l[0].type.substr(0, 8) != "_mapping") {
-			throw("bad _mmp_packet");
-		}
-
-		var vars = psyc.atom_to_object(l[0]);
-		var p = new psyc.MMPPacket(vars);
-		
-		if (l.length == 1) {
-
-		} else if (l.length == 2) {
-			p.data = psyc.atom_to_object(l[1]);
-		} else {
-			throw("too long _mmp_packet");
-		}
-
-		return p;
-    } while (0);
     case "_message": do {
 		var p = new psyc.AtomParser();
 		var l = p.parse(atom.data);
@@ -728,7 +744,17 @@ psyc.atom_to_object = function(atom) {
 		throw("Unknown atom type. Cannot decode " + atom);
     }
 };
+/**
+ * Limit for the incoming buffer. When the incoming XMLHttpRequest object buffer grows larger than this, the connection is reinitiated.
+ */
 meteor.BUFFER_MAX = 1 << 16; // limit for incoming buffer, exceeding this buffer triggers a reconnect
+/**
+ * Meteor connection class.
+ * @param {String} url URL of the Meteor connection endpoint.
+ * @param {Function} callback Function to be called when a complete Atom has been received and parsed.
+ * @param {Function} error Function to be called when a fatal error occures.
+ * @constructor
+ */
 meteor.Connection = function(url, callback, error) {
     this.url = url;
     this.buffer = "";
@@ -877,6 +903,9 @@ meteor.Connection.prototype.init_state_change = function(change_event) { // fetc
 		//console.debug("not yet in readyState 4\n");
 	}
 };
+/**
+ * Initialize the connection. This needs to be called before any Atoms can be sent or received.
+ */
 meteor.Connection.prototype.init = function() { // fetch the client_id and go
 	var xhr = new XMLHttpRequest();
 	xhr.meteor = this;
@@ -888,6 +917,9 @@ meteor.Connection.prototype.init = function() { // fetch the client_id and go
 	xhr.open("GET", this.url, true);
 	xhr.send("");
 };
+/**
+ * Close incoming connection and clean up cyclic references.
+ */
 meteor.Connection.prototype.destruct = function() {
 	var list = [this.init_xhr, this.new_incoming, this.incoming, this.outgoing];
 	for (var t in list) {
@@ -906,6 +938,10 @@ meteor.Connection.prototype.destruct = function() {
 	this.callback = null;
 	this.error = null;
 };
+/**
+ * Send one Atom.
+ * @param {psyc#Atom} data Atom to send.
+ */
 meteor.Connection.prototype.send = function(data) {
 	// check for status
 	this.buffer += data;
@@ -1090,6 +1126,12 @@ meteor.ChatWindow.prototype.msg = function(m) {
 	p.appendChild(document.createTextNode(title));
 	this.div.appendChild(p);
 };
+/**
+ * Creates a new tabbed chat application.
+ * @param {Object} client Meteor Client object to use.
+ * @param {Object} div DOM div object to put the Chat into.
+ * @constructor
+ */
 meteor.Chat = function(client, div) {
 	this.client = client;
 	this.div = div;
@@ -1105,12 +1147,21 @@ meteor.Chat.prototype.msg = function(m) {
 
 		if (this.windows.hasIndex(_source.toString())) return;
 
-		var new_window = new meteor.ChatWindow(document.createElement("div"), _source.toString());
-		this.client.register_method({ method : "_", source : _source, object : new_window });
-		this.add_window(new_window);
-		new_window.msg(m);
+		this.open_window(_source).msg(m);
 		return psyc.STOP;
 	} 
+};
+meteor.Chat.prototype.open_window = function(uniform) {
+	if (this.windows.hasIndex(uniform.toString())) {
+		// return the old one and focus
+		this.activate(uniform);
+		return this.windows.get(uniform.toString());
+	}
+
+	var new_window = new meteor.ChatWindow(document.createElement("div"), uniform.toString());
+	this.client.register_method({ method : "_", source : uniform, object : new_window });
+	this.add_window(new_window);
+	return new_window;
 };
 meteor.Chat.prototype.add_window = function(win) {
 	this.windows.set(win.name, win);
@@ -1153,6 +1204,10 @@ meteor.Chat.prototype.activate = function(id) {
 	this.active = this.windows.get(id);
 	this.active.show();
 };
+/**
+ * @param {Uniform} uniform
+ * Requests membership in the given room.
+ */
 meteor.Chat.prototype.enter_room = function(uniform) {
 	var message = new psyc.Message("_request_enter", new psyc.Vars("_target", uniform));
 	this.client.send(message);

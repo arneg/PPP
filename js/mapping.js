@@ -127,16 +127,20 @@ along with the Program.
 // =======================================================================
 // =======================================================================
 
+/**
+ * Flexible mapping/dictionary class that allows for arbitrary key types.
+ * @constructor
+ */
 function Mapping() {
 	if (arguments.length & 1) throw("odd number of mapping members.");
 	this.n = new Object();
 	this.m = new Object();
+	this.length = 0;
 	for (var i = 0; i < arguments.length; i += 2) {
 		this.set(arguments[i], arguments[i+1]);
 	}
 }
 Mapping.prototype = {
-	length : 0,
     sfy : function(key) { // sfy ==> stringify
 		// better use if (key.__proto__ == String.prototype) { ??
 		// also there is somewhere something like isPrototypeOf(proto, instance). what about that?
@@ -150,6 +154,9 @@ Mapping.prototype = {
 		}
     },
 
+	/**
+	 * Set an entry.
+	 */
     set : function(key, val) {
 		var key2 = this.sfy(key);
 
@@ -161,11 +168,17 @@ Mapping.prototype = {
 		this.n[key2] = key;
     },
 
+	/**
+	 * Get an entry.
+	 */
     get : function(key) {
 		return this.m[this.sfy(key)];
     },
 
     // IE doesn't like this being called "delete", so, beware!
+	/**
+	 * Remove an entry.
+	 */
     remove : function(key) {
 		var key2 = this.sfy(key);
 
@@ -177,6 +190,10 @@ Mapping.prototype = {
 		delete this.n[key2];
     },
 
+	/**
+	 * Indices of the mapping.
+	 * @returns An array of indices.
+	 */
     indices : function() {
 		var ret = new Array();
 		
@@ -187,6 +204,10 @@ Mapping.prototype = {
 		return ret;
     },
 
+	/**
+	 * Values of the mapping.
+	 * @returns An array of values.
+	 */
     values : function() {
 		var ret = new Array();
 		
@@ -197,6 +218,9 @@ Mapping.prototype = {
 		return ret;
     },
 
+	/**
+	 * Loops over all entries in the mapping and calls cb for each pair of (key, value).
+	 */
     forEach : function(cb) {
 		for (var i in this.n) {
 			cb(this.n[i], this.m[i]);
@@ -207,6 +231,9 @@ Mapping.prototype = {
 		return "Mapping(:" + this.length + ")";
     },
 
+	/**
+	 * Returns true if an entry with the given key exists.
+	 */
     hasIndex : function(key) {
 		return this.m.hasOwnProperty(this.sfy(key));
     },
