@@ -1,4 +1,15 @@
+/**
+ * Some helpful utility functions.
+ * @namespace
+ */
 UTIL = new Object();
+/**
+ * Flexible RegExp-based replace function. Calls a callback for every match and replaced it by the returned string.
+ * @param {Object} reg RegExp Object to be used.
+ * @param {String} s String to perform the replace on.
+ * @param {Function} cb Callback to be called for every match. Parameters to the callback will be the result returned by the call to RegExp.exec and possible extra arguments that were passed to replace.
+ * @returns The resulting string.
+ */
 UTIL.replace = function(reg, s, cb) {
 	var res;
 	var last = 0;

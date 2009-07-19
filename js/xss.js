@@ -1,4 +1,12 @@
+/**
+ * Some helper functions that can be used to prevent Cross-Site-Scripting attacks.
+ * @namespace
+ */
 XSS = new Object();
+/**
+ * @param {String} s String containing HTML escape sequences.
+ * @returns The original string with all HTML escape sequences replaced by their corresponding characters. E.g. turns &lt; into <.
+ */
 XSS.html_string_decode = function(s) {
 	var reg = new RegExp("&[\w#]+;", "ig");
 
@@ -79,7 +87,10 @@ XSS.html_string_decode = function(s) {
 		}
 	});
 };
-// this can be optimized.
+/**
+ * @param {String} s String possibly containing HTML sequences.
+ * @returns The original string with certain characters replaced by HTML escape sequences.
+ */
 XSS.html_string_encode = function(s) {
 	var ret = "";
 
