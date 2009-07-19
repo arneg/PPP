@@ -346,6 +346,10 @@ meteor = new Object();
 /**
  * Class representing uniforms.
  * @constructor
+ * @property {String} uniform String representation of the uniform.
+ * @property {String} object Path component of the uniform.
+ * @property {String} name Name component of the uniform (i.e. object without type).
+ * @property {String} host Host part of the uniform including the port number.
  */
 psyc.Uniform = function(str) {
     if (str.substr(0,7) != "psyc://") {
@@ -370,6 +374,8 @@ psyc.Uniform = function(str) {
 
 		this.object = str;
 		this.type = str.charCodeAt(0);
+		this.name = str.slice(1);
+
 		if (this.type == 126) {
 			this.is_user = function() { return 1; }
 			this.is_room = function() { return 0; }
@@ -508,6 +514,8 @@ psyc.find_abbrev = function(obj, key) {
  * @constructor
  * @param {String} type Atom type, e.g. _integer
  * @param {String} data String representation of the value
+ * @property {String} type Atom type, e.g. _integer.
+ * @property {String} data String representation of the value
  */
 psyc.Atom = function(type, data) {
     this.type = type;
@@ -531,6 +539,9 @@ psyc.Atom = function(type, data) {
  * @param {String} method PSYC method
  * @param {psyc#Vars} vars variables
  * @param {String} data Payload
+ * @property {String} method PSYC method
+ * @property {psyc#Vars} vars variables
+ * @property {String} data Payload
  */
 psyc.Message = function(method, vars, data) {
     this.method = method;
