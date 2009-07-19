@@ -522,15 +522,6 @@ psyc.Atom = function(type, data) {
 			+ this.data.length + 2;
     };
 };
-psyc.print_vars = function(v) {
-    var ret = new Array();
-    for (var i in v) {
-	if (i.substr(0,1) == "_") 
-	    ret.push(i + " : " + this.vars[i]);
-    }
-
-    return ret.join(", ");
-};
 /**
  * PSYC message class.
  * @constructor
