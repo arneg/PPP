@@ -311,11 +311,10 @@ if( typeof XMLHttpRequest == "undefined" ) XMLHttpRequest = function() {
   throw new Error( "This browser does not support XMLHttpRequest." )
 };
 /**
+ * Set this to a mapping of templates that should be used automatically when displaying messages inside Chat tabs. PSYC method inheritance is used when accessing the templates. Hence a template for "_message" will also be used for "_message_public" if there is no template for it. Therefore setting a template for "_" effectively sets a default template for all methods.
  * @type psyc#Vars
  * @name psyc.templates
  * @field
- *
- * Set this to a mapping of templates that should be used automatically when displaying messages inside Chat tabs. PSYC method inheritance is used when accessing the tabs. Hence a template for "_message" will also be used for "_message_public" if there is no template for it. Therefore setting a template for "_" effectively sets a default template for all methods.
  * @example
  * psyc.templates = new Vars("_message_public", 
  * "[_source_relay] says in [_source]: [data]", 
@@ -327,6 +326,9 @@ if( typeof XMLHttpRequest == "undefined" ) XMLHttpRequest = function() {
 psyc = new Object();
 psyc.uniform_cache = new Mapping();
 psyc.STOP = 1; 
+/**
+ * Create a Uniform object from the uniform str. Uniform objects are cached as long as they are created using this function. Therefore two uniform objects are the same if they represent the same uniform.
+ */
 psyc.get_uniform = function(str) {
 	if (psyc.uniform_cache.hasIndex(str)) {
 		return psyc.uniform_cache.get(str);
@@ -396,18 +398,19 @@ psyc.Uniform = function(str) {
  */
 psyc.AtomParser = function() {
 	this.buffer = "";
-	this.reset = function() {
+	this.reset();
+};
+psyc.AtomParser.prototype = {
+	reset : function() {
 		this.type = 0;
 		this.length = -1;
-	};
-	this.reset();
-
+	},
 	/**
 	 * Parse one or more Atom objects from a string.
 	 * @returns An array of psyc#Atom objects.
 	 * @param {String} str Input string that to parse.
 	 */
-	this.parse = function(str) {
+	parse : function(str) {
 		this.buffer += str;
 
 		var ret = new Array();
@@ -416,8 +419,8 @@ psyc.AtomParser = function() {
 			ret.push(t);
 		}
 		return ret;
-	};
-	this._parse = function() {
+	},
+	_parse : function() {
 		if (!this.type) {
 			var pos = this.buffer.indexOf(" ");
 
@@ -468,7 +471,7 @@ psyc.AtomParser = function() {
 		this.reset();
 		
 		return a;
-    };
+    },
 };
 psyc.find_match = function(obj, key) {
     // i guess we should find direct matches first...
