@@ -213,6 +213,7 @@ Mapping.prototype = {
 
     reset : function() {
 		this.m = new Object();
+		this.n = new Object();
 		this.length = 0;
     },
 };
