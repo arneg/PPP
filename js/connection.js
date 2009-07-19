@@ -311,6 +311,17 @@ if( typeof XMLHttpRequest == "undefined" ) XMLHttpRequest = function() {
   throw new Error( "This browser does not support XMLHttpRequest." )
 };
 /**
+ * @type psyc#Vars
+ * @name psyc.templates
+ * @field
+ *
+ * Set this to a mapping of templates that should be used automatically when displaying messages inside Chat tabs. PSYC method inheritance is used when accessing the tabs. Hence a template for "_message" will also be used for "_message_public" if there is no template for it. Therefore setting a template for "_" effectively sets a default template for all methods.
+ * @example
+ * psyc.templates = new Vars("_message_public", 
+ * "[_source_relay] says in [_source]: [data]", 
+ * "_", "[_source] sends [method]: [data]");
+ */
+/**
  * @namespace PSYC namespace.
  */
 psyc = new Object();
@@ -749,11 +760,19 @@ psyc.atom_to_object = function(atom) {
  */
 meteor.BUFFER_MAX = 1 << 16; // limit for incoming buffer, exceeding this buffer triggers a reconnect
 /**
- * Meteor connection class.
+ * Meteor connection class. This is usually used with Atom serialization on top. Use meteor.Client if unsure.
  * @param {String} url URL of the Meteor connection endpoint.
- * @param {Function} callback Function to be called when a complete Atom has been received and parsed.
+ * @param {Function} callback Function to be called when data has been received.
  * @param {Function} error Function to be called when a fatal error occures.
  * @constructor
+ * @example
+ * var connection;
+ * var incoming = function(data) {
+ * 	document.write("Received data: " + data);
+ * 	connection.send("Hello World.\n");
+ * }
+ * connection = new meteor.Connection("http://example.org/meteor/", incoming, alert);
+ * connection.init();
  */
 meteor.Connection = function(url, callback, error) {
     this.url = url;
@@ -904,7 +923,7 @@ meteor.Connection.prototype.init_state_change = function(change_event) { // fetc
 	}
 };
 /**
- * Initialize the connection. This needs to be called before any Atoms can be sent or received.
+ * Initialize the connection. This needs to be called before any data can be sent or received.
  */
 meteor.Connection.prototype.init = function() { // fetch the client_id and go
 	var xhr = new XMLHttpRequest();
@@ -939,8 +958,8 @@ meteor.Connection.prototype.destruct = function() {
 	this.error = null;
 };
 /**
- * Send one Atom.
- * @param {psyc#Atom} data Atom to send.
+ * Send some data.
+ * @param {String} data String to be sent.
  */
 meteor.Connection.prototype.send = function(data) {
 	// check for status
@@ -951,15 +970,6 @@ meteor.Connection.prototype.send = function(data) {
 		this.ready = 0;
 		this.buffer = "";
 	}
-};
-meteor.Client = function(url) {
-	this.callbacks = new Mapping();
-	this.connection = new meteor.Connection(url, this.incoming, this.error);
-	this.connection.init();
-	this.parser = new psyc.AtomParser();
-	this.incoming.obj = this;
-	this.error.obj = this;
-	this.icount = 0;
 };
 // the params handed by the user could be prototyped with a
 // msg and something more
@@ -996,8 +1006,27 @@ meteor.CallbackWrapper.prototype.unregister = function() {
 
 	this.mapping = 0;
 };
+/**
+ * Holds a Meteor connection and uses it to send and receive Atoms.
+ * @constructor
+ * @params {String} url Meteor endpoint urls.
+ */
+psyc.Client = function(url) {
+	this.callbacks = new Mapping();
+	this.connection = new meteor.Connection(url, this.incoming, this.error);
+	this.connection.init();
+	this.parser = new psyc.AtomParser();
+	this.incoming.obj = this;
+	this.error.obj = this;
+	this.icount = 0;
+};
 // params = ( method : "_message", source : Uniform }
-meteor.Client.prototype.register_method = function(params) {
+/**
+ * Register for certain incoming messages. This can be used to implement chat tabs or handlers for certain message types.
+ * @params {Object} params Object containing the properties "method", "callback" and optionally "source". For all incoming messages matching "method" and "source" the callback is called. The "source" property should be of type psyc.Uniform.
+ * @returns A wrapper object of type meteor.CallbackWrapper. It can be used to unregister the handler.
+ */
+psyc.Client.prototype.register_method = function(params) {
 	var wrapper = new meteor.CallbackWrapper(params, this.callbacks);
 	
 	if (this.callbacks.hasIndex(params.method)) {
@@ -1009,10 +1038,14 @@ meteor.Client.prototype.register_method = function(params) {
 
 	return wrapper;
 };
-meteor.Client.prototype.error = function(err) {
+psyc.Client.prototype.error = function(err) {
 	if (meteor.debug) meteor.debug(err);
 };
-meteor.Client.prototype.send = function(message) {
+/**
+ * Send a message. This should be of type psyc.Message.
+ * @params {Object} message Message to send.
+ */
+psyc.Client.prototype.send = function(message) {
 	if (!(message.vars.get("_target") instanceof psyc.Uniform)) {
 		if (meteor.debug) meteor.debug("Message without _target is baaad!");
 	}
@@ -1024,8 +1057,11 @@ meteor.Client.prototype.send = function(message) {
 	}
 	if (meteor.debug) meteor.debug("send successfull.");
 };
-// request all messages including count
-meteor.Client.prototype.sync = function(count) {
+/**
+ * Request all messages up to id count from the PSYC user. This is done automatically if missing messages are detected during handshake with the user.
+ * @params {Integer} count Message to send.
+ */
+psyc.Client.prototype.sync = function(count) {
 	var list = new Array(count - this.icount);
 	for (var i = 0; this.icount+i+1 <= count; i++) {
 		list[i] = this.icount+i+1;
@@ -1035,7 +1071,7 @@ meteor.Client.prototype.sync = function(count) {
 	if (meteor.debug) meteor.debug("REQUEST_HISTORY: "+psyc.object_to_atom(message).render());
 	this.send(message);
 };
-meteor.Client.prototype.incoming = function (data) {
+psyc.Client.prototype.incoming = function (data) {
 	try {
 		data = this.parser.parse(data);
 	} catch (error) {
@@ -1088,11 +1124,11 @@ meteor.Client.prototype.incoming = function (data) {
 		}
 	}
 };
-meteor.ChatWindow = function(div, name) {
+psyc.ChatTab = function(div, name) {
 	this.div = div;
 	this.name = name;
 };
-meteor.ChatWindow.prototype.hide = function() {
+psyc.ChatTab.prototype.hide = function() {
 	this.div.className = "chatwindow_hidden";
 
 	if (this.li) {
@@ -1103,7 +1139,7 @@ meteor.ChatWindow.prototype.hide = function() {
 		this.a.className = "chatlink_hidden";
 	}
 };
-meteor.ChatWindow.prototype.show = function() {
+psyc.ChatTab.prototype.show = function() {
 	this.div.className = "chatwindow_active";
 	if (this.li) {
 		this.li.className = "chatheader_active";
@@ -1113,7 +1149,7 @@ meteor.ChatWindow.prototype.show = function() {
 		this.a.className = "chatlink_active";
 	}
 };
-meteor.ChatWindow.prototype.msg = function(m) {
+psyc.ChatTab.prototype.msg = function(m) {
 	var p = document.createElement("p");
 	var title = (psyc.templates) ? psyc.render_template(psyc.templates.find_abbrev(m.method), m) : psyc.render_template("[_source] says: [data]", m);
 	var t = "";
@@ -1128,11 +1164,11 @@ meteor.ChatWindow.prototype.msg = function(m) {
 };
 /**
  * Creates a new tabbed chat application.
- * @param {Object} client Meteor Client object to use.
+ * @param {Object} client psyc.Client object to use.
  * @param {Object} div DOM div object to put the Chat into.
  * @constructor
  */
-meteor.Chat = function(client, div) {
+psyc.Chat = function(client, div) {
 	this.client = client;
 	this.div = div;
 	this.windows = new Mapping();
@@ -1141,7 +1177,7 @@ meteor.Chat = function(client, div) {
 	div.insertBefore(this.ul, div.firstChild);
 	client.register_method({ method : "_", source : null, object : this });
 };
-meteor.Chat.prototype.msg = function(m) {
+psyc.Chat.prototype.msg = function(m) {
 	if (m.vars.hasIndex("_source")) {
 		var _source = m.vars.get("_source");
 
@@ -1151,19 +1187,23 @@ meteor.Chat.prototype.msg = function(m) {
 		return psyc.STOP;
 	} 
 };
-meteor.Chat.prototype.open_window = function(uniform) {
+/**
+ * Opens a new tab inside the chat. It will be used to display messages coming from the entity specified by uniform. Use this for cases like private messages where the conversation is not initiated by a handshake (in contrary to group chats).
+ * @param {Object} uniform Uniform to use this ChatTab for.
+ */
+psyc.Chat.prototype.open_tab = function(uniform) {
 	if (this.windows.hasIndex(uniform.toString())) {
 		// return the old one and focus
 		this.activate(uniform);
 		return this.windows.get(uniform.toString());
 	}
 
-	var new_window = new meteor.ChatWindow(document.createElement("div"), uniform.toString());
+	var new_window = new psyc.ChatTab(document.createElement("div"), uniform.toString());
 	this.client.register_method({ method : "_", source : uniform, object : new_window });
 	this.add_window(new_window);
 	return new_window;
 };
-meteor.Chat.prototype.add_window = function(win) {
+psyc.Chat.prototype.add_window = function(win) {
 	this.windows.set(win.name, win);
 	var li = document.createElement("li");
 	var a = document.createElement("a");
@@ -1188,16 +1228,24 @@ meteor.Chat.prototype.add_window = function(win) {
 		win.hide();
 	}
 };
-meteor.Chat.prototype.remove_window = function(win) {
-	this.window.remove(win.name);
+/**
+ * Removes the window win from the chat tab. Use this to close private conversations.
+ * @param {Object} tab psyc.ChatTab object to remove.
+ */
+psyc.Chat.prototype.remove_tab = function(tab) {
+	this.window.remove(tab.name);
 };
-meteor.Chat.prototype.activate = function(id) {
+/**
+ * Activate a chat tab. This sets the css class of the tabs div to "chatwindow_active" and the css class of the former active tab to "chatwindow_hidden". The css classes of the corresponding li header elements are changed accordingly.
+ * @param {Object} id Id of the chat tab. This should normally be the Uniform of the entity this tab is associated with.
+ */
+psyc.Chat.prototype.activate = function(id) {
 	if (typeof(id) != "string") {
 		id = id.toString();
 	}
 
 	if (!this.windows.hasIndex(id)) {
-		throw("Trying to activate non-existing window "+id.toString());
+		throw("Trying to activate non-existing tab "+id.toString());
 	}
 
 	if (this.active) this.active.hide();
@@ -1206,13 +1254,17 @@ meteor.Chat.prototype.activate = function(id) {
 };
 /**
  * @param {Uniform} uniform
- * Requests membership in the given room.
+ * Requests membership in the given room. If the room has been entered successfully a new tab will be opened automatically.
  */
-meteor.Chat.prototype.enter_room = function(uniform) {
+psyc.Chat.prototype.enter_room = function(uniform) {
 	var message = new psyc.Message("_request_enter", new psyc.Vars("_target", uniform));
 	this.client.send(message);
 };
-meteor.Chat.prototype.leave_room = function(uniform) {
+/**
+ * @param {Uniform} uniform
+ * Leaves a room.
+ */
+psyc.Chat.prototype.leave_room = function(uniform) {
 	var message = new psyc.Message("_request_leave", new psyc.Vars("_target", uniform));
 	this.client.send(message);
 };
