@@ -785,191 +785,193 @@ meteor.Connection = function(url, callback, error) {
 	this.outgoing = 0;
 	this.init_xhr = 0;
 };
-meteor.Connection.prototype.new_incoming_state_change = function() {
-	var con = this.meteor;
-	con.error("new_incoming state is " + this.readyState);
-	// we should check here for buffer length. maybe set a max
-	// amount to shut down the main one ungracefully
-	if (this.readyState >= 3) {
-		con.connect_incoming();
-	}
-};
-meteor.Connection.prototype.connect_new_incoming = function() {
-	if (this.new_incoming) {
-		// we already have one new incoming and are waiting for the
-		// main one to shut down
-
-		if (this.new_incoming.readyState == 4) {
-		// someone is too fast for us.	
-		// TODO: we have to check for data in new_incoming,
-		// not sure what to do with it. we can probably savely
-		// parse it in case of atoms.
-		} else return this.connect_incoming();
-	}
-
-	var xhr = new XMLHttpRequest();
-	this.new_incoming = xhr;
-	xhr.pos = 0;
-		
-	xhr.open("POST", this.url + "?" + this.client_id, true);
-	xhr.onreadystatechange = this.new_incoming_state_change;
-	xhr.meteor = this;
-	xhr.send("");
-};
-meteor.Connection.prototype.incoming_state_change = function() {
-	var con = this.meteor;
-	con.error("incoming state is " + this.readyState);
-	if (this.readyState >= 3) {
-		//this.readyState = 2;
-
-		// TODO: this line errors on IE
-		if (this.status == 200) {
-			if (this.responseText.length <= this.pos) return;
-			var str;
-
-			if (this.pos) {
-				str = (this.responseText.slice(this.pos));
-			} else {
-				str = (this.responseText);
-			}
-
-			if (con.callback.obj) {
-				con.callback.call(con.callback.obj, str);
-			} else {
-				con.callback(str);
-			}
-
-			this.pos = this.responseText.length;
-
-			if (this.readyState == 4 || this.pos >= psyc.BUFFER_MAX) {
-				con.connect_new_incoming();
-			}
-		} else {
-		// this throws an exception in firefox. brain
-		//	con.error(this.statusText);
-			if (meteor.debug) meteor.debug("http status code: "+this.status);
+meteor.Connection.prototype = {
+	new_incoming_state_change : function() {
+		var con = this.meteor;
+		con.error("new_incoming state is " + this.readyState);
+		// we should check here for buffer length. maybe set a max
+		// amount to shut down the main one ungracefully
+		if (this.readyState >= 3) {
+			con.connect_incoming();
 		}
-	}
-};
-meteor.Connection.prototype.incoming_on_error = function() {
-	this.meteor.connect_new_incoming();
-};
-meteor.Connection.prototype.connect_incoming = function(xhr) {
-	if (!xhr) {
+	},
+	connect_new_incoming : function() {
 		if (this.new_incoming) {
-			xhr = this.new_incoming;
-		} else throw("you need to call new_incoming() first. no this.new_incoming.");
-	}
-	
-	if (this.incoming) {
-		if (this.incoming.readyState != 4) {
-			return;
+			// we already have one new incoming and are waiting for the
+			// main one to shut down
+
+			if (this.new_incoming.readyState == 4) {
+			// someone is too fast for us.	
+			// TODO: we have to check for data in new_incoming,
+			// not sure what to do with it. we can probably savely
+			// parse it in case of atoms.
+			} else return this.connect_incoming();
 		}
 
-		try { this.incoming.abort(); } catch (e) {}
-	}
-
-	xhr.onreadystatechange = this.incoming_state_change;
-	xhr.onerror = this.incoming_on_error;
-	this.error("moved new incoming to incoming.\n");
-	this.new_incoming = 0;
-	this.incoming = xhr;
-	meteor.Connection.prototype.incoming_state_change.call(xhr);
-};
-meteor.Connection.prototype.outgoing_state_change = function() {
-	var con = this.meteor;
-
-	if (this.readyState == 4) {
-
-		if (this.status == 200) {
+		var xhr = new XMLHttpRequest();
+		this.new_incoming = xhr;
+		xhr.pos = 0;
 			
-			con.connect_outgoing();
-		} else {
-			con.error(this.statusText);
-		}
-	}
-};
-meteor.Connection.prototype.connect_outgoing = function() {
-	var xhr;
+		xhr.open("POST", this.url + "?" + this.client_id, true);
+		xhr.onreadystatechange = this.new_incoming_state_change;
+		xhr.meteor = this;
+		xhr.send("");
+	},
+	incoming_state_change : function() {
+		var con = this.meteor;
+		con.error("incoming state is " + this.readyState);
+		if (this.readyState >= 3) {
+			//this.readyState = 2;
 
-	if (this.outgoing) {
-		this.outgoing.abort();
-		xhr = this.outgoing;
-	} else {
-		xhr = new XMLHttpRequest();
-		this.outgoing = xhr;
-	}
-	//this.error("outgoing state is " + xhr.readyState);
+			// TODO: this line errors on IE
+			if (this.status == 200) {
+				if (this.responseText.length <= this.pos) return;
+				var str;
 
-	xhr.open("POST", this.url + "?" + this.client_id, true);
-	xhr.onreadystatechange = this.outgoing_state_change;
-	xhr.meteor = this;
-	this.ready = 1;
-};
-meteor.Connection.prototype.init_state_change = function(change_event) { // fetch the client_id and go
-	var con = this.meteor;
-	if (this.readyState == 4) {
-		if (this.status == 200) {
-			con.client_id = this.responseText;
-			if (meteor.debug) meteor.debug("got client ID " + con.client_id);
-			con.init_xhr = null;
-			con.connect_outgoing();
-			con.connect_new_incoming();
-		} else {
-			con.error(this.statusText);
-		}
-		this.meteor = null;
-		//console.debug("not yet in readyState 4\n");
-	}
-};
-/**
- * Initialize the connection. This needs to be called before any data can be sent or received.
- */
-meteor.Connection.prototype.init = function() { // fetch the client_id and go
-	var xhr = new XMLHttpRequest();
-	xhr.meteor = this;
-	this.init_xhr = xhr;
-	//this.error("initialization state is " + xhr.readyState);
+				if (this.pos) {
+					str = (this.responseText.slice(this.pos));
+				} else {
+					str = (this.responseText);
+				}
 
-	xhr.onreadystatechange = this.init_state_change;
-	xhr.meteor = this;
-	xhr.open("GET", this.url, true);
-	xhr.send("");
-};
-/**
- * Close incoming connection and clean up cyclic references.
- */
-meteor.Connection.prototype.destruct = function() {
-	var list = [this.init_xhr, this.new_incoming, this.incoming, this.outgoing];
-	for (var t in list) {
-		t = list[t];
-		try {
-			if (t) {
-				t.abort();
-				t.meteor = null;
+				if (con.callback.obj) {
+					con.callback.call(con.callback.obj, str);
+				} else {
+					con.callback(str);
+				}
+
+				this.pos = this.responseText.length;
+
+				if (this.readyState == 4 || this.pos >= psyc.BUFFER_MAX) {
+					con.connect_new_incoming();
+				}
+			} else {
+			// this throws an exception in firefox. brain
+			//	con.error(this.statusText);
+				if (meteor.debug) meteor.debug("http status code: "+this.status);
 			}
-		} catch(e) { }
-	}
-	this.init_xhr = null;
-	this.incoming = null;
-	this.new_incoming = null;
-	this.outgoing = null;
-	this.callback = null;
-	this.error = null;
-};
-/**
- * Send some data.
- * @param {String} data String to be sent.
- */
-meteor.Connection.prototype.send = function(data) {
-	// check for status
-	this.buffer += data;
+		}
+	},
+	incoming_on_error : function() {
+		this.meteor.connect_new_incoming();
+	},
+	connect_incoming : function(xhr) {
+		if (!xhr) {
+			if (this.new_incoming) {
+				xhr = this.new_incoming;
+			} else throw("you need to call new_incoming() first. no this.new_incoming.");
+		}
+		
+		if (this.incoming) {
+			if (this.incoming.readyState != 4) {
+				return;
+			}
 
-	if (this.client_id && this.ready) {
-		this.outgoing.send(this.buffer);   
-		this.ready = 0;
-		this.buffer = "";
-	}
+			try { this.incoming.abort(); } catch (e) {}
+		}
+
+		xhr.onreadystatechange = this.incoming_state_change;
+		xhr.onerror = this.incoming_on_error;
+		this.error("moved new incoming to incoming.\n");
+		this.new_incoming = 0;
+		this.incoming = xhr;
+		meteor.Connection.prototype.incoming_state_change.call(xhr);
+	},
+	outgoing_state_change : function() {
+		var con = this.meteor;
+
+		if (this.readyState == 4) {
+
+			if (this.status == 200) {
+				
+				con.connect_outgoing();
+			} else {
+				con.error(this.statusText);
+			}
+		}
+	},
+	connect_outgoing : function() {
+		var xhr;
+
+		if (this.outgoing) {
+			this.outgoing.abort();
+			xhr = this.outgoing;
+		} else {
+			xhr = new XMLHttpRequest();
+			this.outgoing = xhr;
+		}
+		//this.error("outgoing state is " + xhr.readyState);
+
+		xhr.open("POST", this.url + "?" + this.client_id, true);
+		xhr.onreadystatechange = this.outgoing_state_change;
+		xhr.meteor = this;
+		this.ready = 1;
+	},
+	init_state_change : function(change_event) { // fetch the client_id and go
+		var con = this.meteor;
+		if (this.readyState == 4) {
+			if (this.status == 200) {
+				con.client_id = this.responseText;
+				if (meteor.debug) meteor.debug("got client ID " + con.client_id);
+				con.init_xhr = null;
+				con.connect_outgoing();
+				con.connect_new_incoming();
+			} else {
+				con.error(this.statusText);
+			}
+			this.meteor = null;
+			//console.debug("not yet in readyState 4\n");
+		}
+	},
+	/**
+	 * Initialize the connection. This needs to be called before any data can be sent or received.
+	 */
+	init : function() { // fetch the client_id and go
+		var xhr = new XMLHttpRequest();
+		xhr.meteor = this;
+		this.init_xhr = xhr;
+		//this.error("initialization state is " + xhr.readyState);
+
+		xhr.onreadystatechange = this.init_state_change;
+		xhr.meteor = this;
+		xhr.open("GET", this.url, true);
+		xhr.send("");
+	},
+	/**
+	 * Close incoming connection and clean up cyclic references.
+	 */
+	destruct : function() {
+		var list = [this.init_xhr, this.new_incoming, this.incoming, this.outgoing];
+		for (var t in list) {
+			t = list[t];
+			try {
+				if (t) {
+					t.abort();
+					t.meteor = null;
+				}
+			} catch(e) { }
+		}
+		this.init_xhr = null;
+		this.incoming = null;
+		this.new_incoming = null;
+		this.outgoing = null;
+		this.callback = null;
+		this.error = null;
+	},
+	/**
+	 * Send some data.
+	 * @param {String} data String to be sent.
+	 */
+	send : function(data) {
+		// check for status
+		this.buffer += data;
+
+		if (this.client_id && this.ready) {
+			this.outgoing.send(this.buffer);   
+			this.ready = 0;
+			this.buffer = "";
+		}
+	},
 };
 // the params handed by the user could be prototyped with a
 // msg and something more
@@ -977,34 +979,36 @@ meteor.CallbackWrapper = function(params, mapping) {
 	this.mapping = mapping;
 	this.params = params;	
 };
-meteor.CallbackWrapper.prototype.msg = function(message) {
-	if (!this.params.source || this.params.source == message.vars.get("_source")) {
-		if (this.params.object) {
-			if (this.params.cb) {
-				return this.params.cb.call(this.params.object, message, this);
-			}
+meteor.CallbackWrapper.prototype = {
+	msg : function(message) {
+		if (!this.params.source || this.params.source == message.vars.get("_source")) {
+			if (this.params.object) {
+				if (this.params.cb) {
+					return this.params.cb.call(this.params.object, message, this);
+				}
 
-			return this.params.object.msg(message, this);
-		} else {
-			return this.params.cb(message, this);
+				return this.params.object.msg(message, this);
+			} else {
+				return this.params.cb(message, this);
+			}
 		}
-	}
-};
-meteor.CallbackWrapper.prototype.active = function() {
-	return this.mapping == 0 ? 0 : 1;
-};
-meteor.CallbackWrapper.prototype.unregister = function() {
+	},
+	active : function() {
+		return this.mapping == 0 ? 0 : 1;
+	},
+	unregister : function() {
 	if (this.mapping == 0) return;
 
-	var list = this.mapping.get(this.params.method);
+		var list = this.mapping.get(this.params.method);
 
-	for (var i = 0; i < list.length; i++) {
-		if (list[i] == this) {
-			list.splice(i, 1);
+		for (var i = 0; i < list.length; i++) {
+			if (list[i] == this) {
+				list.splice(i, 1);
+			}
 		}
-	}
 
-	this.mapping = 0;
+		this.mapping = 0;
+	},
 };
 /**
  * Holds a Meteor connection and uses it to send and receive Atoms.
@@ -1021,146 +1025,150 @@ psyc.Client = function(url) {
 	this.icount = 0;
 };
 // params = ( method : "_message", source : Uniform }
-/**
- * Register for certain incoming messages. This can be used to implement chat tabs or handlers for certain message types.
- * @params {Object} params Object containing the properties "method", "callback" and optionally "source". For all incoming messages matching "method" and "source" the callback is called. The "source" property should be of type psyc.Uniform.
- * @returns A wrapper object of type meteor.CallbackWrapper. It can be used to unregister the handler.
- */
-psyc.Client.prototype.register_method = function(params) {
-	var wrapper = new meteor.CallbackWrapper(params, this.callbacks);
-	
-	if (this.callbacks.hasIndex(params.method)) {
-		var list = this.callbacks.get(params.method);
-		list.push(wrapper);
-	} else {
-		this.callbacks.set(params.method, new Array( wrapper ) );
-	}
-
-	return wrapper;
-};
-psyc.Client.prototype.error = function(err) {
-	if (meteor.debug) meteor.debug(err);
-};
-/**
- * Send a message. This should be of type psyc.Message.
- * @params {Object} message Message to send.
- */
-psyc.Client.prototype.send = function(message) {
-	if (!(message.vars.get("_target") instanceof psyc.Uniform)) {
-		if (meteor.debug) meteor.debug("Message without _target is baaad!");
-	}
-
-	try {
-		this.connection.send(psyc.object_to_atom(message).render());
-	} catch (error) {
-		if (meteor.debug) meteor.debug("send() failed: "+error);
-	}
-	if (meteor.debug) meteor.debug("send successfull.");
-};
-/**
- * Request all messages up to id count from the PSYC user. This is done automatically if missing messages are detected during handshake with the user.
- * @params {Integer} count Message to send.
- */
-psyc.Client.prototype.sync = function(count) {
-	var list = new Array(count - this.icount);
-	for (var i = 0; this.icount+i+1 <= count; i++) {
-		list[i] = this.icount+i+1;
-	}
-	if (meteor.debug) meteor.debug("Asking for missing messages "+list.toString());
-	var message = new psyc.Message("_request_history", new psyc.Vars("_messages", list, "_target", this.uniform));
-	if (meteor.debug) meteor.debug("REQUEST_HISTORY: "+psyc.object_to_atom(message).render());
-	this.send(message);
-};
-psyc.Client.prototype.incoming = function (data) {
-	try {
-		data = this.parser.parse(data);
-	} catch (error) {
-		if (meteor.debug) meteor.debug("failed to parse: "+data);
-	}
-	for (var i in data) {
-		var m = psyc.atom_to_object(data[i]);
-		if (m instanceof psyc.Message) {
-			var method = m.method;	
-			var count = m.vars.get("_id");	
-
-			if (method == "_status_circuit") {
-				var last_id = m.vars.get("_last_id");
-				this.uniform = m.vars.get("_source");
-
-				if (intp(last_id) && this.icount < last_id) {
-					this.sync(last_id);
-					this.icount = count;
-				}
-			} 
-			
-			if (intp(count)) {
-				if (this.icount+1 < count) {
-					// request all up to count-1
-					this.sync(count-1);
-
-				} else if (this.icount == count - 1) {
-					this.icount = count;
-				} else if (meteor.debug) meteor.debug("historical message "+count);
-			}
-
-			var none = 1;
-
-			for (var t = method; t != 0; t = psyc.abbrev(t)) {
-				if (!this.callbacks.hasIndex(t)) continue;
-
-				none = 0;
-				var list = this.callbacks.get(t);
-
-				if (meteor.debug) meteor.debug("calling "+list);
-
-				for (var o in list) {
-					if (psyc.STOP == list[o].msg(m)) break;
-				}
-			}
-
-			if (meteor.debug && none) meteor.debug("No callback registered for "+method);
+psyc.Client.prototype = {
+	/**
+	 * Register for certain incoming messages. This can be used to implement chat tabs or handlers for certain message types.
+	 * @params {Object} params Object containing the properties "method", "callback" and optionally "source". For all incoming messages matching "method" and "source" the callback is called. The "source" property should be of type psyc.Uniform.
+	 * @returns A wrapper object of type meteor.CallbackWrapper. It can be used to unregister the handler.
+	 */
+	register_method : function(params) {
+		var wrapper = new meteor.CallbackWrapper(params, this.callbacks);
+		
+		if (this.callbacks.hasIndex(params.method)) {
+			var list = this.callbacks.get(params.method);
+			list.push(wrapper);
 		} else {
-			if (meteor.debug) meteor.debug("Got non _message atom from "+connection.toString());
+			this.callbacks.set(params.method, new Array( wrapper ) );
 		}
-	}
+
+		return wrapper;
+	},
+	error : function(err) {
+		if (meteor.debug) meteor.debug(err);
+	},
+	/**
+	 * Send a message. This should be of type psyc.Message.
+	 * @params {Object} message Message to send.
+	 */
+	send : function(message) {
+		if (!(message.vars.get("_target") instanceof psyc.Uniform)) {
+			if (meteor.debug) meteor.debug("Message without _target is baaad!");
+		}
+
+		try {
+			this.connection.send(psyc.object_to_atom(message).render());
+		} catch (error) {
+			if (meteor.debug) meteor.debug("send() failed: "+error);
+		}
+		if (meteor.debug) meteor.debug("send successfull.");
+	},
+	/**
+	 * Request all messages up to id count from the PSYC user. This is done automatically if missing messages are detected during handshake with the user.
+	 * @params {Integer} count Message to send.
+	 */
+	sync : function(count) {
+		var list = new Array(count - this.icount);
+		for (var i = 0; this.icount+i+1 <= count; i++) {
+			list[i] = this.icount+i+1;
+		}
+		if (meteor.debug) meteor.debug("Asking for missing messages "+list.toString());
+		var message = new psyc.Message("_request_history", new psyc.Vars("_messages", list, "_target", this.uniform));
+		if (meteor.debug) meteor.debug("REQUEST_HISTORY: "+psyc.object_to_atom(message).render());
+		this.send(message);
+	},
+	incoming : function (data) {
+		try {
+			data = this.parser.parse(data);
+		} catch (error) {
+			if (meteor.debug) meteor.debug("failed to parse: "+data);
+		}
+		for (var i in data) {
+			var m = psyc.atom_to_object(data[i]);
+			if (m instanceof psyc.Message) {
+				var method = m.method;	
+				var count = m.vars.get("_id");	
+
+				if (method == "_status_circuit") {
+					var last_id = m.vars.get("_last_id");
+					this.uniform = m.vars.get("_source");
+
+					if (intp(last_id) && this.icount < last_id) {
+						this.sync(last_id);
+						this.icount = count;
+					}
+				} 
+				
+				if (intp(count)) {
+					if (this.icount+1 < count) {
+						// request all up to count-1
+						this.sync(count-1);
+
+					} else if (this.icount == count - 1) {
+						this.icount = count;
+					} else if (meteor.debug) meteor.debug("historical message "+count);
+				}
+
+				var none = 1;
+
+				for (var t = method; t != 0; t = psyc.abbrev(t)) {
+					if (!this.callbacks.hasIndex(t)) continue;
+
+					none = 0;
+					var list = this.callbacks.get(t);
+
+					if (meteor.debug) meteor.debug("calling "+list);
+
+					for (var o in list) {
+						if (psyc.STOP == list[o].msg(m)) break;
+					}
+				}
+
+				if (meteor.debug && none) meteor.debug("No callback registered for "+method);
+			} else {
+				if (meteor.debug) meteor.debug("Got non _message atom from "+connection.toString());
+			}
+		}
+	},
 };
 psyc.ChatTab = function(div, name) {
 	this.div = div;
 	this.name = name;
 };
-psyc.ChatTab.prototype.hide = function() {
-	this.div.className = "chatwindow_hidden";
+psyc.ChatTab.prototype = {
+	hide : function() {
+		this.div.className = "chatwindow_hidden";
 
-	if (this.li) {
-		this.li.className = "chatheader_hidden";
-	}
+		if (this.li) {
+			this.li.className = "chatheader_hidden";
+		}
 
-	if (this.a) {
-		this.a.className = "chatlink_hidden";
-	}
-};
-psyc.ChatTab.prototype.show = function() {
-	this.div.className = "chatwindow_active";
-	if (this.li) {
-		this.li.className = "chatheader_active";
-	}
+		if (this.a) {
+			this.a.className = "chatlink_hidden";
+		}
+	},
+	show : function() {
+		this.div.className = "chatwindow_active";
+		if (this.li) {
+			this.li.className = "chatheader_active";
+		}
 
-	if (this.a) {
-		this.a.className = "chatlink_active";
-	}
-};
-psyc.ChatTab.prototype.msg = function(m) {
-	var p = document.createElement("p");
-	var title = (psyc.templates) ? psyc.render_template(psyc.templates.find_abbrev(m.method), m) : psyc.render_template("[_source] says: [data]", m);
-	var t = "";
-	var method = m.method;
-	while (method != 0) {
-		t += " "+method;
-		method = psyc.abbrev(method);
-	}
-	p.className = t;
-	p.appendChild(document.createTextNode(title));
-	this.div.appendChild(p);
+		if (this.a) {
+			this.a.className = "chatlink_active";
+		}
+	},
+	msg : function(m) {
+		var p = document.createElement("p");
+		var title = (psyc.templates) ? psyc.render_template(psyc.templates.find_abbrev(m.method), m) : psyc.render_template("[_source] says: [data]", m);
+		var t = "";
+		var method = m.method;
+		while (method != 0) {
+			t += " "+method;
+			method = psyc.abbrev(method);
+		}
+		p.className = t;
+		p.appendChild(document.createTextNode(title));
+		this.div.appendChild(p);
+	},
 };
 /**
  * Creates a new tabbed chat application.
@@ -1177,94 +1185,96 @@ psyc.Chat = function(client, div) {
 	div.insertBefore(this.ul, div.firstChild);
 	client.register_method({ method : "_", source : null, object : this });
 };
-psyc.Chat.prototype.msg = function(m) {
-	if (m.vars.hasIndex("_source")) {
-		var _source = m.vars.get("_source");
+psyc.Chat.prototype = {
+	msg : function(m) {
+		if (m.vars.hasIndex("_source")) {
+			var _source = m.vars.get("_source");
 
-		if (this.windows.hasIndex(_source.toString())) return;
+			if (this.windows.hasIndex(_source.toString())) return;
 
-		this.open_window(_source).msg(m);
-		return psyc.STOP;
-	} 
-};
-/**
- * Opens a new tab inside the chat. It will be used to display messages coming from the entity specified by uniform. Use this for cases like private messages where the conversation is not initiated by a handshake (in contrary to group chats).
- * @param {Object} uniform Uniform to use this ChatTab for.
- */
-psyc.Chat.prototype.open_tab = function(uniform) {
-	if (this.windows.hasIndex(uniform.toString())) {
-		// return the old one and focus
-		this.activate(uniform);
-		return this.windows.get(uniform.toString());
-	}
+			this.open_window(_source).msg(m);
+			return psyc.STOP;
+		} 
+	},
+	/**
+	 * Opens a new tab inside the chat. It will be used to display messages coming from the entity specified by uniform. Use this for cases like private messages where the conversation is not initiated by a handshake (in contrary to group chats).
+	 * @param {Object} uniform Uniform to use this ChatTab for.
+	 */
+	open_tab : function(uniform) {
+		if (this.windows.hasIndex(uniform.toString())) {
+			// return the old one and focus
+			this.activate(uniform);
+			return this.windows.get(uniform.toString());
+		}
 
-	var new_window = new psyc.ChatTab(document.createElement("div"), uniform.toString());
-	this.client.register_method({ method : "_", source : uniform, object : new_window });
-	this.add_window(new_window);
-	return new_window;
-};
-psyc.Chat.prototype.add_window = function(win) {
-	this.windows.set(win.name, win);
-	var li = document.createElement("li");
-	var a = document.createElement("a");
-	win.li = li;
-	win.a = a;
-	var cb = function(event) {
-		this.chat.activate(this.title);
+		var new_window = new psyc.ChatTab(document.createElement("div"), uniform.toString());
+		this.client.register_method({ method : "_", source : uniform, object : new_window });
+		this.add_window(new_window);
+		return new_window;
+	},
+	add_window : function(win) {
+		this.windows.set(win.name, win);
+		var li = document.createElement("li");
+		var a = document.createElement("a");
+		win.li = li;
+		win.a = a;
+		var cb = function(event) {
+			this.chat.activate(this.title);
+		};
+		a.href = "javascript:void(null)";
+		a.title = win.name; // TODO: do we need to escape?
+		a.onclick = cb;
+		a.chat = this;
+		a.appendChild(document.createTextNode(XSS.html_string_encode(win.name)));
+		li.appendChild(a);
+		this.ul.appendChild(li);
+		this.div.appendChild(win.div);
+
+		if (!this.active) {
+			this.active = win;
+			win.show();
+		} else {
+			win.hide();
+		}
+	},
+	/**
+	 * Removes the window win from the chat tab. Use this to close private conversations.
+	 * @param {Object} tab psyc.ChatTab object to remove.
+	 */
+	remove_tab : function(tab) {
+		this.window.remove(tab.name);
+	},
+	/**
+	 * Activate a chat tab. This sets the css class of the tabs div to "chatwindow_active" and the css class of the former active tab to "chatwindow_hidden". The css classes of the corresponding li header elements are changed accordingly.
+	 * @param {Object} id Id of the chat tab. This should normally be the Uniform of the entity this tab is associated with.
+	 */
+	activate : function(id) {
+		if (typeof(id) != "string") {
+			id = id.toString();
+		}
+
+		if (!this.windows.hasIndex(id)) {
+			throw("Trying to activate non-existing tab "+id.toString());
+		}
+
+		if (this.active) this.active.hide();
+		this.active = this.windows.get(id);
+		this.active.show();
+	},
+	/**
+	 * @param {Uniform} uniform
+	 * Requests membership in the given room. If the room has been entered successfully a new tab will be opened automatically.
+	 */
+	enter_room : function(uniform) {
+		var message = new psyc.Message("_request_enter", new psyc.Vars("_target", uniform));
+		this.client.send(message);
 	};
-	a.href = "javascript:void(null)";
-	a.title = win.name; // TODO: do we need to escape?
-	a.onclick = cb;
-	a.chat = this;
-	a.appendChild(document.createTextNode(XSS.html_string_encode(win.name)));
-	li.appendChild(a);
-	this.ul.appendChild(li);
-	this.div.appendChild(win.div);
-
-	if (!this.active) {
-		this.active = win;
-		win.show();
-	} else {
-		win.hide();
-	}
-};
-/**
- * Removes the window win from the chat tab. Use this to close private conversations.
- * @param {Object} tab psyc.ChatTab object to remove.
- */
-psyc.Chat.prototype.remove_tab = function(tab) {
-	this.window.remove(tab.name);
-};
-/**
- * Activate a chat tab. This sets the css class of the tabs div to "chatwindow_active" and the css class of the former active tab to "chatwindow_hidden". The css classes of the corresponding li header elements are changed accordingly.
- * @param {Object} id Id of the chat tab. This should normally be the Uniform of the entity this tab is associated with.
- */
-psyc.Chat.prototype.activate = function(id) {
-	if (typeof(id) != "string") {
-		id = id.toString();
-	}
-
-	if (!this.windows.hasIndex(id)) {
-		throw("Trying to activate non-existing tab "+id.toString());
-	}
-
-	if (this.active) this.active.hide();
-	this.active = this.windows.get(id);
-	this.active.show();
-};
-/**
- * @param {Uniform} uniform
- * Requests membership in the given room. If the room has been entered successfully a new tab will be opened automatically.
- */
-psyc.Chat.prototype.enter_room = function(uniform) {
-	var message = new psyc.Message("_request_enter", new psyc.Vars("_target", uniform));
-	this.client.send(message);
-};
-/**
- * @param {Uniform} uniform
- * Leaves a room.
- */
-psyc.Chat.prototype.leave_room = function(uniform) {
-	var message = new psyc.Message("_request_leave", new psyc.Vars("_target", uniform));
-	this.client.send(message);
+	/**
+	 * @param {Uniform} uniform
+	 * Leaves a room.
+	 */
+	leave_room : function(uniform) {
+		var message = new psyc.Message("_request_leave", new psyc.Vars("_target", uniform));
+		this.client.send(message);
+	},
 };
