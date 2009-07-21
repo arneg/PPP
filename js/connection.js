@@ -303,6 +303,13 @@ intp = function(i) {
 arrayp = function(a) {
 	return (typeof(a) == "object" && a instanceof Array);
 };
+
+stringp = function(s) {
+	return typeof(s) == "string";
+};
+functionp = function(f) {
+	return (typeof(f) == "object" && a instanceof Function);
+};
 if( typeof XMLHttpRequest == "undefined" ) XMLHttpRequest = function() {
   try { return new ActiveXObject("Msxml2.XMLHTTP.6.0") } catch(e) {}
   try { return new ActiveXObject("Msxml2.XMLHTTP.3.0") } catch(e) {}
@@ -1162,17 +1169,27 @@ psyc.ChatTab.prototype = {
 		}
 	},
 	msg : function(m) {
-		var p = document.createElement("p");
-		var title = (psyc.templates) ? psyc.render_template(psyc.templates.find_abbrev(m.method), m) : psyc.render_template("[_source] says: [data]", m);
-		var t = "";
-		var method = m.method;
-		while (method != 0) {
-			t += " "+method;
-			method = psyc.abbrev(method);
+		var node;
+		var template = (psyc.templates) ? psyc.templates.find_abbrev(m.method) : null;
+		if (!template) {
+			template = "[_source] says: [data]";
 		}
-		p.className = t;
-		p.appendChild(document.createTextNode(title));
-		this.div.appendChild(p);
+		if (stringp(template)) {
+			var p = document.createElement("p");
+			var title = (psyc.templates) ? psyc.render_template(psyc.templates.find_abbrev(m.method), m) : psyc.render_template(, m);
+			var t = "";
+			var method = m.method;
+			while (method != 0) {
+				t += " "+method;
+				method = psyc.abbrev(method);
+			}
+			p.className = t;
+			p.appendChild(document.createTextNode(title));
+			node = p;
+		} else {
+			node = template.call(m);
+		}
+		this.div.appendChild(node);
 	},
 };
 /**
