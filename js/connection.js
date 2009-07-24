@@ -831,7 +831,6 @@ meteor.Connection.prototype = {
 	},
 	incoming_state_change : function() {
 		var con = this.meteor;
-		con.error("incoming state is " + this.readyState);
 		if (this.readyState >= 3) {
 			//this.readyState = 2;
 
@@ -882,12 +881,27 @@ meteor.Connection.prototype = {
 			try { this.incoming.abort(); } catch (e) {}
 		}
 
+		if (this.operatimer) {
+			clearTimeout(this.operatimer);
+			this.operatimer = null;
+		}
+
 		xhr.onreadystatechange = this.incoming_state_change;
 		xhr.onerror = this.incoming_on_error;
 		this.error("moved new incoming to incoming.\n");
 		this.new_incoming = 0;
 		this.incoming = xhr;
 		meteor.Connection.prototype.incoming_state_change.call(xhr);
+
+		// This code polls the xhr for new data in case opera is used. its necessary
+		// because opera does not trigger an event if new data is available in state 3.
+		if (window.opera) {
+			var fun = function() {
+				meteor.Connection.prototype.incoming_state_change.call(xhr);
+			};
+			this.operatimer = setInterval(fun, 100);
+			if (meteor.debug) meteor.debug("timer: "+this.operatimer);
+		}
 	},
 	outgoing_state_change : function() {
 		var con = this.meteor;
