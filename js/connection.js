@@ -772,7 +772,7 @@ psyc.atom_to_object = function(atom) {
  */
 meteor.BUFFER_MAX = 1 << 16; // limit for incoming buffer, exceeding this buffer triggers a reconnect
 /**
- * Meteor connection class. This is usually used with Atom serialization on top. Use meteor.Client if unsure.
+ * Meteor connection class. This is usually used with Atom serialization on top. Use psyc.Client if unsure.
  * @param {String} url URL of the Meteor connection endpoint.
  * @param {Function} callback Function to be called when data has been received.
  * @param {Function} error Function to be called when a fatal error occures.
@@ -1176,7 +1176,7 @@ psyc.ChatTab.prototype = {
 		}
 		if (stringp(template)) {
 			var p = document.createElement("p");
-			var title = (psyc.templates) ? psyc.render_template(psyc.templates.find_abbrev(m.method), m) : psyc.render_template(, m);
+			var title = psyc.render_template(template, m);
 			var t = "";
 			var method = m.method;
 			while (method != 0) {
@@ -1214,7 +1214,7 @@ psyc.Chat.prototype = {
 
 			if (this.windows.hasIndex(_source.toString())) return;
 
-			this.open_window(_source).msg(m);
+			this.open_tab(_source).msg(m);
 			return psyc.STOP;
 		} 
 	},
@@ -1290,7 +1290,7 @@ psyc.Chat.prototype = {
 	enter_room : function(uniform) {
 		var message = new psyc.Message("_request_enter", new psyc.Vars("_target", uniform));
 		this.client.send(message);
-	};
+	},
 	/**
 	 * @param {Uniform} uniform
 	 * Leaves a room.
