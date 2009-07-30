@@ -294,22 +294,15 @@ POSSIBILITY OF SUCH DAMAGES.
 /**
  * @returns true if given value is an integer number.
  */
-intp = function(i) {
-	return (typeof(i) == "number" && i%1 == 0);
-};
+intp = function(i) { return (typeof(i) == "number" && i%1 == 0); };
 /**
  * @returns true if given value is array.
  */
-arrayp = function(a) {
-	return (typeof(a) == "object" && a instanceof Array);
-};
+arrayp = function(a) { return (typeof(a) == "object" && a instanceof Array); };
 
-stringp = function(s) {
-	return typeof(s) == "string";
-};
-functionp = function(f) {
-	return (typeof(f) == "object" && a instanceof Function);
-};
+stringp = function(s) { return typeof(s) == "string"; };
+functionp = function(f) { return (typeof(f) == "function" || f instanceof Function); };
+objectp = function(o) { return typeof(o) == "object"; }
 if( typeof XMLHttpRequest == "undefined" ) XMLHttpRequest = function() {
   try { return new ActiveXObject("Msxml2.XMLHTTP.6.0") } catch(e) {}
   try { return new ActiveXObject("Msxml2.XMLHTTP.3.0") } catch(e) {}
@@ -605,6 +598,12 @@ psyc.abbrev = function(method) {
 		return method.substr(0, i);
 	}
 }
+psyc.abbreviations = function(method) {
+	var ret = new Array();
+	do { ret.push(method); } while( (method = psyc.abbrev(method)) );
+
+	return ret;
+}
 /**
  * Generic PSYC Variable class. This should be used to represent PSYC message variables. 
  * @constructor
@@ -661,6 +660,8 @@ psyc.object_to_atom = function(o) {
 			}
 
 			return new psyc.Atom("_message", str);
+		} else if (o instanceof psyc.Date) {
+			return new psyc.Atom("_time", o.getTime());
 		} else if (o instanceof psyc.Uniform) {
 			return new psyc.Atom("_uniform", o.uniform);
 		} else if (o instanceof psyc.Vars) {
@@ -701,6 +702,8 @@ psyc.object_to_atom = function(o) {
  */
 psyc.atom_to_object = function(atom) {
     switch (atom.type) {
+	case "_time":
+		return new psyc.Date(parseInt(atom.data));
     case "_method":
 		return atom.data;
     case "_string":
@@ -1036,6 +1039,17 @@ meteor.CallbackWrapper.prototype = {
 		this.mapping = 0;
 	},
 };
+// not being able to use inheritance here stinks like fish.
+psyc.Date = function(timestamp) {
+	this.date = new Date();
+	this.date.setTime(timestamp * 1000);
+	this.render = function(type) {
+		return this.date.toLocaleString();
+	};
+	this.toString = function() {
+		return this.date.toLocaleString();
+	};
+};
 /**
  * Holds a Meteor connection and uses it to send and receive Atoms.
  * @constructor
@@ -1182,6 +1196,57 @@ psyc.ChatTab.prototype = {
 			this.a.className = "chatlink_active";
 		}
 	},
+	funky_psyctext : function(m, template) {
+		var reg = /\[\w+\]/g;
+		var div = document.createElement("div");
+		div.className = psyc.abbreviations(m.method).join(" ");
+		
+		var cb = function(result, m) {
+			s = result[0].substr(1, result[0].length-2);
+			var span = document.createElement("span");
+			span.className = s;
+			var t;
+
+			if (s == "data") {
+				t = XSS.html_string_encode(m.data);
+			} else if (s == "method") {
+				t = XSS.html_string_encode(m.method);
+			} else if (m.vars.hasIndex(s)) {
+				t = m.vars.get(s);
+				if (objectp(t)) {
+					if (functionp(t.render)) {
+						t = t.render();
+					} else {
+						t = t.toString();
+					}
+				}
+			} else {
+				span.className = "missing_variable";
+				t = "["+s+"]";
+			}
+
+			if (objectp(t)) {
+				span.appendChild(t);
+			} else {
+				span.appendChild(document.createTextNode(t));
+			}
+
+			return span;
+		};
+
+		var a = UTIL.split_replace(reg, template, cb, m);
+
+		for (var i in a) {
+			var t = a[i];
+			if (stringp(t)) {
+				div.appendChild(document.createTextNode(t));
+			} else {
+				div.appendChild(t);
+			}
+		}
+
+		return div;
+	},
 	msg : function(m) {
 		var node;
 		var template = (psyc.templates) ? psyc.templates.find_abbrev(m.method) : null;
@@ -1189,19 +1254,14 @@ psyc.ChatTab.prototype = {
 			template = "[_source] says: [data]";
 		}
 		if (stringp(template)) {
-			var p = document.createElement("p");
-			var title = psyc.render_template(template, m);
-			var t = "";
-			var method = m.method;
-			while (method != 0) {
-				t += " "+method;
-				method = psyc.abbrev(method);
-			}
-			p.className = t;
-			p.appendChild(document.createTextNode(title));
-			node = p;
+			node = this.funky_psyctext(m, template);
+		} else if (functionp(template)) {
+			node = template(m);
+		} else if (objectp(template)) {
+			node = template.msg(m);
 		} else {
-			node = template.call(m);
+			if (meteor.debug) meteor.debug("bad template: "+template.toSource());
+			return;
 		}
 		this.div.appendChild(node);
 	},
