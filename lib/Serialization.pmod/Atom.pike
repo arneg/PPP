@@ -204,6 +204,8 @@ int(0..1) `==(mixed a) {
     return a->type == type && action == a->action && a->data == data;
 }
 
+/*
 int __hash() {
     return hash(render());
 }
+*/
