@@ -2,7 +2,6 @@
 string type;
 string action;
 int bytes = UNDEFINED;
-int error = 0;
 string|String.Buffer buf = "";
 
 void reset(int bytes) {
@@ -10,11 +9,11 @@ void reset(int bytes) {
     this_program::bytes = UNDEFINED;
 
     if (bytes < sizeof(buf)) {
-	buf = ([string]buf)[bytes..];
+		buf = ([string]buf)[bytes..];
     } else if (bytes == sizeof(buf)) {
-	buf = "";
+		buf = "";
     } else {
-	throw(({ "bad reset()\n", backtrace() }));
+		error("bad reset()\n");
     }
 }
 
@@ -33,7 +32,7 @@ int|.Atom parse(void|string data) {
 
     if (!type) {
 	if (buf[0] != '_') {
-	    throw(({ "Broken Atom. Does not start with a type.\n", backtrace() }));
+	    error("Broken Atom. Does not start with a type. (%O)", buf);
 	}
 
 	int pos = search(buf, ' ');
