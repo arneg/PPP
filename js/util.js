@@ -33,3 +33,26 @@ UTIL.replace = function(reg, s, cb) {
 
 	return ret;
 }
+UTIL.split_replace = function(reg, s, cb) {
+	var res;
+	var last = 0;
+	var ret = new Array();
+	var extra;
+
+	if (arguments.length > 3) {
+		extra = new Array();
+		for (var i = 3; i < arguments.length; i++) extra[i-3] = arguments[i];
+	}
+
+	while (null != (res = reg.exec(s))) {
+		ret.push(s.substr(last, reg.lastIndex - res[0].length - last));
+		ret.push(extra ? cb.apply(null, [res].concat(extra)) : cb(res));
+		last = reg.lastIndex;
+	}
+
+	if (last < s.length) {
+		ret.push(s.substr(last));
+	}
+
+	return ret;
+}
