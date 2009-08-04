@@ -747,15 +747,15 @@ psyc.atom_to_object = function(atom) {
 
 		if (l.length == 3) {
 			vars = psyc.atom_to_object(l[0]);		
-			data = l[2].data; // we assume its a string.
-			method = l[1].data;
+			data = psyc.atom_to_object(l[2]);
+			method = psyc.atom_to_object(l[1]);
 		} else if (l.length == 2) {
 			if (l[0].type.substr(0, 7) == "_method") { // its teh vars
-				method = l[0].data;
+				method = psyc.atom_to_object(l[0]);
 				data = psyc.atom_to_object(l[1]);	
 			} else {
 				vars = psyc.atom_to_object(l[0]);		
-				method = l[1].data;
+				method = psyc.atom_to_object(l[1]);
 				data = 0;
 			}
 		} else if (l.length != 1) {
@@ -828,6 +828,8 @@ meteor.Connection.prototype = {
 		xhr.pos = 0;
 			
 		xhr.open("POST", this.url + "?" + this.client_id, true);
+		//xhr.overrideMimeType("text/plain; charset=ISO-8859-1");
+		xhr.overrideMimeType('text/plain; charset=x-user-defined');
 		xhr.onreadystatechange = this.new_incoming_state_change;
 		xhr.meteor = this;
 		xhr.send("");
@@ -839,14 +841,27 @@ meteor.Connection.prototype = {
 
 			// TODO: this line errors on IE
 			if (this.status == 200) {
-				if (this.responseText.length <= this.pos) return;
+				var length = this.responseBody ? this.responseBody.length : this.responseText.length;
+				var response = this.responseBody ? this.reponseBody : this.responseText;
+
+				if (length <= this.pos) return;
 				var str;
 
 				if (this.pos) {
-					str = (this.responseText.slice(this.pos));
+					str = (response.slice(this.pos));
 				} else {
-					str = (this.responseText);
+					str = response;
 				}
+
+				// ifdef firefox
+				if (navigator.userAgent.indexOf("Firefox") =! -1) {
+					var t = new Array;
+					for (var i = 0; i < str.length; i++) {
+						t.push(str.charCodeAt(i) & 0xff);
+					}
+					str = String.fromCharCode.apply(window, t);
+				}
+				// endif
 
 				if (con.callback.obj) {
 					con.callback.call(con.callback.obj, str);
@@ -854,7 +869,7 @@ meteor.Connection.prototype = {
 					con.callback(str);
 				}
 
-				this.pos = this.responseText.length;
+				this.pos = length;
 
 				if (this.readyState == 4 || this.pos >= psyc.BUFFER_MAX) {
 					con.connect_new_incoming();
@@ -932,6 +947,9 @@ meteor.Connection.prototype = {
 		//this.error("outgoing state is " + xhr.readyState);
 
 		xhr.open("POST", this.url + "?" + this.client_id, true);
+		// we do this charset hackery because we have internal utf8 and plain ascii
+		// for the rest of atom. this is supposed to be a binary transport
+		xhr.setRequestHeader("Content-Type", "application/binary");
 		xhr.onreadystatechange = this.outgoing_state_change;
 		xhr.meteor = this;
 		this.ready = 1;
@@ -996,6 +1014,9 @@ meteor.Connection.prototype = {
 		this.buffer += data;
 
 		if (this.client_id && this.ready) {
+			// ifdef firefox
+			//this.outgoing.setRequestHeader("Content-Length", this.buffer.length);
+			// endif
 			this.outgoing.send(this.buffer);   
 			this.ready = 0;
 			this.buffer = "";
