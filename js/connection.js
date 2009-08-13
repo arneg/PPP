@@ -950,28 +950,28 @@ psyc.Date = function(timestamp) {
 	};
 };
 psyc.default_polymorphic = function() {
-	var pol = new psyc.types.Polymorphic();
-	var method = new psyc.types.Method();
+	var pol = new serialization.Polymorphic();
+	var method = new serialization.Method();
 	// integer and string come first because they should not get overwritten by 
 	// method and float
-	pol.register_type("_string", "string", new psyc.types.String());
-	pol.register_type("_integer", "number", new psyc.types.Integer());
-	pol.register_type("_float", "float", new psyc.types.Float());
+	pol.register_type("_string", "string", new serialization.String());
+	pol.register_type("_integer", "number", new serialization.Integer());
+	pol.register_type("_float", "float", new serialization.Float());
 	pol.register_type("_method", "string", method);
-	pol.register_type("_message", psyc.Message, new psyc.types.Message(method, pol, pol));
-	pol.register_type("_mapping", psyc.Vars, new psyc.types.Mapping(method, pol));
-	pol.register_type("_mapping", psyc.Vars, new psyc.types.Mapping(pol, pol));
-	pol.register_type("_list", Array, new psyc.types.Array(pol));
-	pol.register_type("_time", psyc.Date, new psyc.types.Date());
-	pol.register_type("_uniform", psyc.Uniform, new psyc.types.Uniform());
+	pol.register_type("_message", psyc.Message, new serialization.Message(method, pol, pol));
+	pol.register_type("_mapping", psyc.Vars, new serialization.Mapping(method, pol));
+	pol.register_type("_mapping", psyc.Vars, new serialization.Mapping(pol, pol));
+	pol.register_type("_list", Array, new serialization.Array(pol));
+	pol.register_type("_time", psyc.Date, new serialization.Date());
+	pol.register_type("_uniform", psyc.Uniform, new serialization.Uniform());
 	return pol;
 }
-psyc.types = new Object();
-psyc.types.Polymorphic = function() {
+serialization = new Object();
+serialization.Polymorphic = function() {
 	this.atype_to_type = new Mapping(); // this could use inheritance
 	this.ptype_to_type = new Mapping();
 };
-psyc.types.Polymorphic.prototype = {
+serialization.Polymorphic.prototype = {
 	can_decode : function(atom) {
 		return this.atype_to_type.hasIndex(atom.type);	
 	},
@@ -1019,8 +1019,8 @@ psyc.types.Polymorphic.prototype = {
 		}
 	},
 };
-psyc.types.Date = function() { };
-psyc.types.Date.prototype = {
+serialization.Date = function() { };
+serialization.Date.prototype = {
 	can_decode : function(atom) {
 		return atom.type == "_time";
 	},
@@ -1034,12 +1034,12 @@ psyc.types.Date.prototype = {
 		return new psyc.Atom("_time", o.timestamp);
 	},
 };
-psyc.types.Message = function(method, vars, data) {
+serialization.Message = function(method, vars, data) {
 	this.mtype = method;
 	this.vtype = vars;
 	this.dtype = data;
 },
-psyc.types.Message.prototype = {
+serialization.Message.prototype = {
 	can_decode : function(atom) {
 		return atom.type == "_message";
 	},
@@ -1087,8 +1087,8 @@ psyc.types.Message.prototype = {
 		return new psyc.Atom("_message", str);
 	},
 };
-psyc.types.String = function() { };
-psyc.types.String.prototype = {
+serialization.String = function() { };
+serialization.String.prototype = {
 	can_decode : function(atom) {
 		return atom.type == "_string";
 	},
@@ -1102,8 +1102,8 @@ psyc.types.String.prototype = {
 		return new psyc.Atom("_string", UTF8.encode(o));
 	},
 };
-psyc.types.Integer = function() { };
-psyc.types.Integer.prototype = {
+serialization.Integer = function() { };
+serialization.Integer.prototype = {
 	can_decode : function(atom) {
 		return atom.type == "_integer";
 	},
@@ -1117,8 +1117,8 @@ psyc.types.Integer.prototype = {
 		return new psyc.Atom("_integer", o.toString());
 	},
 };
-psyc.types.Float = function() { };
-psyc.types.Float.prototype = {
+serialization.Float = function() { };
+serialization.Float.prototype = {
 	can_decode : function(atom) {
 		return atom.type == "_integer";
 	},
@@ -1132,10 +1132,10 @@ psyc.types.Float.prototype = {
 		return new psyc.Atom("_float", o.toString());
 	},
 };
-psyc.types.Method = function(base) { 
+serialization.Method = function(base) { 
 	this.base = base;
 };
-psyc.types.Method.prototype = {
+serialization.Method.prototype = {
 	can_decode : function(atom) {
 		return atom.type == "_method";
 	},
@@ -1149,8 +1149,8 @@ psyc.types.Method.prototype = {
 		return new psyc.Atom("_method", o);
 	},
 };
-psyc.types.Uniform = function() { };
-psyc.types.Uniform.prototype = {
+serialization.Uniform = function() { };
+serialization.Uniform.prototype = {
 	can_decode : function(atom) {
 		return atom.type == "_uniform";
 	},
@@ -1164,11 +1164,11 @@ psyc.types.Uniform.prototype = {
 		return new psyc.Atom("_uniform", o.uniform);
 	},
 };
-psyc.types.Mapping = function(mtype, vtype) { 
+serialization.Mapping = function(mtype, vtype) { 
 	this.mtype = mtype;
 	this.vtype = vtype;
 };
-psyc.types.Mapping.prototype = {
+serialization.Mapping.prototype = {
 	can_decode : function(atom) {
 		return atom.type == "_mapping";
 	},
@@ -1204,18 +1204,18 @@ psyc.types.Mapping.prototype = {
 		return new psyc.Atom("_mapping", str);
 	},
 };
-psyc.types.Vars = function(vtype) { 
-	this.mtype = new psyc.types.Method();
+serialization.Vars = function(vtype) { 
+	this.mtype = new serialization.Method();
 	this.vtype = vtype;
 	this.can_encode = function(o) {
 		return o instanceof psyc.Vars;
 	};
 };
-psyc.types.Vars.prototype = psyc.types.Mapping.prototype;
-psyc.types.Array = function(type) { 
+serialization.Vars.prototype = serialization.Mapping.prototype;
+serialization.Array = function(type) { 
 	this.type = type;
 };
-psyc.types.Array.prototype = {
+serialization.Array.prototype = {
 	can_decode : function(atom) {
 		return atom.type == "_list";
 	},
@@ -1250,9 +1250,9 @@ psyc.Client = function(url) {
 	this.callbacks = new Mapping();
 	this.connection = new meteor.Connection(url, this.incoming, this.error);
 	this.connection.init();
-	var method = new psyc.types.Method();
+	var method = new serialization.Method();
 	var pol = psyc.default_polymorphic();
-	this.poly = new psyc.types.Message(method, new psyc.types.Mapping(method, pol), pol);
+	this.poly = new serialization.Message(method, new serialization.Mapping(method, pol), pol);
 	this.parser = new psyc.AtomParser();
 	this.incoming.obj = this;
 	this.error.obj = this;
