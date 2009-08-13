@@ -141,6 +141,7 @@ function Mapping() {
 	}
 }
 Mapping.prototype = {
+	constructor : Mapping,
     sfy : function(key) { // sfy ==> stringify
 		// better use if (key.__proto__ == String.prototype) { ??
 		// also there is somewhere something like isPrototypeOf(proto, instance). what about that?
@@ -221,9 +222,13 @@ Mapping.prototype = {
 	/**
 	 * Loops over all entries in the mapping and calls cb for each pair of (key, value).
 	 */
-    forEach : function(cb) {
+    forEach : function(cb, context) {
 		for (var i in this.n) {
-			cb(this.n[i], this.m[i]);
+			if (context) {
+				cb.call(context, this.n[i], this.m[i]);
+			} else {
+				cb(this.n[i], this.m[i]);
+			}
 		}
     },
 
