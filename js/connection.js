@@ -396,7 +396,6 @@ psyc.Uniform = function(str) {
 			this.base = this.object;
 		}
     }
-
 };
 /**
  * Atom parser class.
@@ -546,8 +545,8 @@ psyc.Atom = function(type, data) {
 psyc.Message = function(method, vars, data) {
     this.method = method;
     this.toString = function() {
-		var ret = "psyc.Packet("+this.method+", ([ ";
-		ret += psyc.print_vars(this.vars);
+		var ret = "psyc.Message("+this.method+", ([ ";
+		ret += this.vars.toString();
 		ret += "]))";
 		return ret;
     };
@@ -996,13 +995,13 @@ psyc.types.Polymorphic.prototype = {
 	encode : function(o) {
 		var t = typeof(o);
 		if (t == "object") t = o.constructor;
-		var types = this.atype_to_type.get(t);
+		var types = this.ptype_to_type.get(t);
 		for (var i in types) {
 			if (types[i].can_encode(o)) {
 				return types[i].encode(o);
 			}
 		}
-		throw("Cannot encode "+o.toString());
+		throw("Cannot encode ("+t+","+o.toString()+")");
 	},
 	register_type : function(atype, ptype, o) {
 		var t;
@@ -1040,7 +1039,7 @@ psyc.types.Message = function(method, vars, data) {
 	this.vtype = vars;
 	this.dtype = data;
 },
-psyc.types.Message = {
+psyc.types.Message.prototype = {
 	can_decode : function(atom) {
 		return atom.type == "_message";
 	},
@@ -1054,17 +1053,19 @@ psyc.types.Message = {
 		var data;
 		var vars;
 
+		if (meteor.debug) meteor.debug("length of "+atom.type+"is "+l.length);
+
 		if (l.length == 3) {
-			vars = vtype.decode(l[0]);		
-			data = dtype.decode(l[2]);
-			method = mtype.decode(l[1]);
+			vars = this.vtype.decode(l[0]);		
+			data = this.dtype.decode(l[2]);
+			method = this.mtype.decode(l[1]);
 		} else if (l.length == 2) {
 			if (l[0].type.substr(0, 7) == "_method") { // its teh vars
-				method = mtype.decode(l[0]);
-				data = dtype.decode(l[1]);	
+				method = this.mtype.decode(l[0]);
+				data = this.dtype.decode(l[1]);	
 			} else {
-				vars = vtype.decode(l[0]);		
-				method = mtype.decode(l[1]);
+				vars = this.vtype.decode(l[0]);		
+				method = this.mtype.decode(l[1]);
 				data = 0;
 			}
 		} else if (l.length != 1) {
@@ -1075,12 +1076,12 @@ psyc.types.Message = {
 	},
 	encode : function(o) {
 		var str = "";
-		str += vtype.encode(o.vars).render();		
+		str += this.vtype.encode(o.vars).render();		
 
-		str += mtype.encode(o.method).render();
+		str += this.mtype.encode(o.method).render();
 
 		if (o.data != undefined) {
-			str += dtype.encode(o.data).render();
+			str += this.dtype.encode(o.data).render();
 		}
 
 		return new psyc.Atom("_message", str);
@@ -1182,8 +1183,8 @@ psyc.types.Mapping.prototype = {
 		if (l.length & 1) throw("Malformed mapping.\n");
 		
 		for (var i = 0;i < l.length; i+=2) {
-			var key = mtype.decode(l[i]);
-			var val = vtype.decode(l[i+1]);
+			var key = this.mtype.decode(l[i]);
+			var val = this.vtype.decode(l[i+1]);
 			m.set(key, val);
 		}
 
@@ -1193,22 +1194,22 @@ psyc.types.Mapping.prototype = {
 		var str = "";
 
 		o.forEach(function (key, val) {
-			if (!mtype.can_encode(key) || !vtype.can_encode(val)) {
-				throw("Type cannot encode this.");
+			if (!this.mtype.can_encode(key) || !this.vtype.can_encode(val)) {
+				throw("Type cannot encode "+key+" : "+val);
 			}
 
-			str += mtype.encode(key).render();	
-			str += vtype.encode(val).render();	
-		});
+			str += this.mtype.encode(key).render();	
+			str += this.vtype.encode(val).render();	
+		}, this);
 		return new psyc.Atom("_mapping", str);
 	},
 };
 psyc.types.Vars = function(vtype) { 
 	this.mtype = new psyc.types.Method();
 	this.vtype = vtype;
-	this.can_encode : function(o) {
+	this.can_encode = function(o) {
 		return o instanceof psyc.Vars;
-	}
+	};
 };
 psyc.types.Vars.prototype = psyc.types.Mapping.prototype;
 psyc.types.Array = function(type) { 
@@ -1226,7 +1227,7 @@ psyc.types.Array.prototype = {
 		var l = p.parse(atom.data);
 		var i = 0;
 		while (i < l.length) {
-			l[i] = type.decode(l[i]);
+			l[i] = this.type.decode(l[i]);
 			i++;
 		}
 
@@ -1235,7 +1236,7 @@ psyc.types.Array.prototype = {
 	encode : function(o) {
 		var str = "";
 		for (var i = 0; i < o.length; i++) {
-			str += type.encode(o[i]).render();
+			str += this.type.encode(o[i]).render();
 		}
 		return new psyc.Atom("_list", str);
 	},
@@ -1249,7 +1250,9 @@ psyc.Client = function(url) {
 	this.callbacks = new Mapping();
 	this.connection = new meteor.Connection(url, this.incoming, this.error);
 	this.connection.init();
-	this.poly = psyc.default_polymorphic();
+	var method = new psyc.types.Method();
+	var pol = psyc.default_polymorphic();
+	this.poly = new psyc.types.Message(method, new psyc.types.Mapping(method, pol), pol);
 	this.parser = new psyc.AtomParser();
 	this.incoming.obj = this;
 	this.error.obj = this;
@@ -1287,9 +1290,18 @@ psyc.Client.prototype = {
 		}
 
 		try {
-			this.connection.send(poly.encode(message).render());
+			this.connection.send(this.poly.encode(message).render());
 		} catch (error) {
-			if (meteor.debug) meteor.debug("send() failed: "+error);
+			if (meteor.debug) {
+				if (typeof(error) == "object") {
+					var str = "";
+					for (var i in error) {
+						str += i+" "+error[i]+"\n";
+					}
+					meteor.debug("send() failed: "+str);
+				} else meteor.debug("send() failed: "+error);
+			}
+			return;
 		}
 		if (meteor.debug) meteor.debug("send successfull.");
 	},
@@ -1304,7 +1316,7 @@ psyc.Client.prototype = {
 		}
 		if (meteor.debug) meteor.debug("Asking for missing messages "+list.toString());
 		var message = new psyc.Message("_request_history", new psyc.Vars("_messages", list, "_target", this.uniform));
-		if (meteor.debug) meteor.debug("REQUEST_HISTORY: "+poly.encode(message).render());
+		if (meteor.debug) meteor.debug("REQUEST_HISTORY: "+this.poly.encode(message).render());
 		this.send(message);
 	},
 	incoming : function (data) {
@@ -1314,7 +1326,12 @@ psyc.Client.prototype = {
 			if (meteor.debug) meteor.debug("failed to parse: "+data);
 		}
 		for (var i in data) {
-			var m = poly.decode(data[i]);
+			try {
+				var m = this.poly.decode(data[i]);
+			} catch (error) {
+				if (meteor.debug) meteor.debug("failed to decode: "+data[i]);
+				continue;
+			}
 			if (m instanceof psyc.Message) {
 				var method = m.method;	
 				var count = m.vars.get("_id");	
@@ -1388,7 +1405,7 @@ psyc.ChatTab.prototype = {
 		}
 	},
 	funky_psyctext : function(m, template) {
-		var reg = /\[\w+\]/g;
+		var reg = /\[[\w-]+\]/g;
 		var div = document.createElement("div");
 		div.className = psyc.abbreviations(m.method).join(" ");
 		
@@ -1396,13 +1413,16 @@ psyc.ChatTab.prototype = {
 			s = result[0].substr(1, result[0].length-2);
 			var span = document.createElement("span");
 			span.className = s;
-			var a = s.split(":");
+			var a = s.split("-");
 			s = a[0];
 			var type;
 			if (a.length > 1) {
 				type = a[1];
+				span.className = s+" "+type+" "+span.className;
 			}
 			var t;
+
+			meteor.debug(s + " " + type);
 
 			if (s == "data") {
 				t = XSS.html_string_encode(m.data);
