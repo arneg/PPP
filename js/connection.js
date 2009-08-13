@@ -634,143 +634,6 @@ psyc.Vars.prototype.find_abbrev = function(key) {
 	return undefined;
 };
 /**
- * Transforms a javascript object into the corresponding object. Supports _string, _integer, _float, _method, _mapping, _list, _message and _uniform.
- */
-psyc.object_to_atom = function(o) {
-    switch (typeof(o)) {
-    case "string":
-		return new psyc.Atom("_string", UTF8.encode(o));
-    case "number":
-		if (intp(o)) {
-			return new psyc.Atom("_integer", o.toString());
-		} else {
-			return new psyc.Atom("_float", o.toString());
-		}
-    case "object":
-		if (o instanceof psyc.Message) {
-			var str = "";
-			//if (psyc.mapping_length(o.vars)) {
-				str += psyc.object_to_atom(o.vars).render();		
-			//}
-
-			str += (new psyc.Atom("_method", o.method)).render();
-
-			if (o.data != undefined) {
-				str += psyc.object_to_atom(o.data).render();
-			}
-
-			return new psyc.Atom("_message", str);
-		} else if (o instanceof psyc.Date) {
-			return new psyc.Atom("_time", o.getTime());
-		} else if (o instanceof psyc.Uniform) {
-			return new psyc.Atom("_uniform", o.uniform);
-		} else if (o instanceof psyc.Vars) {
-			var str = "";
-
-			o.forEach(function (key, val) {
-				if (typeof(key) != "string") {
-					throw("Vars mapping with non-string key found.");
-				}
-
-				str += new psyc.Atom("_method", key).render();	
-				str += psyc.object_to_atom(val).render();	
-			});
-			
-			return new psyc.Atom("_mapping", str);
-		} else if (o instanceof Mapping) {
-			var str = "";
-
-			o.forEach(function (key, val) {
-				str += psyc.object_to_atom(key).render();	
-				str += psyc.object_to_atom(val).render();	
-			});
-			
-			return new psyc.Atom("_mapping", str);
-		} else if (o instanceof Array) {
-			var str = "";
-			for (var i = 0; i < o.length; i++) {
-				str += psyc.object_to_atom(o[i]).render();
-			}
-			return new psyc.Atom("_list", str);
-		} 
-	default:
-		throw("Unknown object type. Cannot serialize: "+o);
-    }
-};
-/**
- * Transforms an psyc#Atom into the corresponding javascript object.
- */
-psyc.atom_to_object = function(atom) {
-    switch (atom.type) {
-	case "_time":
-		return new psyc.Date(parseInt(atom.data));
-    case "_method":
-		return atom.data;
-    case "_string":
-		return UTF8.decode(atom.data);
-    case "_integer":
-		return parseInt(atom.data);
-    case "_float":
-		return parseFloat(atom.data);
-    case "_list": do {
-		var p = new psyc.AtomParser();
-		var l = p.parse(atom.data);
-		var i = 0;
-		while (i < l.length) {
-			l[i] = psyc.atom_to_object(l[i]);
-			i++;
-		}
-
-		return l;
-    } while (0);
-    case "_mapping": do {
-		var p = new psyc.AtomParser();
-		var l = p.parse(atom.data);
-		var m = new Mapping();
-
-		if (l.length & 1) throw("Malformed mapping.\n");
-		
-		for (var i = 0;i < l.length; i+=2) {
-			var key = psyc.atom_to_object(l[i]);
-			var val = psyc.atom_to_object(l[i+1]);
-			m.set(key, val);
-		}
-
-		return m;
-    } while (0);
-    case "_message": do {
-		var p = new psyc.AtomParser();
-		var l = p.parse(atom.data);
-		var method;
-		var data;
-		var vars;
-
-		if (l.length == 3) {
-			vars = psyc.atom_to_object(l[0]);		
-			data = psyc.atom_to_object(l[2]);
-			method = psyc.atom_to_object(l[1]);
-		} else if (l.length == 2) {
-			if (l[0].type.substr(0, 7) == "_method") { // its teh vars
-				method = psyc.atom_to_object(l[0]);
-				data = psyc.atom_to_object(l[1]);	
-			} else {
-				vars = psyc.atom_to_object(l[0]);		
-				method = psyc.atom_to_object(l[1]);
-				data = 0;
-			}
-		} else if (l.length != 1) {
-			throw("bad _message"); 
-		}
-
-		return new psyc.Message(method, vars, data);
-    } while (0);
-    case "_uniform":
-		return new psyc.get_uniform(atom.data);
-	default:
-		throw("Unknown atom type. Cannot decode " + atom);
-    }
-};
-/**
  * Limit for the incoming buffer. When the incoming XMLHttpRequest object buffer grows larger than this, the connection is reinitiated.
  */
 meteor.BUFFER_MAX = 1 << 16; // limit for incoming buffer, exceeding this buffer triggers a reconnect
@@ -853,8 +716,8 @@ meteor.Connection.prototype = {
 					str = response;
 				}
 
-				// ifdef firefox
-				if (navigator.userAgent.indexOf("Firefox") =! -1) {
+				// ifdef firefox or safari
+				if (navigator.userAgent.indexOf("Firefox") != -1 || navigator.userAgent.indexOf("Safari") != -1) {
 					var t = new Array;
 					for (var i = 0; i < str.length; i++) {
 						t.push(str.charCodeAt(i) & 0xff);
@@ -1065,11 +928,317 @@ psyc.Date = function(timestamp) {
 	this.date = new Date();
 	this.date.setTime(timestamp * 1000);
 	this.render = function(type) {
+		switch (type) {
+		case "_month": return this.date.getMonth();
+		case "_month_utc": return this.date.getUTCMonth();
+		case "_weekday": return this.date.getDay();
+		case "_monthday": return this.date.getDate();
+		case "_monthday_utc": return this.date.getUTCDate();
+		case "_minutes": return this.date.getMinutes();
+		case "_minutes_utc": return this.date.getUTCMinutes();
+		case "_seconds": return this.date.getSeconds();
+		case "_seconds_utc": return this.date.getUTCSeconds();
+		case "_timezone_offset": return this.date.getTimezoneOffset();
+		case "_year": return this.date.getFullYear();
+		case "_year_utc": return this.date.getUTCFullYear();
+		case "_hours": return this.date.getHours();
+		case "_hours_utc": return this.date.getUTCHours();
+		}
 		return this.date.toLocaleString();
 	};
 	this.toString = function() {
 		return this.date.toLocaleString();
 	};
+};
+psyc.default_polymorphic = function() {
+	var pol = new psyc.types.Polymorphic();
+	var method = new psyc.types.Method();
+	// integer and string come first because they should not get overwritten by 
+	// method and float
+	pol.register_type("_string", "string", new psyc.types.String());
+	pol.register_type("_integer", "number", new psyc.types.Integer());
+	pol.register_type("_float", "float", new psyc.types.Float());
+	pol.register_type("_method", "string", method);
+	pol.register_type("_message", psyc.Message, new psyc.types.Message(method, pol, pol));
+	pol.register_type("_mapping", psyc.Vars, new psyc.types.Mapping(method, pol));
+	pol.register_type("_mapping", psyc.Vars, new psyc.types.Mapping(pol, pol));
+	pol.register_type("_list", Array, new psyc.types.Array(pol));
+	pol.register_type("_time", psyc.Date, new psyc.types.Date());
+	pol.register_type("_uniform", psyc.Uniform, new psyc.types.Uniform());
+	return pol;
+}
+psyc.types = new Object();
+psyc.types.Polymorphic = function() {
+	this.atype_to_type = new Mapping(); // this could use inheritance
+	this.ptype_to_type = new Mapping();
+};
+psyc.types.Polymorphic.prototype = {
+	can_decode : function(atom) {
+		return this.atype_to_type.hasIndex(atom.type);	
+	},
+	can_encode : function(o) {
+		var t = typeof(o);
+		if (t == "object") {
+			return this.ptype_to_type.hasIndex(o.constructor);
+		}
+		return this.ptype_to_type.hasIndex(t);
+	},
+	decode : function(atom) {
+		var types = this.atype_to_type.get(atom.type);
+		for (var i in types) {
+			if (types[i].can_decode(atom)) {
+				return types[i].decode(atom);
+			}
+		}
+
+		throw("Cannot decode "+atom.toString());
+	},
+	encode : function(o) {
+		var t = typeof(o);
+		if (t == "object") t = o.constructor;
+		var types = this.atype_to_type.get(t);
+		for (var i in types) {
+			if (types[i].can_encode(o)) {
+				return types[i].encode(o);
+			}
+		}
+		throw("Cannot encode "+o.toString());
+	},
+	register_type : function(atype, ptype, o) {
+		var t;
+
+		if (t = this.atype_to_type.get(atype)) {
+			t.push(o);
+		} else {
+			this.atype_to_type.set(atype, new Array(o));
+		}
+
+		if (t = this.ptype_to_type.get(ptype)) {
+			t.push(o);
+		} else {
+			this.ptype_to_type.set(ptype, new Array(o));
+		}
+	},
+};
+psyc.types.Date = function() { };
+psyc.types.Date.prototype = {
+	can_decode : function(atom) {
+		return atom.type == "_time";
+	},
+	can_encode : function(o) {
+		return o instanceof psyc.Date;
+	},
+	decode : function(atom) {
+		return new psyc.Date(parseInt(atom.data));
+	},
+	encode : function(o) {
+		return new psyc.Atom("_time", o.timestamp);
+	},
+};
+psyc.types.Message = function(method, vars, data) {
+	this.mtype = method;
+	this.vtype = vars;
+	this.dtype = data;
+},
+psyc.types.Message = {
+	can_decode : function(atom) {
+		return atom.type == "_message";
+	},
+	can_encode : function(o) {
+		return o instanceof psyc.Message;
+	},
+	decode : function(atom) {
+		var p = new psyc.AtomParser();
+		var l = p.parse(atom.data);
+		var method;
+		var data;
+		var vars;
+
+		if (l.length == 3) {
+			vars = vtype.decode(l[0]);		
+			data = dtype.decode(l[2]);
+			method = mtype.decode(l[1]);
+		} else if (l.length == 2) {
+			if (l[0].type.substr(0, 7) == "_method") { // its teh vars
+				method = mtype.decode(l[0]);
+				data = dtype.decode(l[1]);	
+			} else {
+				vars = vtype.decode(l[0]);		
+				method = mtype.decode(l[1]);
+				data = 0;
+			}
+		} else if (l.length != 1) {
+			throw("bad _message"); 
+		}
+
+		return new psyc.Message(method, vars, data);
+	},
+	encode : function(o) {
+		var str = "";
+		str += vtype.encode(o.vars).render();		
+
+		str += mtype.encode(o.method).render();
+
+		if (o.data != undefined) {
+			str += dtype.encode(o.data).render();
+		}
+
+		return new psyc.Atom("_message", str);
+	},
+};
+psyc.types.String = function() { };
+psyc.types.String.prototype = {
+	can_decode : function(atom) {
+		return atom.type == "_string";
+	},
+	can_encode : function(o) {
+		return typeof(o) == "string";
+	},
+	decode : function(atom) {
+		return UTF8.decode(atom.data);
+	},
+	encode : function(o) {
+		return new psyc.Atom("_string", UTF8.encode(o));
+	},
+};
+psyc.types.Integer = function() { };
+psyc.types.Integer.prototype = {
+	can_decode : function(atom) {
+		return atom.type == "_integer";
+	},
+	can_encode : function(o) {
+		return intp(o);
+	},
+	decode : function(atom) {
+		return parseInt(atom.data);
+	},
+	encode : function(o) {
+		return new psyc.Atom("_integer", o.toString());
+	},
+};
+psyc.types.Float = function() { };
+psyc.types.Float.prototype = {
+	can_decode : function(atom) {
+		return atom.type == "_integer";
+	},
+	can_encode : function(o) {
+		return floatp(o);
+	},
+	decode : function(atom) {
+		return parseFloat(atom.data);
+	},
+	encode : function(o) {
+		return new psyc.Atom("_float", o.toString());
+	},
+};
+psyc.types.Method = function(base) { 
+	this.base = base;
+};
+psyc.types.Method.prototype = {
+	can_decode : function(atom) {
+		return atom.type == "_method";
+	},
+	can_encode : function(o) {
+		return stringp(o);
+	},
+	decode : function(atom) {
+		return atom.data;
+	},
+	encode : function(o) {
+		return new psyc.Atom("_method", o);
+	},
+};
+psyc.types.Uniform = function() { };
+psyc.types.Uniform.prototype = {
+	can_decode : function(atom) {
+		return atom.type == "_uniform";
+	},
+	can_encode : function(o) {
+		return o instanceof psyc.Uniform;
+	},
+	decode : function(atom) {
+		return psyc.get_uniform(atom.data);
+	},
+	encode : function(o) {
+		return new psyc.Atom("_uniform", o.uniform);
+	},
+};
+psyc.types.Mapping = function(mtype, vtype) { 
+	this.mtype = mtype;
+	this.vtype = vtype;
+};
+psyc.types.Mapping.prototype = {
+	can_decode : function(atom) {
+		return atom.type == "_mapping";
+	},
+	can_encode : function(o) {
+		return o instanceof psyc.Mapping;
+	},
+	decode : function(atom) {
+		var p = new psyc.AtomParser();
+		var l = p.parse(atom.data);
+		var m = new Mapping();
+
+		if (l.length & 1) throw("Malformed mapping.\n");
+		
+		for (var i = 0;i < l.length; i+=2) {
+			var key = mtype.decode(l[i]);
+			var val = vtype.decode(l[i+1]);
+			m.set(key, val);
+		}
+
+		return m;
+	},
+	encode : function(o) {
+		var str = "";
+
+		o.forEach(function (key, val) {
+			if (!mtype.can_encode(key) || !vtype.can_encode(val)) {
+				throw("Type cannot encode this.");
+			}
+
+			str += mtype.encode(key).render();	
+			str += vtype.encode(val).render();	
+		});
+		return new psyc.Atom("_mapping", str);
+	},
+};
+psyc.types.Vars = function(vtype) { 
+	this.mtype = new psyc.types.Method();
+	this.vtype = vtype;
+	this.can_encode : function(o) {
+		return o instanceof psyc.Vars;
+	}
+};
+psyc.types.Vars.prototype = psyc.types.Mapping.prototype;
+psyc.types.Array = function(type) { 
+	this.type = type;
+};
+psyc.types.Array.prototype = {
+	can_decode : function(atom) {
+		return atom.type == "_list";
+	},
+	can_encode : function(o) {
+		return o instanceof Array;
+	},
+	decode : function(atom) {
+		var p = new psyc.AtomParser();
+		var l = p.parse(atom.data);
+		var i = 0;
+		while (i < l.length) {
+			l[i] = type.decode(l[i]);
+			i++;
+		}
+
+		return l;
+	},
+	encode : function(o) {
+		var str = "";
+		for (var i = 0; i < o.length; i++) {
+			str += type.encode(o[i]).render();
+		}
+		return new psyc.Atom("_list", str);
+	},
 };
 /**
  * Holds a Meteor connection and uses it to send and receive Atoms.
@@ -1080,6 +1249,7 @@ psyc.Client = function(url) {
 	this.callbacks = new Mapping();
 	this.connection = new meteor.Connection(url, this.incoming, this.error);
 	this.connection.init();
+	this.poly = psyc.default_polymorphic();
 	this.parser = new psyc.AtomParser();
 	this.incoming.obj = this;
 	this.error.obj = this;
@@ -1117,7 +1287,7 @@ psyc.Client.prototype = {
 		}
 
 		try {
-			this.connection.send(psyc.object_to_atom(message).render());
+			this.connection.send(poly.encode(message).render());
 		} catch (error) {
 			if (meteor.debug) meteor.debug("send() failed: "+error);
 		}
@@ -1134,7 +1304,7 @@ psyc.Client.prototype = {
 		}
 		if (meteor.debug) meteor.debug("Asking for missing messages "+list.toString());
 		var message = new psyc.Message("_request_history", new psyc.Vars("_messages", list, "_target", this.uniform));
-		if (meteor.debug) meteor.debug("REQUEST_HISTORY: "+psyc.object_to_atom(message).render());
+		if (meteor.debug) meteor.debug("REQUEST_HISTORY: "+poly.encode(message).render());
 		this.send(message);
 	},
 	incoming : function (data) {
@@ -1144,7 +1314,7 @@ psyc.Client.prototype = {
 			if (meteor.debug) meteor.debug("failed to parse: "+data);
 		}
 		for (var i in data) {
-			var m = psyc.atom_to_object(data[i]);
+			var m = poly.decode(data[i]);
 			if (m instanceof psyc.Message) {
 				var method = m.method;	
 				var count = m.vars.get("_id");	
@@ -1226,6 +1396,12 @@ psyc.ChatTab.prototype = {
 			s = result[0].substr(1, result[0].length-2);
 			var span = document.createElement("span");
 			span.className = s;
+			var a = s.split(":");
+			s = a[0];
+			var type;
+			if (a.length > 1) {
+				type = a[1];
+			}
 			var t;
 
 			if (s == "data") {
@@ -1236,7 +1412,7 @@ psyc.ChatTab.prototype = {
 				t = m.vars.get(s);
 				if (objectp(t)) {
 					if (functionp(t.render)) {
-						t = t.render();
+						t = t.render(type);
 					} else {
 						t = t.toString();
 					}
@@ -1284,7 +1460,10 @@ psyc.ChatTab.prototype = {
 			if (meteor.debug) meteor.debug("bad template: "+template.toSource());
 			return;
 		}
-		this.div.appendChild(node);
+		if (node) {
+			this.div.appendChild(node);
+			this.div.scrollTop = this.div.scrollHeight;
+		}
 	},
 };
 /**
