@@ -82,7 +82,7 @@ UTF8.decode = function(str) {
 							   | (c4 & 0x3f));
 				i+=3;
 			} else {
-				throw("Invalid UTF8 sequence at pos "+i);
+				throw("Invalid UTF8 sequence ("+c.toString()+") at pos "+i);
 			}
 
 			mark = i+1;
