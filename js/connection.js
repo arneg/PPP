@@ -356,10 +356,6 @@ psyc.Uniform = function(str) {
 		throw("Invalid uniform: " + str);	
     }
     this.uniform = str;
-    this.toString = function() {
-		return this.uniform;
-    };
-
     str = str.slice(7);
 
     var pos = str.indexOf("/");
@@ -396,6 +392,22 @@ psyc.Uniform = function(str) {
 			this.base = this.object;
 		}
     }
+};
+psyc.Uniform.prototype = {
+	render : function(type) {
+		switch (type) {
+		case "_name": return this.name;
+		case "_object": return this.object;
+		case "_host": return this.host;
+		case "_base": return this.base;
+		}
+
+		return this.uniform;
+	},
+	toString : function() {
+		return this.uniform;
+	},
+	constructor : psyc.Uniform,
 };
 /**
  * Atom parser class.
@@ -544,12 +556,6 @@ psyc.Atom = function(type, data) {
  */
 psyc.Message = function(method, vars, data) {
     this.method = method;
-    this.toString = function() {
-		var ret = "psyc.Message("+this.method+", ([ ";
-		ret += this.vars.toString();
-		ret += "]))";
-		return ret;
-    };
     if (vars) {
 		this.vars = vars;
     } else {
@@ -561,6 +567,22 @@ psyc.Message = function(method, vars, data) {
     } else {
 		this.data = "";
     }
+};
+psyc.Message.prototype = {
+	toString : function() {
+		var ret = "psyc.Message("+this.method+", ([ ";
+		ret += this.vars.toString();
+		ret += "]))";
+		return ret;
+	},
+	id : function() {
+		var id;
+		if (this.vars && intp(id = this.vars.get("_id"))) {
+			return id;
+		}
+
+		return undefined;
+	},
 };
 // okay, the rationale of this is, that we allow templates to
 // contain arbitrary stuff, however. user supplied data is escaped
@@ -967,242 +989,239 @@ psyc.default_polymorphic = function() {
 	return pol;
 }
 serialization = new Object();
+serialization.Base = function() {};
+serialization.Base.prototype = {
+	can_decode : function(atom) {
+		return atom.type == this.type; // TODO: inheritance
+	},
+	toString : function() {
+		return "serialization.Base("+this.type+")";
+	},
+};
 serialization.Polymorphic = function() {
 	this.atype_to_type = new Mapping(); // this could use inheritance
 	this.ptype_to_type = new Mapping();
 };
-serialization.Polymorphic.prototype = {
-	can_decode : function(atom) {
+serialization.Polymorphic.prototype = new serialization.Base();
+serialization.Polymorphic.prototype.can_decode = function(atom) {
 		return this.atype_to_type.hasIndex(atom.type);	
-	},
-	can_encode : function(o) {
-		var t = typeof(o);
-		if (t == "object") {
-			return this.ptype_to_type.hasIndex(o.constructor);
-		}
-		return this.ptype_to_type.hasIndex(t);
-	},
-	decode : function(atom) {
-		var types = this.atype_to_type.get(atom.type);
-		for (var i in types) {
-			if (types[i].can_decode(atom)) {
-				return types[i].decode(atom);
-			}
-		}
-
-		throw("Cannot decode "+atom.toString());
-	},
-	encode : function(o) {
-		var t = typeof(o);
-		if (t == "object") t = o.constructor;
-		var types = this.ptype_to_type.get(t);
-		for (var i in types) {
-			if (types[i].can_encode(o)) {
-				return types[i].encode(o);
-			}
-		}
-		throw("Cannot encode ("+t+","+o.toString()+")");
-	},
-	register_type : function(atype, ptype, o) {
-		var t;
-
-		if (t = this.atype_to_type.get(atype)) {
-			t.push(o);
-		} else {
-			this.atype_to_type.set(atype, new Array(o));
-		}
-
-		if (t = this.ptype_to_type.get(ptype)) {
-			t.push(o);
-		} else {
-			this.ptype_to_type.set(ptype, new Array(o));
-		}
-	},
 };
-serialization.Date = function() { };
-serialization.Date.prototype = {
-	can_decode : function(atom) {
-		return atom.type == "_time";
-	},
-	can_encode : function(o) {
-		return o instanceof psyc.Date;
-	},
-	decode : function(atom) {
-		return new psyc.Date(parseInt(atom.data));
-	},
-	encode : function(o) {
-		return new psyc.Atom("_time", o.timestamp);
-	},
+serialization.Polymorphic.prototype.toString = function() {
+	return "Polymorphic()";
+},
+serialization.Polymorphic.prototype.can_encode = function(o) {
+	var t = typeof(o);
+	if (t == "object") {
+		return this.ptype_to_type.hasIndex(o.constructor);
+	}
+	return this.ptype_to_type.hasIndex(t);
+};
+serialization.Polymorphic.prototype.decode = function(atom) {
+	var types = this.atype_to_type.get(atom.type);
+	for (var i in types) {
+		if (types[i].can_decode(atom)) {
+			return types[i].decode(atom);
+		}
+	}
+
+	throw("Cannot decode "+atom.toString());
+};
+serialization.Polymorphic.prototype.encode = function(o) {
+	var t = typeof(o);
+	meteor.debug("trying to encode "+o);
+	if (t == "object") t = o.constructor;
+	var types = this.ptype_to_type.get(t);
+	meteor.debug("types: "+types);
+
+	for (var i in types) {
+		if (types[i].can_encode(o)) {
+			return types[i].encode(o);
+		}
+	}
+
+	throw("Cannot encode ("+t+","+o.toString()+")");
+};
+serialization.Polymorphic.prototype.register_type = function(atype, ptype, o) {
+	var t;
+
+	if (t = this.atype_to_type.get(atype)) {
+		t.push(o);
+	} else {
+		this.atype_to_type.set(atype, new Array(o));
+	}
+
+	if (t = this.ptype_to_type.get(ptype)) {
+		t.push(o);
+	} else {
+		this.ptype_to_type.set(ptype, new Array(o));
+	}
+};
+serialization.Date = function() { 
+	this.type = "_time";
+};
+serialization.Date.prototype = new serialization.Base();
+serialization.Date.prototype.can_encode = function(o) {
+	return o instanceof psyc.Date;
+};
+serialization.Date.prototype.decode = function(atom) {
+	return new psyc.Date(parseInt(atom.data));
+};
+serialization.Date.prototype.encode = function(o) {
+	return new psyc.Atom("_time", o.timestamp);
 };
 serialization.Message = function(method, vars, data) {
 	this.mtype = method;
 	this.vtype = vars;
 	this.dtype = data;
+	this.type = "_message";
 },
-serialization.Message.prototype = {
-	can_decode : function(atom) {
-		return atom.type == "_message";
-	},
-	can_encode : function(o) {
-		return o instanceof psyc.Message;
-	},
-	decode : function(atom) {
-		var p = new psyc.AtomParser();
-		var l = p.parse(atom.data);
-		var method;
-		var data;
-		var vars;
+serialization.Message.prototype = new serialization.Base();
+serialization.Message.prototype.can_encode = function(o) {
+	return o instanceof psyc.Message;
+};
+serialization.Message.prototype.decode = function(atom) {
+	var p = new psyc.AtomParser();
+	var l = p.parse(atom.data);
+	var method;
+	var data;
+	var vars;
 
-		if (meteor.debug) meteor.debug("length of "+atom.type+"is "+l.length);
+	if (meteor.debug) meteor.debug("length of "+atom.type+"is "+l.length);
 
-		if (l.length == 3) {
+	if (l.length == 3) {
+		vars = this.vtype.decode(l[0]);		
+		data = this.dtype.decode(l[2]);
+		method = this.mtype.decode(l[1]);
+	} else if (l.length == 2) {
+		if (l[0].type.substr(0, 7) == "_method") { // its teh vars
+			method = this.mtype.decode(l[0]);
+			data = this.dtype.decode(l[1]);	
+		} else {
 			vars = this.vtype.decode(l[0]);		
-			data = this.dtype.decode(l[2]);
 			method = this.mtype.decode(l[1]);
-		} else if (l.length == 2) {
-			if (l[0].type.substr(0, 7) == "_method") { // its teh vars
-				method = this.mtype.decode(l[0]);
-				data = this.dtype.decode(l[1]);	
-			} else {
-				vars = this.vtype.decode(l[0]);		
-				method = this.mtype.decode(l[1]);
-				data = 0;
-			}
-		} else if (l.length != 1) {
-			throw("bad _message"); 
+			data = 0;
 		}
+	} else if (l.length != 1) {
+		throw("bad _message"); 
+	}
 
-		return new psyc.Message(method, vars, data);
-	},
-	encode : function(o) {
-		var str = "";
-		str += this.vtype.encode(o.vars).render();		
-
-		str += this.mtype.encode(o.method).render();
-
-		if (o.data != undefined) {
-			str += this.dtype.encode(o.data).render();
-		}
-
-		return new psyc.Atom("_message", str);
-	},
+	return new psyc.Message(method, vars, data);
 };
-serialization.String = function() { };
-serialization.String.prototype = {
-	can_decode : function(atom) {
-		return atom.type == "_string";
-	},
-	can_encode : function(o) {
-		return typeof(o) == "string";
-	},
-	decode : function(atom) {
-		return UTF8.decode(atom.data);
-	},
-	encode : function(o) {
-		return new psyc.Atom("_string", UTF8.encode(o));
-	},
+serialization.Message.prototype.encode = function(o) {
+	var str = "";
+	str += this.vtype.encode(o.vars).render();		
+
+	str += this.mtype.encode(o.method).render();
+
+	if (o.data != undefined) {
+		str += this.dtype.encode(o.data).render();
+	}
+
+	return new psyc.Atom("_message", str);
 };
-serialization.Integer = function() { };
-serialization.Integer.prototype = {
-	can_decode : function(atom) {
-		return atom.type == "_integer";
-	},
-	can_encode : function(o) {
-		return intp(o);
-	},
-	decode : function(atom) {
-		return parseInt(atom.data);
-	},
-	encode : function(o) {
-		return new psyc.Atom("_integer", o.toString());
-	},
+serialization.String = function() { 
+	this.type = "_string";
 };
-serialization.Float = function() { };
-serialization.Float.prototype = {
-	can_decode : function(atom) {
-		return atom.type == "_integer";
-	},
-	can_encode : function(o) {
-		return floatp(o);
-	},
-	decode : function(atom) {
-		return parseFloat(atom.data);
-	},
-	encode : function(o) {
-		return new psyc.Atom("_float", o.toString());
-	},
+serialization.String.prototype = new serialization.Base();
+serialization.String.prototype.can_encode = function(o) {
+	return typeof(o) == "string";
+};
+serialization.String.prototype.decode = function(atom) {
+	return UTF8.decode(atom.data);
+};
+serialization.String.prototype.encode = function(o) {
+	return new psyc.Atom("_string", UTF8.encode(o));
+};
+serialization.Integer = function() { 
+	this.type = "_integer";
+};
+serialization.Integer.prototype = new serialization.Base();
+serialization.Integer.prototype.can_encode = function(o) {
+	return intp(o);
+};
+serialization.Integer.prototype.decode = function(atom) {
+	return parseInt(atom.data);
+};
+serialization.Integer.prototype.encode = function(o) {
+	return new psyc.Atom("_integer", o.toString());
+};
+serialization.Float = function() { 
+	this.type = "_float";
+};
+serialization.Float.prototype = new serialization.Base();
+serialization.Float.prototype.can_encode = function(o) {
+	return floatp(o);
+};
+serialization.Float.prototype.decode = function(atom) {
+	return parseFloat(atom.data);
+};
+serialization.Float.prototype.encode = function(o) {
+	return new psyc.Atom("_float", o.toString());
 };
 serialization.Method = function(base) { 
 	this.base = base;
+	this.type = "_method";
 };
-serialization.Method.prototype = {
-	can_decode : function(atom) {
-		return atom.type == "_method";
-	},
-	can_encode : function(o) {
-		return stringp(o);
-	},
-	decode : function(atom) {
-		return atom.data;
-	},
-	encode : function(o) {
-		return new psyc.Atom("_method", o);
-	},
+serialization.Method.prototype = new serialization.Base();
+serialization.Method.prototype.can_encode = function(o) {
+	return stringp(o);
 };
-serialization.Uniform = function() { };
-serialization.Uniform.prototype = {
-	can_decode : function(atom) {
-		return atom.type == "_uniform";
-	},
-	can_encode : function(o) {
-		return o instanceof psyc.Uniform;
-	},
-	decode : function(atom) {
-		return psyc.get_uniform(atom.data);
-	},
-	encode : function(o) {
-		return new psyc.Atom("_uniform", o.uniform);
-	},
+serialization.Method.prototype.decode = function(atom) {
+	return atom.data;
+};
+serialization.Method.prototype.encode = function(o) {
+	return new psyc.Atom("_method", o);
+};
+serialization.Uniform = function() { 
+	this.type = "_uniform";
+};
+serialization.Uniform.prototype = new serialization.Base();
+serialization.Uniform.prototype.can_encode = function(o) {
+	return o instanceof psyc.Uniform;
+};
+serialization.Uniform.prototype.decode = function(atom) {
+	return psyc.get_uniform(atom.data);
+};
+serialization.Uniform.prototype.encode = function(o) {
+	return new psyc.Atom("_uniform", o.uniform);
 };
 serialization.Mapping = function(mtype, vtype) { 
 	this.mtype = mtype;
 	this.vtype = vtype;
+	this.type = "_mapping";
 };
-serialization.Mapping.prototype = {
-	can_decode : function(atom) {
-		return atom.type == "_mapping";
-	},
-	can_encode : function(o) {
-		return o instanceof psyc.Mapping;
-	},
-	decode : function(atom) {
-		var p = new psyc.AtomParser();
-		var l = p.parse(atom.data);
-		var m = new Mapping();
+serialization.Mapping.prototype = new serialization.Base();
+serialization.Mapping.prototype.can_encode = function(o) {
+	return o instanceof psyc.Mapping;
+};
+serialization.Mapping.prototype.decode = function(atom) {
+	var p = new psyc.AtomParser();
+	var l = p.parse(atom.data);
+	var m = new Mapping();
 
-		if (l.length & 1) throw("Malformed mapping.\n");
-		
-		for (var i = 0;i < l.length; i+=2) {
-			var key = this.mtype.decode(l[i]);
-			var val = this.vtype.decode(l[i+1]);
-			m.set(key, val);
+	if (l.length & 1) throw("Malformed mapping.\n");
+	
+	for (var i = 0;i < l.length; i+=2) {
+		var key = this.mtype.decode(l[i]);
+		var val = this.vtype.decode(l[i+1]);
+		m.set(key, val);
+	}
+
+	return m;
+};
+serialization.Mapping.prototype.encode = function(o) {
+	var str = "";
+
+	o.forEach(function (key, val) {
+		meteor.debug(this.mtype+" "+this.vtype);
+		if (!this.mtype.can_encode(key) || !this.vtype.can_encode(val)) {
+			throw("Type cannot encode "+key+"("+this.mtype.can_encode(key)+") : "+val+"("+this.vtype.can_encode(val)+")");
 		}
 
-		return m;
-	},
-	encode : function(o) {
-		var str = "";
-
-		o.forEach(function (key, val) {
-			if (!this.mtype.can_encode(key) || !this.vtype.can_encode(val)) {
-				throw("Type cannot encode "+key+" : "+val);
-			}
-
-			str += this.mtype.encode(key).render();	
-			str += this.vtype.encode(val).render();	
-		}, this);
-		return new psyc.Atom("_mapping", str);
-	},
+		str += this.mtype.encode(key).render();	
+		str += this.vtype.encode(val).render();	
+	}, this);
+	return new psyc.Atom("_mapping", str);
 };
 serialization.Vars = function(vtype) { 
 	this.mtype = new serialization.Method();
@@ -1211,35 +1230,32 @@ serialization.Vars = function(vtype) {
 		return o instanceof psyc.Vars;
 	};
 };
-serialization.Vars.prototype = serialization.Mapping.prototype;
+serialization.Vars.prototype = new serialization.Mapping();
 serialization.Array = function(type) { 
-	this.type = type;
+	this.type = "_list";
+	this.etype = type;
 };
-serialization.Array.prototype = {
-	can_decode : function(atom) {
-		return atom.type == "_list";
-	},
-	can_encode : function(o) {
-		return o instanceof Array;
-	},
-	decode : function(atom) {
-		var p = new psyc.AtomParser();
-		var l = p.parse(atom.data);
-		var i = 0;
-		while (i < l.length) {
-			l[i] = this.type.decode(l[i]);
-			i++;
-		}
+serialization.Array.prototype = new serialization.Base();
+serialization.Array.prototype.can_encode = function(o) {
+	return o instanceof Array;
+};
+serialization.Array.prototype.decode = function(atom) {
+	var p = new psyc.AtomParser();
+	var l = p.parse(atom.data);
+	var i = 0;
+	while (i < l.length) {
+		l[i] = this.etype.decode(l[i]);
+		i++;
+	}
 
-		return l;
-	},
-	encode : function(o) {
-		var str = "";
-		for (var i = 0; i < o.length; i++) {
-			str += this.type.encode(o[i]).render();
-		}
-		return new psyc.Atom("_list", str);
-	},
+	return l;
+};
+serialization.Array.prototype.encode = function(o) {
+	var str = "";
+	for (var i = 0; i < o.length; i++) {
+		str += this.etype.encode(o[i]).render();
+	}
+	return new psyc.Atom("_list", str);
 };
 /**
  * Holds a Meteor connection and uses it to send and receive Atoms.
@@ -1480,10 +1496,42 @@ psyc.ChatTab.prototype = {
 			if (meteor.debug) meteor.debug("bad template: "+template.toSource());
 			return;
 		}
+
 		if (node) {
+			node.psyc_message = m;
+			var id = m.id();
+			if (id && this.div.childNodes.length > 0) {
+				for (var i = 0; i < this.div.childNodes.length; i++) {
+					if (this.div.childNodes[i].psyc_message) {
+						var cid = this.div.childNodes[i].psyc_message.id();
+						if (id < cid) {
+							this.div.insertBefore(node, this.div.childNodes[i]);
+							return;
+						}
+					} else {
+						meteor.debug("node without message: "+this.div.childNodes[i]);
+					}
+				}
+			}
+
 			this.div.appendChild(node);
 			this.div.scrollTop = this.div.scrollHeight;
 		}
+	},
+	clean_up : function() {
+		var list = new Array();
+		for (var i = 0; i < this.div.childNodes.length; i++) {
+			if (this.div.childNodes[i].psyc_message) {
+				var id = this.div.childNodes[i].psyc_message.id();
+				if (id) list.push(id);
+			}
+		}
+		if (list.length > 0) this.client.send(new psyc.Message("_request_history_delete", new psyc.Vars("_messages", list, "_target", this.client.uniform)));
+		this.cient = null;
+		this.wrapper.unregister();
+		this.wrapper = null;
+		this.li = null;
+		this.div = null;
 	},
 };
 /**
@@ -1496,6 +1544,7 @@ psyc.Chat = function(client, div) {
 	this.client = client;
 	this.div = div;
 	this.windows = new Mapping();
+	this.window_list = new Array();
 	this.ul = document.createElement("ul");
 	this.ul.className = "chatheader_list";
 	div.insertBefore(this.ul, div.firstChild);
@@ -1524,12 +1573,15 @@ psyc.Chat.prototype = {
 		}
 
 		var new_window = new psyc.ChatTab(document.createElement("div"), uniform.toString());
-		this.client.register_method({ method : "_", source : uniform, object : new_window });
+		new_window.client = this.client;
+		new_window.wrapper = this.client.register_method({ method : "_", source : uniform, object : new_window });
 		this.add_window(new_window);
 		return new_window;
 	},
 	add_window : function(win) {
 		this.windows.set(win.name, win);
+		win.pos = this.window_list.length;
+		this.window_list.push(win);
 		var li = document.createElement("li");
 		var a = document.createElement("a");
 		win.li = li;
@@ -1541,8 +1593,9 @@ psyc.Chat.prototype = {
 		a.title = win.name; // TODO: do we need to escape?
 		a.onclick = cb;
 		a.chat = this;
-		a.appendChild(document.createTextNode(XSS.html_string_encode(win.name)));
+		a.appendChild(document.createTextNode(win.name));
 		li.appendChild(a);
+		if (this.new_header_cb) this.new_header_cb(li, win);
 		this.ul.appendChild(li);
 		this.div.appendChild(win.div);
 
@@ -1558,7 +1611,25 @@ psyc.Chat.prototype = {
 	 * @param {Object} tab psyc.ChatTab object to remove.
 	 */
 	remove_tab : function(tab) {
-		this.window.remove(tab.name);
+		this.window_list.splice(tab.pos, 1);
+		for (var i = tab.pos; i < this.window_list.length; i++) {
+			this.window_list[i].pos--;
+		}
+		
+		if (this.window_list.length > 0) {
+			if (tab.pos < this.window_list.length) {
+				this.activate(this.window_list[tab.pos].name);
+			} else {
+				this.activate(this.window_list[tab.pos-1].name);
+			}
+		} else {
+			this.active = null;
+		}
+
+		this.ul.removeChild(tab.li);
+		this.div.removeChild(tab.div);
+		tab.clean_up();
+		this.windows.remove(tab.name);
 	},
 	/**
 	 * Activate a chat tab. This sets the css class of the tabs div to "chatwindow_active" and the css class of the former active tab to "chatwindow_hidden". The css classes of the corresponding li header elements are changed accordingly.
@@ -1592,5 +1663,6 @@ psyc.Chat.prototype = {
 	leave_room : function(uniform) {
 		var message = new psyc.Message("_request_leave", new psyc.Vars("_target", uniform));
 		this.client.send(message);
+		// close window after _notice_leave is there or after double click on close button
 	},
 };
