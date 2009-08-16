@@ -949,19 +949,27 @@ psyc.Date = function(timestamp) {
 	this.date = new Date();
 	this.date.setTime(timestamp * 1000);
 	this.render = function(type) {
+		var fill = function(n, length) {
+			var ret = n.toString();
+			for (var i = length - ret.length; i > 0; i--) {
+				ret = "0"+ret;	
+			}
+
+			return ret;
+		}
 		switch (type) {
 		case "_month": return this.date.getMonth();
 		case "_month_utc": return this.date.getUTCMonth();
 		case "_weekday": return this.date.getDay();
 		case "_monthday": return this.date.getDate();
 		case "_monthday_utc": return this.date.getUTCDate();
-		case "_minutes": return this.date.getMinutes();
-		case "_minutes_utc": return this.date.getUTCMinutes();
-		case "_seconds": return this.date.getSeconds();
-		case "_seconds_utc": return this.date.getUTCSeconds();
+		case "_minutes": return fill(this.date.getMinutes(), 2);
+		case "_minutes_utc": return fill(this.date.getUTCMinutes(), 2);
+		case "_seconds": return fill(this.date.getSeconds(), 2);
+		case "_seconds_utc": return fill(this.date.getUTCSeconds(), 2);
 		case "_timezone_offset": return this.date.getTimezoneOffset();
-		case "_year": return this.date.getFullYear();
-		case "_year_utc": return this.date.getUTCFullYear();
+		case "_year": return fill(this.date.getFullYear(), 4);
+		case "_year_utc": return fill(this.date.getUTCFullYear(), 4);
 		case "_hours": return this.date.getHours();
 		case "_hours_utc": return this.date.getUTCHours();
 		}
@@ -1621,8 +1629,8 @@ psyc.Chat.prototype = {
 
 		this.ul.removeChild(tab.li);
 		this.div.removeChild(tab.div);
-		tab.clean_up();
 		this.windows.remove(tab.name);
+		tab.clean_up();
 	},
 	/**
 	 * Activate a chat tab. This sets the css class of the tabs div to "chatwindow_active" and the css class of the former active tab to "chatwindow_hidden". The css classes of the corresponding li header elements are changed accordingly.
