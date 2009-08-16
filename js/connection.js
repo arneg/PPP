@@ -1028,10 +1028,8 @@ serialization.Polymorphic.prototype.decode = function(atom) {
 };
 serialization.Polymorphic.prototype.encode = function(o) {
 	var t = typeof(o);
-	meteor.debug("trying to encode "+o);
 	if (t == "object") t = o.constructor;
 	var types = this.ptype_to_type.get(t);
-	meteor.debug("types: "+types);
 
 	for (var i in types) {
 		if (types[i].can_encode(o)) {
@@ -1213,7 +1211,6 @@ serialization.Mapping.prototype.encode = function(o) {
 	var str = "";
 
 	o.forEach(function (key, val) {
-		meteor.debug(this.mtype+" "+this.vtype);
 		if (!this.mtype.can_encode(key) || !this.vtype.can_encode(val)) {
 			throw("Type cannot encode "+key+"("+this.mtype.can_encode(key)+") : "+val+"("+this.vtype.can_encode(val)+")");
 		}
@@ -1438,8 +1435,6 @@ psyc.ChatTab.prototype = {
 			}
 			var t;
 
-			meteor.debug(s + " " + type);
-
 			if (s == "data") {
 				t = XSS.html_string_encode(m.data);
 			} else if (s == "method") {
@@ -1508,8 +1503,6 @@ psyc.ChatTab.prototype = {
 							this.div.insertBefore(node, this.div.childNodes[i]);
 							return;
 						}
-					} else {
-						meteor.debug("node without message: "+this.div.childNodes[i]);
 					}
 				}
 			}
