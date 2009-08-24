@@ -1612,6 +1612,8 @@ psyc.Chat.prototype = {
 	 * @param {Object} tab psyc.ChatTab object to remove.
 	 */
 	remove_tab : function(tab) {
+		tab = this.id_to_tab(tab);
+
 		this.window_list.splice(tab.pos, 1);
 		for (var i = tab.pos; i < this.window_list.length; i++) {
 			this.window_list[i].pos--;
@@ -1632,18 +1634,29 @@ psyc.Chat.prototype = {
 		this.windows.remove(tab.name);
 		tab.clean_up();
 	},
-	/**
-	 * Activate a chat tab. This sets the css class of the tabs div to "chatwindow_active" and the css class of the former active tab to "chatwindow_hidden". The css classes of the corresponding li header elements are changed accordingly.
-	 * @param {Object} id Id of the chat tab. This should normally be the Uniform of the entity this tab is associated with.
-	 */
-	activate : function(id) {
-		if (typeof(id) != "string") {
-			id = id.toString();
+	id_to_tab : function(id) {
+		if (typeof(id) == "object") {
+			if (id instanceof psyc.ChatTab) {
+				return id;
+			}
+
+			if (this.windows.hasIndex(id)) return this.windows.get(id);
+		} else if (intp(id)) {
+			if (this.window_list.length > id && id >= 0) {
+				return this.window_list[id];
+			}
+		} else if (stringp(id)) {
+			if (this.windows.hasIndex(id)) return this.windows.get(id);
 		}
 
-		if (!this.windows.hasIndex(id)) {
-			throw("Trying to activate non-existing tab "+id.toString());
-		}
+		throw("Bad tab id: "+id);
+	},
+	/**
+	 * Activate a chat tab. This sets the css class of the tabs div to "chatwindow_active" and the css class of the former active tab to "chatwindow_hidden". The css classes of the corresponding li header elements are changed accordingly.
+	 * @param {Object} tab Number, Id of the chat tab or the tab itself.
+	 */
+	activate : function(tab) {
+		tab = this.id_to_tab(tab);
 
 		if (this.active) this.active.hide();
 		this.active = this.windows.get(id);
