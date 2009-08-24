@@ -142,14 +142,40 @@ function Mapping() {
 }
 Mapping.prototype = {
 	constructor : Mapping,
+	id_cache : new Object(), // shared cached for all implementations
+	get_new_id : function(o) {
+		var a = new Array();
+		// put some logic here to tune length of id and amount of items
+		for (var i = 0; i < 10; i++) {
+			a.push(Math.floor(Math.random() * 255));
+		}
+
+		var id = String.fromCharCode.apply(window, a);
+
+		if (this.id_cache.hasOwnProperty(id)) {
+			return this.get_new_id();
+		}
+
+		return id;
+	},
     sfy : function(key) { // sfy ==> stringify
 		// better use if (key.__proto__ == String.prototype) { ??
 		// also there is somewhere something like isPrototypeOf(proto, instance). what about that?
 		// for sure subclasses of String shouldn't be matched here.
 		// on the other hand, subclasses of strings are strings. i made up
 		// my mind and now think it's the right thing to adhere to that.
-		if (key instanceof String) {
-			return "string;" + key;
+		if (typeof(key) == "object") {
+			// not sure if we need this
+			if (key instanceof String) {
+				return "string;" + key;
+			}
+			if (key.hasOwnProperty("__id")) {
+				return key["__id"];
+			}
+
+			var id = this.get_new_id();
+			key["__id"] = id;
+			return id;
 		} else {
 			return typeof(key) + ";" + key;
 		}
