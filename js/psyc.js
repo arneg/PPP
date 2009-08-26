@@ -303,13 +303,6 @@ arrayp = function(a) { return (typeof(a) == "object" && a instanceof Array); };
 stringp = function(s) { return typeof(s) == "string"; };
 functionp = function(f) { return (typeof(f) == "function" || f instanceof Function); };
 objectp = function(o) { return typeof(o) == "object"; }
-if( typeof XMLHttpRequest == "undefined" ) XMLHttpRequest = function() {
-  try { return new ActiveXObject("Msxml2.XMLHTTP.6.0") } catch(e) {}
-  try { return new ActiveXObject("Msxml2.XMLHTTP.3.0") } catch(e) {}
-  try { return new ActiveXObject("Msxml2.XMLHTTP") } catch(e) {}
-  try { return new ActiveXObject("Microsoft.XMLHTTP") } catch(e) {}
-  throw new Error( "This browser does not support XMLHttpRequest." )
-};
 /**
  * Set this to a mapping of templates that should be used automatically when displaying messages inside Chat tabs. PSYC method inheritance is used when accessing the templates. Hence a template for "_message" will also be used for "_message_public" if there is no template for it. Therefore setting a template for "_" effectively sets a default template for all methods.
  * @type psyc#Vars
@@ -347,9 +340,11 @@ psyc.get_uniform = function(str) {
  * @property {String} host Host part of the uniform including the port number.
  */
 psyc.Uniform = function(str) {
+	meteor.debug(str);
     if (str.substr(0,7) != "psyc://") {
 		throw("Invalid uniform: " + str);	
     }
+	meteor.debug(str);
     this.uniform = str;
     str = str.slice(7);
 
@@ -995,8 +990,11 @@ psyc.RoomWindow.prototype.addMember = function(member) {
 	// people could get several notices
 	if (!this.members.getRow(member)) {
 		this.members.addRow(member);
-		this.members.addCell(member, "members", member);
+		this.members.addCell(member, "members", this.renderMember(member));
 	}
+};
+psyc.RoomWindow.prototype.renderMember = function(member) {
+	return document.createTextNode(member.toString());
 };
 psyc.RoomWindow.prototype.deleteMember = function(member) {
 	this.members.deleteRow(member);
@@ -1063,7 +1061,6 @@ psyc.Chat.prototype = {
 psyc.TabbedRoom = function(templates, id) {
 	psyc.RoomWindow.call(this, templates, id);
 	this.li = document.createElement("li");
-	this.li.appendChild(this.render(id));
 	// hide all by default
 	this.container = document.createElement("div");
 	this.li.className = "chatheader roomchat header_hidden";
@@ -1075,17 +1072,16 @@ psyc.TabbedRoom = function(templates, id) {
 psyc.TabbedRoom.prototype = new psyc.RoomWindow();
 psyc.TabbedRoom.prototype.constructor = psyc.TabbedRoom;
 psyc.TabbedRoom.prototype.hide = function() {
-	this.li.className.replace("header_shown", "header_hidden");
-	this.container.className.replace("window_shown", "window_hidden");
+	this.li.className = this.li.className.replace("header_shown", "header_hidden");
+	this.container.className = this.container.className.replace("window_shown", "window_hidden");
 };
 psyc.TabbedRoom.prototype.show = function() {
-	this.li.className.replace("header_hidden", "header_shown");
-	this.container.className.replace("window_hidden", "window_shown");
+	this.li.className = this.li.className.replace("header_hidden", "header_shown");
+	this.container.className = this.container.className.replace("window_hidden", "window_shown");
 };
 psyc.TabbedPrivate = function(templates, id) {
 	psyc.TemplatedWindow.call(this, templates, id);
 	this.li = document.createElement("li");
-	this.li.appendChild(this.render(id));
 	// hide all by default
 	this.container = document.createElement("div");
 	this.li.className = "chatheader privatechat header_hidden";
@@ -1096,15 +1092,14 @@ psyc.TabbedPrivate = function(templates, id) {
 psyc.TabbedPrivate.prototype = new psyc.TemplatedWindow();
 psyc.TabbedPrivate.prototype.constructor = psyc.TabbedPrivate;
 psyc.TabbedPrivate.prototype.hide = function() {
-	this.li.className.replace("header_shown", "header_hidden");
-	this.container.className.replace("window_shown", "window_hidden");
+	this.li.className = this.li.className.replace(/header_shown/g, "header_hidden");
+	this.container.className = this.container.className.replace(/window_shown/g, "window_hidden");
 };
 psyc.TabbedPrivate.prototype.show = function() {
-	this.li.className.replace("header_hidden", "header_shown");
-	this.container.className.replace("window_hidden", "window_shown");
+	this.li.className = this.li.className.replace(/header_hidden/g, "header_shown");
+	this.container.className = this.container.className.replace(/window_hidden/g, "window_shown");
 };
 psyc.TabbedChat = function(client, templates) {
-	psyc.Chat.call(this, client);
 	/**
 	 * Opens a new tab inside the chat. It will be used to display messages coming from the entity specified by uniform. Use this for cases like private messages where the conversation is not initiated by a handshake (in contrary to group chats).
 	 * @param {Object} uniform Uniform to use this ChatTab for.
@@ -1112,10 +1107,10 @@ psyc.TabbedChat = function(client, templates) {
 	this.createWindow = function(uniform) {
 		var win;
 
-		if (uniform.is_person()) {
-			win = new psyc.TabbedPrivate(templates, uniform);
+		if (uniform.is_room()) {
+			win = new psyc.TabbedRoom(this.templates, uniform);
 		} else {
-			win = new psyc.TabbedRoom(templates, uniform);
+			win = new psyc.TabbedPrivate(this.templates, uniform);
 		}
 
 		if (!this.active) {
@@ -1133,6 +1128,11 @@ psyc.TabbedChat = function(client, templates) {
 
 		return win;
 	};
+	psyc.Chat.call(this, client);
+
+	if (!client) return;
+
+	this.templates = templates;
 
 	this.ul = document.createElement("ul");
 	this.ul.className = "chatheader";
@@ -1144,10 +1144,28 @@ psyc.TabbedChat.prototype.constructor = psyc.TabbedChat;
 psyc.TabbedChat.prototype.activateWindow = function(uniform) {
 	var win = this.getWindow(uniform);
 
-	if (this.active == win) return;
+	//if (this.active == win) return;
 	if (this.active) {
 		this.active.hide();
 	}
 	this.active = win;
 	win.show();
+};
+/**
+ * @param {Uniform} uniform
+ * Requests membership in the given room. If the room has been entered successfully a new tab will be opened automatically.
+ */
+psyc.TabbedChat.prototype.enterRoom = function(uniform) {
+	var message = new psyc.Message("_request_enter", new psyc.Vars("_target", uniform));
+	this.client.send(message);
+
+};
+/**
+ * @param {Uniform} uniform
+ * Leaves a room.
+ */
+psyc.TabbedChat.prototype.leaveRoom = function(uniform) {
+	var message = new psyc.Message("_request_leave", new psyc.Vars("_target", uniform));
+	this.client.send(message);
+	// close window after _notice_leave is there or after double click on close button
 };
