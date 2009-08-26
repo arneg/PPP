@@ -960,7 +960,7 @@ psyc.RoomWindow = function(templates, id) {
 	var sort = 1;
 	th.onclick = function(event) {
 		self.members.sortByColumn("members", (function(a, b) {
-			return sort*a.data.cmp(b.data);
+			return sort*a._tdata.cmp(b._tdata);
 		}));
 		sort *= -1;
 	};
@@ -990,7 +990,8 @@ psyc.RoomWindow.prototype.addMember = function(member) {
 	// people could get several notices
 	if (!this.members.getRow(member)) {
 		this.members.addRow(member);
-		this.members.addCell(member, "members", this.renderMember(member));
+		var cell = this.members.addCell(member, "members", this.renderMember(member));
+		cell._tdata = member;
 	}
 };
 psyc.RoomWindow.prototype.renderMember = function(member) {
