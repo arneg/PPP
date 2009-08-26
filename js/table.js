@@ -1,4 +1,7 @@
-var Table = function() { };
+var Table = function() { 
+	this.rows = new Mapping();
+	this.columns = new Mapping();
+};
 function strcmp(str1, str2) {
 	if (str1 == str2) {
 		return 0;
@@ -15,10 +18,10 @@ Table.prototype = {
 		node.column = column;
 	},
 	getRow : function(id) {
-		return this.rows[id];
+		return this.rows.get(id);
 	},
 	getColumn : function(id) {
-		return this.columns[id];
+		return this.columns.get(id);
 	},
 	sortRows : function(compare) {
 		//P("rows: "+this.getRows());
@@ -46,97 +49,83 @@ Table.prototype = {
 		debug.innerHTML = "Sort time: " + (t2 - t1) / 1000 + " seconds. Rearrange time: "+ (t3 - t2)/1000 + " seconds.";
 	},
 	sortColumns : function(list) {
-		var compare = function(column1, column2) {
-			var a = this.getRow(column1);
-			var b = this.getRow(column2);
-			return a.cmp(b);
-		};
-		var nlist = list.sort(this.columns, compare);
-		var permuted = {};
-		
-		for (var i = 0; i < list.length; i++) {
-			if (list[i] != nlist[i]) {
-				if (!permuted.hasOwnProperty(list[i]) || !permuted.hasOwnProperty(nlist[i])) {
-					this.switchColumns(list[i], nlist[i]);
-					permuted[list[i]] = 1;
-					permuted[nlist[i]] = 1;
-				}
-			}
-		}
 	},
 	addRow : function(id, row) {
-		if (this.rows[id]) {
+		if (this.rows.hasIndex(id)) {
 			throw("overwriting row, probably by mistake. delete first.");
 		}
-		this.rows[id] = row;
+		this.rows.set(id, row);
 	},
 	deleteRow : function(id) {
-		this.rows[id] = undefined;
+		this.rows.remove(id);
 	},
 	addColumn : function(id, column) {
-		if (this.columns[id]) {
+		if (this.columns.hasIndex(id)) {
 			throw("overwriting column, probably by mistake. delete first.");
 		}
-		this.columns[id] = column;
+		this.columns.set(id, column);
 	},
 	deleteColumn : function(id) {
-		this.columns[id] = undefined;
+		this.columns.remove(id);
 	},
 	switchColumns : function(column1, column2) { },
 	switchRows : function(row1, row2) { },
 };
-var NTable = function(list, div) {
-	this.columns = {};
-	this.rows = {};
-	this.num_columns = 0;
-	this.table = document.createElement("table");
-
-	this.thead = document.createElement("thead");
-	this.thead.appendChild(document.createElement("tr"));
-	this.table.appendChild(this.thead);
-	this.tbody = document.createElement("tbody");
-	this.table.appendChild(this.tbody);
-
+var TypedTable = function(list) {
+	Table.call(this);
 	this.addRow = function(id) {
 		var node = document.createElement("tr");
-		node.id = id;
-		for (var i in this.columns) {
+		node.id = id.toString();
+		this.columns.forEach((function (key, value) {
 			node.appendChild(document.createElement("td"));
-		}
+		}));
 
 		this.tbody.appendChild(node);
-		NTable.prototype.addRow.call(this, id, node);
+		TypedTable.prototype.addRow.call(this, id, node);
+	};
+	this.deleteRow = function(id) {
+		var node = this.getRow(id);
+		this.tbody.removeChild(node);
+		TypedTable.prototype.deleteRow.call(this, id);
 	};
 	this.sortRows = function(compare) {
 		// DONT edit DOM thats in the tree and
 		// will be rerendered
 		this.table.removeChild(this.tbody);
-		NTable.prototype.sortRows.call(this, compare);
+		TypedTable.prototype.sortRows.call(this, compare);
 		this.table.appendChild(this.tbody);
 	};
-	this.addColumn = function(id) {
-		NTable.prototype.addColumn.call(this, id, this.num_columns++);	
-
-		for (var i in this.rows) {
-			var row = this.rows[i];
-			row.appendChild(document.createElement("td"));
+	this.render = function(o) {
+		if (typeof(o) == "object" && typeof(o.render) == "function") {
+			return o.render("dom");	
 		}
 
+		return document.createTextNode(o.toString());
+	};
+	this.addColumn = function(id, head) {
+		TypedTable.prototype.addColumn.call(this, id, this.num_columns++);	
+
+		this.rows.forEach((function(key, value) {
+			value.appendChild(document.createElement("td"));
+		}));
+
 		var th = document.createElement("th");
-		var ntable = this;
-		th.appendChild(document.createTextNode(id));
-		th.onclick = function(event) {
-			ntable.sortByColumn(id, function(a,b) {
-				return strcmp(a.firstChild.data, b.firstChild.data);
-			});
-		};
+		if (head) {
+			th.appendChild(this.render(head));
+		}
 		this.table.tHead.rows[0].appendChild(th);
 	};
-	this.addCell = function(row, column, node) {
+	this.getHead = function(column) {
+		var num = this.getColumn(column);
+		return this.table.tHead.rows[0].childNodes[num];
+	};
+	this.addCell = function(row, column, o) {
 		var row = this.getRow(row);
 		var num = this.getColumn(column);
 		var cell = row.childNodes[num];
+		var node = this.render(o);
 		cell.appendChild(node);
+		TypedTable.prototype.addCell.call(this, row, column, { "node" : node, "data" : o });
 	};
 	this.switchRows = function(row1, row2) {
 
@@ -169,19 +158,29 @@ var NTable = function(list, div) {
 		}
 		this.sortRows(compare);
 	}
+	this.num_columns = 0;
+	this.table = document.createElement("table");
 
-	for (var i = 0; i < list[0].length; i++) {
-		this.addColumn(list[0][i]);	
-	}
-	
-	for (var i = 1; i < list.length; i++) {
-		this.addRow(list[i]["column1"]);
-		for (var j = 0; j < list[0].length; j++) {
-			var tnode = document.createTextNode(list[i][list[0][j]]);
-			this.addCell(list[i]["column1"], list[0][j], tnode);
+	this.thead = document.createElement("thead");
+	this.thead.appendChild(document.createElement("tr"));
+	this.table.appendChild(this.thead);
+	this.tbody = document.createElement("tbody");
+	this.table.appendChild(this.tbody);
+
+/*
+	if (list) {
+		for (var i = 0; i < list[0].length; i++) {
+			this.addColumn(list[0][i]);	
+		}
+		
+		for (var i = 1; i < list.length; i++) {
+			this.addRow(list[i]["column1"]);
+			for (var j = 0; j < list[0].length; j++) {
+				this.addCell(list[i]["column1"], list[0][j], list[i][list[0][j]]);
+			}
 		}
 	}
-
-	div.appendChild(this.table);
+	*/
 };
-NTable.prototype = new Table();
+TypedTable.prototype = new Table();
+TypedTable.prototype.constructor = TypedTable;
