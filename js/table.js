@@ -1,7 +1,3 @@
-var Table = function() { 
-	this.rows = new Mapping();
-	this.columns = new Mapping();
-};
 function strcmp(str1, str2) {
 	if (str1 == str2) {
 		return 0;
@@ -12,11 +8,11 @@ function strcmp(str1, str2) {
 		return -1;
 	}
 }
+var Table = function() { 
+	this.rows = new Mapping();
+	this.columns = new Mapping();
+};
 Table.prototype = {
-	addCell : function(row, column, node) {
-		node.row = row;
-		node.column = column;
-	},
 	getRow : function(id) {
 		return this.rows.get(id);
 	},
@@ -84,8 +80,10 @@ var TypedTable = function(list) {
 	this.sortRows = function(compare) {
 		// DONT edit DOM thats in the tree and
 		// will be rerendered
+		this.table.removeChild(this.thead);
 		this.table.removeChild(this.tbody);
 		TypedTable.prototype.sortRows.call(this, compare);
+		this.table.appendChild(this.thead);
 		this.table.appendChild(this.tbody);
 	};
 	this.render = function(o) {
@@ -117,8 +115,12 @@ var TypedTable = function(list) {
 		var num = this.getColumn(column);
 		var cell = row.childNodes[num];
 		var node = this.render(o);
-		cell.appendChild(node);
-		TypedTable.prototype.addCell.call(this, row, column, { "node" : node, "data" : o });
+		if (cell.hasChildNodes()) {
+			cell.replaceChild(node, cell.firstChild);
+		} else {
+			cell.appendChild(node);
+		}
+		return cell;
 	};
 	this.switchRows = function(row1, row2) {
 
@@ -151,6 +153,7 @@ var TypedTable = function(list) {
 		}
 		this.sortRows(compare);
 	}
+
 	this.num_columns = 0;
 	this.table = document.createElement("table");
 
