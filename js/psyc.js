@@ -338,7 +338,6 @@ psyc.get_uniform = function(str) {
 	psyc.uniform_cache.set(str, uniform);
 	return uniform;
 };
-
 /**
  * Class representing uniforms.
  * @constructor
@@ -358,7 +357,7 @@ psyc.Uniform = function(str) {
 
     if (pos == -1) { // root
 		this.host = str;
-		this.is_user = function() { return 0; }
+		this.is_person = function() { return 0; }
 		this.is_room = function() { return 0; }
     } else {
 		this.host = str.substr(0, pos);
@@ -369,10 +368,10 @@ psyc.Uniform = function(str) {
 		this.name = str.slice(1);
 
 		if (this.type == 126) {
-			this.is_user = function() { return 1; }
+			this.is_person = function() { return 1; }
 			this.is_room = function() { return 0; }
 		} else if (this.type == 64) {
-			this.is_user = function() { return 0; }
+			this.is_person = function() { return 0; }
 			this.is_room = function() { return 1; }
 
 		} else {
@@ -402,6 +401,11 @@ psyc.Uniform.prototype = {
 	},
 	toString : function() {
 		return this.uniform;
+	},
+	cmp : function(a) {
+		var s1 = this.toString();
+		var s2 = a.toString();
+		return (s1 == s2) ? 0 : (s1 > s2) ? 1 : -1;
 	},
 	constructor : psyc.Uniform,
 };
@@ -627,29 +631,29 @@ psyc.abbreviations = function(method) {
  * @augments Mapping
  */
 psyc.Vars = function() {
-	if (arguments.length & 1) throw("odd number of mapping members.");
+	this.get = function(key) {
+		do {
+			if (this.hasIndex(key)) {
+				return psyc.Vars.prototype.get.call(this, key);
+			}
+		} while (key = psyc.abbrev(key));
 
-	this.n = new Object();
-	this.m = new Object();
+		return undefined;
+	};
+
+	if (arguments.length & 1) throw("odd number of mapping members.");
+	Mapping.call(this);
 
     for (var i = 0; i < arguments.length; i += 2) {
         this.set(arguments[i], arguments[i+1]);
     }
 };
 psyc.Vars.prototype = new Mapping();
+psyc.Vars.prototype.constructor = psyc.Vars;
 /**
  * Returns the value associated with key or an abbreviation of key.
  * @param {String} key PSYC variable name.
  */
-psyc.Vars.prototype.find_abbrev = function(key) {
-	do {
-		if (this.hasIndex(key)) {
-			return this.get(key);
-		}
-	} while (key = psyc.abbrev(key));
-
-	return undefined;
-};
 // not being able to use inheritance here stinks like fish.
 psyc.Date = function(timestamp) {
 	this.date = new Date();
@@ -721,6 +725,9 @@ psyc.Client = function(url) {
 };
 // params = ( method : "_message", source : Uniform }
 psyc.Client.prototype = {
+	toString : function() {
+		return "psyc.Client("+this.connection.url+")";
+	},
 	/**
 	 * Register for certain incoming messages. This can be used to implement chat tabs or handlers for certain message types.
 	 * @params {Object} params Object containing the properties "method", "callback" and optionally "source". For all incoming messages matching "method" and "source" the callback is called. The "source" property should be of type psyc.Uniform.
@@ -839,141 +846,160 @@ psyc.Client.prototype = {
 		}
 	},
 };
-psyc.ChatTab = function(div, name) {
-	this.div = div;
-	this.name = name;
-};
-psyc.ChatTab.prototype = {
-	hide : function() {
-		this.div.className = "chatwindow_hidden";
-
-		if (this.li) {
-			this.li.className = "chatheader_hidden";
+psyc.funky_text = function(m, template) {
+	var reg = /\[[\w-]+\]/g;
+	var div = document.createElement("div");
+	div.className = psyc.abbreviations(m.method).join(" ");
+	
+	var cb = function(result, m) {
+		s = result[0].substr(1, result[0].length-2);
+		var span = document.createElement("span");
+		span.className = s;
+		var a = s.split("-");
+		s = a[0];
+		var type;
+		if (a.length > 1) {
+			type = a[1];
+			span.className = s+" "+type+" "+span.className;
 		}
+		var t;
 
-		if (this.a) {
-			this.a.className = "chatlink_hidden";
-		}
-	},
-	show : function() {
-		this.div.className = "chatwindow_active";
-		if (this.li) {
-			this.li.className = "chatheader_active";
-		}
-
-		if (this.a) {
-			this.a.className = "chatlink_active";
-		}
-	},
-	funky_psyctext : function(m, template) {
-		var reg = /\[[\w-]+\]/g;
-		var div = document.createElement("div");
-		div.className = psyc.abbreviations(m.method).join(" ");
-		
-		var cb = function(result, m) {
-			s = result[0].substr(1, result[0].length-2);
-			var span = document.createElement("span");
-			span.className = s;
-			var a = s.split("-");
-			s = a[0];
-			var type;
-			if (a.length > 1) {
-				type = a[1];
-				span.className = s+" "+type+" "+span.className;
-			}
-			var t;
-
-			if (s == "data") {
-				t = XSS.html_string_encode(m.data);
-			} else if (s == "method") {
-				t = XSS.html_string_encode(m.method);
-			} else if (m.vars.hasIndex(s)) {
-				t = m.vars.get(s);
-				if (objectp(t)) {
-					if (functionp(t.render)) {
-						t = t.render(type);
-					} else {
-						t = t.toString();
-					}
-				}
-			} else {
-				span.className = "missing_variable";
-				t = "["+s+"]";
-			}
-
+		if (s == "data") {
+			t = XSS.html_string_encode(m.data);
+		} else if (s == "method") {
+			t = XSS.html_string_encode(m.method);
+		} else if (m.vars.hasIndex(s)) {
+			t = m.vars.get(s);
 			if (objectp(t)) {
-				span.appendChild(t);
-			} else {
-				span.appendChild(document.createTextNode(t));
+				if (functionp(t.render)) {
+					t = t.render(type);
+				} else {
+					t = t.toString();
+				}
 			}
-
-			return span;
-		};
-
-		var a = UTIL.split_replace(reg, template, cb, m);
-
-		for (var i in a) {
-			var t = a[i];
-			if (stringp(t)) {
-				div.appendChild(document.createTextNode(t));
-			} else {
-				div.appendChild(t);
-			}
-		}
-
-		return div;
-	},
-	msg : function(m) {
-		var node;
-		var template = (psyc.templates) ? psyc.templates.find_abbrev(m.method) : null;
-		if (!template) {
-			template = "[_source] says: [data]";
-		}
-		if (stringp(template)) {
-			node = this.funky_psyctext(m, template);
-		} else if (functionp(template)) {
-			node = template(m);
-		} else if (objectp(template)) {
-			node = template.msg(m);
 		} else {
-			if (meteor.debug) meteor.debug("bad template: "+template.toSource());
-			return;
+			span.className = "missing_variable";
+			t = "["+s+"]";
 		}
 
-		if (node) {
-			node.psyc_message = m;
-			var id = m.id();
-			if (id && this.div.childNodes.length > 0) {
-				for (var i = 0; i < this.div.childNodes.length; i++) {
-					if (this.div.childNodes[i].psyc_message) {
-						var cid = this.div.childNodes[i].psyc_message.id();
-						if (id < cid) {
-							this.div.insertBefore(node, this.div.childNodes[i]);
-							return;
-						}
-					}
+		if (objectp(t)) {
+			span.appendChild(t);
+		} else {
+			span.appendChild(document.createTextNode(t));
+		}
+
+		return span;
+	};
+
+	var a = UTIL.split_replace(reg, template, cb, m);
+
+	for (var i in a) {
+		var t = a[i];
+		if (stringp(t)) {
+			div.appendChild(document.createTextNode(t));
+		} else {
+			div.appendChild(t);
+		}
+	}
+
+	return div;
+};
+psyc.ChatWindow = function(id) {
+	this.mlist = new Array();
+	this.mset = new Mapping();
+	this.messages = document.createElement("div");
+	this.name = id;
+};
+psyc.ChatWindow.prototype = {
+	addMessage : function(m) {
+		this.mset.set(m, this.mlist.length);
+		this.mlist.push(m);
+		this.messages.appendChild(this.renderMessage(m));
+	},
+	getMessages : function() {
+		return this.mlist.concat();
+	},
+	render : function(o) {
+		if (typeof(o) == "object" && typeof(o.render) == "function") {
+			return o.render("dom");
+		}
+
+		if (o == undefined || o == null || typeof(o) == "number") {
+			return document.createTextNode(new Number(o).toString());
+		}
+
+		return document.createTextNode(o.toString());
+	},
+	getMessageNode : function(m) {
+		return this.messages.childNodes[this.mset.get(m)];
+	},
+	getMessagesNode : function() {
+		return this.messages;
+	},
+};
+psyc.TemplatedWindow = function(templates, id) {
+	psyc.ChatWindow.call(this, id);
+	if (templates) this.setTemplates(templates);
+};
+psyc.TemplatedWindow.prototype = new psyc.ChatWindow();
+psyc.TemplatedWindow.prototype.setTemplates = function(t) {
+	this.templates = t;
+};
+psyc.TemplatedWindow.prototype.renderMessage = function(m) {
+		var tmp = this.templates.get(m.method);
+
+		if (!tmp) {
+			tmp = "[_source] says: [data]";
+		}
+
+		return psyc.funky_text(m, tmp);
+};
+psyc.TemplatedWindow.prototype.constructor = psyc.TemplatedWindow;
+psyc.RoomWindow = function(templates, id) {
+	psyc.TemplatedWindow.call(this, templates, id);
+	this.members = new TypedTable();
+	this.members.addColumn("members", "Members");
+	var self = this;
+	var th = this.members.getHead("members");
+
+	var sort = 1;
+	th.onclick = function(event) {
+		self.members.sortByColumn("members", (function(a, b) {
+			return sort*a.data.cmp(b.data);
+		}));
+		sort *= -1;
+	};
+	this.addMessage = function(m) {
+		if (m.method == "_notice_enter") {
+			var list = m.vars.hasIndex("_members");
+
+			if (list && list instanceof Array) {
+				for (var i = 0; i < list.length; i++) {
+					this.addMember(list[i]);
 				}
 			}
 
-			this.div.appendChild(node);
-			this.div.scrollTop = this.div.scrollHeight;
+			this.addMember(m.vars.get("_supplicant"));
+		} else if (m.method == "_notice_leave") {
+			this.deleteMember(m.vars.get("_supplicant"));
 		}
-	},
-	clean_up : function() {
-		var list = new Array();
-		for (var i = 0; i < this.div.childNodes.length; i++) {
-			if (this.div.childNodes[i].psyc_message) {
-				var id = this.div.childNodes[i].psyc_message.id();
-				if (id) list.push(id);
-			}
-		}
-		if (list.length > 0) this.client.send(new psyc.Message("_request_history_delete", new psyc.Vars("_messages", list, "_target", this.client.uniform)));
-		this.cient = null;
-		this.wrapper.unregister();
-		this.wrapper = null;
-		this.li = null;
-		this.div = null;
-	},
+		psyc.RoomWindow.prototype.addMessage.call(this, m);
+	};
+};
+psyc.RoomWindow.prototype = new psyc.TemplatedWindow();
+psyc.RoomWindow.prototype.constructor = psyc.RoomWindow;
+psyc.RoomWindow.prototype.getMembersNode = function() {
+	return this.members.table;
+};
+psyc.RoomWindow.prototype.addMember = function(member) {
+	// people could get several notices
+	if (!this.members.getRow(member)) {
+		this.members.addRow(member);
+		this.members.addCell(member, "members", member);
+	}
+};
+psyc.RoomWindow.prototype.deleteMember = function(member) {
+	this.members.deleteRow(member);
 };
 /**
  * Creates a new tabbed chat application.
@@ -981,132 +1007,46 @@ psyc.ChatTab.prototype = {
  * @param {Object} div DOM div object to put the Chat into.
  * @constructor
  */
-psyc.Chat = function(client, div) {
-	this.client = client;
-	this.div = div;
+psyc.Chat = function(client) {
 	this.windows = new Mapping();
-	this.window_list = new Array();
-	this.ul = document.createElement("ul");
-	this.ul.className = "chatheader_list";
-	div.insertBefore(this.ul, div.firstChild);
-	client.register_method({ method : "_", source : null, object : this });
+	this.active = null;
+
+	if (client) {
+		client.register_method({ method : "_", source : null, object : this });
+		this.client = client;
+	}
 };
 psyc.Chat.prototype = {
 	msg : function(m) {
 		if (m.vars.hasIndex("_source")) {
-			var _source = m.vars.get("_source");
+			var source = m.vars.get("_source");
 
-			if (this.windows.hasIndex(_source.toString())) return;
-
-			this.open_tab(_source).msg(m);
+			this.getWindow(source).addMessage(m);
 			return psyc.STOP;
 		} 
 	},
-	/**
-	 * Opens a new tab inside the chat. It will be used to display messages coming from the entity specified by uniform. Use this for cases like private messages where the conversation is not initiated by a handshake (in contrary to group chats).
-	 * @param {Object} uniform Uniform to use this ChatTab for.
-	 */
-	open_tab : function(uniform) {
-		if (this.windows.hasIndex(uniform.toString())) {
-			// return the old one and focus
-			this.activate(uniform);
-			return this.windows.get(uniform.toString());
+
+	getWindow : function(uniform) {
+		if (this.windows.hasIndex(uniform)) {
+			return this.windows.get(uniform);
 		}
 
-		var new_window = new psyc.ChatTab(document.createElement("div"), uniform.toString());
-		new_window.client = this.client;
-		new_window.wrapper = this.client.register_method({ method : "_", source : uniform, object : new_window });
-		this.add_window(new_window);
-		return new_window;
-	},
-	add_window : function(win) {
-		this.windows.set(win.name, win);
-		win.pos = this.window_list.length;
-		this.window_list.push(win);
-		var li = document.createElement("li");
-		var a = document.createElement("a");
-		win.li = li;
-		win.a = a;
-		var cb = function(event) {
-			this.chat.activate(this.title);
-		};
-		a.href = "javascript:void(null)";
-		a.title = win.name; // TODO: do we need to escape?
-		a.onclick = cb;
-		a.chat = this;
-		a.appendChild(document.createTextNode(win.name));
-		li.appendChild(a);
-		if (this.new_header_cb) this.new_header_cb(li, win);
-		this.ul.appendChild(li);
-		this.div.appendChild(win.div);
-
-		if (!this.active) {
-			this.active = win;
-			win.show();
-		} else {
-			win.hide();
-		}
+		var win = this.createWindow(uniform);
+		this.windows.set(uniform, win);
+		return win;
 	},
 	/**
 	 * Removes the window win from the chat tab. Use this to close private conversations.
-	 * @param {Object} tab psyc.ChatTab object to remove.
+	 * @param {Object} Window object to remove.
 	 */
-	remove_tab : function(tab) {
-		tab = this.id_to_tab(tab);
-
-		this.window_list.splice(tab.pos, 1);
-		for (var i = tab.pos; i < this.window_list.length; i++) {
-			this.window_list[i].pos--;
-		}
-		
-		if (this.window_list.length > 0) {
-			if (tab.pos < this.window_list.length) {
-				this.activate(this.window_list[tab.pos].name);
-			} else {
-				this.activate(this.window_list[tab.pos-1].name);
-			}
-		} else {
-			this.active = null;
-		}
-
-		this.ul.removeChild(tab.li);
-		this.div.removeChild(tab.div);
-		this.windows.remove(tab.name);
-		tab.clean_up();
-	},
-	id_to_tab : function(id) {
-		if (typeof(id) == "object") {
-			if (id instanceof psyc.ChatTab) {
-				return id;
-			}
-
-			if (this.windows.hasIndex(id)) return this.windows.get(id);
-		} else if (intp(id)) {
-			if (this.window_list.length > id && id >= 0) {
-				return this.window_list[id];
-			}
-		} else if (stringp(id)) {
-			if (this.windows.hasIndex(id)) return this.windows.get(id);
-		}
-
-		throw("Bad tab id: "+id);
-	},
-	/**
-	 * Activate a chat tab. This sets the css class of the tabs div to "chatwindow_active" and the css class of the former active tab to "chatwindow_hidden". The css classes of the corresponding li header elements are changed accordingly.
-	 * @param {Object} tab Number, Id of the chat tab or the tab itself.
-	 */
-	activate : function(tab) {
-		tab = this.id_to_tab(tab);
-
-		if (this.active) this.active.hide();
-		this.active = this.windows.get(id);
-		this.active.show();
+	removeWindow : function(uniform) {
+		this.windows.remove(uniform);
 	},
 	/**
 	 * @param {Uniform} uniform
 	 * Requests membership in the given room. If the room has been entered successfully a new tab will be opened automatically.
 	 */
-	enter_room : function(uniform) {
+	enterRoom : function(uniform) {
 		var message = new psyc.Message("_request_enter", new psyc.Vars("_target", uniform));
 		this.client.send(message);
 	},
@@ -1114,9 +1054,100 @@ psyc.Chat.prototype = {
 	 * @param {Uniform} uniform
 	 * Leaves a room.
 	 */
-	leave_room : function(uniform) {
+	leaveRoom : function(uniform) {
 		var message = new psyc.Message("_request_leave", new psyc.Vars("_target", uniform));
 		this.client.send(message);
 		// close window after _notice_leave is there or after double click on close button
 	},
+};
+psyc.TabbedRoom = function(templates, id) {
+	psyc.RoomWindow.call(this, templates, id);
+	this.li = document.createElement("li");
+	this.li.appendChild(this.render(id));
+	// hide all by default
+	this.container = document.createElement("div");
+	this.li.className = "chatheader roomchat header_hidden";
+	this.container.className = "chatwindow roomchat window_hidden";
+	this.container.appendChild(this.messages);
+	this.container.appendChild(this.getMembersNode());
+	this.active = null;
+};
+psyc.TabbedRoom.prototype = new psyc.RoomWindow();
+psyc.TabbedRoom.prototype.constructor = psyc.TabbedRoom;
+psyc.TabbedRoom.prototype.hide = function() {
+	this.li.className.replace("header_shown", "header_hidden");
+	this.container.className.replace("window_shown", "window_hidden");
+};
+psyc.TabbedRoom.prototype.show = function() {
+	this.li.className.replace("header_hidden", "header_shown");
+	this.container.className.replace("window_hidden", "window_shown");
+};
+psyc.TabbedPrivate = function(templates, id) {
+	psyc.TemplatedWindow.call(this, templates, id);
+	this.li = document.createElement("li");
+	this.li.appendChild(this.render(id));
+	// hide all by default
+	this.container = document.createElement("div");
+	this.li.className = "chatheader privatechat header_hidden";
+	this.container.className = "chatwindow privatechat window_hidden";
+	this.container.appendChild(this.messages);
+	this.active = null;
+};
+psyc.TabbedPrivate.prototype = new psyc.TemplatedWindow();
+psyc.TabbedPrivate.prototype.constructor = psyc.TabbedPrivate;
+psyc.TabbedPrivate.prototype.hide = function() {
+	this.li.className.replace("header_shown", "header_hidden");
+	this.container.className.replace("window_shown", "window_hidden");
+};
+psyc.TabbedPrivate.prototype.show = function() {
+	this.li.className.replace("header_hidden", "header_shown");
+	this.container.className.replace("window_hidden", "window_shown");
+};
+psyc.TabbedChat = function(client, templates) {
+	psyc.Chat.call(this, client);
+	/**
+	 * Opens a new tab inside the chat. It will be used to display messages coming from the entity specified by uniform. Use this for cases like private messages where the conversation is not initiated by a handshake (in contrary to group chats).
+	 * @param {Object} uniform Uniform to use this ChatTab for.
+	 */
+	this.createWindow = function(uniform) {
+		var win;
+
+		if (uniform.is_person()) {
+			win = new psyc.TabbedPrivate(templates, uniform);
+		} else {
+			win = new psyc.TabbedRoom(templates, uniform);
+		}
+
+		if (!this.active) {
+			this.active = win;
+			win.show();
+		}
+
+		var self = this;
+		win.li.onclick = function(event) {
+			self.activateWindow(uniform);
+		};
+
+		this.ul.appendChild(win.li);
+		this.div.appendChild(win.container);
+
+		return win;
+	};
+
+	this.ul = document.createElement("ul");
+	this.ul.className = "chatheader";
+	this.div = document.createElement("div");
+	this.div.className = "chatcontainer";
+};
+psyc.TabbedChat.prototype = new psyc.Chat();
+psyc.TabbedChat.prototype.constructor = psyc.TabbedChat;
+psyc.TabbedChat.prototype.activateWindow = function(uniform) {
+	var win = this.getWindow(uniform);
+
+	if (this.active == win) return;
+	if (this.active) {
+		this.active.hide();
+	}
+	this.active = win;
+	win.show();
 };
