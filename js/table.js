@@ -26,15 +26,12 @@ Table.prototype = {
 	sortRows : function(compare) {
 		//P("rows: "+this.getRows());
 		var nlist = this.getRows();
-		var t1 = new Date();
 
 		if (compare) {
 			nlist.sort(compare);
 		} else {
 			nlist.sort();
 		}
-
-		t2 = new Date();
 
 		// when nlist[i] has been swapped, its at the correct place. so dont touch it again
 		for (var i = 0; i < nlist.length; i++) {
@@ -43,10 +40,6 @@ Table.prototype = {
 				this.switchRows(current, nlist[i]);
 			}
 		}
-
-		t3 = new Date();
-
-		debug.innerHTML = "Sort time: " + (t2 - t1) / 1000 + " seconds. Rearrange time: "+ (t3 - t2)/1000 + " seconds.";
 	},
 	sortColumns : function(list) {
 	},
@@ -96,8 +89,8 @@ var TypedTable = function(list) {
 		this.table.appendChild(this.tbody);
 	};
 	this.render = function(o) {
-		if (typeof(o) == "object" && typeof(o.render) == "function") {
-			return o.render("dom");	
+		if (typeof(o) == "object") {
+			return o;
 		}
 
 		return document.createTextNode(o.toString());
