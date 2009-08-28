@@ -485,21 +485,6 @@ psyc.AtomParser.prototype = {
 		return a;
     },
 };
-psyc.find_match = function(obj, key) {
-    // i guess we should find direct matches first...
-
-    if (obj[key] != undefined) {
-	return obj[key];
-    }
-
-    for (var i in obj) {
-	if (i.length > key.length
-		&& i.substr(0, key.length) == key
-		&& i.charAt(key.length) == "_") {
-	    return obj[i];
-	}
-    }
-};
 psyc.find_abbrev = function(obj, key) {
     var t = key;
 
@@ -788,7 +773,7 @@ psyc.Client.prototype = {
 		} catch (error) {
 			if (meteor.debug) meteor.debug("failed to parse: "+data);
 		}
-		for (var i in data) {
+		for (var i = 0; i < data.length; i++) {
 			try {
 				var m = this.poly.decode(data[i]);
 			} catch (error) {
@@ -821,16 +806,16 @@ psyc.Client.prototype = {
 
 				var none = 1;
 
-				for (var t = method; t != 0; t = psyc.abbrev(t)) {
+				for (var t = method; t; t = psyc.abbrev(t)) {
 					if (!this.callbacks.hasIndex(t)) continue;
 
 					none = 0;
 					var list = this.callbacks.get(t);
 
-					if (meteor.debug) meteor.debug("calling "+list);
+					if (meteor.debug) meteor.debug("calling "+list+" for "+t);
 
-					for (var o in list) {
-						if (psyc.STOP == list[o].msg(m)) break;
+					for (var j = 0; j < list.length; j++) {
+						if (psyc.STOP == list[j].msg(m)) break;
 					}
 				}
 
@@ -888,10 +873,11 @@ psyc.funky_text = function(m, template) {
 
 	var a = UTIL.split_replace(reg, template, cb, m);
 
-	for (var i in a) {
+	//meteor.debug("inserting "+a.length+" nodes");
+	for (var i = 0; i < a.length; i++) {
 		var t = a[i];
 		if (stringp(t)) {
-			div.appendChild(document.createTextNode(t));
+			if (t.length > 0) div.appendChild(document.createTextNode(t));
 		} else {
 			div.appendChild(t);
 		}
@@ -1156,7 +1142,7 @@ psyc.TabbedChat.prototype.activateWindow = function(uniform) {
  * @param {Uniform} uniform
  * Requests membership in the given room. If the room has been entered successfully a new tab will be opened automatically.
  */
-psyc.TabbedChat.prototype.enterRoom = function(uniform) {
+psyc.Chat.prototype.enterRoom = function(uniform) {
 	var message = new psyc.Message("_request_enter", new psyc.Vars("_target", uniform));
 	this.client.send(message);
 
@@ -1165,7 +1151,7 @@ psyc.TabbedChat.prototype.enterRoom = function(uniform) {
  * @param {Uniform} uniform
  * Leaves a room.
  */
-psyc.TabbedChat.prototype.leaveRoom = function(uniform) {
+psyc.Chat.prototype.leaveRoom = function(uniform) {
 	var message = new psyc.Message("_request_leave", new psyc.Vars("_target", uniform));
 	this.client.send(message);
 	// close window after _notice_leave is there or after double click on close button
