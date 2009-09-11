@@ -273,7 +273,7 @@ Mapping.prototype = {
 		this.m = new Object();
 		this.n = new Object();
 		this.length = 0;
-    },
+    }
 };
 
 // =======================================================================

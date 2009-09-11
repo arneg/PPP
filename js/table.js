@@ -58,7 +58,7 @@ Table.prototype = {
 		this.columns.remove(id);
 	},
 	switchColumns : function(column1, column2) { },
-	switchRows : function(row1, row2) { },
+	switchRows : function(row1, row2) { }
 };
 var TypedTable = function(list) {
 	Table.call(this);
@@ -115,7 +115,7 @@ var TypedTable = function(list) {
 		var num = this.getColumn(column);
 		var cell = row.childNodes[num];
 		var node = this.render(o);
-		if (cell.hasChildNodes()) {
+	if (cell.hasChildNodes()) {
 			cell.replaceChild(node, cell.firstChild);
 		} else {
 			cell.appendChild(node);
@@ -176,7 +176,7 @@ var TypedTable = function(list) {
 			}
 		}
 	}
-	*/
+*/
 };
 TypedTable.prototype = new Table();
 TypedTable.prototype.constructor = TypedTable;
