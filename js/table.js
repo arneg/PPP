@@ -144,6 +144,11 @@ var TypedTable = function(list) {
 		return this.tbody.childNodes[num];
 	};
 	this.getRows = function() {
+		var ret = new Array();
+		for (var i = 0; i < this.tbody.childNodes.length; i++) {
+			ret.push(this.tbody.childNodes);
+		}
+		return ret;
 		return Array.prototype.slice.call(this.tbody.childNodes);
 	};
 	this.sortByColumn = function(name, cmp) {
