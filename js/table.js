@@ -146,7 +146,7 @@ var TypedTable = function(list) {
 	this.getRows = function() {
 		var ret = new Array();
 		for (var i = 0; i < this.tbody.childNodes.length; i++) {
-			ret.push(this.tbody.childNodes);
+			ret.push(this.tbody.childNodes[i]);
 		}
 		return ret;
 		return Array.prototype.slice.call(this.tbody.childNodes);
