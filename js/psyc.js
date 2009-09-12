@@ -952,7 +952,7 @@ psyc.RoomWindow = function(templates, id) {
 	};
 	this.addMessage = function(m) {
 		if (m.method == "_notice_enter") {
-			var list = m.vars.hasIndex("_members");
+			var list = m.vars.get("_members");
 
 			if (list && list instanceof Array) {
 				for (var i = 0; i < list.length; i++) {
