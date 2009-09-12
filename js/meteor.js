@@ -47,6 +47,11 @@ meteor.Connection.prototype = {
 		// amount to shut down the main one ungracefully
 		if (this.readyState >= 3) {
 			con.connect_incoming();
+		} else if (window.opera) {
+			var xhr = this;
+			setTimeout((function() {
+				meteor.Connection.prototype.new_incoming_state_change.call(xhr);
+			}), 200);
 		}
 	},
 	connect_new_incoming : function() {
@@ -62,53 +67,67 @@ meteor.Connection.prototype = {
 			} else return this.connect_incoming();
 		}
 
+		if (meteor.debug) meteor.debug("Connecting new incoming.\n");
+
 		var xhr = new XMLHttpRequest();
 		this.new_incoming = xhr;
 		xhr.pos = 0;
 			
 		xhr.open("POST", this.url + "?" + this.client_id, true);
 		//xhr.overrideMimeType("text/plain; charset=ISO-8859-1");
-		xhr.overrideMimeType('text/plain; charset=x-user-defined');
+		if (xhr.overrideMimeType) xhr.overrideMimeType('text/plain; charset=x-user-defined');
 		xhr.onreadystatechange = this.new_incoming_state_change;
 		xhr.meteor = this;
 		xhr.send("");
 	},
 	incoming_state_change : function() {
 		var con = this.meteor;
+		var status;
+		if (meteor.debug) meteor.debug("incoming in readyState "+this.readyState);
 		if (this.readyState >= 3) {
 			//this.readyState = 2;
+			
+			// stupid workaround for IE which was written by 
+			// stupid assholes
+			try {
+				status = this.status;
+			} catch(e) {
+				// this is ie country
+				// this is ie
+				if (meteor.debug) meteor.debug("fucking ie");
+			}
 
-			// TODO: this line errors on IE
-			if (this.status == 200) {
+			if (status == 200) {
 				var length = this.responseBody ? this.responseBody.length : this.responseText.length;
 				var response = this.responseBody ? this.reponseBody : this.responseText;
 
-				if (length <= this.pos) return;
-				var str;
+				if (length > this.pos) {
+					var str;
 
-				if (this.pos) {
-					str = (response.slice(this.pos));
-				} else {
-					str = response;
-				}
-
-				// ifdef firefox or safari
-				if (navigator.userAgent.indexOf("Firefox") != -1 || navigator.userAgent.indexOf("Safari") != -1) {
-					var t = new Array;
-					for (var i = 0; i < str.length; i++) {
-						t.push(str.charCodeAt(i) & 0xff);
+					if (this.pos) {
+						str = (response.slice(this.pos));
+					} else {
+						str = response;
 					}
-					str = String.fromCharCode.apply(window, t);
-				}
-				// endif
 
-				if (con.callback.obj) {
-					con.callback.call(con.callback.obj, str);
-				} else {
-					con.callback(str);
-				}
+					// ifdef firefox or safari
+					if (navigator.userAgent.indexOf("Firefox") != -1 || navigator.userAgent.indexOf("Safari") != -1) {
+						var t = new Array;
+						for (var i = 0; i < str.length; i++) {
+							t.push(str.charCodeAt(i) & 0xff);
+						}
+						str = String.fromCharCode.apply(window, t);
+					}
+					// endif
 
-				this.pos = length;
+					if (con.callback.obj) {
+						con.callback.call(con.callback.obj, str);
+					} else {
+						con.callback(str);
+					}
+
+					this.pos = length;
+				}
 
 				if (this.readyState == 4 || this.pos >= meteor.BUFFER_MAX) {
 					con.connect_new_incoming();
