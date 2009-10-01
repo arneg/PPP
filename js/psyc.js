@@ -783,6 +783,7 @@ psyc.Client.prototype = {
 			if (m instanceof psyc.Message) {
 				var method = m.method;	
 				var count = m.vars.get("_id");	
+				var target = m.vars.get("_target");
 
 				if (method == "_status_circuit") {
 					var last_id = m.vars.get("_last_id");
@@ -792,7 +793,10 @@ psyc.Client.prototype = {
 						this.sync(last_id);
 						this.icount = count;
 					}
-				} 
+				} else if (target != this.uniform) {
+					if (meteor.debug) meteor.debug("received message for "+target+", not for us!");
+					continue;
+				}
 				
 				if (intp(count)) {
 					if (this.icount+1 < count) {
@@ -940,6 +944,8 @@ psyc.RoomWindow = function(templates, id) {
 	psyc.TemplatedWindow.call(this, templates, id);
 	this.members = new TypedTable();
 	this.members.addColumn("members", "Members");
+	this.active = 0;
+	UTIL.addClass(this.getMessagesNode(), "left");
 	var self = this;
 	var th = this.members.getHead("members");
 
@@ -951,8 +957,13 @@ psyc.RoomWindow = function(templates, id) {
 		sort *= -1;
 	};
 	this.addMessage = function(m) {
+		var me = m.vars.get("_target");
+
 		if (m.method == "_notice_enter") {
 			var list = m.vars.get("_members");
+			var supplicant = m.vars.get("_supplicant");
+
+			UTIL.replaceClass(this.getMessagesNode(), "left", "joined");
 
 			if (list && list instanceof Array) {
 				for (var i = 0; i < list.length; i++) {
@@ -960,10 +971,17 @@ psyc.RoomWindow = function(templates, id) {
 				}
 			}
 
-			this.addMember(m.vars.get("_supplicant"));
+			this.addMember(supplicant);
 		} else if (m.method == "_notice_leave") {
+			var supplicant = m.vars.get("_supplicant");
+
+			if (supplicant == me) {
+				UTIL.replaceClass(this.getMessagesNode(), "joined", "left");
+			}
+
 			this.deleteMember(m.vars.get("_supplicant"));
 		}
+
 		psyc.RoomWindow.prototype.addMessage.call(this, m);
 	};
 };
