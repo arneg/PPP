@@ -147,7 +147,7 @@ Mapping.prototype = {
 		var a = new Array();
 		// put some logic here to tune length of id and amount of items
 		for (var i = 0; i < 10; i++) {
-			a.push(Math.floor(Math.random() * 255));
+			a.push('A' + Math.floor(Math.random() * ('A'-'Z')));
 		}
 
 		var id = String.fromCharCode.apply(window, a);
