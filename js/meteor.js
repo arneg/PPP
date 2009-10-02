@@ -38,6 +38,7 @@ meteor.Connection = function(url, callback, error) {
 	this.incoming = 0;
 	this.outgoing = 0;
 	this.init_xhr = 0;
+	this.reconnect = 1; // do a reconnect on close
 };
 meteor.Connection.prototype = {
 	new_incoming_state_change : function() {
@@ -130,7 +131,7 @@ meteor.Connection.prototype = {
 				}
 
 				if (this.readyState == 4 || this.pos >= meteor.BUFFER_MAX) {
-					con.connect_new_incoming();
+					if (this.reconnect) con.connect_new_incoming();
 				}
 			} else {
 			// this throws an exception in firefox. brain
@@ -234,6 +235,7 @@ meteor.Connection.prototype = {
 	init : function() { // fetch the client_id and go
 		var xhr = new XMLHttpRequest();
 		xhr.meteor = this;
+		this.reconnect = 1;
 		this.init_xhr = xhr;
 		//this.error("initialization state is " + xhr.readyState);
 
