@@ -74,6 +74,7 @@ var TypedTable = function(list) {
 	};
 	this.deleteRow = function(id) {
 		var node = this.getRow(id);
+		if (!node) return;
 		this.tbody.removeChild(node);
 		TypedTable.prototype.deleteRow.call(this, id);
 	};
