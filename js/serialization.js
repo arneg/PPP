@@ -94,8 +94,6 @@ serialization.Message.prototype.decode = function(atom) {
 	var data;
 	var vars;
 
-	if (meteor.debug) meteor.debug("length of "+atom.type+"is "+l.length);
-
 	if (l.length == 3) {
 		vars = this.vtype.decode(l[0]);		
 		data = this.dtype.decode(l[2]);

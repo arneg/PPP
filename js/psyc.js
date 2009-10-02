@@ -340,11 +340,9 @@ psyc.get_uniform = function(str) {
  * @property {String} host Host part of the uniform including the port number.
  */
 psyc.Uniform = function(str) {
-	meteor.debug(str);
     if (str.substr(0,7) != "psyc://") {
 		throw("Invalid uniform: " + str);	
     }
-	meteor.debug(str);
     this.uniform = str;
     str = str.slice(7);
 
@@ -751,7 +749,6 @@ psyc.Client.prototype = {
 			}
 			return;
 		}
-		if (meteor.debug) meteor.debug("send successfull.");
 	},
 	/**
 	 * Request all messages up to id count from the PSYC user. This is done automatically if missing messages are detected during handshake with the user.
@@ -762,9 +759,7 @@ psyc.Client.prototype = {
 		for (var i = 0; this.icount+i+1 <= count; i++) {
 			list[i] = this.icount+i+1;
 		}
-		if (meteor.debug) meteor.debug("Asking for missing messages "+list.toString());
 		var message = new psyc.Message("_request_history", new psyc.Vars("_messages", list, "_target", this.uniform));
-		if (meteor.debug) meteor.debug("REQUEST_HISTORY: "+this.poly.encode(message).render());
 		this.send(message);
 	},
 	incoming : function (data) {
@@ -805,7 +800,7 @@ psyc.Client.prototype = {
 
 					} else if (this.icount == count - 1) {
 						this.icount = count;
-					} else if (meteor.debug) meteor.debug("historical message "+count);
+					}
 				}
 
 				var none = 1;
@@ -815,8 +810,6 @@ psyc.Client.prototype = {
 
 					none = 0;
 					var list = this.callbacks.get(t);
-
-					if (meteor.debug) meteor.debug("calling "+list+" for "+t);
 
 					for (var j = 0; j < list.length; j++) {
 						if (psyc.STOP == list[j].msg(m)) break;
