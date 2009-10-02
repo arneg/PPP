@@ -762,6 +762,9 @@ psyc.Client.prototype = {
 		var message = new psyc.Message("_request_history", new psyc.Vars("_messages", list, "_target", this.uniform));
 		this.send(message);
 	},
+	_notice_logout : function (m) {
+		this.client.reconnect = 0;	
+	},
 	incoming : function (data) {
 		try {
 			data = this.parser.parse(data);
@@ -806,6 +809,9 @@ psyc.Client.prototype = {
 				var none = 1;
 
 				for (var t = method; t; t = psyc.abbrev(t)) {
+					if (this.hasOwnProperty(t) && functionp(this[t])) {
+						this[t].call(this, m);
+					}
 					if (!this.callbacks.hasIndex(t)) continue;
 
 					none = 0;
@@ -823,7 +829,8 @@ psyc.Client.prototype = {
 		}
 	},
 };
-psyc.funky_text = function(m, template) {
+psyc.funky_text = function(m, templates) {
+	var template = templates.get(m.method);
 	var reg = /\[[\w-]+\]/g;
 	var div = document.createElement("div");
 	div.className = psyc.abbreviations(m.method).join(" ");
@@ -846,8 +853,12 @@ psyc.funky_text = function(m, template) {
 		} else if (s == "method") {
 			t = XSS.html_string_encode(m.method);
 		} else if (m.vars.hasIndex(s)) {
+			var vtml = templates.get(s);
 			t = m.vars.get(s);
-			if (objectp(t)) {
+
+			if (functionp(vtml)) {
+				t = vtml.call(window, type, s, t, m);
+			} else if (objectp(t)) {
 				if (functionp(t.render)) {
 					t = t.render(type);
 				} else {
@@ -882,38 +893,61 @@ psyc.funky_text = function(m, template) {
 
 	return div;
 };
+psyc.Base = function() {
+	this.msg = function (m) {
+		var method = m.method;
+		var none = 1;
+
+		if (method.search("_") != 0) {
+			if (meteor.debug) meteor.debug("Bad method "+method);
+			return psyc.STOP;
+		}
+
+		for (var t = method; t; t = psyc.abbrev(t)) {
+			if (functionp(this[t])) {
+				none = 0;
+				if (psyc.STOP == this[t].call(this, m)) {
+					return psyc.STOP;
+				}
+			}
+		}
+
+		if (none && meteor.debug) {
+			meteor.debug("No handler for "+method+" in "+this);	
+		}
+	};
+};
 psyc.ChatWindow = function(id) {
 	this.mlist = new Array();
 	this.mset = new Mapping();
 	this.messages = document.createElement("div");
 	this.name = id;
 };
-psyc.ChatWindow.prototype = {
-	addMessage : function(m) {
-		this.mset.set(m, this.mlist.length);
-		this.mlist.push(m);
-		this.messages.appendChild(this.renderMessage(m));
-	},
-	getMessages : function() {
-		return this.mlist.concat();
-	},
-	render : function(o) {
-		if (typeof(o) == "object" && typeof(o.render) == "function") {
-			return o.render("dom");
-		}
+psyc.ChatWindow.prototype = new psyc.Base();
+psyc.ChatWindow.prototype._ = function(m) {
+	this.mset.set(m, this.mlist.length);
+	this.mlist.push(m);
+	this.messages.appendChild(this.renderMessage(m));
+};
+psyc.ChatWindow.prototype.getMessages = function() {
+	return this.mlist.concat();
+};
+psyc.ChatWindow.prototype.render = function(o) {
+	if (typeof(o) == "object" && typeof(o.render) == "function") {
+		return o.render("dom");
+	}
 
-		if (o == undefined || o == null || typeof(o) == "number") {
-			return document.createTextNode(new Number(o).toString());
-		}
+	if (o == undefined || o == null || typeof(o) == "number") {
+		return document.createTextNode(new Number(o).toString());
+	}
 
-		return document.createTextNode(o.toString());
-	},
-	getMessageNode : function(m) {
-		return this.messages.childNodes[this.mset.get(m)];
-	},
-	getMessagesNode : function() {
-		return this.messages;
-	},
+	return document.createTextNode(o.toString());
+};
+psyc.ChatWindow.prototype.getMessageNode = function(m) {
+	return this.messages.childNodes[this.mset.get(m)];
+};
+psyc.ChatWindow.prototype.getMessagesNode = function() {
+	return this.messages;
 };
 psyc.TemplatedWindow = function(templates, id) {
 	psyc.ChatWindow.call(this, id);
@@ -924,13 +958,7 @@ psyc.TemplatedWindow.prototype.setTemplates = function(t) {
 	this.templates = t;
 };
 psyc.TemplatedWindow.prototype.renderMessage = function(m) {
-		var tmp = this.templates.get(m.method);
-
-		if (!tmp) {
-			tmp = "[_source] says: [data]";
-		}
-
-		return psyc.funky_text(m, tmp);
+	return psyc.funky_text(m, this.templates);
 };
 psyc.TemplatedWindow.prototype.constructor = psyc.TemplatedWindow;
 psyc.RoomWindow = function(templates, id) {
@@ -949,33 +977,29 @@ psyc.RoomWindow = function(templates, id) {
 		}));
 		sort *= -1;
 	};
-	this.addMessage = function(m) {
-		var me = m.vars.get("_target");
+	this._notice_enter = function(m) {
+		var list = m.vars.get("_members");
+		var supplicant = m.vars.get("_supplicant");
 
-		if (m.method == "_notice_enter") {
-			var list = m.vars.get("_members");
-			var supplicant = m.vars.get("_supplicant");
+		UTIL.replaceClass(this.getMessagesNode(), "left", "joined");
 
-			UTIL.replaceClass(this.getMessagesNode(), "left", "joined");
-
-			if (list && list instanceof Array) {
-				for (var i = 0; i < list.length; i++) {
-					this.addMember(list[i]);
-				}
+		if (list && list instanceof Array) {
+			for (var i = 0; i < list.length; i++) {
+				this.addMember(list[i]);
 			}
-
-			this.addMember(supplicant);
-		} else if (m.method == "_notice_leave") {
-			var supplicant = m.vars.get("_supplicant");
-
-			if (supplicant == me) {
-				UTIL.replaceClass(this.getMessagesNode(), "joined", "left");
-			}
-
-			this.deleteMember(m.vars.get("_supplicant"));
 		}
 
-		psyc.RoomWindow.prototype.addMessage.call(this, m);
+		this.addMember(supplicant);
+	};
+	this._notice_leave = function(m) {
+		var supplicant = m.vars.get("_supplicant");
+		var me = m.vars.get("_target");
+
+		if (supplicant == me) {
+			UTIL.replaceClass(this.getMessagesNode(), "joined", "left");
+		}
+
+		this.deleteMember(m.vars.get("_supplicant"));
 	};
 };
 psyc.RoomWindow.prototype = new psyc.TemplatedWindow();
@@ -1017,7 +1041,7 @@ psyc.Chat.prototype = {
 		if (m.vars.hasIndex("_source")) {
 			var source = m.vars.get("_source");
 
-			this.getWindow(source).addMessage(m);
+			this.getWindow(source).msg(m);
 			return psyc.STOP;
 		} 
 	},
