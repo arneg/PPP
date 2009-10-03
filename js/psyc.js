@@ -538,13 +538,7 @@ psyc.Message = function(method, vars, data) {
 		if (vars instanceof psyc.Vars) {
 			this.vars = vars;
 		} else if (objectp(vars)) {
-			this.vars = new psyc.Vars();
-
-			for (var i in vars) {
-				if (vars.hasOwnProperty(i)) {
-					this.vars.set(i, vars[i]);
-				}
-			}
+			this.vars = new psyc.Vars(vars);
 		}
     } else {
 		this.vars = new psyc.Vars();
@@ -629,10 +623,19 @@ psyc.Vars = function() {
 		return undefined;
 	};
 
-	if (arguments.length & 1) throw("odd number of mapping members.");
 	Mapping.call(this);
 
-    for (var i = 0; i < arguments.length; i += 2) {
+	if (arguments.length == 1) {
+		var vars = arguments[0];
+
+		for (var i in vars) {
+			if (vars.hasOwnProperty(i)) {
+				this.set(i, vars[i]);
+			}
+		}
+	} else if (arguments.length & 1) {
+		throw("odd number of mapping members.");
+	} else for (var i = 0; i < arguments.length; i += 2) {
         this.set(arguments[i], arguments[i+1]);
     }
 };
@@ -686,9 +689,9 @@ psyc.default_polymorphic = function() {
 	pol.register_type("_integer", "number", new serialization.Integer());
 	pol.register_type("_float", "float", new serialization.Float());
 	pol.register_type("_method", "string", method);
-	pol.register_type("_message", psyc.Message, new serialization.Message(method, pol, pol));
-	pol.register_type("_mapping", psyc.Vars, new serialization.Mapping(method, pol));
-	pol.register_type("_mapping", psyc.Vars, new serialization.Mapping(pol, pol));
+	//pol.register_type("_message", psyc.Message, new serialization.Message(method, pol, pol));
+	pol.register_type("_mapping", psyc.Vars, new serialization.Vars(pol));
+	pol.register_type("_mapping", psyc.Mapping, new serialization.Mapping(pol, pol));
 	pol.register_type("_list", Array, new serialization.Array(pol));
 	pol.register_type("_time", psyc.Date, new serialization.Date());
 	pol.register_type("_uniform", psyc.Uniform, new serialization.Uniform());
@@ -705,7 +708,7 @@ psyc.Client = function(url) {
 	this.connection.init();
 	var method = new serialization.Method();
 	var pol = psyc.default_polymorphic();
-	this.poly = new serialization.Message(method, new serialization.Mapping(method, pol), pol);
+	this.poly = new serialization.Message(method, new serialization.Vars(pol), pol);
 	this.parser = new psyc.AtomParser();
 	this.incoming.obj = this;
 	this.error.obj = this;
@@ -976,6 +979,7 @@ psyc.RoomWindow = function(templates, id) {
 	this.members = new TypedTable();
 	this.members.addColumn("members", "Members");
 	this.active = 0;
+	this.left = 0;
 	UTIL.addClass(this.getMessagesNode(), "left");
 	var self = this;
 	var th = this.members.getHead("members");
@@ -990,8 +994,12 @@ psyc.RoomWindow = function(templates, id) {
 	this._notice_enter = function(m) {
 		var list = m.vars.get("_members");
 		var supplicant = m.vars.get("_supplicant");
+		var me = m.vars.get("_target");
 
-		UTIL.replaceClass(this.getMessagesNode(), "left", "joined");
+		if (supplicant == me) {
+			UTIL.replaceClass(this.getMessagesNode(), "left", "joined");
+			this.left = 0;
+		}
 
 		if (list && list instanceof Array) {
 			for (var i = 0; i < list.length; i++) {
@@ -1007,6 +1015,7 @@ psyc.RoomWindow = function(templates, id) {
 
 		if (supplicant == me) {
 			UTIL.replaceClass(this.getMessagesNode(), "joined", "left");
+			this.left = 1;
 		}
 
 		this.deleteMember(m.vars.get("_supplicant"));
