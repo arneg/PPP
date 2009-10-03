@@ -64,6 +64,7 @@ serialization.Polymorphic.prototype.register_type = function(atype, ptype, o) {
 		this.ptype_to_type.set(ptype, new Array(o));
 	}
 };
+serialization.Polymorphic.prototype.constructor = serialization.Polymorphic;
 serialization.Date = function() { 
 	this.type = "_time";
 };
@@ -77,6 +78,7 @@ serialization.Date.prototype.decode = function(atom) {
 serialization.Date.prototype.encode = function(o) {
 	return new psyc.Atom("_time", o.timestamp);
 };
+serialization.Date.prototype.constructor = serialization.Date;
 serialization.Message = function(method, vars, data) {
 	this.mtype = method;
 	this.vtype = vars;
@@ -125,6 +127,7 @@ serialization.Message.prototype.encode = function(o) {
 
 	return new psyc.Atom("_message", str);
 };
+serialization.Message.prototype.constructor = serialization.Message;
 serialization.String = function() { 
 	this.type = "_string";
 };
@@ -138,6 +141,7 @@ serialization.String.prototype.decode = function(atom) {
 serialization.String.prototype.encode = function(o) {
 	return new psyc.Atom("_string", UTF8.encode(o));
 };
+serialization.String.prototype.constructor = serialization.String;
 serialization.Integer = function() { 
 	this.type = "_integer";
 };
@@ -151,6 +155,7 @@ serialization.Integer.prototype.decode = function(atom) {
 serialization.Integer.prototype.encode = function(o) {
 	return new psyc.Atom("_integer", o.toString());
 };
+serialization.Integer.prototype.constructor = serialization.Integer;
 serialization.Float = function() { 
 	this.type = "_float";
 };
@@ -164,6 +169,7 @@ serialization.Float.prototype.decode = function(atom) {
 serialization.Float.prototype.encode = function(o) {
 	return new psyc.Atom("_float", o.toString());
 };
+serialization.Float.prototype.constructor = serialization.Float;
 serialization.Method = function(base) { 
 	this.base = base;
 	this.type = "_method";
@@ -178,6 +184,7 @@ serialization.Method.prototype.decode = function(atom) {
 serialization.Method.prototype.encode = function(o) {
 	return new psyc.Atom("_method", o);
 };
+serialization.Method.prototype.constructor = serialization.Method;
 serialization.Uniform = function() { 
 	this.type = "_uniform";
 };
@@ -191,6 +198,7 @@ serialization.Uniform.prototype.decode = function(atom) {
 serialization.Uniform.prototype.encode = function(o) {
 	return new psyc.Atom("_uniform", o.uniform);
 };
+serialization.Uniform.prototype.constructor = serialization.Uniform;
 serialization.Mapping = function(mtype, vtype) { 
 	this.mtype = mtype;
 	this.vtype = vtype;
@@ -203,7 +211,7 @@ serialization.Mapping.prototype.can_encode = function(o) {
 serialization.Mapping.prototype.decode = function(atom) {
 	var p = new psyc.AtomParser();
 	var l = p.parse(atom.data);
-	var m = new Mapping();
+	var m = this.constr ? new this.constr() : new Mapping();
 
 	if (l.length & 1) throw("Malformed mapping.\n");
 	
@@ -228,14 +236,18 @@ serialization.Mapping.prototype.encode = function(o) {
 	}, this);
 	return new psyc.Atom("_mapping", str);
 };
+serialization.Mapping.prototype.constructor = serialization.Mapping;
 serialization.Vars = function(vtype) { 
 	this.mtype = new serialization.Method();
 	this.vtype = vtype;
+	this.constr = psyc.Vars;
+	this.type = "_mapping";
 	this.can_encode = function(o) {
 		return o instanceof psyc.Vars;
 	};
 };
 serialization.Vars.prototype = new serialization.Mapping();
+serialization.Vars.prototype.constructor = serialization.Vars;
 serialization.Array = function(type) { 
 	this.type = "_list";
 	this.etype = type;
@@ -262,3 +274,4 @@ serialization.Array.prototype.encode = function(o) {
 	}
 	return new psyc.Atom("_list", str);
 };
+serialization.Array.prototype.constructor = serialization.Array;
