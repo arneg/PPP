@@ -1,0 +1,6 @@
+IE
+	IE 8
+	 - use XDomainRequest http://msdn.microsoft.com/en-us/library/cc288060(VS.85).aspx because it supports
+	   streaming
+	IE <=7
+	 - use hidden iframe or stay with the long-polling solution we have
