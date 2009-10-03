@@ -535,9 +535,19 @@ psyc.Atom = function(type, data) {
 psyc.Message = function(method, vars, data) {
     this.method = method;
     if (vars) {
-		this.vars = vars;
+		if (vars instanceof psyc.Vars) {
+			this.vars = vars;
+		} else if (objectp(vars)) {
+			this.vars = new psyc.Vars();
+
+			for (var i in vars) {
+				if (vars.hasOwnProperty(i)) {
+					this.vars.set(i, vars[i]);
+				}
+			}
+		}
     } else {
-		this.vars = new Vars();
+		this.vars = new psyc.Vars();
     }
 
     if (data) {
@@ -1172,22 +1182,4 @@ psyc.TabbedChat.prototype.activateWindow = function(uniform) {
 	}
 	this.active = win;
 	win.show();
-};
-/**
- * @param {Uniform} uniform
- * Requests membership in the given room. If the room has been entered successfully a new tab will be opened automatically.
- */
-psyc.Chat.prototype.enterRoom = function(uniform) {
-	var message = new psyc.Message("_request_enter", new psyc.Vars("_target", uniform));
-	this.client.send(message);
-
-};
-/**
- * @param {Uniform} uniform
- * Leaves a room.
- */
-psyc.Chat.prototype.leaveRoom = function(uniform) {
-	var message = new psyc.Message("_request_leave", new psyc.Vars("_target", uniform));
-	this.client.send(message);
-	// close window after _notice_leave is there or after double click on close button
 };
