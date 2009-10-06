@@ -169,11 +169,22 @@ Mapping.prototype = {
 			if (key instanceof String) {
 				return "string;" + key;
 			}
+			// this is used for IE DOM objects only.
+			if (key == window) {
+				return "dom;window";
+			}
+			if (key == document) {
+				return "dom;document";
+			}
+			if (key.uniqueID) {
+				return "dom;"+key.uniqueID;
+			}
+
 			if (key.hasOwnProperty("__id")) {
 				return key["__id"];
 			}
 
-			var id = this.get_new_id();
+			var id = "object;"+this.get_new_id();
 			key["__id"] = id;
 			return id;
 		} else {
