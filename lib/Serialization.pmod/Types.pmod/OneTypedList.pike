@@ -174,7 +174,7 @@ void medium_to_raw(Serialization.Atom atom) {
 		buf = atom->pdata[0]->render(buf);
 		buf = atom->pdata[1]->render(buf);
     } else foreach (atom->pdata;;Serialization.Atom a) {
-		buf = a->render();	
+		buf = a->render(buf);	
     }
 
     atom->data = (string)buf;
