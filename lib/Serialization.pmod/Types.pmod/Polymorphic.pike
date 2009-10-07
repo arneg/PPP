@@ -89,7 +89,7 @@ Serialization.Atom encode(mixed v) {
     multiset t;
 
     if (t = ptypes[key]) foreach (t; object type;) {
-	if (type->can_encode(v)) return type->encode(v);
+		if (type->can_encode(v)) return type->encode(v);
     }
     
     error("Cannot encode %O\n", v);
