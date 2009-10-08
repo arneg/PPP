@@ -65,6 +65,7 @@ meteor.Connection.prototype = {
 			// TODO: we have to check for data in new_incoming,
 			// not sure what to do with it. we can probably savely
 			// parse it in case of atoms.
+				if (meteor.debug) meteor.debug("New connection already finished.\n");
 			} else return this.connect_incoming();
 		}
 
@@ -98,6 +99,7 @@ meteor.Connection.prototype = {
 				if (meteor.debug) meteor.debug("fucking ie");
 			}
 
+			if (meteor.debug) meteor.debug("http status code: "+status);
 			if (status == 200) {
 				var length = this.responseBody ? this.responseBody.length : this.responseText.length;
 				var response = this.responseBody ? this.reponseBody : this.responseText;
@@ -121,22 +123,25 @@ meteor.Connection.prototype = {
 					}
 					// endif
 
-					if (con.callback.obj) {
-						con.callback.call(con.callback.obj, str);
-					} else {
-						con.callback(str);
+					try {
+						if (con.callback.obj) {
+							con.callback.call(con.callback.obj, str);
+						} else {
+							con.callback(str);
+						}
+					} catch (error) {
+						if (meteor.debug) meteor.debug("ERROR: "+error);
 					}
 
 					this.pos = length;
 				}
 
 				if (this.readyState == 4 || this.pos >= meteor.BUFFER_MAX) {
-					if (this.reconnect) con.connect_new_incoming();
+					if (con.reconnect) con.connect_new_incoming();
 				}
 			} else {
 			// this throws an exception in firefox. brain
 			//	con.error(this.statusText);
-				if (meteor.debug) meteor.debug("http status code: "+this.status);
 			}
 		}
 	},
@@ -281,7 +286,7 @@ meteor.Connection.prototype = {
 			this.ready = 0;
 			this.buffer = "";
 		}
-	},
+	}
 };
 // the params handed by the user could be prototyped with a
 // msg and something more
@@ -307,7 +312,7 @@ meteor.CallbackWrapper.prototype = {
 		return this.mapping == 0 ? 0 : 1;
 	},
 	unregister : function() {
-	if (this.mapping == 0) return;
+		if (this.mapping == 0) return;
 
 		var list = this.mapping.get(this.params.method);
 
@@ -318,5 +323,5 @@ meteor.CallbackWrapper.prototype = {
 		}
 
 		this.mapping = 0;
-	},
+	}
 };
