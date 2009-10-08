@@ -6,7 +6,7 @@ serialization.Base.prototype = {
 	},
 	toString : function() {
 		return "serialization.Base("+this.type+")";
-	},
+	}
 };
 serialization.Polymorphic = function() {
 	this.atype_to_type = new Mapping(); // this could use inheritance
@@ -28,7 +28,7 @@ serialization.Polymorphic.prototype.can_encode = function(o) {
 };
 serialization.Polymorphic.prototype.decode = function(atom) {
 	var types = this.atype_to_type.get(atom.type);
-	for (var i in types) {
+	for (var i = 0; i < types.length; i++) {
 		if (types[i].can_decode(atom)) {
 			return types[i].decode(atom);
 		}
@@ -41,7 +41,7 @@ serialization.Polymorphic.prototype.encode = function(o) {
 	if (t == "object") t = o.constructor;
 	var types = this.ptype_to_type.get(t);
 
-	for (var i in types) {
+	for (var i = 0; i < types.length; i ++) {
 		if (types[i].can_encode(o)) {
 			return types[i].encode(o);
 		}
