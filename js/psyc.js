@@ -400,7 +400,7 @@ psyc.Uniform.prototype = {
 		var s2 = a.toString();
 		return (s1 == s2) ? 0 : (s1 > s2) ? 1 : -1;
 	},
-	constructor : psyc.Uniform,
+	constructor : psyc.Uniform
 };
 /**
  * Atom parser class.
@@ -481,7 +481,7 @@ psyc.AtomParser.prototype = {
 		this.reset();
 		
 		return a;
-    },
+    }
 };
 psyc.find_abbrev = function(obj, key) {
     var t = key;
@@ -564,7 +564,7 @@ psyc.Message.prototype = {
 		}
 
 		return undefined;
-	},
+	}
 };
 // okay, the rationale of this is, that we allow templates to
 // contain arbitrary stuff, however. user supplied data is escaped
@@ -782,13 +782,14 @@ psyc.Client.prototype = {
 		try {
 			data = this.parser.parse(data);
 		} catch (error) {
-			if (meteor.debug) meteor.debug("failed to parse: "+data);
+			if (meteor.debug) meteor.debug("failed to parse: "+data+"\nERROR: "+error);
 		}
+		var test = this;
 		for (var i = 0; i < data.length; i++) {
+			var m = this.poly.decode(data[i]);
 			try {
-				var m = this.poly.decode(data[i]);
 			} catch (error) {
-				if (meteor.debug) meteor.debug("failed to decode: "+data[i]);
+				if (meteor.debug) meteor.debug("failed to decode: "+data[i]+"\nERROR: "+error);
 				continue;
 			}
 			if (m instanceof psyc.Message) {
@@ -840,7 +841,7 @@ psyc.Client.prototype = {
 				if (meteor.debug) meteor.debug("Got non _message atom from "+connection.toString());
 			}
 		}
-	},
+	}
 };
 psyc.funky_text = function(m, templates) {
 	var template = templates.get(m.method);
@@ -928,6 +929,15 @@ psyc.Base = function() {
 		if (none && meteor.debug) {
 			meteor.debug("No handler for "+method+" in "+this);	
 		}
+	};
+	this.sendmsg = function(target, method, vars, data) {
+		if (!vars) {
+			vars = new psyc.Vars();
+		}
+
+		vars["_target"] = target;
+		var m = psyc.Message(method, vars, data);
+		this.client.send(m);
 	};
 };
 psyc.ChatWindow = function(id) {
@@ -1097,7 +1107,7 @@ psyc.Chat.prototype = {
 		var message = new psyc.Message("_request_leave", new psyc.Vars("_target", uniform));
 		this.client.send(message);
 		// close window after _notice_leave is there or after double click on close button
-	},
+	}
 };
 psyc.TabbedRoom = function(templates, id) {
 	psyc.RoomWindow.call(this, templates, id);
@@ -1191,4 +1201,53 @@ psyc.TabbedChat.prototype.activateWindow = function(uniform) {
 	}
 	this.active = win;
 	win.show();
+};
+psyc.ProfileData = function(client) {
+	this.client = client;
+	this.cache = new Mapping();
+	this.requests = new Mapping();
+	this.requestees = new Mapping();
+	client.register_method({ method : "_update_profile", source : null, object : this });
+	client.register_method({ method : "_request_profile", source : null, object : this });
+};
+psyc.ProfileData.prototype = new psyc.Base();
+psyc.ProfileData.prototype.setProfileData = function(m) {
+	this.profile = m;
+};
+psyc.ProfileData.prototype.getProfileData = function(uniform, callback) {
+	if (this.cache.hasIndex(uniform)) {
+		callback(this.cache.get(uniform));
+		return;
+	}
+
+	if (this.requests.hasIndex(uniform)) {
+		this.requests.get(uniform).push(callback);
+		return;
+	}
+
+	this.requests.set(uniform, (new Array(callback)));
+	this.sendmsg(uniform, "_request_profile");
+};
+psyc.ProfileData.prototype._update_profile = function(m) {
+	var source = m.vars.get("_source");
+	var profile = m.vars.get("_profile");
+
+	this.cache.set(source, profile);
+
+	if (this.requests.hasIndex(source)) {
+		var list = this.requests.get(source);
+
+		for (var i = 0; i < list.length; i++) {
+			list[i](profile);
+		}
+	}
+};
+psyc.ProfileData.prototype._request_profile = function(m) {
+	var source = m.vars.get("_source");
+
+	if (!this.profile) {
+		this.profile = new Mapping();
+	}
+
+	this.sendmsg(source, "_update_profile", new psyc.Vars({ _profile : this.profile }));
 };
