@@ -217,6 +217,8 @@ meteor.Connection.prototype = {
 		xhr.onreadystatechange = this.outgoing_state_change;
 		xhr.meteor = this;
 		this.ready = 1;
+
+		if (this.buffer.length > 0) this.write();
 	},
 	init_state_change : function(change_event) { // fetch the client_id and go
 		var con = this.meteor;
@@ -276,16 +278,28 @@ meteor.Connection.prototype = {
 	 */
 	send : function(data) {
 		// check for status
+		meteor.debug("Appending ("+data.substr(data.length-40, 39)+")\n");
+		meteor.debug(this.ready +" "+this.will_write);
 		this.buffer += data;
 
-		if (this.client_id && this.ready) {
+		if (this.client_id && this.ready && !this.will_write) {
 			// ifdef firefox
 			//this.outgoing.setRequestHeader("Content-Length", this.buffer.length);
 			// endif
-			this.outgoing.send(this.buffer);   
-			this.ready = 0;
-			this.buffer = "";
+			var self = this;
+			var cb = function() {
+				self.will_write = 0;
+				self.write();
+			}
+			this.will_write = 1;		
+			window.setTimeout(cb, 20);
 		}
+	},
+	write : function() {
+		this.outgoing.send(this.buffer);   
+		meteor.debug("Sending ("+this.buffer.substr(this.buffer.length-40, 39)+")\n");
+		this.ready = 0;
+		this.buffer = "";
 	}
 };
 // the params handed by the user could be prototyped with a
