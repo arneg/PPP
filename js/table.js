@@ -116,7 +116,7 @@ var TypedTable = function(list) {
 		var num = this.getColumn(column);
 		var cell = row.childNodes[num];
 		var node = this.render(o);
-	if (cell.hasChildNodes()) {
+		if (cell.hasChildNodes()) {
 			cell.replaceChild(node, cell.firstChild);
 		} else {
 			cell.appendChild(node);
