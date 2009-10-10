@@ -564,6 +564,9 @@ psyc.Message.prototype = {
 		}
 
 		return undefined;
+	},
+	source : function() {
+		return this.vars.get("_source");
 	}
 };
 // okay, the rationale of this is, that we allow templates to
@@ -785,7 +788,7 @@ psyc.Client.prototype = {
 			if (meteor.debug) meteor.debug("failed to parse: "+data+"\nERROR: "+error);
 		}
 		var test = this;
-		for (var i = 0; i < data.length; i++) {
+MESSAGES: for (var i = 0; i < data.length; i++) {
 			var m = this.poly.decode(data[i]);
 			try {
 			} catch (error) {
@@ -796,17 +799,24 @@ psyc.Client.prototype = {
 				var method = m.method;	
 				var count = m.vars.get("_id");	
 				var target = m.vars.get("_target");
+				var source = m.source();
 
 				if (method == "_status_circuit") {
 					var last_id = m.vars.get("_last_id");
-					this.uniform = m.vars.get("_source");
+					this.uniform = m.source();
 
 					if (intp(last_id) && this.icount < last_id) {
 						this.sync(last_id);
 						this.icount = count;
 					}
+					if (this.onconnect) {
+						this.onconnect(this);
+					}
 				} else if (target != this.uniform) {
 					if (meteor.debug) meteor.debug("received message for "+target+", not for us!");
+					continue;
+				} else if (!source) {
+					if (meteor.debug) meteor.debug("received message without source.\n");
 					continue;
 				}
 				
@@ -832,7 +842,7 @@ psyc.Client.prototype = {
 					var list = this.callbacks.get(t);
 
 					for (var j = 0; j < list.length; j++) {
-						if (psyc.STOP == list[j].msg(m)) break;
+						if (psyc.STOP == list[j].msg(m)) continue MESSAGES;
 					}
 				}
 
@@ -935,8 +945,8 @@ psyc.Base = function() {
 			vars = new psyc.Vars();
 		}
 
-		vars["_target"] = target;
-		var m = psyc.Message(method, vars, data);
+		vars.set("_target", target);
+		var m = new psyc.Message(method, vars, data);
 		this.client.send(m);
 	};
 };
@@ -1067,12 +1077,8 @@ psyc.Chat = function(client) {
 };
 psyc.Chat.prototype = {
 	msg : function(m) {
-		if (m.vars.hasIndex("_source")) {
-			var source = m.vars.get("_source");
-
-			this.getWindow(source).msg(m);
-			return psyc.STOP;
-		} 
+		this.getWindow(m.source()).msg(m);
+		return psyc.STOP;
 	},
 
 	getWindow : function(uniform) {
@@ -1214,6 +1220,29 @@ psyc.ProfileData.prototype = new psyc.Base();
 psyc.ProfileData.prototype.setProfileData = function(m) {
 	this.profile = m;
 };
+psyc.ProfileData.prototype.getDisplayNode = function(uniform) {
+
+	if (this.cache.hasIndex(uniform)) {
+		var name = this.cache.get(uniform).get("_name_display");
+		if (name) return document.createTextNode(name);
+	}
+
+	var node = document.createTextNode(uniform.name);
+
+	var cb = function(profile) {
+		var name = profile.get("_name_display");
+		node.parentNode.replaceChild(document.createTextNode(name), node);
+	};
+
+	var self = this;
+	
+	var iefuck = function() {
+		self.getProfileData(uniform, cb);	
+	};
+
+	window.setTimeout(iefuck, 0);
+	return node;
+};
 psyc.ProfileData.prototype.getProfileData = function(uniform, callback) {
 	if (this.cache.hasIndex(uniform)) {
 		callback(this.cache.get(uniform));
@@ -1229,7 +1258,7 @@ psyc.ProfileData.prototype.getProfileData = function(uniform, callback) {
 	this.sendmsg(uniform, "_request_profile");
 };
 psyc.ProfileData.prototype._update_profile = function(m) {
-	var source = m.vars.get("_source");
+	var source = m.source();
 	var profile = m.vars.get("_profile");
 
 	this.cache.set(source, profile);
@@ -1241,13 +1270,49 @@ psyc.ProfileData.prototype._update_profile = function(m) {
 			list[i](profile);
 		}
 	}
+
+	return psyc.STOP;
 };
 psyc.ProfileData.prototype._request_profile = function(m) {
-	var source = m.vars.get("_source");
+	var source = m.source();
 
 	if (!this.profile) {
 		this.profile = new Mapping();
 	}
 
 	this.sendmsg(source, "_update_profile", new psyc.Vars({ _profile : this.profile }));
+	return psyc.STOP;
 };
+psyc.UserList = function(client, profiles) {
+	this.client = client;
+	this.profiles = profiles;
+	client.register_method({ method : "_update_users", source : client.uniform, object : this });
+	client.register_method({ method : "_notice_login", source : null, object : this });
+	client.register_method({ method : "_notice_logout", source : null, object : this });
+	this.table = new TypedTable();
+	this.table.addColumn("users", "Users");
+	this.sendmsg(client.uniform, "_request_users");
+};
+psyc.UserList.prototype = new psyc.Base();
+psyc.UserList.prototype._notice_logout = function(m) {
+	var source = m.source();
+	if (this.table.getRow(source)) {
+		this.table.deleteRow(source);
+	}
+};
+psyc.UserList.prototype._notice_login = function(m) {
+	var source = m.source();
+	if (!this.table.getRow(source)) {
+		this.table.addRow(source);
+		this.table.addCell(source, "users", this.profiles.getDisplayNode(source));
+	}
+};
+psyc.UserList.prototype._update_users = function(m) {
+	var source = m.source();
+	var list = m.vars.get("_users");
+	for (var i = 0; i < list.length; i++) {
+		this.table.addRow(list[i]);
+		this.table.addCell(list[i], "users", this.profiles.getDisplayNode(list[i]));
+	}
+};
+
