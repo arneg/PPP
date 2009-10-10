@@ -1299,6 +1299,8 @@ psyc.UserList.prototype._notice_logout = function(m) {
 	if (this.table.getRow(source)) {
 		this.table.deleteRow(source);
 	}
+
+	return psyc.STOP;
 };
 psyc.UserList.prototype._notice_login = function(m) {
 	var source = m.source();
@@ -1306,6 +1308,8 @@ psyc.UserList.prototype._notice_login = function(m) {
 		this.table.addRow(source);
 		this.table.addCell(source, "users", this.profiles.getDisplayNode(source));
 	}
+
+	return psyc.STOP;
 };
 psyc.UserList.prototype._update_users = function(m) {
 	var source = m.source();
@@ -1314,5 +1318,7 @@ psyc.UserList.prototype._update_users = function(m) {
 		this.table.addRow(list[i]);
 		this.table.addCell(list[i], "users", this.profiles.getDisplayNode(list[i]));
 	}
+	
+	return psyc.STOP;
 };
 
