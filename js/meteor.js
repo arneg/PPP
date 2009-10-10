@@ -146,6 +146,7 @@ meteor.Connection.prototype = {
 		}
 	},
 	incoming_on_error : function() {
+		if (meteor.debug) meteor.debug("INCOMING ERROR!");
 		this.meteor.connect_new_incoming();
 	},
 	connect_incoming : function(xhr) {
