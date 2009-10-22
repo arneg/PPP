@@ -43,7 +43,7 @@ meteor.Connection = function(url, callback, error) {
 meteor.Connection.prototype = {
 	new_incoming_state_change : function() {
 		var con = this.meteor;
-		con.error("new_incoming state is " + this.readyState);
+		if (meteor.debug) meteor.debug("new_incoming state is " + this.readyState);
 		// we should check here for buffer length. maybe set a max
 		// amount to shut down the main one ungracefully
 		if (this.readyState >= 3) {
@@ -75,7 +75,7 @@ meteor.Connection.prototype = {
 		this.new_incoming = xhr;
 		xhr.pos = 0;
 			
-		xhr.open("POST", this.url + "?" + this.client_id, true);
+		xhr.open("POST", this.url + "&id=" + escape(this.client_id), true);
 		//xhr.overrideMimeType("text/plain; charset=ISO-8859-1");
 		if (xhr.overrideMimeType) xhr.overrideMimeType('text/plain; charset=x-user-defined');
 		xhr.onreadystatechange = this.new_incoming_state_change;
@@ -171,7 +171,7 @@ meteor.Connection.prototype = {
 
 		xhr.onreadystatechange = this.incoming_state_change;
 		xhr.onerror = this.incoming_on_error;
-		this.error("moved new incoming to incoming.\n");
+		if (meteor.debug) meteor.debug("moved new incoming to incoming.");
 		this.new_incoming = 0;
 		this.incoming = xhr;
 		meteor.Connection.prototype.incoming_state_change.call(xhr);
@@ -211,7 +211,7 @@ meteor.Connection.prototype = {
 		}
 		//this.error("outgoing state is " + xhr.readyState);
 
-		xhr.open("POST", this.url + "?" + this.client_id, true);
+		xhr.open("POST", this.url + "&id=" + escape(this.client_id), true);
 		// we do this charset hackery because we have internal utf8 and plain ascii
 		// for the rest of atom. this is supposed to be a binary transport
 		xhr.setRequestHeader("Content-Type", "application/binary");
@@ -230,10 +230,14 @@ meteor.Connection.prototype = {
 				con.init_xhr = null;
 				con.connect_outgoing();
 				con.connect_new_incoming();
+			} else if (this.status == 404) {
+				con.error(this.responseText);
 			} else {
 				con.error(this.statusText);
 			}
-			this.meteor = null;
+
+			delete this.meteor;
+			delete con.init_xhr;
 			//console.debug("not yet in readyState 4\n");
 		}
 	},
@@ -279,8 +283,6 @@ meteor.Connection.prototype = {
 	 */
 	send : function(data) {
 		// check for status
-		meteor.debug("Appending ("+data.substr(data.length-40, 39)+")\n");
-		meteor.debug(this.ready +" "+this.will_write);
 		this.buffer += data;
 
 		if (this.client_id && this.ready && !this.will_write) {
