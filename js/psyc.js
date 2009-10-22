@@ -705,17 +705,25 @@ psyc.default_polymorphic = function() {
  * @constructor
  * @params {String} url Meteor endpoint urls.
  */
-psyc.Client = function(url) {
+psyc.Client = function(url, name) {
 	this.callbacks = new Mapping();
-	this.connection = new meteor.Connection(url, this.incoming, this.error);
+	var self = this;
+	var errorcb = function(error) {
+		if (!self.uniform) { // we are not connected yet.
+			if (self.onconnect) self.onconnect(0, error);
+		}
+
+		if (meteor.debug) meteor.debug(error);
+	};
+	this.connection = new meteor.Connection(url+"?nick="+name, this.incoming, errorcb);
 	this.connection.init();
 	var method = new serialization.Method();
 	var pol = psyc.default_polymorphic();
 	this.poly = new serialization.Message(method, new serialization.Vars(pol), pol);
 	this.parser = new psyc.AtomParser();
 	this.incoming.obj = this;
-	this.error.obj = this;
 	this.icount = 0;
+	this.name = name;
 };
 // params = ( method : "_message", source : Uniform }
 psyc.Client.prototype = {
@@ -738,9 +746,6 @@ psyc.Client.prototype = {
 		}
 
 		return wrapper;
-	},
-	error : function(err) {
-		if (meteor.debug) meteor.debug(err);
 	},
 	/**
 	 * Send a message. This should be of type psyc.Message.
@@ -810,7 +815,7 @@ MESSAGES: for (var i = 0; i < data.length; i++) {
 						this.icount = count;
 					}
 					if (this.onconnect) {
-						this.onconnect(this);
+						this.onconnect(1, this);
 					}
 				} else if (target != this.uniform) {
 					if (meteor.debug) meteor.debug("received message for "+target+", not for us!");
