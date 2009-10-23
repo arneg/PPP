@@ -13,6 +13,11 @@ meteor = new Object();
  * Limit for the incoming buffer. When the incoming XMLHttpRequest object buffer grows larger than this, the connection is reinitiated.
  */
 meteor.BUFFER_MAX = 1 << 16; // limit for incoming buffer, exceeding this buffer triggers a reconnect
+meteor.dismantle = function(xhr) {
+	delete xhr.meteor;
+	delete xhr.onreadystatechange;
+	try { xhr.abort(); } catch (e) {};
+};
 /**
  * Meteor connection class. This is usually used with Atom serialization on top. Use psyc.Client if unsure.
  * @param {String} url URL of the Meteor connection endpoint.
@@ -41,6 +46,18 @@ meteor.Connection = function(url, callback, error) {
 	this.reconnect = 1; // do a reconnect on close
 };
 meteor.Connection.prototype = {
+	reconnect_incoming : function() {
+		if (meteor.debug) meteor.debug("reconnecting due to timeout.\n");
+		if (this.new_incoming) {
+			meteor.dismantle(this.new_incoming);
+			delete this.new_incoming;
+		}
+		if (this.incoming) {
+			meteor.dismantle(this.incoming);
+			delete this.incoming;
+		}
+		this.connect_new_incoming();
+	},
 	new_incoming_state_change : function() {
 		var con = this.meteor;
 		if (meteor.debug) meteor.debug("new_incoming state is " + this.readyState);
@@ -75,7 +92,7 @@ meteor.Connection.prototype = {
 		this.new_incoming = xhr;
 		xhr.pos = 0;
 			
-		xhr.open("POST", this.url + "&id=" + escape(this.client_id), true);
+		xhr.open("POST", this.url + "&id=" + escape(this.client_id).replace(/\+/g, "%2B"), true);
 		//xhr.overrideMimeType("text/plain; charset=ISO-8859-1");
 		if (xhr.overrideMimeType) xhr.overrideMimeType('text/plain; charset=x-user-defined');
 		xhr.onreadystatechange = this.new_incoming_state_change;
@@ -161,12 +178,12 @@ meteor.Connection.prototype = {
 				return;
 			}
 
-			try { this.incoming.abort(); } catch (e) {}
+			meteor.dismantle(this.incoming);
 		}
 
 		if (this.operatimer) {
 			clearTimeout(this.operatimer);
-			this.operatimer = null;
+			delete this.operatimer;
 		}
 
 		xhr.onreadystatechange = this.incoming_state_change;
@@ -211,7 +228,7 @@ meteor.Connection.prototype = {
 		}
 		//this.error("outgoing state is " + xhr.readyState);
 
-		xhr.open("POST", this.url + "&id=" + escape(this.client_id), true);
+		xhr.open("POST", this.url + "&id=" + escape(this.client_id).replace(/\+/g, "%2B"), true);
 		// we do this charset hackery because we have internal utf8 and plain ascii
 		// for the rest of atom. this is supposed to be a binary transport
 		xhr.setRequestHeader("Content-Type", "application/binary");
@@ -227,7 +244,10 @@ meteor.Connection.prototype = {
 			if (this.status == 200) {
 				con.client_id = this.responseText;
 				if (meteor.debug) meteor.debug("got client ID " + con.client_id);
-				con.init_xhr = null;
+
+				meteor.dismantle(con.init_xhr);
+				delete con.init_xhr;
+
 				con.connect_outgoing();
 				con.connect_new_incoming();
 			} else if (this.status == 404) {
@@ -259,23 +279,22 @@ meteor.Connection.prototype = {
 	/**
 	 * Close incoming connection and clean up cyclic references.
 	 */
-	destruct : function() {
+	close : function() {
 		var list = [this.init_xhr, this.new_incoming, this.incoming, this.outgoing];
-		for (var t in list) {
-			t = list[t];
+		for (var i = 0; i < list.length; i++) {
+			var t = list[i];
 			try {
 				if (t) {
-					t.abort();
-					t.meteor = null;
+					meteor.dismantle(t);
 				}
 			} catch(e) { }
 		}
-		this.init_xhr = null;
-		this.incoming = null;
-		this.new_incoming = null;
-		this.outgoing = null;
-		this.callback = null;
-		this.error = null;
+		delete this.init_xhr;
+		delete this.incoming;
+		delete this.new_incoming;
+		delete this.outgoing;
+		delete this.callback;
+		delete this.error;
 	},
 	/**
 	 * Send some data.
@@ -299,8 +318,9 @@ meteor.Connection.prototype = {
 		}
 	},
 	write : function() {
+		
 		this.outgoing.send(this.buffer);   
-		meteor.debug("Sending ("+this.buffer.substr(this.buffer.length-40, 39)+")\n");
+		if (meteor.debug) meteor.debug("Sending ("+this.buffer.substr(this.buffer.length-40, 39)+")\n");
 		this.ready = 0;
 		this.buffer = "";
 	}
