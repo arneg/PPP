@@ -102,6 +102,11 @@ meteor.Connection.prototype = {
 	incoming_state_change : function() {
 		var con = this.meteor;
 		var status;
+
+		if (!con) {
+			if (meteor.debug) meteor.debug("xhr lost connection to reality.");
+			return;
+		}
 		if (meteor.debug) meteor.debug("incoming in readyState "+this.readyState);
 		if (this.readyState >= 3) {
 			//this.readyState = 2;

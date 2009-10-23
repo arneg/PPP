@@ -771,6 +771,10 @@ psyc.Client.prototype = {
 			return;
 		}
 	},
+	close : function() {
+		this.connection.close();
+		delete this.connection;
+	},
 	/**
 	 * Request all messages up to id count from the PSYC user. This is done automatically if missing messages are detected during handshake with the user.
 	 * @params {Integer} count Message to send.
