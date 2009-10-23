@@ -77,10 +77,10 @@ UTIL.replaceClass = function(o, cl1, cl2) {
 	var j = UTIL.search_array(classes, cl2);
 
 	if (i == -1 && j == -1) {
-		classes.push(cl2);
+		if (cl2) classes.push(cl2);
 	} else if (i == -1) {
 		return;
-	} else if (j == -1) {
+	} else if (j == -1 && cl2) {
 		classes[i] = cl2;
 	} else {
 		classes.splice(i, 1);
