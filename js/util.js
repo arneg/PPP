@@ -72,7 +72,7 @@ UTIL.search_array = function(a, n) {
 	return -1;
 }
 UTIL.replaceClass = function(o, cl1, cl2) {
-	var classes = o.className.split(' ');
+	var classes = o.className.length ? o.className.split(' ') : [];
 	var i = UTIL.search_array(classes, cl1);
 	var j = UTIL.search_array(classes, cl2);
 
@@ -88,7 +88,7 @@ UTIL.replaceClass = function(o, cl1, cl2) {
 	o.className = classes.join(" ");
 }
 UTIL.addClass = function(o, cl) {
-	var classes = o.className.split(' ');
+	var classes = o.className.length ? o.className.split(' ') : [];
 	var i = UTIL.search_array(classes, cl);
 
 	if (i == -1) {
