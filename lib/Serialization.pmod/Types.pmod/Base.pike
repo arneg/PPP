@@ -68,18 +68,18 @@ mixed to_done(Serialization.Atom atom) {
     if (!low_can_decode(atom)) error("Incompatible types.\n");
 
     if (!has_index(atom->typed_data, this)) {
-	if (atom->pdata) {
-	    medium_to_done(atom);
-	} else if (sizeof(atom->typed_data)) {
-	    [object signature, mixed a] = random(atom->typed_data);
-	    signature->done_to_medium(atom);
-	    medium_to_done(atom);
-	} else if (stringp(atom->data)) {
-	    raw_to_medium(atom);
-	    medium_to_done(atom);
-	} else {
-	    error("This atom is completely without information: %O.\n", atom);
-	}
+		if (atom->pdata) {
+			medium_to_done(atom);
+		} else if (sizeof(atom->typed_data)) {
+			[object signature, mixed a] = random(atom->typed_data);
+			signature->done_to_medium(atom);
+			medium_to_done(atom);
+		} else if (stringp(atom->data)) {
+			raw_to_medium(atom);
+			medium_to_done(atom);
+		} else {
+			error("This atom is completely without information: %O.\n", atom);
+		}
     }
 
     return atom->typed_data[this];

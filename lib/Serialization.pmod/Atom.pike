@@ -138,18 +138,18 @@ mixed get_pdata(void|object signature) {
     if (pdata) return pdata;
 
     if (signature) {
-	sig = signature;
-	if (!this_program::signature) this_program::signature = signature;
+		sig = signature;
+		if (!this_program::signature) this_program::signature = signature;
     } else {
-	sig = this_program::signature;
+		sig = this_program::signature;
     }
 
     if (!sig) error("Cannot produce pdata without signature.\n");
 
     if (has_index(typed_data, sig)) {
-	sig->done_to_medium(this);
+		sig->done_to_medium(this);
     } else {
-	sig->raw_to_medium(this);
+		sig->raw_to_medium(this);
     }
 
     return pdata;

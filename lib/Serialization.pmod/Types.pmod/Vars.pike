@@ -23,6 +23,8 @@ object get_vtype(mixed key, object ktype, mixed value) {
     if (objectp(key)) {
 		if (str->can_decode(key)) {
 			key = str->decode(key);
+		} else {
+			return 0;
 		}
     }
 
@@ -37,13 +39,17 @@ void done_to_medium(Serialization.Atom atom) {
     if (!mappingp(done)) error("Broken done state.\n");
 
     foreach (done; mixed key; mixed value) {
-	object ktype = get_ktype(key);
-	if (!ktype) continue;
-	object vtype = get_vtype(key, ktype, value);
-	if (!vtype) continue;
-	Serialization.Atom mkey = ktype->encode(key);
-	Serialization.Atom mval = vtype->encode(value);
-	m[mkey] = mval;
+		object ktype = get_ktype(key);
+		if (!ktype) {
+			continue;
+		}
+		object vtype = get_vtype(key, ktype, value);
+		if (!vtype) {
+			continue;
+		}
+		Serialization.Atom mkey = ktype->encode(key);
+		Serialization.Atom mval = vtype->encode(value);
+		m[mkey] = mval;
     }
 
     atom->pdata = m;
@@ -102,8 +108,8 @@ int(0..1) can_encode(mixed m) {
 	    object type = ohash->m[index];
 
 	    if (!type->can_encode(value)) {
-		werror("%O cannot encode %O\n", type, value);
-		return 0;
+			werror("%O cannot encode %O\n", type, value);
+			return 0;
 	    }
 	    
 	    continue;
