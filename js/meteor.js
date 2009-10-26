@@ -65,11 +65,6 @@ meteor.Connection.prototype = {
 		// amount to shut down the main one ungracefully
 		if (this.readyState >= 3) {
 			con.connect_incoming();
-		} else if (window.opera) {
-			var xhr = this;
-			setTimeout((function() {
-				meteor.Connection.prototype.new_incoming_state_change.call(xhr);
-			}), 200);
 		}
 	},
 	connect_new_incoming : function() {
@@ -93,6 +88,10 @@ meteor.Connection.prototype = {
 		xhr.pos = 0;
 			
 		xhr.open("POST", this.url + "&id=" + escape(this.client_id).replace(/\+/g, "%2B"), true);
+		// both opera and IE dont handle binary data correctly.
+		if (!window.opera && navigator.appName != 'Microsoft Internet Explorer') {
+			xhr.setRequestHeader("Content-Type", "application/octet-stream");
+		}
 		//xhr.overrideMimeType("text/plain; charset=ISO-8859-1");
 		if (xhr.overrideMimeType) xhr.overrideMimeType('text/plain; charset=x-user-defined');
 		xhr.onreadystatechange = this.new_incoming_state_change;
@@ -107,12 +106,10 @@ meteor.Connection.prototype = {
 			if (meteor.debug) meteor.debug("xhr lost connection to reality.");
 			return;
 		}
-		if (meteor.debug) meteor.debug("incoming in readyState "+this.readyState);
 		if (this.readyState >= 3) {
 			//this.readyState = 2;
 			
-			// stupid workaround for IE which was written by 
-			// stupid assholes
+			// workaround for IE
 			try {
 				status = this.status;
 			} catch(e) {
@@ -121,31 +118,27 @@ meteor.Connection.prototype = {
 				if (meteor.debug) meteor.debug("fucking ie");
 			}
 
-			if (meteor.debug) meteor.debug("http status code: "+status);
 			if (status == 200) {
 				var length = this.responseBody ? this.responseBody.length : this.responseText.length;
-				var response = this.responseBody ? this.reponseBody : this.responseText;
 
 				if (length > this.pos) {
+					if (meteor.debug) meteor.debug((length-this.pos)+" bytes received in readyState "+this.readyState);
 					var str;
 
-					if (this.pos) {
-						str = (response.slice(this.pos));
-					} else {
-						str = response;
-					}
-
-					// ifdef firefox or safari
-					if (navigator.userAgent.indexOf("Firefox") != -1 || navigator.userAgent.indexOf("Safari") != -1) {
-						var t = new Array;
-						for (var i = 0; i < str.length; i++) {
-							t.push(str.charCodeAt(i) & 0xff);
-						}
-						str = String.fromCharCode.apply(window, t);
-					}
-					// endif
-
 					try {
+						if (window.opera) {
+							str = this.responseText.slice(this.pos);
+						} else if (this.responseBody) {
+							str = this.responseBody.join("");
+						} else {
+							str = this.responseText.slice(this.pos);
+							var t = str.split("");
+							for (var i = 0; i < str.length; i++) {
+								t[i] = t[i].charCodeAt(0) & 0xff;
+							}
+							str = String.fromCharCode.apply(window, t);
+						}
+
 						if (con.callback.obj) {
 							con.callback.call(con.callback.obj, str);
 						} else {
@@ -159,6 +152,10 @@ meteor.Connection.prototype = {
 				}
 
 				if (this.readyState == 4 || this.pos >= meteor.BUFFER_MAX) {
+					if (this.operatimer) {
+						clearTimeout(this.operatimer);
+						delete this.operatimer;
+					}
 					if (con.reconnect) con.connect_new_incoming();
 				}
 			} else {
@@ -236,7 +233,6 @@ meteor.Connection.prototype = {
 		xhr.open("POST", this.url + "&id=" + escape(this.client_id).replace(/\+/g, "%2B"), true);
 		// we do this charset hackery because we have internal utf8 and plain ascii
 		// for the rest of atom. this is supposed to be a binary transport
-		xhr.setRequestHeader("Content-Type", "application/binary");
 		xhr.onreadystatechange = this.outgoing_state_change;
 		xhr.meteor = this;
 		this.ready = 1;
@@ -323,8 +319,13 @@ meteor.Connection.prototype = {
 		}
 	},
 	write : function() {
-		
-		this.outgoing.send(this.buffer);   
+		if (this.outgoing.sendAsBinary) {
+			this.outgoing.setRequestHeader("Content-Type", "application/octet-stream");
+			this.outgoing.setRequestHeader("Content-Length", this.buffer.length);
+			this.outgoing.sendAsBinary(this.buffer);
+		} else {
+			this.outgoing.send(this.buffer);   
+		}
 		if (meteor.debug) meteor.debug("Sending ("+this.buffer.substr(this.buffer.length-40, 39)+")\n");
 		this.ready = 0;
 		this.buffer = "";
