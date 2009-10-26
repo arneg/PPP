@@ -28,6 +28,7 @@ serialization.Polymorphic = serialization.Base.extend({
 	decode : function(atom) {
 		var types = this.atype_to_type.get(atom.type);
 		for (var i = 0; i < types.length; i++) {
+
 			if (types[i].can_decode(atom)) {
 				return types[i].decode(atom);
 			}
@@ -204,8 +205,26 @@ serialization.Mapping = serialization.Base.extend({
 		this.vtype = vtype;
 		this.type = "_mapping";
 	},
+	toString : function() {
+		return "Mapping()";
+	},
 	can_encode : function(o) {
 		return o instanceof psyc.Mapping;
+	},
+	can_decode : function(atom) {
+		if (!this.base(atom)) return false;
+
+		var p = new psyc.AtomParser();
+		var l = p.parse(atom.data);
+
+		if (l.length & 1) return false;
+
+		for (var i = 0;i < l.length; i+=2) {
+			if (!this.mtype.can_decode(l[i])) return false;
+			if (!this.vtype.can_decode(l[i+1])) return false;
+		}
+
+		return true;
 	},
 	decode : function(atom) {
 		var p = new psyc.AtomParser();
@@ -242,6 +261,9 @@ serialization.Vars = serialization.Mapping.extend({
 		this.vtype = vtype;
 		this.constr = psyc.Vars;
 		this.type = "_mapping";
+	},
+	toString : function() {
+		return "Vars()";
 	},
 	can_encode : function(o) {
 		return o instanceof psyc.Vars;
