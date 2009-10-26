@@ -4,3 +4,5 @@ IE
 	   streaming
 	IE <=7
 	 - use hidden iframe or stay with the long-polling solution we have
+safari
+	4.0.3 (4531.9) not working, same as opera (stays in readyState == 1)
