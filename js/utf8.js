@@ -55,26 +55,26 @@ UTF8.decode = function(str) {
     var mark = 0;
     
     for (var i = 0; i < str.length; i++) {
-		var c = str.charCodeAt(i);
+		var c = str.charCodeAt(i) & 0xff;
 
 		if (c > 0x7f) {
 			if (mark != i) ret += str.substring(mark, i);
 
 			if (c >= 0xc2 && c <= 0xdf && i+1 < str.length) { // 2 byte
-				var c2 = str.charCodeAt(i+1);
+				var c2 = str.charCodeAt(i+1) & 0xff;
 				ret += String.fromCharCode(((c & 0x1f) << 6) | (c2 & 0x3f));
 				i++;
 			} else if (c >= 0xe0 && c <= 0xef && i+2 < str.length) { // 3 byte
-				var c2 = str.charCodeAt(i+1);
-				var c3 = str.charCodeAt(i+2);
+				var c2 = str.charCodeAt(i+1) & 0xff;
+				var c3 = str.charCodeAt(i+2) & 0xff;
 
 				ret += String.fromCharCode(((c & 0x0f) << 12) | ((c2 & 0x3f) << 6) | (c3 & 0x3f));
 
 				i+=2;
 			} else if (c >= 0xf0 && c <= 0xf4 && i+3 < str.length) { // 4 byte
-				var c2 = str.charCodeAt(i+1);
-				var c3 = str.charCodeAt(i+2);
-				var c4 = str.charCodeAt(i+3);
+				var c2 = str.charCodeAt(i+1) & 0xff;
+				var c3 = str.charCodeAt(i+2) & 0xff;
+				var c4 = str.charCodeAt(i+3) & 0xff;
 
 				ret += String.fromCharCode(  ((c  & 0x07) << 18) 
 							   | ((c2 & 0x3f) << 12) 
@@ -82,6 +82,13 @@ UTF8.decode = function(str) {
 							   | (c4 & 0x3f));
 				i+=3;
 			} else {
+				if (meteor.debug) {
+					var o = "";
+					for (var j = 0; j < str.length; j++) {
+						o += str.charCodeAt(j)+".";
+					}
+					meteor.debug(o);
+				}
 				throw("Invalid UTF8 sequence ("+c.toString()+") at pos "+i);
 			}
 
