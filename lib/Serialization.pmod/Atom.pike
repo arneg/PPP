@@ -58,7 +58,7 @@ object signature;
 
 // this would be signature->data
 // readily parsed data
-mapping(object:mixed) typed_data = set_weak_flag(([]), Pike.WEAK_INDICES);
+mapping(object:mixed) typed_data = set_weak_flag(([]), Pike.WEAK);
 
 object child;
 
