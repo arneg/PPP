@@ -81,7 +81,7 @@ class Packet {
 		}
 
 		if (!MMP.is_mmpvar(id) && objectp(data)) {
-			P3(("MMP.Packet", "Accessing non-mmp variable (%s) in an mmp-packet.\n", id))
+			//P3(("MMP.Packet", "Accessing non-mmp variable (%s) in an mmp-packet.\n", id))
 			return data[id];
 		}
 
@@ -109,26 +109,26 @@ class Packet {
 
 #if 0
     mixed `->(mixed id) {
-	switch(id) {
-	    case "lsource":
-		if (has_index(vars, "_source_relay")) {
-		    mixed s = vars["_source_relay"];
+		switch(id) {
+			case "lsource":
+				if (has_index(vars, "_source_relay")) {
+					mixed s = vars["_source_relay"];
 
-		    if (arrayp(s)) {
-			s = s[-1];
-		    }
+					if (arrayp(s)) {
+						s = s[-1];
+					}
 
-		    return s;
+					return s;
+				}
+			case "source":
+				if (has_index(vars, "_source_identification")) {
+					return vars["_source_identification"];
+				}
+
+				return vars["_source"];
 		}
-	    case "source":
-		if (has_index(vars, "_source_identification")) {
-		    return vars["_source_identification"];
-		}
 
-		return vars["_source"];
-	}
-
-	return ::`->(id);
+		return ::`->(id);
     }
 #endif
 
@@ -169,7 +169,7 @@ class Packet {
 			mixed s = vars["_source_relay"];
 
 			if (arrayp(s)) {
-			s = s[-1];
+				s = s[-1];
 			}
 
 			return s;
@@ -199,16 +199,15 @@ class Packet {
     this_program clone() {
 		this_program n = this_program(data, vars + ([ ]));
 
-	// do we need to copy parsed, sent, newline?
+		// do we need to copy parsed, sent, newline?
 #if 0
-	n->parsed = parsed;
-	n->sent = sent;
+		n->parsed = parsed;
+		n->sent = sent;
 # ifdef LOVE_TELNET
-	n->newline = newline;
+		n->newline = newline;
 # endif
 #endif
 
 		return n;
     }
-
 }
