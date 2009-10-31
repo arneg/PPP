@@ -9,12 +9,12 @@ void done_to_medium(Serialization.Atom atom) {
 
 	if (!p) error("No typed data available.\n");
 
-	atom->set_pdata(({ dtype->encode(p->data), vtype->encode(p->vars) }));
+	atom->set_pdata(({ types[0]->encode(p->data), types[1]->encode(p->vars) }));
 }
 
 string _sprintf(int c) {
     if (c == 'O') {
-		return sprintf("MMPPacket(%O, %O)", dtype, vtype);
+		return sprintf("MMPPacket(%O)", types);
     }
 
     return 0;
