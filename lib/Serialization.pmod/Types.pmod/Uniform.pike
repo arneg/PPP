@@ -28,7 +28,7 @@ int(0..1) can_encode(mixed a) {
 
 string _sprintf(int c) {
     if (c == 'O') {
-	return "Uniform()";
+		return "Uniform()";
     }
 
     return 0;

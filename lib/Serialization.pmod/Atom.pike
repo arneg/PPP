@@ -1,57 +1,12 @@
 // raw data
 string type, action, data;
 
-inherit .Lock;
-
 // intermediate stuff (apply works on this)
 // the type of this is psyc type specific
 // needs a signature for downgrading to raw
 int(0..1) _has_pdata = 0;
 
-#if __MINOR__ >= 7 && __MAJOR__ >= 7
-mixed _pdata;
-
-mixed `pdata() {
-    if (_has_pdata) return _pdata;
-    return UNDEFINED;
-}
-
-mixed `pdata=(mixed value) {
-    _pdata = value;
-    _has_pdata = 1;
-}
-
-void delete_pdata() {
-    _pdata = _has_pdata = 0;
-}
-#else 
 mixed pdata;
-mixed `->(string key) {
-    if (key == "pdata") {
-	if (_has_pdata) return pdata;
-	return UNDEFINED;
-    }
-
-    return ::`->(key);
-}
-
-mixed `->=(string key, mixed value) {
-    if (key == "pdata") {
-	pdata = value;
-	_has_pdata = 1;
-    }
-
-    return ::`->=(key, value);
-}
-void delete_pdata() {
-    pdata = _has_pdata = 0;
-}
-#endif
-
-int(0..1) has_pdata() {
-    return _has_pdata;
-}
-
 
 // keep the most recent for late encoding
 object signature;
@@ -60,22 +15,7 @@ object signature;
 // readily parsed data
 mapping(object:mixed) typed_data = set_weak_flag(([]), Pike.WEAK);
 
-object child;
-
-array(object) path() {
-    if (!signature) error("Atom doesnt know its signature. Dont use sig_list() with raw atoms.\n");
-
-    if (child) {
-	return ({ signature }) + child->path();
-    } else {
-	return ({ signature });
-    }
-}
-
 void create(string type, string data, void|string action) {
-
-    int i;
-
     this_program::type = type;
     this_program::data = data;
     if (action) this_program::action = action;
@@ -92,21 +32,21 @@ this_program clone() {
 void set_raw(string type, string action, string data) {
 
     if (type != this_program::type) {
-	// this is no use anymore
-	signature = 0;
-	this_program::type = type;
+		// this is no use anymore
+		signature = 0;
+		this_program::type = type;
     }
 
     this_program::action = action;
     this_program::data = action;
 
-    typed_data = set_weak_flag(([]), Pike.WEAK_INDICES);
+    typed_data = set_weak_flag(([]), Pike.WEAK);
     delete_pdata();
 }
 
 void set_pdata(mixed a) {
     if (!signature) {
-	error("This will render the Atom unusable.\n");	
+		error("This will render the Atom unusable.\n");	
     }
     pdata = a;
     data = 0;
@@ -196,7 +136,7 @@ string _sprintf(int t) {
 // there is some room for optimizations here.
 int(0..1) `==(mixed a) {
     if (!objectp(a) || !Program.inherits(object_program(a), this_program)) {
-	return 0;
+		return 0;
     }
 
     make_raw();

@@ -85,37 +85,37 @@ int(0..1) can_encode(mixed m) {
 
     foreach (m; string key; mixed value) {
 
-	string index = hash->find_index(key);
+		string index = hash->find_index(key);
 
-	if (!str->can_encode(key)) {
-	    return 0;
-	}
-
-	if (index && needed[index]) {
-	    object type = hash->m[index];
-
-	    if (!type->can_encode(value)) {
-		return 0;
-	    }
-
-	    needed[index]--;
-	    continue;
-	}
-
-	index = ohash->find_index(key);
-
-	if (index) {
-	    object type = ohash->m[index];
-
-	    if (!type->can_encode(value)) {
-			werror("%O cannot encode %O\n", type, value);
+		if (!str->can_encode(key)) {
 			return 0;
-	    }
-	    
-	    continue;
-	}
+		}
 
-	// ignore junk. Warn maybe.
+		if (index && needed[index]) {
+			object type = hash->m[index];
+
+			if (!type->can_encode(value)) {
+				return 0;
+			}
+
+			needed[index]--;
+			continue;
+		}
+
+		index = ohash->find_index(key);
+
+		if (index) {
+			object type = ohash->m[index];
+
+			if (!type->can_encode(value)) {
+				werror("%O cannot encode %O\n", type, value);
+				return 0;
+			}
+			
+			continue;
+		}
+
+		// ignore junk. Warn maybe.
     }
 
     return !sizeof(needed);
@@ -123,7 +123,7 @@ int(0..1) can_encode(mixed m) {
 
 string _sprintf(int c) {
     if (c == 'O') {
-	return sprintf("Vars(%O, %O)", hash, ohash);
+		return sprintf("Vars(%O, %O)", hash, ohash);
     }
 
     return 0;

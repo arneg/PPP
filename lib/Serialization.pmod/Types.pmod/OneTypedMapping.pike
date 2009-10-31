@@ -15,7 +15,7 @@ object get_vtype(mixed key, object ktype, mixed val) { return vtype; }
 // will just check and not use the data often.
 int(0..1) can_decode(Serialization.Atom a) {
     if (mixed err = catch { decode(a); }) {
-	return 0;
+		return 0;
     }
 
     return 1;
@@ -26,8 +26,8 @@ int(0..1) can_encode(mixed a) {
     if (!mappingp(a)) return 0;
 
     foreach (a; mixed key; mixed val) {
-	if (!ktype->can_encode(key)) return 0;
-	if (!vtype->can_encode(val)) return 0;
+		if (!ktype->can_encode(key)) return 0;
+		if (!vtype->can_encode(val)) return 0;
     }
 
     return 1;

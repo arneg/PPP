@@ -25,43 +25,18 @@ int(0..1) can_encode(mixed a);
 
 int(0..1) can_decode(Serialization.Atom atom) {
     if (low_can_decode(atom)) {
-	mixed err = catch { to_done(atom); };
-	return !err;
+		mixed err = catch { to_done(atom); };
+		return !err;
     }
     return 0;
 }
 
 string _sprintf(int t) {
     if (t == 'O') {
-	return sprintf("Serialization.Type(%s)", type);
+		return sprintf("Serialization.Type(%s)", type);
     }
 
     return 0;
-}
-
-Serialization.Atom generic(void|function ret, string action) {
-    Serialization.Atom atom = Serialization.Atom(type, "", action);
-    atom->signature = this;
-    
-    if (ret) {
-	return ret(atom);
-    } else {
-	return atom;
-    }
-}
-
-Serialization.Atom query(void|function ret) {
-    return generic(ret, "_query");
-}
-
-Serialization.Atom query_lock(void|function ret) {
-    return generic(ret, "_query_lock");
-}
-Serialization.Atom lock(void|function ret) {
-    return generic(ret, "_lock");
-}
-Serialization.Atom unlock(void|function ret) {
-    return generic(ret, "_unlock");
 }
 
 mixed to_done(Serialization.Atom atom) {
@@ -87,23 +62,23 @@ mixed to_done(Serialization.Atom atom) {
 
 string to_raw(Serialization.Atom atom) {
     if (!low_can_decode(atom)) {
-	werror("%O\n", this);
-	error("Incompatible types %s and %s.\n", type, atom->type);
+		werror("%O\n", this);
+		error("Incompatible types %s and %s.\n", type, atom->type);
     }
 
     if (!stringp(atom->data)) {
-	if (atom->pdata) {
-	    medium_to_raw(atom);
-	} else if (has_index(atom->typed_data, this)) {
-	    done_to_medium(atom);
-	    medium_to_raw(atom);
-	} else if (sizeof(atom->typed_data)) {
-	    [object signature, mixed a] = random(atom->typed_data);
-	    signature->done_to_medium(atom);
-	    medium_to_raw(atom);
-	} else {
-	    error("This atom is completely without information: %O.\n", atom);
-	}
+		if (atom->pdata) {
+			medium_to_raw(atom);
+		} else if (has_index(atom->typed_data, this)) {
+			done_to_medium(atom);
+			medium_to_raw(atom);
+		} else if (sizeof(atom->typed_data)) {
+			[object signature, mixed a] = random(atom->typed_data);
+			signature->done_to_medium(atom);
+			medium_to_raw(atom);
+		} else {
+			error("This atom is completely without information: %O.\n", atom);
+		}
     }
 
     return atom->data;
@@ -113,16 +88,16 @@ mixed to_medium(Serialization.Atom atom) {
     if (!low_can_decode(atom)) error("Incompatible types.\n");
 
     if (!atom->has_pdata()) {
-	if (has_index(atom->typed_data, this)) {
-	    done_to_medium(atom);
-	} else if (sizeof(atom->typed_data)) {
-	    [object signature, mixed a] = random(atom->typed_data);
-	    signature->done_to_medium(atom);
-	} else if (stringp(atom->data)) {
-	    raw_to_medium(atom);
-	} else {
-	    error("This atom is completely without information: %O.\n", atom);
-	}
+		if (has_index(atom->typed_data, this)) {
+			done_to_medium(atom);
+		} else if (sizeof(atom->typed_data)) {
+			[object signature, mixed a] = random(atom->typed_data);
+			signature->done_to_medium(atom);
+		} else if (stringp(atom->data)) {
+			raw_to_medium(atom);
+		} else {
+			error("This atom is completely without information: %O.\n", atom);
+		}
     }
 
     return atom->pdata;
@@ -161,7 +136,7 @@ void done_to_medium(Serialization.Atom atom) {
 
 mixed apply(Serialization.Atom a, Serialization.Atom state, void|object misc) {
     if (!a->action) {
-	error("cannot apply data atom to a state.\n");
+		error("cannot apply data atom to a state.\n");
     }
 
     if (!misc) misc = .ApplyInfo();
@@ -170,9 +145,9 @@ mixed apply(Serialization.Atom a, Serialization.Atom state, void|object misc) {
 
     switch (a->action) {
     case "_query":
-	return .OK;
+		return .OK;
     default:
-	return .UNSUPPORTED;
+		return .UNSUPPORTED;
     }
 }
 

@@ -15,33 +15,13 @@ int(0..1) can_encode(mixed a) {
     return OK(a);
 }
 
-void raw_to_medium(Serialization.Atom atom) {
-    CHECK(atom->data);
-    atom->pdata = atom->data;
-}
-
-void medium_to_raw(Serialization.Atom atom) { 
-    CHECK(atom->pdata);
-    atom->data = atom->pdata;
-}
-
-void medium_to_done(Serialization.Atom atom) { 
-    CHECK(atom->pdata);
-    atom->typed_data[this] = atom->pdata;
-}
-
-void done_to_medium(Serialization.Atom atom) {
-    CHECK(atom->typed_data[this]);
-    atom->pdata = atom->typed_data[this];
-}
-
 string _sprintf(int type) {
     if (type == 'O') {
-	if (base) {
-	    return sprintf("Serialization.Method(%s)", base);
-	} else {
-	    return ::_sprintf(type);
-	}
+		if (base) {
+			return sprintf("Serialization.Method(%s)", base);
+		} else {
+			return ::_sprintf(type);
+		}
     }
 
     return 0;
