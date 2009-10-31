@@ -39,6 +39,13 @@ void clear() {
 	signature = 0;
 }
 
+void condense() {
+	make_raw();
+	pdata = _has_pdata = 0;
+    typed_data = set_weak_flag(([]), Pike.WEAK);
+	signature = 0;
+}
+
 void set_raw(string type, string action, string data) {
 
     if (type != this_program::type) {
