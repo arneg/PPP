@@ -25,12 +25,6 @@ class Packet {
 		this_program::data = data||0; 
     }
 
-    mixed cast(string type) {
-		if (type == "string") {
-			return MMP.render(this);
-		}
-    }
-
     string next() {
 		return (string)this;
     }
@@ -64,8 +58,6 @@ class Packet {
 			return sprintf("MMP.Packet(%O, %O)\n", vars, data);
 #endif
 			}
-		} else if (type == 's') {
-			// TODO: rendern
 		}
 
 		return UNDEFINED;
