@@ -133,7 +133,7 @@ string|String.Buffer render(void|String.Buffer buf) {
 
 string _sprintf(int t) {
     if (t == 'O') {
-		return sprintf("Atom(%s, %O)", type, data || has_pdata() ? pdata : (signature && has_index(typed_data, signature) ? typed_data[signature] : UNDEFINED)));
+		return sprintf("Atom(%s, %O)", type, data || has_pdata() ? pdata : (signature && has_index(typed_data, signature) ? typed_data[signature] : UNDEFINED));
     } else if (t == 's') {
 		return sprintf("Atom(%s)", type);
     }
