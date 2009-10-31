@@ -104,8 +104,6 @@ mixed to_medium(Serialization.Atom atom) {
 }
 
 Serialization.Atom encode(mixed a) {
-//    if (!can_encode(a)) error("Cannot encode %O.\n", a);
-
     Serialization.Atom atom = Serialization.Atom(type, 0);
     atom->typed_data[this] = a;
     atom->signature = this;

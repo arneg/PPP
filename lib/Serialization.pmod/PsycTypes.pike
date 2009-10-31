@@ -42,6 +42,21 @@ object Method(string|void base) {
     return method;
 }
 
+object Uniform() {
+	object u; 
+
+	if (!this->server) {
+		error("No Uniform creator without server.\n");
+	}
+
+    if (!(u = this->type_cache[Serialization.Types.Uniform][this->server])) {
+		u = Serialization.Types.Uniform(this->server);
+		this->type_cache[Serialization.Types.Method][this->server] = u;
+    }
+    
+    return u;
+}
+
 /*
 object PsycPacket(string base, void|object data, void|mapping m, void|mapping m2) {
     object method, vars;
@@ -62,7 +77,7 @@ object PsycPacket(string base, void|object data, void|mapping m, void|mapping m2
 }
 */
 
-object MmpPacket(object type) {
+object MMPPacket(object type) {
     object o;
 
 	if (!type) type = Atom();
