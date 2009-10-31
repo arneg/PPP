@@ -134,23 +134,6 @@ void done_to_medium(Serialization.Atom atom) {
     atom->pdata = atom->typed_data[this];
 }
 
-mixed apply(Serialization.Atom a, Serialization.Atom state, void|object misc) {
-    if (!a->action) {
-		error("cannot apply data atom to a state.\n");
-    }
-
-    if (!misc) misc = .ApplyInfo();
-
-    misc->path += ({ state });
-
-    switch (a->action) {
-    case "_query":
-		return .OK;
-    default:
-		return .UNSUPPORTED;
-    }
-}
-
 string render(Serialization.Atom atom) {
     to_raw(atom);
     return sprintf("%s %d %s", atom->action ? atom->type+":"+atom->action : atom->type, sizeof(atom->data), atom->data); 

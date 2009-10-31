@@ -18,10 +18,7 @@ void medium_to_raw(Serialization.Atom atom) {
     if (!arrayp(atom->pdata)) error("broken pdata: %O\n", atom->pdata);
     String.Buffer buf = String.Buffer();
 
-    if (atom->action == "_index") {
-		buf = atom->pdata[0]->render(buf);
-		buf = atom->pdata[1]->render(buf);
-    } else foreach (atom->pdata;;Serialization.Atom a) {
+    foreach (atom->pdata;;Serialization.Atom a) {
 		buf = a->render(buf);	
     }
 
