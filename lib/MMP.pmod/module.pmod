@@ -1,213 +1,12 @@
 // vim:syntax=lpc
-//
-#include "../debug.h"
-// generating a backtrace for a _normal_ throw is a bit too much...
-void debug(string cl, string format, mixed ... args) {
-    // erstmal nix weiter
-    predef::werror("(%s)\t"+format, cl, @args);
-}
 
-void warn(string cl, string format, mixed ... args) {
-
-}
-
-void fatal(string cl, string format, mixed ... args) {
-
-}
-#if DEBUG
-# define THROW(s)        throw(({ (s), backtrace() }))
-#else
-# define THROW(s)        throw(({ (s), 0 }))
-#endif
-
-//! @returns
-//!	@int
-//!	    @value 0
-//!		@expr{var@} is not an MMP variable.
-//!	    @value 1
-//!		@expr{var@} is an MMP variable that should be seen
-//!		by the application layer.
-//!	    @value 2
-//!		@expr{var@} is an MMP variable that should be used
-//!		by the routing layer of your program only.
-//!	@endint
-//! @seealso
-//!	For a description of MMP variables see @[http://psyc.pages.de/mmp.html].
-int(0..2) is_mmpvar(string var) {
-    switch (var) {
-    case "_target":
-    case "_target_relay":
-    case "_source":
-    case "_source_relay":
-    case "_source_location":
-    case "_source_identification":
-    case "_context":
-    case "_length":
-    case "_counter":
-    case "_reply":
-    case "_trace":
-    case "_amount_fragments":
-    case "_fragment":
-	return 1;
-    case "_encoding":
-    case "_list_require_modules":
-    case "_list_require_encoding":
-    case "_list_require_protocols":
-    case "_list_using_protocols":
-    case "_list_using_modules":
-    case "_list_understand_protocols":
-    case "_list_understand_modules":
-    case "_list_understand_encoding":
-	return 2;
-    }
-    return 0;
-}
-
-Uniform parse_uniform(string s) {
-    return Uniform(s);
-}
-
-string|String.Buffer render_vars(mapping(string:mixed) vars, 
-				 void|String.Buffer to) {
-    String.Buffer p;
-    // i do not remember what i needed the p for.. we could use to instead.
-    if (to)
-	p = to;	
-    else 
-	p = String.Buffer();
-
-    function add = p->add;
-    function putchar = p->putchar;
-
-    if (mappingp(vars)) foreach (vars; string key; mixed val) {
-	string mod;
-	if (key[0] == '_') mod = ":";
-	else mod = key[0..0];
-	
-
-	// should be possible to transport int 0. this should do. 
-	// other zero_types (e.g. UNDEFINED) for empty vars.
-	if (val || zero_type(val) == 0) {
-	    if (key[0] == '_') putchar(':');
-	    add(key);
-	    putchar('\t');
-	    
-	    if (stringp(val))
-		add(replace(val, "\n", "\n\t")); 
-	    else if (arrayp(val))
-		add(map(val, replace, "\n", "\n\t") * ("\n"+mod+"\t"));
-	    else if (mappingp(val))
-		error("no syntax for mappings in mmp.");
-	    else if (intp(val) || (objectp(val) && Program.inherits(object_program(val), Uniform)))
-		add((string)val);
-	    
-	    putchar('\n');
-	
-	} else {
-	    if (key[0] == '_') putchar(':');
-	    add(key);
-	    putchar('\n');
-	}
-    }
-}
-
-//! Render a @[Packet] into its string representation according to the
-//! definition in @[http://psyc.pages.de/mmp.html].
-//! @param packet
-//!	The Packet to be rendered.
-//! @param to
-//!	A @[String.Buffer] to render @expr{packet@} into.
-//! @returns
-//!	Depending on whether a @[String.Buffer] was specified either
-//!	a string or the @[String.Buffer] is returned.
-string|String.Buffer render(Packet packet, void|String.Buffer to) {
-    String.Buffer p;
-
-    if (to)
-	p = to;	
-    else 
-	p = String.Buffer();
-
-    function add = p->add;
-    function putchar = p->putchar;
-
-    if (sizeof(packet->vars))
-	MMP.render_vars(packet->vars, p);
-
-    if (packet->data) { 
-	putchar('\n');
-    
-	if (stringp(packet->data)) {
-	    add(packet->data);
-	} else {
-	    // TODO: every object contained in data needs a 
-	    // render(void|String.Buffer) method.
-	    add((string)packet->data);
-	}
-	add("\n.\n");
-    } else {
-	add(".\n");
-    }
-
-    if (to)
-	return p;
-    return p->get();
-}
-
-array(object) renderRequestChain(array(object) modules, string hook) {
-    mapping s2o = ([ ]), usedby = ([ ]);
-    array(object) ret = ({ });
-
-    foreach (modules, object tmp) {
-	if (has_index(s2o, tmp->provides)) {
-	    THROW(sprintf("only one object at a time can provide %O.\n", tmp->provides));
-	}
-
-	s2o[tmp->provides] = tmp;
-    }
-
-    void rec(string t, string current) {
-	object o;
-	mixed cb;
-
-	o = s2o[t];
-	usedby[t] = current;
-
-	if (multisetp(cb = o->before)
-	     || mappingp(cb = o->before) && multisetp(cb = cb[hook])) {
-	    foreach (indices(cb), string dep) {
-		if (has_index(usedby, dep)) {
-		    if (usedby[dep] == current) {
-			THROW("found a loop (see backtrace for path).\n");
-		    }
-		} else if (has_index(s2o, dep)) {
-		    rec(dep, current);	
-		}
-	    }
-	}
-
-	ret += ({ o });
-    };
-
-    foreach (s2o; string s; mixed o) {
-	if (!has_index(usedby, s))
-	    rec(s, s);
-    }
-
-    return reverse(ret);
-}
-
-// 0
-// 1 means yes and merge it into psyc
-// 2 means yes but do not merge
-
+#if 0
 //! Implementation of MMP Circuits as described nowhere really.
 class Circuit {
     inherit MMP.Utils.Queue;
 
     //! The socket used.
     Stdio.File|Stdio.FILE socket;
-    .Parser parser;
 
     MMP.Utils.Queue q_neg = MMP.Utils.Queue();
     int write_ready, write_okay; // sending may be forbidden during
@@ -741,6 +540,52 @@ class VirtualCircuit {
 	if (circuit) circuit->msg(this);
     }
 }
+#endif
+
+//! @returns
+//!	@int
+//!	    @value 0
+//!		@expr{var@} is not an MMP variable.
+//!	    @value 1
+//!		@expr{var@} is an MMP variable that should be seen
+//!		by the application layer.
+//!	    @value 2
+//!		@expr{var@} is an MMP variable that should be used
+//!		by the routing layer of your program only.
+//!	@endint
+//! @seealso
+//!	For a description of MMP variables see @[http://psyc.pages.de/mmp.html].
+int(0..2) is_mmpvar(string var) {
+    switch (var) {
+    case "_target":
+    case "_target_relay":
+    case "_source":
+    case "_source_relay":
+    case "_source_location":
+    case "_source_identification":
+    case "_context":
+    case "_length":
+    case "_counter":
+    case "_reply":
+    case "_trace":
+    case "_amount_fragments":
+    case "_fragment":
+		return 1;
+    case "_encoding":
+    case "_list_require_modules":
+    case "_list_require_encoding":
+    case "_list_require_protocols":
+    case "_list_using_protocols":
+    case "_list_using_modules":
+    case "_list_understand_protocols":
+    case "_list_understand_modules":
+    case "_list_understand_encoding":
+		return 2;
+    }
+
+    return 0;
+}
+
 
 //! @returns
 //! @int
