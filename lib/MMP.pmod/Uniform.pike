@@ -39,7 +39,7 @@ string channel;
 //! is not a channel.
 //! @example
 //!	    MMP.Uniform("http://ppp.psyc.eu/foo#babar")->super; // is MMP.Uniform("http://ppp.psyc.eu/foo")
-MMP.Uniform super;
+this_program super;
 
 //! The Uniform of the root entity.
 //! @example
@@ -47,7 +47,7 @@ MMP.Uniform super;
 //! @note
 //!	    The root Uniform is not automatically set. In case you are using 
 //!	    @[PSYC.Server] this is taken care of.
-MMP.Uniform root;
+this_program root;
 
 //! The object associated with this Uniform. As @expr{root@} this variable is not set by default but
 //! may be used to store such information. In contrast to @expr{root@} it must not be exprected to
