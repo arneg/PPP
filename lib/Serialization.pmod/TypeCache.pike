@@ -18,7 +18,7 @@ mixed `[](mixed index) {
 
 string _sprintf(int c) {
     if (c == 'O') {
-	return sprintf("TypeCache(%O)\n", m);
+		return sprintf("TypeCache(%O)", m);
     }
 
     return 0;
