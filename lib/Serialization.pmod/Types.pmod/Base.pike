@@ -43,7 +43,7 @@ mixed to_done(Serialization.Atom atom) {
     if (!low_can_decode(atom)) error("Incompatible types.\n");
 
     if (!has_index(atom->typed_data, this)) {
-		if (atom->pdata) {
+		if (atom->has_pdata()) {
 			medium_to_done(atom);
 		} else if (sizeof(atom->typed_data)) {
 			[object signature, mixed a] = random(atom->typed_data);
@@ -67,7 +67,7 @@ string to_raw(Serialization.Atom atom) {
     }
 
     if (!stringp(atom->data)) {
-		if (atom->pdata) {
+		if (atom->has_pdata()) {
 			medium_to_raw(atom);
 		} else if (has_index(atom->typed_data, this)) {
 			done_to_medium(atom);
@@ -117,7 +117,7 @@ mixed decode(Serialization.Atom atom) {
 }
 
 void raw_to_medium(Serialization.Atom atom) {
-    atom->pdata = atom->data;
+    atom->set_pdata(atom->data);
 }
 
 void medium_to_raw(Serialization.Atom atom) {
@@ -125,11 +125,11 @@ void medium_to_raw(Serialization.Atom atom) {
 }
 
 void medium_to_done(Serialization.Atom atom) { 
-    atom->typed_data[this] = atom->pdata;
+    atom->set_typed_data(this, atom->pdata);
 }
 
 void done_to_medium(Serialization.Atom atom) {
-    atom->pdata = atom->typed_data[this];
+    atom->set_pdata(atom->typed_data[this]);
 }
 
 string render(Serialization.Atom atom) {

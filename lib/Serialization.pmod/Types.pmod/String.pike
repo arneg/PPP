@@ -5,7 +5,7 @@ void create() {
 }
 
 void raw_to_medium(Serialization.Atom atom) {
-    atom->pdata = utf8_to_string(atom->data);
+    atom->set_pdata(utf8_to_string(atom->data));
 }
 
 void medium_to_raw(Serialization.Atom atom) {

@@ -595,7 +595,7 @@ int(0..2) is_mmpvar(string var) {
 //! 		@expr{o@} is not a @[Uniform].
 //! @endint
 int(0..1) is_uniform(mixed o) {
-    if (objectp(o) && Program.inherits(object_program(o), Uniform)) {
+    if (objectp(o) && Program.inherits(object_program(o), MMP.Uniform)) {
 	return 1;
     } else {
 	return 0;

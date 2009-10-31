@@ -17,7 +17,7 @@ void done_to_medium(Serialization.Atom atom) {
 		m[mkey] = mval;
     }
 
-    atom->pdata = m;
+    atom->set_pdata(m);
 }
 
 void medium_to_done(Serialization.Atom atom) {
@@ -34,12 +34,10 @@ void medium_to_done(Serialization.Atom atom) {
 		done[key] = val;
     }
 
-    atom->typed_data[this] = done;
+    atom->set_typed_data(this, done);
 }
 
 void raw_to_medium(Serialization.Atom atom) {
-    if (!stringp(atom->data)) error("No raw state.\n");
-
     array(Serialization.Atom) list = Serialization.parse_atoms(atom->data);
     mapping m = ([]);
 
@@ -50,7 +48,7 @@ void raw_to_medium(Serialization.Atom atom) {
 		m[list[i]] = list[i+1];
     }
 
-    atom->pdata = m;
+    atom->set_pdata(m);
 }
 
 void medium_to_raw(Serialization.Atom atom) {

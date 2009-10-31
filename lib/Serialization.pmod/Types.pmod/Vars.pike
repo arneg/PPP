@@ -52,7 +52,7 @@ void done_to_medium(Serialization.Atom atom) {
 		m[mkey] = mval;
     }
 
-    atom->pdata = m;
+    atom->set_pdata(m);
 }
 
 void medium_to_done(Serialization.Atom atom) {
@@ -73,7 +73,7 @@ void medium_to_done(Serialization.Atom atom) {
 		done[key] = val;
     }
 
-    atom->typed_data[this] = done;
+    atom->set_typed_data(this, done);
 }
 
 int(0..1) can_encode(mixed m) {

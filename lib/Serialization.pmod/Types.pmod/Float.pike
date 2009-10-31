@@ -8,7 +8,7 @@ void raw_to_medium(Serialization.Atom atom) {
 	float i;
 
 	if (1 == sscanf(atom->data, "%f", i)) {
-	    atom->pdata = i; 
+	    atom->set_pdata(i);
 	    return;
 	}
 

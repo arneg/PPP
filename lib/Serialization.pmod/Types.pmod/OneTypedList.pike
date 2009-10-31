@@ -11,11 +11,10 @@ void create(object type) {
 }
 
 void raw_to_medium(Serialization.Atom atom) {
-    atom->pdata = Serialization.parse_atoms(atom->data);
+    atom->set_pdata(Serialization.parse_atoms(atom->data));
 }
 
 void medium_to_raw(Serialization.Atom atom) {
-    if (!arrayp(atom->pdata)) error("broken pdata: %O\n", atom->pdata);
     String.Buffer buf = String.Buffer();
 
     foreach (atom->pdata;;Serialization.Atom a) {
@@ -26,13 +25,11 @@ void medium_to_raw(Serialization.Atom atom) {
 }
 
 void medium_to_done(Serialization.Atom atom) {
-    if (!arrayp(atom->pdata)) error("broken pdata: %O\n", atom->pdata);
-    atom->typed_data[this] = map(atom->pdata, etype->decode);
+    atom->set_typed_data(this, map(atom->pdata, etype->decode));
 }
 
 void done_to_medium(Serialization.Atom atom) {
-    if (!arrayp(atom->typed_data[this])) error("broken typed_data: %O\n", atom->typed_data[this]);
-    atom->pdata = map(atom->typed_data[this], etype->encode);
+    atom->set_pdata(map(atom->typed_data[this], etype->encode));
 }
 
 int (0..1) low_can_encode(mixed a) {

@@ -4,6 +4,8 @@ string type, action, data;
 // intermediate stuff (apply works on this)
 // the type of this is psyc type specific
 // needs a signature for downgrading to raw
+//
+int(0..1) has_pdata() { return _has_pdata; }
 int(0..1) _has_pdata = 0;
 
 mixed pdata;
@@ -29,35 +31,32 @@ this_program clone() {
     return atom;
 }
 
+void clear() {
+	pdata = _has_pdata = 0;
+    typed_data = set_weak_flag(([]), Pike.WEAK);
+	data = 0;
+	type = 0;
+	signature = 0;
+}
+
 void set_raw(string type, string action, string data) {
 
     if (type != this_program::type) {
-		// this is no use anymore
-		signature = 0;
-		this_program::type = type;
+		clear();
     }
 
     this_program::action = action;
     this_program::data = action;
-
-    typed_data = set_weak_flag(([]), Pike.WEAK);
-    delete_pdata();
 }
 
 void set_pdata(mixed a) {
-    if (!signature) {
-		error("This will render the Atom unusable.\n");	
-    }
     pdata = a;
-    data = 0;
-    typed_data = set_weak_flag(([]), Pike.WEAK_INDICES);
+	_has_pdata = 1;
 }
 
 void set_typed_data(object signature, mixed d) {
     this_program::signature = signature;
     typed_data[signature] = d;
-    delete_pdata();
-    data = 0;
 }
 
 void make_raw() {
@@ -75,7 +74,7 @@ void make_raw() {
 mixed get_pdata(void|object signature) {
     object sig;
 
-    if (pdata) return pdata;
+    if (has_pdata()) return pdata;
 
     if (signature) {
 		sig = signature;
@@ -127,7 +126,7 @@ string|String.Buffer render(void|String.Buffer buf) {
 
 string _sprintf(int t) {
     if (t == 'O') {
-		return sprintf("Atom(%s, %O)", type, data || (has_pdata() ? pdata : (signature && has_index(typed_data, signature) ? typed_data[signature] : UNDEFINED)));
+		return sprintf("Atom(%s, %O)", type, data || has_pdata() ? pdata : (signature && has_index(typed_data, signature) ? typed_data[signature] : UNDEFINED)));
     } else if (t == 's') {
 		return sprintf("Atom(%s)", type);
     }

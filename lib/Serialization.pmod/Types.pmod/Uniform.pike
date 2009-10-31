@@ -14,11 +14,10 @@ MMP.Uniform get_uniform(string s) {
 }
 
 void raw_to_medium(Serialization.Atom atom) {
-    atom->pdata = get_uniform(atom->data);
+    atom->set_pdata(get_uniform(atom->data));
 }
 
 void medium_to_raw(Serialization.Atom atom) {
-    if (!MMP.is_uniform(atom->pdata)) error("cannot encode %O\n", atom->pdata);
     atom->data = (string)atom->pdata;
 }
 

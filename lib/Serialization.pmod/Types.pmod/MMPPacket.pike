@@ -14,7 +14,7 @@ void done_to_medium(Serialization.Atom atom) {
 
 	if (!p) error("No typed data available.\n");
 
-	atom->pdata = ({ dtype->encode(p->data), vtype->encode(p->vars) });
+	atom->set_pdata(({ dtype->encode(p->data), vtype->encode(p->vars) }));
 }
 
 string _sprintf(int c) {
