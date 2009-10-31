@@ -16,7 +16,7 @@ object Vars(void|mapping(string:object) m, void|mapping(string:object) m2) {
     if (b) foreach (sort(indices(m2));int i; string ktype) {
 		i+=a;
 		args[i] = ktype;
-		args[i+1] = m[ktype];
+		args[i+1] = m2[ktype];
     }
 
     object mangler = Serialization.Mangler(args);
