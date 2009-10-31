@@ -94,8 +94,8 @@ object Atom() {
     object o;
 
     if (!(o = this->type_cache[Serialization.Types.Atom][0])) {
-	o = Serialization.Types.Atom();
-	this->type_cache[Serialization.Types.Atom][0] = o;
+		o = Serialization.Types.Atom();
+		this->type_cache[Serialization.Types.Atom][0] = o;
     }
 
     return o;
