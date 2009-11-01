@@ -529,7 +529,7 @@ serialization.Struct = serialization.Base.extend({
 		return new serialization.Atom(this.type, d);
 	}
 });
-serialization.MMPPacket = serialization.Struct.extend({
+serialization.Packet = serialization.Struct.extend({
 	constructor : function(dtype) {
 		this.type = "_mmp";
 		var uniform = new serialization.Uniform();
