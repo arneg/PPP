@@ -6,12 +6,12 @@ mmp.uniform_cache = new Mapping();
 mmp.get_uniform = function(str) {
 	var uniform;
 
-	if (psyc.uniform_cache.hasIndex(str)) {
-		return psyc.uniform_cache.get(str);
+	if (mmp.uniform_cache.hasIndex(str)) {
+		return mmp.uniform_cache.get(str);
 	}
 
-	uniform = new psyc.Uniform(str);
-	psyc.uniform_cache.set(str, uniform);
+	uniform = new mmp.Uniform(str);
+	mmp.uniform_cache.set(str, uniform);
 	return uniform;
 };
 /**
@@ -85,7 +85,7 @@ mmp.Uniform.prototype = {
 		var s2 = a.toString();
 		return (s1 == s2) ? 0 : (s1 > s2) ? 1 : -1;
 	},
-	constructor : psyc.Uniform
+	constructor : mmp.Uniform
 };
 mmp.Packet = Base.extend({
 	constructor : function(data, vars) {

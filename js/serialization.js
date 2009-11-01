@@ -37,7 +37,10 @@ serialization.Atom = Base.extend({
 	length : function() {
 		return this.type.length + new String(this.data.length).length 
 			+ this.data.length + 2;
-    }
+    },
+	toString : function() {
+		return "Atom("+this.type+", "+this.data.length+")";
+	}
 });
 /**
  * Atom parser class.
@@ -314,7 +317,7 @@ serialization.Uniform = serialization.Base.extend({
 		return o instanceof psyc.Uniform;
 	},
 	decode : function(atom) {
-		return psyc.get_uniform(atom.data);
+		return mmp.get_uniform(atom.data);
 	},
 	encode : function(o) {
 		return new serialization.Atom("_uniform", o.uniform);
@@ -378,7 +381,7 @@ serialization.Mapping = serialization.Base.extend({
 });
 serialization.OneTypedVars = serialization.Base.extend({
 	constructor : function(type) { 
-		this.type = type;
+		this.vtype = type;
 		this.type = "_vars";
 	},
 	toString : function() {
@@ -387,8 +390,8 @@ serialization.OneTypedVars = serialization.Base.extend({
 	can_encode : function(o) {
 		var name;
 
-		for (name in o) if (o.hasOwnPropert(name)) {
-			if (!this.type.can_encode(o[name])) {
+		for (name in o) if (o.hasOwnProperty(name)) {
+			if (!this.vtype.can_encode(o[name])) {
 				return false;
 			}
 		}
@@ -398,7 +401,7 @@ serialization.OneTypedVars = serialization.Base.extend({
 	encode : function(o) {
 		var l = [];
 		var name;
-		var type = this.type;
+		var type = this.vtype;
 
 		for (name in o) if (o.hasOwnProperty(name)) {
 			if (type.can_encode(o[name])) {
@@ -412,7 +415,7 @@ serialization.OneTypedVars = serialization.Base.extend({
 	decode : function(atom) {
 		var p = new serialization.AtomParser();
 		var l = p.parse(atom.data);
-		var type = this.type;
+		var type = this.vtype;
 		var i, name, vars = {};
 
 		if (l.length & 1) throw(atom+" has odd number of entries.");
@@ -444,7 +447,7 @@ serialization.Vars = serialization.Base.extend({
 		var name;
 		var matched = 0;
 
-		for (name in this.types) if (this.types.hasOwnPropert(name) && (o.hasOwnPropert(name))) {
+		for (name in this.types) if (this.types.hasOwnProperty(name) && (o.hasOwnProperty(name))) {
 			if (!this.types[name].can_encode(o[name])) {
 				return false;
 			}
@@ -458,7 +461,7 @@ serialization.Vars = serialization.Base.extend({
 		var l = [];
 		var name;
 
-		for (name in this.types) if (this.types.hasOwnPropert(name) && o.hasOwnProperty(name)) {
+		for (name in this.types) if (this.types.hasOwnProperty(name) && o.hasOwnProperty(name)) {
 			if (this.types[name].can_encode(o[name])) {
 				l.push("_method "+name.length+" "+name);
 				l.push(this.types[name].encode(o[name]).render());
@@ -478,7 +481,7 @@ serialization.Vars = serialization.Base.extend({
 			if (l[i].type === "_method") {
 				name = l[i].data;
 
-				if (!this.types.hasOwnPropert(name)) {
+				if (!this.types.hasOwnProperty(name)) {
 					throw("Cannot decode entry "+name);
 				}
 
@@ -491,19 +494,21 @@ serialization.Vars = serialization.Base.extend({
 });
 serialization.Struct = serialization.Base.extend({
 	constructor : function() {
-		this.types = arguments;
+		this.types = Array.prototype.slice.call(arguments);
+		if (meteor.debug) meteor.debug("arguments "+arguments);
+		if (meteor.debug) meteor.debug("types "+this.types);
 	},
 	decode : function(atom) {
 		var p = new serialization.AtomParser();
 		var l = p.parse(atom.data);
 
-		if (l.length != this.types.length) throw("Cannot decode atom "+atom.toString());
+		if (l.length != this.types.length) throw(this+": "+atom+" contains "+l.length+" (need "+this.types.length+")");
 		
 		for (var i = 0; i < l.length; i++) {
 			if (this.types[i].can_decode(l[i])) {
 				l[i] = this.types[i].decode(l[i]);
 			} else {
-				throw(this+" cannot decode "+atom+" at position "+i);
+				throw(this+": cannot decode "+atom+" at position "+i);
 			}
 		}
 
@@ -534,7 +539,7 @@ serialization.Packet = serialization.Struct.extend({
 		this.type = "_mmp";
 		var uniform = new serialization.Uniform();
 		var integer = new serialization.Integer();
-		this.base(dtype, new serialization.Vars({ _source : uniform, _target : uniform, _context : uniform, _id : integer, _source_relay : uniform });
+		this.base(dtype, new serialization.Vars({ _source : uniform, _target : uniform, _context : uniform, _id : integer, _source_relay : uniform }));
 	},
 	can_encode : function(o) {
 		return o instanceof mmp.Packet;
@@ -549,7 +554,7 @@ serialization.Packet = serialization.Struct.extend({
 });
 serialization.Or = serialization.Base.extend({
 	constructor : function() {
-		this types = arguments;
+		this.types = arguments;
 	},
 	toString : function() {
 		var l = this.types.concat();
