@@ -317,172 +317,7 @@ objectp = function(o) { return typeof(o) == "object"; }
  * @namespace PSYC namespace.
  */
 psyc = new Object();
-psyc.uniform_cache = new Mapping();
 psyc.STOP = 1; 
-/**
- * Create a Uniform object from the uniform str. Uniform objects are cached as long as they are created using this function. Therefore two uniform objects are the same if they represent the same uniform.
- */
-psyc.get_uniform = function(str) {
-	if (psyc.uniform_cache.hasIndex(str)) {
-		return psyc.uniform_cache.get(str);
-	}
-
-	var uniform = new psyc.Uniform(str);
-	psyc.uniform_cache.set(str, uniform);
-	return uniform;
-};
-/**
- * Class representing uniforms.
- * @constructor
- * @property {String} uniform String representation of the uniform.
- * @property {String} object Path component of the uniform.
- * @property {String} name Name component of the uniform (i.e. object without type).
- * @property {String} host Host part of the uniform including the port number.
- */
-psyc.Uniform = function(str) {
-    if (str.substr(0,7) != "psyc://") {
-		throw("Invalid uniform: " + str);	
-    }
-    this.uniform = str;
-    str = str.slice(7);
-
-    var pos = str.indexOf("/");
-
-    if (pos == -1) { // root
-		this.host = str;
-		this.is_person = function() { return 0; }
-		this.is_room = function() { return 0; }
-    } else {
-		this.host = str.substr(0, pos);
-		str = str.slice(pos+1);
-
-		this.object = str;
-		this.type = str.charCodeAt(0);
-		this.name = str.slice(1);
-
-		if (this.type == 126) {
-			this.is_person = function() { return 1; }
-			this.is_room = function() { return 0; }
-		} else if (this.type == 64) {
-			this.is_person = function() { return 0; }
-			this.is_room = function() { return 1; }
-
-		} else {
-			throw("Invalid uniform: " + this.str);
-		}
-
-		pos = str.indexOf("#");
-
-		if (pos != -1) {
-			this.base = str.substr(0, pos);
-			this.channel = str.substr(pos+1, str.length-pos-1);
-		} else {
-			this.base = this.object;
-		}
-    }
-};
-psyc.Uniform.prototype = {
-	render : function(type) {
-		switch (type) {
-		case "_name": return this.name;
-		case "_object": return this.object;
-		case "_host": return this.host;
-		case "_base": return this.base;
-		}
-
-		return this.uniform;
-	},
-	toString : function() {
-		return this.uniform;
-	},
-	cmp : function(a) {
-		var s1 = this.toString();
-		var s2 = a.toString();
-		return (s1 == s2) ? 0 : (s1 > s2) ? 1 : -1;
-	},
-	constructor : psyc.Uniform
-};
-/**
- * Atom parser class.
- * @constructor
- */
-psyc.AtomParser = function() {
-	this.buffer = "";
-	this.reset();
-};
-psyc.AtomParser.prototype = {
-	reset : function() {
-		this.type = 0;
-		this.length = -1;
-	},
-	/**
-	 * Parse one or more Atom objects from a string.
-	 * @returns An array of psyc#Atom objects.
-	 * @param {String} str Input string that to parse.
-	 */
-	parse : function(str) {
-		this.buffer += str;
-
-		var ret = new Array();
-		var t = 0;
-		while (t = this._parse()) {
-			ret.push(t);
-		}
-		return ret;
-	},
-	_parse : function() {
-		if (!this.type) {
-			var pos = this.buffer.indexOf(" ");
-
-			if (pos == -1) {
-			// check here for bogus data
-	//		if (re[0].search(/(_\w+)+/) != 0) {
-	//		    throw("bad atom\n");
-	//		}
-				return 0;
-			} else if (pos < 2) {
-				throw("bad atom.");
-			}
-
-			this.type = this.buffer.substr(0, pos);
-			this.buffer = this.buffer.slice(pos+1);
-		}
-
-		if (this.length == -1) {
-			var pos = this.buffer.indexOf(" ");
-
-			if (pos == -1) {
-				return 0;
-			} else if (pos == 0) {
-				throw("bad atom.");
-			}
-
-			this.length = parseInt(this.buffer.substr(0, pos));
-			if (this.length < 0 || this.length.toString() != this.buffer.substr(0, pos)) {
-				throw("bad length in atom.\n");
-			}
-			this.buffer = this.buffer.slice(pos+1);
-		}
-
-		if (this.length > this.buffer.length) {
-			// add a sanity check. we do not want superlarge data strings, i guess
-			return 0;
-		}
-
-		var a;
-
-		if (this.length == this.buffer.length) {
-			a = new psyc.Atom(this.type, this.buffer);
-			this.buffer = "";
-		} else {
-			a = new psyc.Atom(this.type, this.buffer.substr(0,this.length));
-			this.buffer = this.buffer.slice(this.length);
-		}
-		this.reset();
-		
-		return a;
-    }
-};
 psyc.find_abbrev = function(obj, key) {
     var t = key;
 
@@ -497,30 +332,6 @@ psyc.find_abbrev = function(obj, key) {
     }
 
     return obj[t];
-};
-/**
- * Atom class.
- * @constructor
- * @param {String} type Atom type, e.g. _integer
- * @param {String} data String representation of the value
- * @property {String} type Atom type, e.g. _integer.
- * @property {String} data String representation of the value
- */
-psyc.Atom = function(type, data) {
-    this.type = type;
-    this.data = data;
-	
-	/**
-	 * @returns The serialized atom.
-	 */
-    this.render = function() {
-		return this.type + " " + new String(this.data.length) + " " + this.data;
-    };
-    // we don't really need this (yet), but i just wanted to!
-    this.length = function() {
-		return this.type.length + new String(this.data.length).length 
-			+ this.data.length + 2;
-    };
 };
 /**
  * PSYC message class.
@@ -720,7 +531,7 @@ psyc.Client = function(url, name) {
 	var method = new serialization.Method();
 	var pol = psyc.default_polymorphic();
 	this.poly = new serialization.Message(method, new serialization.Vars(pol), pol);
-	this.parser = new psyc.AtomParser();
+	this.parser = new serialization.AtomParser();
 	this.incoming.obj = this;
 	this.icount = 0;
 	this.name = name;
