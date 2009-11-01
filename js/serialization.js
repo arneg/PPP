@@ -534,7 +534,7 @@ serialization.Packet = serialization.Struct.extend({
 		this.type = "_mmp";
 		var uniform = new serialization.Uniform();
 		var integer = new serialization.Integer();
-		this.base(dtype, new serialization.Vars({ _source : uniform, _target : uniform, _context : uniform, _id : integer });
+		this.base(dtype, new serialization.Vars({ _source : uniform, _target : uniform, _context : uniform, _id : integer, _source_relay : uniform });
 	},
 	can_encode : function(o) {
 		return o instanceof mmp.Packet;
