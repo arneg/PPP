@@ -88,6 +88,7 @@ object MMPPacket(object type) {
 			"_source" : Uniform(),
 			"_target" : Uniform(),
 			"_context" : Uniform(),
+			"_timestamp" : Time(),
 		]));
 
 		o = Serialization.Types.MMPPacket(type, vars);

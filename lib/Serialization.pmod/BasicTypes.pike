@@ -118,12 +118,22 @@ object UTF8String() {
     return o;
 }
 
+object Time() {
+    object o;
+
+    if (!(o = this->type_cache[Serialization.Types.Time][0])) {
+		o = Serialization.Types.Time();
+		this->type_cache[Serialization.Types.Time][0] = o;
+    }
+
+    return o;
+
 object Int() {
     object o;
 
     if (!(o = this->type_cache[Serialization.Types.Int][0])) {
-	o = Serialization.Types.Int();
-	this->type_cache[Serialization.Types.Int][0] = o;
+		o = Serialization.Types.Int();
+		this->type_cache[Serialization.Types.Int][0] = o;
     }
 
     return o;
