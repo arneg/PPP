@@ -77,12 +77,12 @@ object PsycPacket(string base, void|object data, void|mapping m, void|mapping m2
 }
 */
 
-object MMPPacket(object type) {
+object Packet(object type) {
     object o;
 
 	if (!type) type = Atom();
      
-    if (!(o = this->type_cache[Serialization.Types.MMPPacket][type])) {
+    if (!(o = this->type_cache[Serialization.Types.Packet][type])) {
 		object vars = Vars(0, ([
 			"_id" : Int(),
 			"_source" : Uniform(),
@@ -91,8 +91,8 @@ object MMPPacket(object type) {
 			"_timestamp" : Time(),
 		]));
 
-		o = Serialization.Types.MMPPacket(type, vars);
-		this->type_cache[Serialization.Types.MMPPacket][type] = o;
+		o = Serialization.Types.Packet(type, vars);
+		this->type_cache[Serialization.Types.Packet][type] = o;
     }
 
     return o;

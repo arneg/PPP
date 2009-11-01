@@ -1,7 +1,7 @@
 inherit .Struct;
 
 void create(object dtype, object vtype) {
-	::create("_mmppacket", MMP.Packet, dtype, vtype);
+	::create("_mmp", MMP.Packet, dtype, vtype);
 }
 
 void done_to_medium(Serialization.Atom atom) {
