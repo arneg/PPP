@@ -71,15 +71,15 @@ object Or(object type, object ... types) {
     object o;
 
     if (sizeof(types) == 0) {
-	return type;
+		return type;
     }
 
     types = ({ type }) + types;
     object mangler = Serialization.Mangler(types); 
 
     if (!(o = this->type_cache[Serialization.Types.Or][mangler])) {
-	o = Serialization.Types.Or(@types);
-	this->type_cache[Serialization.Types.Or][mangler] = o;
+		o = Serialization.Types.Or(@types);
+		this->type_cache[Serialization.Types.Or][mangler] = o;
     }
     
     return o;
@@ -111,8 +111,8 @@ object UTF8String() {
     object o;
 
     if (!(o = this->type_cache[Serialization.Types.String][0])) {
-	o = Serialization.Types.String();
-	this->type_cache[Serialization.Types.String][0] = o;
+		o = Serialization.Types.String();
+		this->type_cache[Serialization.Types.String][0] = o;
     }
 
     return o;
@@ -127,6 +127,7 @@ object Time() {
     }
 
     return o;
+}
 
 object Int() {
     object o;
