@@ -102,6 +102,9 @@ mmp.Packet = Base.extend({
 			this.vars["_target"] = uniform;
 		} else return this.vars["_target"];
 	},
+	V : function(key) {
+		return this.vars.hasOwnProperty(key);
+	},
 	v : function(key) {
 		if (this.vars.hasOwnProperty(key)) {
 			return this.vars[key];
