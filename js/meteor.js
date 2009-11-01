@@ -354,16 +354,16 @@ meteor.CallbackWrapper = function(params, mapping) {
 	this.params = params;	
 };
 meteor.CallbackWrapper.prototype = {
-	msg : function(message) {
-		if (!this.params.source || this.params.source == message.vars.get("_source")) {
+	msg : function(p, message) {
+		if (!this.params.source || this.params.source == p.source()) {
 			if (this.params.object) {
 				if (this.params.cb) {
-					return this.params.cb.call(this.params.object, message, this);
+					return this.params.cb.call(this.params.object, p, message, this);
 				}
 
-				return this.params.object.msg(message, this);
+				return this.params.object.msg(p, message, this);
 			} else {
-				return this.params.cb(message, this);
+				return this.params.cb(p, message, this);
 			}
 		}
 	},
