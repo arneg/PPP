@@ -14,7 +14,112 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
-serialization = new Object();
+serialization = {};
+/**
+ * Atom class.
+ * @constructor
+ * @param {String} type Atom type, e.g. _integer
+ * @param {String} data String representation of the value
+ * @property {String} type Atom type, e.g. _integer.
+ * @property {String} data String representation of the value
+ */
+serialization.Atom = Base.extend({
+	constructor : function(type, data) {
+		this.type = type;
+		this.data = data;
+	},
+	/**
+	 * @returns The serialized atom.
+	 */
+	render : function() {
+		return this.type + " " + new String(this.data.length) + " " + this.data;
+    },
+	length : function() {
+		return this.type.length + new String(this.data.length).length 
+			+ this.data.length + 2;
+    }
+});
+/**
+ * Atom parser class.
+ * @constructor
+ */
+serialization.AtomParser = Base.extend({
+	constructor : function() {
+		this.buffer = "";
+		this.reset();
+	},
+	reset : function() {
+		this.type = 0;
+		this.length = -1;
+	},
+	/**
+	 * Parse one or more Atom objects from a string.
+	 * @returns An array of serialization#Atom objects.
+	 * @param {String} str Input string that to parse.
+	 */
+	parse : function(str) {
+		this.buffer += str;
+
+		var ret = new Array();
+		var t = 0;
+		while (t = this._parse()) {
+			ret.push(t);
+		}
+		return ret;
+	},
+	_parse : function() {
+		if (!this.type) {
+			var pos = this.buffer.indexOf(" ");
+
+			if (pos == -1) {
+			// check here for bogus data
+	//		if (re[0].search(/(_\w+)+/) != 0) {
+	//		    throw("bad atom\n");
+	//		}
+				return 0;
+			} else if (pos < 2) {
+				throw("bad atom.");
+			}
+
+			this.type = this.buffer.substr(0, pos);
+			this.buffer = this.buffer.slice(pos+1);
+		}
+
+		if (this.length == -1) {
+			var pos = this.buffer.indexOf(" ");
+
+			if (pos == -1) {
+				return 0;
+			} else if (pos == 0) {
+				throw("bad atom.");
+			}
+
+			this.length = parseInt(this.buffer.substr(0, pos));
+			if (this.length < 0 || this.length.toString() != this.buffer.substr(0, pos)) {
+				throw("bad length in atom.\n");
+			}
+			this.buffer = this.buffer.slice(pos+1);
+		}
+
+		if (this.length > this.buffer.length) {
+			// add a sanity check. we do not want superlarge data strings, i guess
+			return 0;
+		}
+
+		var a;
+
+		if (this.length == this.buffer.length) {
+			a = new serialization.Atom(this.type, this.buffer);
+			this.buffer = "";
+		} else {
+			a = new serialization.Atom(this.type, this.buffer.substr(0,this.length));
+			this.buffer = this.buffer.slice(this.length);
+		}
+		this.reset();
+		
+		return a;
+    }
+});
 serialization.Base = Base.extend({
 	can_decode : function(atom) {
 		return atom.type == this.type; // TODO: inheritance
@@ -92,7 +197,7 @@ serialization.Date = serialization.Base.extend({
 		return new psyc.Date(parseInt(atom.data));
 	},
 	encode : function(o) {
-		return new psyc.Atom("_time", o.timestamp);
+		return new serialization.Atom("_time", o.timestamp);
 	}
 });
 serialization.Message = serialization.Base.extend({
@@ -106,7 +211,7 @@ serialization.Message = serialization.Base.extend({
 		return o instanceof psyc.Message;
 	},
 	decode : function(atom) {
-		var p = new psyc.AtomParser();
+		var p = new serialization.AtomParser();
 		var l = p.parse(atom.data);
 		var method;
 		var data;
@@ -141,7 +246,7 @@ serialization.Message = serialization.Base.extend({
 			str += this.dtype.encode(o.data).render();
 		}
 
-		return new psyc.Atom("_message", str);
+		return new serialization.Atom("_message", str);
 	}
 });
 serialization.String = serialization.Base.extend({
@@ -155,7 +260,7 @@ serialization.String = serialization.Base.extend({
 		return UTF8.decode(atom.data);
 	},
 	encode : function(o) {
-		return new psyc.Atom("_string", UTF8.encode(o));
+		return new serialization.Atom("_string", UTF8.encode(o));
 	}
 });
 serialization.Integer = serialization.Base.extend({
@@ -169,7 +274,7 @@ serialization.Integer = serialization.Base.extend({
 		return parseInt(atom.data);
 	},
 	encode : function(o) {
-		return new psyc.Atom("_integer", o.toString());
+		return new serialization.Atom("_integer", o.toString());
 	}
 });
 serialization.Float = serialization.Base.extend({
@@ -183,7 +288,7 @@ serialization.Float = serialization.Base.extend({
 		return parseFloat(atom.data);
 	},
 	encode : function(o) {
-		return new psyc.Atom("_float", o.toString());
+		return new serialization.Atom("_float", o.toString());
 	}
 });
 serialization.Method = serialization.Base.extend({
@@ -198,7 +303,7 @@ serialization.Method = serialization.Base.extend({
 		return atom.data;
 	},
 	encode : function(o) {
-		return new psyc.Atom("_method", o);
+		return new serialization.Atom("_method", o);
 	}
 });
 serialization.Uniform = serialization.Base.extend({
@@ -212,7 +317,7 @@ serialization.Uniform = serialization.Base.extend({
 		return psyc.get_uniform(atom.data);
 	},
 	encode : function(o) {
-		return new psyc.Atom("_uniform", o.uniform);
+		return new serialization.Atom("_uniform", o.uniform);
 	}
 });
 serialization.Mapping = serialization.Base.extend({
@@ -230,7 +335,7 @@ serialization.Mapping = serialization.Base.extend({
 	can_decode : function(atom) {
 		if (!this.base(atom)) return false;
 
-		var p = new psyc.AtomParser();
+		var p = new serialization.AtomParser();
 		var l = p.parse(atom.data);
 
 		if (l.length & 1) return false;
@@ -243,7 +348,7 @@ serialization.Mapping = serialization.Base.extend({
 		return true;
 	},
 	decode : function(atom) {
-		var p = new psyc.AtomParser();
+		var p = new serialization.AtomParser();
 		var l = p.parse(atom.data);
 		var m = this.constr ? new this.constr() : new Mapping();
 
@@ -268,21 +373,219 @@ serialization.Mapping = serialization.Base.extend({
 			str += this.mtype.encode(key).render();	
 			str += this.vtype.encode(val).render();	
 		}, this);
-		return new psyc.Atom("_mapping", str);
+		return new serialization.Atom("_mapping", str);
 	},
 });
-serialization.Vars = serialization.Mapping.extend({
-	constructor : function(vtype) { 
-		this.mtype = new serialization.Method();
-		this.vtype = vtype;
-		this.constr = psyc.Vars;
-		this.type = "_mapping";
+serialization.OneTypedVars = serialization.Base.extend({
+	constructor : function(type) { 
+		this.type = type;
+		this.type = "_vars";
+	},
+	toString : function() {
+		return "Vars("+type+")";
+	},
+	can_encode : function(o) {
+		var name;
+
+		for (name in o) if (o.hasOwnPropert(name)) {
+			if (!this.type.can_encode(o[name])) {
+				return false;
+			}
+		}
+
+		return true;
+	},
+	encode : function(o) {
+		var l = [];
+		var name;
+		var type = this.type;
+
+		for (name in o) if (o.hasOwnProperty(name)) {
+			if (type.can_encode(o[name])) {
+				l.push("_method "+name.length+" "+name);
+				l.push(type.encode(o[name]).render());
+			}
+		}
+
+		return new serialization.Atom("_vars", d);
+	},
+	decode : function(atom) {
+		var p = new serialization.AtomParser();
+		var l = p.parse(atom.data);
+		var type = this.type;
+		var i, name, vars = {};
+
+		if (l.length & 1) throw(atom+" has odd number of entries.");
+
+		for (i = 0; i < l.length; i+=2) {
+			if (l[i].type === "_method") {
+				name = l[i].data;
+
+				if (!type.can_decode(l[i+1])) {
+					throw("Cannot decode entry "+name);
+				}
+
+				vars[name] = type.decode(l[i+1]);
+			}
+		}
+
+		return vars;
+	}
+});
+serialization.Vars = serialization.Base.extend({
+	constructor : function(types) { 
+		this.types = types;
+		this.type = "_vars";
 	},
 	toString : function() {
 		return "Vars()";
 	},
 	can_encode : function(o) {
-		return o instanceof psyc.Vars;
+		var name;
+		var matched = 0;
+
+		for (name in this.types) if (this.types.hasOwnPropert(name) && (o.hasOwnPropert(name))) {
+			if (!this.types[name].can_encode(o[name])) {
+				return false;
+			}
+			matched++;
+		}
+
+		// dont use it if none matches
+		return !!matched;
+	},
+	encode : function(o) {
+		var l = [];
+		var name;
+
+		for (name in this.types) if (this.types.hasOwnPropert(name) && o.hasOwnProperty(name)) {
+			if (this.types[name].can_encode(o[name])) {
+				l.push("_method "+name.length+" "+name);
+				l.push(this.types[name].encode(o[name]).render());
+			}
+		}
+
+		return new serialization.Atom("_vars", d);
+	},
+	decode : function(atom) {
+		var p = new serialization.AtomParser();
+		var l = p.parse(atom.data);
+		var i, name, vars = {};
+
+		if (l.length & 1) throw(atom+" has odd number of entries.");
+
+		for (i = 0; i < l.length; i+=2) {
+			if (l[i].type === "_method") {
+				name = l[i].data;
+
+				if (!this.types.hasOwnPropert(name)) {
+					throw("Cannot decode entry "+name);
+				}
+
+				vars[name] = this.types[name].decode(l[i+1]);
+			}
+		}
+
+		return vars;
+	}
+});
+serialization.Struct = serialization.Base.extend({
+	constructor : function() {
+		this.types = arguments;
+	},
+	decode : function(atom) {
+		var p = new serialization.AtomParser();
+		var l = p.parse(atom.data);
+
+		if (l.length != this.types.length) throw("Cannot decode atom "+atom.toString());
+		
+		for (var i = 0; i < l.length; i++) {
+			if (this.types[i].can_decode(l[i])) {
+				l[i] = this.types[i].decode(l[i]);
+			} else {
+				throw(this+" cannot decode "+atom+" at position "+i);
+			}
+		}
+
+		return l;
+	},
+	toString : function() {
+		var l = this.types.concat();
+		for (var i = 0; i < l.length; i++) l[i] = l[i].toString();
+
+		return "Struct("+l.join(", ")+")";
+	},
+	encode : function(l) {
+		var d = "";
+
+		if (l.length != this.types.length) throw("Cannot encode atom "+atom.toString());
+
+		for (var i = 0; i < l.length; i++) {
+			if (this.types[i].can_encode(l[i])) {
+				d += this.types[i].encode(l[i]).render();
+			}
+		}
+
+		return new serialization.Atom(this.type, d);
+	}
+});
+serialization.MMPPacket = serialization.Struct.extend({
+	constructor : function(dtype) {
+		this.type = "_mmp";
+		var uniform = new serialization.Uniform();
+		var integer = new serialization.Integer();
+		this.base(dtype, new serialization.Vars({ _source : uniform, _target : uniform, _context : uniform, _id : integer });
+	},
+	can_encode : function(o) {
+		return o instanceof mmp.Packet;
+	},
+	encode : function(o) {
+		return this.base([ o.data, o.vars ]);
+	},
+	decode : function(atom) {
+		var l = this.base(atom);
+		return new mmp.Packet(l[0], l[1]);
+	}
+});
+serialization.Or = serialization.Base.extend({
+	constructor : function() {
+		this types = arguments;
+	},
+	toString : function() {
+		var l = this.types.concat();
+		for (var i = 0; i < l.length; i++) l[i] = l[i].toString();
+
+		return "Or("+l.join(", ")+")";
+	},
+	can_encode : function(o) {
+		for (var i = 0; i < this.types.length; i++) {
+			if (this.types[i].can_encode(o)) return true;
+		}
+		return false;
+	},
+	can_decode : function(atom) {
+		for (var i = 0; i < this.types.length; i++) {
+			if (this.types[i].can_decode(atom)) return true;
+		}
+		return false;
+	},
+	decode : function(atom) {
+		for (var i = 0; i < this.types.length; i++) {
+			if (this.types[i].can_decode(atom)) {
+				return this.types[i].decode(atom);
+			}
+		}
+
+		throw("No type in "+this+" to decode "+atom);
+	},
+	encode : function(o) {
+		for (var i = 0; i < this.types.length; i++) {
+			if (this.types[i].can_encode(o)) {
+				return this.types[i].encode(o);
+			}
+		}
+
+		throw("No type in "+this+" to encode "+o);
 	}
 });
 serialization.Array = serialization.Base.extend({
@@ -294,14 +597,9 @@ serialization.Array = serialization.Base.extend({
 		return o instanceof Array;
 	},
 	decode : function(atom) {
-		var p = new psyc.AtomParser();
+		var p = new serialization.AtomParser();
 		var l = p.parse(atom.data);
-		var i = 0;
-		while (i < l.length) {
-			l[i] = this.etype.decode(l[i]);
-			i++;
-		}
-
+		for (var i = 0; i < l.length; i++) l[i] = this.etype.decode(l[i]);
 		return l;
 	},
 	encode : function(o) {
@@ -309,6 +607,6 @@ serialization.Array = serialization.Base.extend({
 		for (var i = 0; i < o.length; i++) {
 			str += this.etype.encode(o[i]).render();
 		}
-		return new psyc.Atom("_list", str);
+		return new serialization.Atom("_list", str);
 	}
 });
