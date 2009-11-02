@@ -35,7 +35,13 @@ void medium_to_done(Serialization.Atom atom) {
 }
 
 int (0..1) low_can_encode(mixed a) {
-    return object_program(a) == constructor;
+	if (programp(constructor)) {
+		return Program.inherits(object_program(a), constructor);
+	} else {
+		// TODO: check return type here
+		werror("%O: hit edge case. might not be able to decode %O\n", this, a);
+		return 1;
+	}
 }
 
 string _sprintf(int c) {
