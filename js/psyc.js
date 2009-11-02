@@ -508,7 +508,7 @@ psyc.default_polymorphic = function() {
 	pol.register_type("_mapping", psyc.Mapping, new serialization.Mapping(pol, pol));
 	pol.register_type("_list", Array, new serialization.Array(pol));
 	pol.register_type("_time", psyc.Date, new serialization.Date());
-	pol.register_type("_uniform", psyc.Uniform, new serialization.Uniform());
+	pol.register_type("_uniform", mmp.Uniform, new serialization.Uniform());
 	return pol;
 }
 /**
@@ -543,7 +543,7 @@ psyc.Client.prototype = {
 	},
 	/**
 	 * Register for certain incoming messages. This can be used to implement chat tabs or handlers for certain message types.
-	 * @params {Object} params Object containing the properties "method", "callback" and optionally "source". For all incoming messages matching "method" and "source" the callback is called. The "source" property should be of type psyc.Uniform.
+	 * @params {Object} params Object containing the properties "method", "callback" and optionally "source". For all incoming messages matching "method" and "source" the callback is called. The "source" property should be of type mmp.Uniform.
 	 * @returns A wrapper object of type meteor.CallbackWrapper. It can be used to unregister the handler.
 	 */
 	register_method : function(params) {
@@ -563,7 +563,7 @@ psyc.Client.prototype = {
 	 * @params {Object} message Message to send.
 	 */
 	send : function(message) {
-		if (!(message.vars.get("_target") instanceof psyc.Uniform)) {
+		if (!(message.vars.get("_target") instanceof mmp.Uniform)) {
 			if (meteor.debug) meteor.debug("Message without _target is baaad!");
 		}
 

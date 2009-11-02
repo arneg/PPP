@@ -23,7 +23,7 @@ mmp.get_uniform = function(str) {
  * @property {String} host Host part of the uniform including the port number.
  */
 mmp.Uniform = function(str) {
-	var pos;
+	var pos, root;
 
     if (str.substr(0,7) != "psyc://") {
 		throw("Invalid uniform: " + str);	
@@ -35,9 +35,12 @@ mmp.Uniform = function(str) {
 
     if (pos == -1) { // root
 		this.host = str;
+		root = str;
 		this.is_person = function() { return 0; }
 		this.is_room = function() { return 0; }
+		// this seems stupid. avoid cycles
     } else {
+		root = this.uniform.substr(0, 7+pos);
 		this.host = str.substr(0, pos);
 		str = str.slice(pos+1);
 
@@ -65,6 +68,7 @@ mmp.Uniform = function(str) {
 			this.base = this.object;
 		}
     }
+	this.root = function() { return mmp.get_uniform(root); }
 };
 mmp.Uniform.prototype = {
 	render : function(type) {
