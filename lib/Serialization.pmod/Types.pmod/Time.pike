@@ -14,5 +14,5 @@ Calendar.TimeRange decode(Serialization.Atom atom) {
 }
 
 int(0..1) can_encode(mixed o) {
-	return Program.inherits(object_program(o), Calendar.TimeRange);
+	return intp(o) || Program.inherits(object_program(o), Calendar.TimeRange);
 }
