@@ -5,7 +5,7 @@ object ohash = Serialization.AbbrevHash();
 object str;
 
 void create(object str, void|mapping(string:object) mandatory, void|mapping(string:object) rest) {
-    ::create("_mapping");
+    ::create("_vars");
     
     if (mandatory) {
 		hash->fill(mandatory);
@@ -41,10 +41,12 @@ void done_to_medium(Serialization.Atom atom) {
     foreach (done; mixed key; mixed value) {
 		object ktype = get_ktype(key);
 		if (!ktype) {
+			werror("No ktype for %O:%O\n", key, value);
 			continue;
 		}
 		object vtype = get_vtype(key, ktype, value);
 		if (!vtype) {
+			werror("%O: No vtype for %O:%O\n", this, key, value);
 			continue;
 		}
 		Serialization.Atom mkey = ktype->encode(key);
