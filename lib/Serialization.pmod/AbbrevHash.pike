@@ -7,7 +7,7 @@ void create(void|mapping(string:mixed) m) {
 }
 
 mixed `[](mixed index) {
-    if (index) {
+    if (has_index(m, index)) {
 		return m[index];
     }
 
@@ -20,6 +20,7 @@ mixed `[](mixed index) {
     if (index) {
 		return m[index];
     }
+	
 
     return UNDEFINED;
 }
@@ -59,9 +60,9 @@ array(mixed) all_matches(string index) {
     array(mixed) ret = ({});
 
     for (int i = sizeof(l)-1; i >= 0; i--) {
-	if (has_index(m, l[i])) {
-	    ret += ({ m[l[i]] });
-	}
+		if (has_index(m, l[i])) {
+			ret += ({ m[l[i]] });
+		}
     }
 
     return ret;
