@@ -21,12 +21,13 @@ array(string) subtypes(string type) {
     string last;
 
     if (!is_type(type)) return 0;
-    t = (type / "_")[1..];
+    t = (type / "_");
+	t[0] = "_";
     last = "";
 
-    for (int i = 0; i < sizeof(t); i++) {
-	t[i] = last + "_" + t[i];
-	last = t[i];
+    for (int i = 1; i < sizeof(t); i++) {
+		t[i] = last + "_" + t[i];
+		last = t[i];
     }
 
     return t;
