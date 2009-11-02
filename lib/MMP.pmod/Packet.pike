@@ -6,6 +6,7 @@
 //! You can find a description of all variables and their meaning in
 //! @[http://psyc.pages.de/mmp.html].
 mapping(string:mixed) vars;
+mapping misc = set_weak_flag(([]), Pike.WEAK);
 
 //! Data contained in the Packet. Could be a @expr{string@} of arbitrary
 //! data or an object. Objects are expected to be subclasses of 
@@ -22,7 +23,9 @@ string newline;
 // because asking for a _source should return even _source_relay 
 // or _source_technical if present...
 void create(object data, void|mapping(string:mixed) vars) {
-	this_program::vars = vars||([]);
+	if (mappingp(vars)) {
+		this_program::vars = has_index(vars, "_timestamp") ? vars : vars + ([ "_timestamp" : Calendar.now() ]);
+	} else this_program::vars = ([ "_timestamp" : Calendar.now() ]);
 	this_program::data = data||0; 
 }
 
@@ -126,6 +129,13 @@ mixed `->(mixed id) {
 #endif
 
 //! @returns
+//!	    The target of this packet i.e., the Uniform of the entity this 
+//!	    Packet is addressed to.
+MMP.Uniform target() {
+	return vars["_target"];
+}
+
+//! @returns
 //!	    The source of this packet i.e., the Uniform of the entity this 
 //!	    Packet originates from. This is not to be confused with the 
 //!	    technical source.
@@ -190,16 +200,5 @@ MMP.Uniform tsource() {
 //! @seealso
 //!	    @[PSYC.Packet()->clone()]
 this_program clone() {
-	this_program n = this_program(data, vars + ([ ]));
-
-	// do we need to copy parsed, sent, newline?
-#if 0
-	n->parsed = parsed;
-	n->sent = sent;
-# ifdef LOVE_TELNET
-	n->newline = newline;
-# endif
-#endif
-
-	return n;
+	return this_program(data, vars + ([ ]));
 }
