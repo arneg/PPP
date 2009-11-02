@@ -19,3 +19,7 @@ string _sprintf(int c) {
 
     return 0;
 }
+
+int(0..1) can_encode(mixed o) {
+	return Program.inherits(object_program(o), MMP.Packet);
+}
