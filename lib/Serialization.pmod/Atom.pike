@@ -1,5 +1,10 @@
 // raw data
 string type, action, data;
+Thread.Mutex mutex = Thread.Mutex();
+
+object lock() {
+	return mutex->lock();
+}
 
 // intermediate stuff (apply works on this)
 // the type of this is psyc type specific
@@ -15,7 +20,7 @@ object signature;
 
 // this would be signature->data
 // readily parsed data
-mapping(object:mixed) typed_data = set_weak_flag(([]), Pike.WEAK);
+mapping(object:mixed) typed_data = ([]);
 
 void create(string type, string data, void|string action) {
     this_program::type = type;
@@ -33,7 +38,7 @@ this_program clone() {
 
 void clear() {
 	pdata = _has_pdata = 0;
-    typed_data = set_weak_flag(([]), Pike.WEAK);
+    typed_data = ([]);
 	data = 0;
 	type = 0;
 	signature = 0;
@@ -42,7 +47,7 @@ void clear() {
 void condense() {
 	make_raw();
 	pdata = _has_pdata = 0;
-    typed_data = set_weak_flag(([]), Pike.WEAK);
+    typed_data = ([]);
 	signature = 0;
 }
 

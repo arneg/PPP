@@ -40,7 +40,9 @@ string _sprintf(int t) {
 }
 
 mixed to_done(Serialization.Atom atom) {
-    if (!low_can_decode(atom)) error("Incompatible types.\n");
+    if (!low_can_decode(atom)) error("Incompatible types (%s and %s).\n", type, atom->type);
+
+	object lock = atom->lock();
 
     if (!has_index(atom->typed_data, this)) {
 		if (atom->has_pdata()) {
@@ -57,14 +59,18 @@ mixed to_done(Serialization.Atom atom) {
 		}
     }
 
-    return atom->typed_data[this];
+	mixed ret = atom->typed_data[this];
+	destruct(lock);
+    return ret;
 }
 
 string to_raw(Serialization.Atom atom) {
     if (!low_can_decode(atom)) {
 		werror("%O\n", this);
-		error("Incompatible types %s and %s.\n", type, atom->type);
+		error("Incompatible types (%s and %s).\n", type, atom->type);
     }
+
+	object lock = atom->lock();
 
     if (!stringp(atom->data)) {
 		if (atom->has_pdata()) {
@@ -81,11 +87,15 @@ string to_raw(Serialization.Atom atom) {
 		}
     }
 
-    return atom->data;
+	mixed ret = atom->data;
+	destruct(lock);
+    return ret;
 }
 
 mixed to_medium(Serialization.Atom atom) {
-    if (!low_can_decode(atom)) error("Incompatible types.\n");
+    if (!low_can_decode(atom)) error("Incompatible types (%s and %s).\n", type, atom->type);
+
+	object lock = atom->lock();
 
     if (!atom->has_pdata()) {
 		if (has_index(atom->typed_data, this)) {
@@ -100,7 +110,9 @@ mixed to_medium(Serialization.Atom atom) {
 		}
     }
 
-    return atom->pdata;
+	mixed ret = atom->pdata;
+	destruct(lock);
+    return ret;
 }
 
 Serialization.Atom encode(mixed a) {
@@ -114,8 +126,7 @@ Serialization.Atom encode(mixed a) {
 }
 
 mixed decode(Serialization.Atom atom) {
-    to_done(atom);
-    return atom->typed_data[this];
+    return to_done(atom);
 }
 
 void raw_to_medium(Serialization.Atom atom) {
@@ -135,6 +146,6 @@ void done_to_medium(Serialization.Atom atom) {
 }
 
 string render(Serialization.Atom atom) {
-    to_raw(atom);
-    return sprintf("%s %d %s", atom->action ? atom->type+":"+atom->action : atom->type, sizeof(atom->data), atom->data); 
+    string d = to_raw(atom);
+    return sprintf("%s %d %s", atom->action ? atom->type+":"+atom->action : atom->type, sizeof(d), d); 
 }
