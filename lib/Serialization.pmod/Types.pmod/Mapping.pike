@@ -39,16 +39,10 @@ void medium_to_done(Serialization.Atom atom) {
 
 void raw_to_medium(Serialization.Atom atom) {
     array(Serialization.Atom) list = Serialization.parse_atoms(atom->data);
-    mapping m = ([]);
-
     if (sizeof(list) & 1) return 0;
 
     // we keep the array.. more convenient
-    for (int i=0;i<sizeof(list);i+=2) {
-		m[list[i]] = list[i+1];
-    }
-
-    atom->set_pdata(m);
+    atom->set_pdata(aggregate_mapping(@list));
 }
 
 void medium_to_raw(Serialization.Atom atom) {
