@@ -6,11 +6,11 @@ void create() {
 }
 
 Serialization.Atom encode(mixed o) {
-	return ::encode(o->ux);
+	return ::encode(o->unix_time());
 }
 
 Calendar.TimeRange decode(Serialization.Atom atom) {
-	return Calendar.TimeRange("unix", ::decode(atom));
+	return Calendar.Second("unix", ::decode(atom));
 }
 
 int(0..1) can_encode(mixed o) {
