@@ -14,7 +14,7 @@ void done_to_medium(Serialization.Atom atom) {
 
 string _sprintf(int c) {
     if (c == 'O') {
-		return sprintf("MMPPacket(%O)", types);
+		return sprintf("Packet(%O)", types);
     }
 
     return 0;
