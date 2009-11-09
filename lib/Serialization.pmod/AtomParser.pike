@@ -30,41 +30,13 @@ int|.Atom parse(void|string data) {
 
     if (!sizeof(buf)) return 0;
 
-    if (!type) {
-		if (buf[0] != '_') {
-			error("Broken Atom. Does not start with a type. (%O)", buf);
-		}
-
-		int pos = search(buf, ' ');
-
-		if (pos == -1) {
-			// we may check here is something is wrong.. potentially
-			return 0;
-		}
-		
-		type = ([string]buf)[0..pos-1];
-		buf = ([string]buf)[pos+1..];
-
-		if (-1 != (pos = search(type, ':'))) {
-			action = type[pos+1..];
-			type = type[0..pos-1];
-		}
-    }
-
     if (!bytes && zero_type(bytes)) {
-		int pos = search(buf, ' ');
 
-		if (pos == -1) {
-			// we could check here if there are chars in the buf
-			// that are not numbers.. and return an error 
-			return 0;
+		if (3 == sscanf(buf, "%[_a-zA-Z] %d %s", type, bytes, buf)) {
+			buf = String.Buffer() + buf;
+		} else {
+			bytes = UNDEFINED;
 		}
-
-		if (1 != sscanf(([string]buf)[0..pos-1], "%d", bytes)) {
-			throw(({ "Broken Atom. Cannot parse length.\n", backtrace() }));
-		}
-
-		buf = String.Buffer() + ([string]buf)[pos+1..];
     }
 
     if (bytes == 0) {
