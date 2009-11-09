@@ -42,19 +42,23 @@ string|void render_atom(.Atom a, void|String.Buffer buf) {
 }
 
 array(.Atom) parse_atoms(string s) {
-    .AtomParser parser = .AtomParser();
-    parser->feed(s);
-
     array(.Atom) ret = ({});
-    .Atom t;
 
-    while (t = parser->parse()) {
-	ret += ({ t });
+	int bytes;
+	string type;
+
+    while (sizeof(s) && 3 == sscanf(s, "%[_a-zA-Z] %d %s", type, bytes, s)) {
+		if (sizeof(s) < bytes) error("Cannot parse this.");
+
+		.Atom t = .Atom(type, s[0..bytes-1]);
+
+		if (sizeof(s) > bytes) s = s[bytes..];
+		else s = "";
+
+		ret += ({ t });
     }
 
-    if (parser->left()) {
-	error("Trying to parse incomplete atom.\n");
-    }
+	if (sizeof(s) > bytes) error("Something left.\n");
 
     return ret;
 }
