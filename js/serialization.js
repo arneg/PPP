@@ -39,7 +39,7 @@ serialization.Atom = Base.extend({
 			+ this.data.length + 2;
     },
 	toString : function() {
-		return "Atom("+this.type+", "+this.data.length+")";
+		return "Atom("+this.type+", "+this.data+")";
 	}
 });
 /**
@@ -226,20 +226,22 @@ serialization.Message = serialization.Base.extend({
 			method = this.mtype.decode(l[1]);
 		} else if (l.length == 2) {
 			if (l[0].type.substr(0, 7) == "_method") { // its teh vars
-				if (!this.mtype.can_decode(l[0]) || !this.dtype.can_decode(l[1])) throw("bad _message");
+				if (!this.mtype.can_decode(l[0])) throw(this.mtype + " cannot decode " + l[0]);
+				if (!this.dtype.can_decode(l[1])) throw(this.dtype + " cannot decode " + l[1]);
 				method = this.mtype.decode(l[0]);
 				data = this.dtype.decode(l[1]);	
 			} else {
-				if (!this.vtype.can_decode(l[0]) || !this.mtype.can_decode(l[1])) throw("bad _message");
+				if (!this.vtype.can_decode(l[0])) throw(this.vtype + " cannot decode " + l[0]);
+				if (!this.mtype.can_decode(l[1])) throw(this.mtype + " cannot decode " + l[1]);
 				vars = this.vtype.decode(l[0]);	
 				method = this.mtype.decode(l[1]);
 				data = 0;
 			}
-		} else if (l.length != 1) {
-			if (!this.mtype.can_decode(l[0])) throw("bad _message "+l);
+		} else if (l.length == 1) {
+			if (!this.mtype.can_decode(l[0])) throw(this.mtype + " cannot decode " + l[0]);
 			method = this.mtype.decode(l[0]);
 			data = 0;
-		} else throw("bad _message"); 
+		} else throw("bad _message "+l); 
 
 		return new psyc.Message(method, data, vars);
 	},
@@ -389,7 +391,7 @@ serialization.OneTypedVars = serialization.Base.extend({
 		this.type = "_vars";
 	},
 	toString : function() {
-		return "Vars("+type+")";
+		return "Vars("+this.vtype+")";
 	},
 	can_encode : function(o) {
 		var name;
@@ -545,8 +547,11 @@ serialization.Packet = serialization.Struct.extend({
 		var integer = new serialization.Integer();
 		this.base(dtype, new serialization.Vars({ 
 			_timestamp : new serialization.Date(),
-			_source : uniform, _target : uniform, 
-			_context : uniform, _id : integer, _source_relay : uniform 
+			_source : uniform, 
+			_target : uniform, 
+			_context : uniform, 
+			_id : integer, 
+			_source_relay : uniform 
 		}));
 	},
 	can_encode : function(o) {
