@@ -6,39 +6,40 @@ mapping ptypes = ([]);
 
 void register_type(string|program ptype, string atype, object type) {
     if (!has_index(ptypes, ptype)) {
-		ptypes[ptype] = (< type >);
+		ptypes[ptype] = ({ type });
     } else {
-		ptypes[ptype] += (< type >);
+		ptypes[ptype] += ({ type });
     }
 
-    multiset t = atypes[atype];
+    array t = atypes[atype];
 
     if (t) {
-		t[type] = 1;
+		atypes[atype] += ({ type });
     } else {
-		atypes[atype] = (< type >);
+		atypes[atype] = ({ type });
     }
 }
 
 void unregister_type(string|program ptype, string atype, object type) {
     if (has_index(ptypes, ptype)) {
-		ptypes[ptype] -= (< type >);
+		ptypes[ptype] -= ({ type });
 
 		if (!sizeof(ptypes[ptype])) m_delete(ptypes, ptype);
     }
 
-	multiset t;
+	array t;
 	if (t = atypes[atype]) {
-		while (t[type]) { t[type]--; }
+		t -= ({ type });
 
 		if (!sizeof(t)) m_delete(atypes, atype);
+		else atypes[atype] = t;
     }
 }
 
 int(0..1) can_decode(Serialization.Atom a) {
-    multiset t;
+    array t;
 
-    if (t = atypes[a->type]) foreach (t; object type;) {
+    if (t = atypes[a->type]) foreach (t;; object type) {
 		if (type->can_decode(a)) return 1;
     }
 
@@ -46,9 +47,9 @@ int(0..1) can_decode(Serialization.Atom a) {
 }
 
 mixed decode(Serialization.Atom a) {
-    multiset t;
+    array t;
 
-    if (t = atypes[a->type]) foreach (t; object type;) {
+    if (t = atypes[a->type]) foreach (t;; object type) {
 		if (type->can_decode(a)) return type->decode(a); 
     } else {
 		error("No potential type for %s\n", a->type);
@@ -60,9 +61,9 @@ mixed decode(Serialization.Atom a) {
 int(0..1) can_encode(mixed v) {
     mixed key = objectp(v) ? object_program(v) : basetype(v);
 
-    multiset t;
+    array t;
 
-    if (t = ptypes[key]) foreach (t; object type;) {
+    if (t = ptypes[key]) foreach (t;; object type) {
 		if (type->can_encode(v)) return 1;	
     }
 
@@ -72,11 +73,17 @@ int(0..1) can_encode(mixed v) {
 Serialization.Atom encode(mixed v) {
     mixed key = objectp(v) ? object_program(v) : basetype(v);
 
-    multiset t;
+    array t;
 
-    if (t = ptypes[key]) foreach (t; object type;) {
-		if (type->can_encode(v)) return type->encode(v);
-    }
+    if (t = ptypes[key]) {
+		foreach (t;; object type) {
+			if (type->can_encode(v)) return type->encode(v);
+		}
+	}
     
     error("Cannot encode %O\n", v);
+}
+
+string render(Serialization.Atom atom) {
+	return atom->render();
 }
