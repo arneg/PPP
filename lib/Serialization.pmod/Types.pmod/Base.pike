@@ -146,6 +146,5 @@ void done_to_medium(Serialization.Atom atom) {
 }
 
 string render(Serialization.Atom atom) {
-    string d = to_raw(atom);
-    return sprintf("%s %d %s", atom->action ? atom->type+":"+atom->action : atom->type, sizeof(d), d); 
+	return atom->render();
 }
