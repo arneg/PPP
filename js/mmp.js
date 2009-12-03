@@ -122,5 +122,8 @@ mmp.Packet = Base.extend({
 		for (name in this.vars) if (this.vars.hasOwnProperty(name)) {
 			fun.call(obj, name, this.vars[name]);
 		}
+	},
+	id : function() {
+		return this.v("_id");
 	}
 });
