@@ -5,7 +5,8 @@ object get_vtype(mixed key, object ktype, mixed value);
 int(0..1) can_encode(mixed m);
 
 void done_to_medium(Serialization.Atom atom) {
-    array a, done = atom->typed_data[this];
+    array a;
+	mapping done = atom->typed_data[this];
 
 	a = allocate(sizeof(done)*2);
 	int i = 0;
