@@ -5,7 +5,10 @@ object get_vtype(mixed key, object ktype, mixed value);
 int(0..1) can_encode(mixed m);
 
 void done_to_medium(Serialization.Atom atom) {
-    mapping m = ([]), done = atom->typed_data[this];
+    array a, done = atom->typed_data[this];
+
+	a = allocate(sizeof(done)*2);
+	int i = 0;
 
     foreach (done; mixed key; mixed value) {
 		object ktype = get_ktype(key);
@@ -14,18 +17,21 @@ void done_to_medium(Serialization.Atom atom) {
 		if (!vtype) error("something totally unexpected happened during render. seems like %O has been changed since encode()\n", done);
 		Serialization.Atom mkey = ktype->encode(key);
 		Serialization.Atom mval = vtype->encode(value);
-		m[mkey] = mval;
+		a[i++] = mkey;
+		a[i++] = mval;
     }
 
-    atom->set_pdata(m);
+    atom->set_pdata(a);
 }
 
 void medium_to_done(Serialization.Atom atom) {
-    mapping done = ([]), m = atom->pdata;
+    mapping done = ([]);
 
-    foreach (m;Serialization.Atom mkey;Serialization.Atom mval) {
+	for (int i = 0; i < sizeof(atom->pdata); i+=2) {
+		Serialization.Atom mval, mkey = atom->pdata[i];
 		object ktype = get_ktype(mkey);
 		if (!ktype) error("something totally unexpected happened during render. seems like %O has been changed since encode()\n", done);
+		mval = atom->pdata[i+1];
 		object vtype = get_vtype(mkey, ktype, mval);
 		if (!vtype) error("something totally unexpected happened during render. seems like %O has been changed since encode()\n", done);
 
@@ -42,15 +48,15 @@ void raw_to_medium(Serialization.Atom atom) {
     if (sizeof(list) & 1) return 0;
 
     // we keep the array.. more convenient
-    atom->set_pdata(aggregate_mapping(@list));
+    atom->set_pdata(list);
 }
 
 void medium_to_raw(Serialization.Atom atom) {
     String.Buffer buf = String.Buffer();
 
-	foreach (atom->pdata;Serialization.Atom key; Serialization.Atom value) {
-		buf = key->render(buf);
-		buf = value->render(buf);
+	for (int i = 0; i < sizeof(atom->pdata); i+=2) {
+		buf = atom->pdata[i]->render(buf);
+		buf = atom->pdata[i+1]->render(buf);
 	}
 
     atom->data = (string)buf;
