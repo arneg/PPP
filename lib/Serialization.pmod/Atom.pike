@@ -1,10 +1,13 @@
 // raw data
 string type, action, data;
+
+#if constant(Roxen)
 Thread.Mutex mutex = Thread.Mutex();
 
 object lock() {
-	return mutex->lock();
+	return mutex->ock();
 }
+#endif
 
 // intermediate stuff (apply works on this)
 // the type of this is psyc type specific
