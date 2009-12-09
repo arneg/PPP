@@ -35,8 +35,10 @@ object get_vtype(mixed key, object ktype, mixed value) {
 
 // these two ignore unknown keys
 void done_to_medium(Serialization.Atom atom) {
-    mapping m = ([]), done = atom->typed_data[this];
+	mapping done = atom->typed_data[this];
     if (!mappingp(done)) error("Broken done state.\n");
+    array a = allocate(sizeof(done) * 2);
+	int i = 0;
 
     foreach (done; mixed key; mixed value) {
 		object ktype = get_ktype(key);
@@ -49,21 +51,23 @@ void done_to_medium(Serialization.Atom atom) {
 			werror("%O: No vtype for %O:%O\n", this, key, value);
 			continue;
 		}
-		Serialization.Atom mkey = ktype->encode(key);
-		Serialization.Atom mval = vtype->encode(value);
-		m[mkey] = mval;
+		a[i++] = ktype->encode(key);
+		a[i++] = vtype->encode(value);
     }
 
-    atom->set_pdata(m);
+    atom->set_pdata(a);
 }
 
 void medium_to_done(Serialization.Atom atom) {
-    mapping done = ([]), m = atom->pdata;
-    if (!mappingp(m)) error("Broken medium state.\n");
+    mapping done = ([]);
+	array a = atom->pdata;
+    if (!arrayp(a)) error("Broken medium state.\n");
 
-    foreach (m;Serialization.Atom mkey;Serialization.Atom mval) {
+	for (int i = 0; i < sizeof(a); i += 2) {
+		Serialization.Atom mval, mkey = a[i];
 		object ktype = get_ktype(mkey);
 		if (!ktype) continue;
+		mval = a[i+1];
 		object vtype = get_vtype(mkey, ktype, mval);
 		if (!vtype) {
 			werror("No vtype for %O:%O\n", mkey, mval);
