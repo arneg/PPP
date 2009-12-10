@@ -1,10 +1,7 @@
-inherit .Base;
-
 object server;
+string type = "_uniform";
 
 void create(object server) {
-    ::create("_uniform");
-
     this_program::server = server;
 }
 
@@ -13,16 +10,20 @@ MMP.Uniform get_uniform(string s) {
     else return MMP.Uniform(s);
 }
 
-void raw_to_medium(Serialization.Atom atom) {
-    atom->set_pdata(get_uniform(atom->data));
-}
-
-void medium_to_raw(Serialization.Atom atom) {
-    atom->data = (string)atom->pdata;
-}
-
 int(0..1) can_encode(mixed a) {
     return MMP.is_uniform(a);
+}
+
+int(0..1) can_decode(Serialization.Atom a) {
+	return a->type == "_uniform";
+}
+
+MMP.Uniform decode(Serialization.Atom a) {
+	return get_uniform(a->data);
+}
+
+Serialization.Atom encode(MMP.Uniform u) {
+	return Serialization.Atom("_uniform", (string)u);
 }
 
 string _sprintf(int c) {
