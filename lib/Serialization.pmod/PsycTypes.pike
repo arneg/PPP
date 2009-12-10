@@ -89,6 +89,7 @@ object Packet(object type) {
 			"_source" : Uniform(),
 			"_target" : Uniform(),
 			"_context" : Uniform(),
+			"_source_relay" : Uniform(),
 			"_timestamp" : Time(),
 		]));
 
@@ -160,7 +161,7 @@ object gen_vars(void|mapping(string:object) v, void|mapping(string:object) ov) {
 
 	t += "int(0..1) can_encode(mixed a) { return mappingp(a); }";
 	t += "int(0..1) can_decode(Serialization.Atom a) { return a->type == \"_vars\"; }";
-	t += "string _sprintf(int type) { return \"MappingType("+sizeof(types)+")\"; }";
+	t += sprintf("string _sprintf(int type) { return %O; }", sprintf("MappingType(%O, %O)", types, def));
 	program p = compile(t);
 	werror("");
 	object o = p();
