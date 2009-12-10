@@ -1,24 +1,15 @@
-inherit .Base;
+string type = "_float";
 
-void create() {
-    ::create("_float");
+
+float decode(Serialization.Atom a) {
+	return (float)a->data;
 }
-
-void raw_to_medium(Serialization.Atom atom) {
-	float i;
-
-	if (1 == sscanf(atom->data, "%f", i)) {
-	    atom->set_pdata(i);
-	    return;
-	}
-
-    error("cannot decode %O\n", atom);
+Serialization.Atom encode(float f) {
+	return Serialization.Atom("_float", sprintf("%g", f));
 }
-
-void medium_to_raw(Serialization.Atom atom) {
-    atom->data = (string)atom->pdata;
+int(0..1) can_decode(Serialization.Atom a) {
+	return a->type == "_float";
 }
-
 int(0..1) can_encode(mixed a) {
     return floatp(a);
 }
