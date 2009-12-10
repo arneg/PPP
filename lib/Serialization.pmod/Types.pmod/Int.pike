@@ -1,22 +1,18 @@
-inherit .Base;
+string base;
+string type = "_int";
 
-void create() {
-    ::create("_integer");
+int(0..1) can_decode(Serialization.Atom a) {
+	return a->type == "_int";
 }
 
-void raw_to_medium(Serialization.Atom atom) {
+int decode(Serialization.Atom a) {
 	int i;
-
-	if (1 == sscanf(atom->data, "%d", i)) {
-	    atom->set_pdata(i);
-		return;
-	}
-
-    error("cannot decode %O\n", atom);
+	if (1 != sscanf(a->data, "%d", i)) error("Malformed integer type %O\n");
+	return i;
 }
 
-void medium_to_raw(Serialization.Atom atom) {
-    atom->data = (string)atom->pdata;
+Serialization.Atom encode(int i) {
+	return Serialization.Atom("_method", (string)i);
 }
 
 int(0..1) can_encode(mixed a) {
