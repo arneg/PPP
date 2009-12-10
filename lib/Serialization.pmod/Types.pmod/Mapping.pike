@@ -63,6 +63,6 @@ void medium_to_raw(Serialization.Atom atom) {
     atom->data = (string)buf;
 }
 
-int(0..1) low_can_encode(mixed a) {
+int(0..1) can_encode(mixed a) {
     return mappingp(a);
 }
