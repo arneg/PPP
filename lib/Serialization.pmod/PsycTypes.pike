@@ -111,6 +111,7 @@ object gen_vars(void|mapping(string:object) v, void|mapping(string:object) ov) {
 	if (def) t += "object def;";
 
 	t += "mixed decode(Serialization.Atom a) {";
+	t += "if (has_index(a->typed_data, this)) return a->typed_data[this];";
 	t += "array list = Serialization.parse_atoms(a->data);";
 	t += "if (sizeof(list) & 1) error(\"Cannot decode mapping with odd number of entries.\\n\");";
 	t += "for (int i = 0; i < sizeof(list); i+=2)";
@@ -128,11 +129,18 @@ object gen_vars(void|mapping(string:object) v, void|mapping(string:object) ov) {
 	} else {
 		t+="error(\"Cannot decode atom %O:%O in %O\\n\", list[i], list[i+1], a);}";
 	} 
-	t+= "return aggregate_mapping(@list);}";
+	t += "mapping m = aggregate_mapping(@list);";
+	t+= "a->set_typed_data(this, m);";
+	t+= "return m;}";
 
-	t += "Serialization.Atom encode(mapping m) {";
-	t += "String.Buffer buf = String.Buffer();";
-	t += "foreach(m; string key; mixed val)";
+	t += "Serialization.Atom encode(mapping m) {"
+		 "	Serialization.Atom a = Serialization.Atom(\"_vars\", 0);"
+		 "	a->set_typed_data(this, m);"
+		 "  return a;}"
+		 "string to_raw(Serialization.Atom a) {"
+		 "	mapping m = a->typed_data[this];"
+		 "	String.Buffer buf = String.Buffer();"
+		 "	foreach(m; string key; mixed val)";
 	if (sizeof(types)) {
 		t += "switch (key) {";
 		foreach (types; string m;) {
@@ -147,12 +155,14 @@ object gen_vars(void|mapping(string:object) v, void|mapping(string:object) ov) {
 	} else {
 		t += "error(\"Cannot encode %O:%O in %O\\n\", key, val, m);}";
 	}
-	t+= "return Serialization.Atom(\"_vars\", buf->get()); }";
+	t+= "a->data = buf->get();";
+	t+= "return a->render(); }";
 
 	t += "int(0..1) can_encode(mixed a) { return mappingp(a); }";
 	t += "int(0..1) can_decode(Serialization.Atom a) { return a->type == \"_vars\"; }";
 	t += "string _sprintf(int type) { return \"MappingType("+sizeof(types)+")\"; }";
 	program p = compile(t);
+	werror("");
 	object o = p();
 	foreach (types; string m; object type) {
 		o["type"+m] = type;
