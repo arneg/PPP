@@ -50,7 +50,9 @@ mixed decode(Serialization.Atom a) {
     array t;
 
     if (t = atypes[a->type]) foreach (t;; object type) {
-		if (type->can_decode(a)) return type->decode(a); 
+		catch {
+			if (type->can_decode(a)) return type->decode(a); 
+		};
     } else {
 		error("No potential type for %s\n", a->type);
 	}
@@ -77,7 +79,9 @@ Serialization.Atom encode(mixed v) {
 
     if (t = ptypes[key]) {
 		foreach (t;; object type) {
-			if (type->can_encode(v)) return type->encode(v);
+			catch {
+				if (type->can_encode(v)) return type->encode(v);
+			};
 		}
 	}
     
