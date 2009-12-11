@@ -1,7 +1,6 @@
 inherit Serialization.Types.Int;
 
 void create() {
-	::create();
 	type = "_time";
 }
 

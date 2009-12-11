@@ -1,3 +1,5 @@
+string type = "_string";
+
 string decode(Serialization.Atom a) {
 	return utf8_to_string(a->data);
 }
