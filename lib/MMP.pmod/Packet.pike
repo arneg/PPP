@@ -1,6 +1,7 @@
 //! Implementation of an MMP Packet as descibed in 
 //! @[http://about.psyc.eu/MMP].
 
+inherit .Utils.Screamer;
 inherit Serialization.ObjectCache;
 
 //! MMP Variables of the Packet. These variables are routing information.
