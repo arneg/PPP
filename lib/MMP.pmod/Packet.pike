@@ -12,6 +12,7 @@ mapping misc = set_weak_flag(([]), Pike.WEAK);
 //! data or an object. Objects are expected to be subclasses of 
 //! @[PSYC.Packet] in many parts of the @[PSYC] code.
 string|object data;
+object atom;
 
 function parsed = 0, sent = 0; 
 #ifdef LOVE_TELNET
