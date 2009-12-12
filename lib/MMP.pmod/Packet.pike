@@ -1,6 +1,7 @@
 //! Implementation of an MMP Packet as descibed in 
 //! @[http://about.psyc.eu/MMP].
 
+inherit Serialization.ObjectCache;
 
 //! MMP Variables of the Packet. These variables are routing information.
 //! You can find a description of all variables and their meaning in
@@ -12,7 +13,6 @@ mapping misc = set_weak_flag(([]), Pike.WEAK);
 //! data or an object. Objects are expected to be subclasses of 
 //! @[PSYC.Packet] in many parts of the @[PSYC] code.
 string|object data;
-object atom;
 
 function parsed = 0, sent = 0; 
 #ifdef LOVE_TELNET
