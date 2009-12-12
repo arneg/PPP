@@ -48,7 +48,7 @@ void clear() {
 }
 
 void condense() {
-	if (!signature) {
+	if (signature) {
 		make_raw();
 		pdata = _has_pdata = 0;
 		typed_data = ([]);
