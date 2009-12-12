@@ -48,10 +48,12 @@ void clear() {
 }
 
 void condense() {
-	make_raw();
-	pdata = _has_pdata = 0;
-    typed_data = ([]);
-	signature = 0;
+	if (!signature) {
+		make_raw();
+		pdata = _has_pdata = 0;
+		typed_data = ([]);
+		signature = 0;
+	}
 }
 
 void set_raw(string type, string action, string data) {
