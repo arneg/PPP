@@ -1,7 +1,7 @@
 // raw data
 string type, action, data;
 
-#if constant(Roxen)
+#ifdef ENABLE_THREADS
 Thread.Mutex mutex = Thread.Mutex();
 
 object lock() {

@@ -42,7 +42,7 @@ string _sprintf(int t) {
 mixed to_done(Serialization.Atom atom) {
     if (!low_can_decode(atom)) error("Incompatible types (%s and %s).\n", type, atom->type);
 
-#if constant(Roxen)
+#ifdef ENABLE_THREADS
 	object lock = atom->lock();
 #endif
 
@@ -62,7 +62,7 @@ mixed to_done(Serialization.Atom atom) {
     }
 
 	mixed ret = atom->typed_data[this];
-#if constant(Roxen)
+#ifdef ENABLE_THREADS
 	destruct(lock);
 #endif
     return ret;
@@ -74,7 +74,7 @@ string to_raw(Serialization.Atom atom) {
 		error("Incompatible types (%s and %s).\n", type, atom->type);
     }
 
-#if constant(Roxen)
+#ifdef ENABLE_THREADS
 	object lock = atom->lock();
 #endif
 
@@ -94,7 +94,7 @@ string to_raw(Serialization.Atom atom) {
     }
 
 	mixed ret = atom->data;
-#if constant(Roxen)
+#ifdef ENABLE_THREADS
 	destruct(lock);
 #endif
     return ret;
@@ -103,7 +103,7 @@ string to_raw(Serialization.Atom atom) {
 mixed to_medium(Serialization.Atom atom) {
     if (!low_can_decode(atom)) error("Incompatible types (%s and %s).\n", type, atom->type);
 
-#if constant(Roxen)
+#ifdef ENABLE_THREADS
 	object lock = atom->lock();
 #endif
 
@@ -121,7 +121,7 @@ mixed to_medium(Serialization.Atom atom) {
     }
 
 	mixed ret = atom->pdata;
-#if constant(Roxen)
+#ifdef ENABLE_THREADS
 	destruct(lock);
 #endif
     return ret;
