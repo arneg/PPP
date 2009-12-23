@@ -30,9 +30,9 @@ meteor = new Object();
  */
 meteor.BUFFER_MAX = 1 << 16; // limit for incoming buffer, exceeding this buffer triggers a reconnect
 meteor.dismantle = function(xhr) {
-	delete xhr.meteor;
 	delete xhr.onreadystatechange;
 	try { xhr.abort(); } catch (e) {};
+	delete xhr.meteor;
 };
 /**
  * Meteor connection class. This is usually used with Atom serialization on top. Use psyc.Client if unsure.
@@ -61,9 +61,14 @@ meteor.Connection = function(url, callback, error) {
 	this.init_xhr = 0;
 	this.reconnect = 1; // do a reconnect on close
 };
+meteor.debug = function() {
+	if (console.log) {
+		console.log.apply(window, arguments);
+	}
+};
 meteor.Connection.prototype = {
 	reconnect_incoming : function() {
-		if (meteor.debug) meteor.debug("reconnecting due to timeout.\n");
+		meteor.debug("reconnecting due to timeout.\n");
 		if (this.new_incoming) {
 			meteor.dismantle(this.new_incoming);
 			delete this.new_incoming;
@@ -76,7 +81,7 @@ meteor.Connection.prototype = {
 	},
 	new_incoming_state_change : function() {
 		var con = this.meteor;
-		if (meteor.debug) meteor.debug("new_incoming state is " + this.readyState);
+		meteor.debug("new_incoming state is " + this.readyState);
 		// we should check here for buffer length. maybe set a max
 		// amount to shut down the main one ungracefully
 		if (this.readyState >= 3) {
@@ -93,11 +98,11 @@ meteor.Connection.prototype = {
 			// TODO: we have to check for data in new_incoming,
 			// not sure what to do with it. we can probably savely
 			// parse it in case of atoms.
-				if (meteor.debug) meteor.debug("New connection already finished.\n");
+				meteor.debug("New connection already finished.\n");
 			} else return this.connect_incoming();
 		}
 
-		if (meteor.debug) meteor.debug("Connecting new incoming.\n");
+		meteor.debug("Connecting new incoming.\n");
 
 		var xhr = new XMLHttpRequest();
 		this.new_incoming = xhr;
@@ -119,7 +124,7 @@ meteor.Connection.prototype = {
 		var status;
 
 		if (!con) {
-			if (meteor.debug) meteor.debug("xhr lost connection to reality.");
+			meteor.debug("xhr lost connection to reality.");
 			return;
 		}
 		if (this.readyState >= 3) {
@@ -131,14 +136,14 @@ meteor.Connection.prototype = {
 			} catch(e) {
 				// this is ie country
 				// this is ie
-				if (meteor.debug) meteor.debug("fucking ie");
+				meteor.debug("fucking ie");
 			}
 
 			if (status == 200) {
 				var length = this.responseBody ? this.responseBody.length : this.responseText.length;
 
 				if (length > this.pos) {
-					if (meteor.debug) meteor.debug((length-this.pos)+" bytes received in readyState "+this.readyState);
+					meteor.debug((length-this.pos)+" bytes received in readyState "+this.readyState);
 					var str;
 
 					try {
@@ -161,7 +166,7 @@ meteor.Connection.prototype = {
 							con.callback(str);
 						}
 					} catch (error) {
-						if (meteor.debug) meteor.debug("ERROR: "+error);
+						meteor.debug("ERROR: "+error);
 					}
 
 					this.pos = length;
@@ -181,7 +186,7 @@ meteor.Connection.prototype = {
 		}
 	},
 	incoming_on_error : function() {
-		if (meteor.debug) meteor.debug("INCOMING ERROR!");
+		meteor.debug("INCOMING ERROR!");
 		var self = this;
 		var cb = function() {
 			self.meteor.connect_new_incoming();
@@ -210,7 +215,7 @@ meteor.Connection.prototype = {
 
 		xhr.onreadystatechange = this.incoming_state_change;
 		xhr.onerror = this.incoming_on_error;
-		if (meteor.debug) meteor.debug("moved new incoming to incoming.");
+		meteor.debug("moved new incoming to incoming.");
 		this.new_incoming = 0;
 		this.incoming = xhr;
 		meteor.Connection.prototype.incoming_state_change.call(xhr);
@@ -222,7 +227,7 @@ meteor.Connection.prototype = {
 				meteor.Connection.prototype.incoming_state_change.call(xhr);
 			};
 			this.operatimer = setInterval(fun, 100);
-			if (meteor.debug) meteor.debug("timer: "+this.operatimer);
+			meteor.debug("timer: "+this.operatimer);
 		}
 	},
 	outgoing_state_change : function() {
@@ -264,7 +269,7 @@ meteor.Connection.prototype = {
 		if (this.readyState == 4) {
 			if (this.status == 200) {
 				con.client_id = this.responseText;
-				if (meteor.debug) meteor.debug("got client ID " + con.client_id);
+				meteor.debug("got client ID " + con.client_id);
 
 				meteor.dismantle(con.init_xhr);
 				delete con.init_xhr;
@@ -346,7 +351,7 @@ meteor.Connection.prototype = {
 		} else {
 			this.outgoing.send(this.buffer);   
 		}
-		if (meteor.debug) meteor.debug("Sending ("+this.buffer.substr(this.buffer.length-40, 39)+")\n");
+		meteor.debug("Sending ("+this.buffer.substr(this.buffer.length-40, 39)+")\n");
 		this.ready = 0;
 		this.buffer = "";
 	}
@@ -359,7 +364,16 @@ meteor.CallbackWrapper = function(params, mapping) {
 };
 meteor.CallbackWrapper.prototype = {
 	msg : function(p, message) {
-		if (!this.params.source || this.params.source == p.source()) {
+		var ok = true;
+		if ((this.params.source && this.params.source != p.source())
+		||  (this.params.context && this.params.context != p.v("_context"))
+		||  (this.params.target && this.params.target != p.target())
+		) {
+			ok = false;
+			meteor.debug(p.toString()+" is not the one.\n");
+		}
+
+		if (ok) {
 			if (this.params.object) {
 				if (this.params.cb) {
 					return this.params.cb.call(this.params.object, p, message, this);
