@@ -182,7 +182,11 @@ meteor.Connection.prototype = {
 	},
 	incoming_on_error : function() {
 		if (meteor.debug) meteor.debug("INCOMING ERROR!");
-		this.meteor.connect_new_incoming();
+		var self = this;
+		var cb = function() {
+			self.meteor.connect_new_incoming();
+		};
+		window.setTimeout(cb, 500);
 	},
 	connect_incoming : function(xhr) {
 		if (!xhr) {
