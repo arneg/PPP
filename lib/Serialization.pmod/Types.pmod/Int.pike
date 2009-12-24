@@ -1,8 +1,8 @@
 string base;
-string type = "_int";
+string type = "_integer";
 
 int(0..1) can_decode(Serialization.Atom a) {
-	return a->type == "_int";
+	return a->type == type;
 }
 
 int decode(Serialization.Atom a) {
@@ -12,7 +12,7 @@ int decode(Serialization.Atom a) {
 }
 
 Serialization.Atom encode(int i) {
-	return Serialization.Atom("_method", (string)i);
+	return Serialization.Atom(type, (string)i);
 }
 
 int(0..1) can_encode(mixed a) {
