@@ -5,10 +5,10 @@ float decode(Serialization.Atom a) {
 	return (float)a->data;
 }
 Serialization.Atom encode(float f) {
-	return Serialization.Atom("_float", sprintf("%g", f));
+	return Serialization.Atom(type, sprintf("%g", f));
 }
 int(0..1) can_decode(Serialization.Atom a) {
-	return a->type == "_float";
+	return a->type == type;
 }
 int(0..1) can_encode(mixed a) {
     return floatp(a);

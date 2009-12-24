@@ -5,11 +5,11 @@ string decode(Serialization.Atom a) {
 }
 
 Serialization.Atom encode(string s) {
-	return Serialization.Atom("_string", string_to_utf8(s));
+	return Serialization.Atom(type, string_to_utf8(s));
 }
 
 int(0..1) can_decode(Serialization.Atom a) {
-	return a->type == "_string";
+	return a->type == type;
 }
 
 int(0..1) can_encode(mixed a) {
