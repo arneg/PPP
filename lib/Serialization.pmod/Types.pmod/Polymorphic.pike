@@ -50,9 +50,15 @@ mixed decode(Serialization.Atom a) {
     array t;
 
     if (t = atypes[a->type]) foreach (t;; object type) {
-		catch {
-			if (type->can_decode(a)) return type->decode(a); 
+		mixed err = catch {
+			if (type->can_decode(a)) {
+				return type->decode(a); 
+			} else {
+				werror("%O cannot decode %s\n", type, a->render());
+			}
 		};
+
+		werror(describe_error(err));
     } else {
 		error("No potential type for %s\n", a->type);
 	}
