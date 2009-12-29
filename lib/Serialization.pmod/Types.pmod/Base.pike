@@ -24,11 +24,7 @@ int (0..1) low_can_encode(mixed a) {
 int(0..1) can_encode(mixed a);
 
 int(0..1) can_decode(Serialization.Atom atom) {
-    if (low_can_decode(atom)) {
-		mixed err = catch { to_done(atom); };
-		return !err;
-    }
-    return 0;
+    return low_can_decode(atom);
 }
 
 string _sprintf(int t) {
