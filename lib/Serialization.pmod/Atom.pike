@@ -5,7 +5,7 @@ string type, action, data;
 Thread.Mutex mutex = Thread.Mutex();
 
 object lock() {
-	return mutex->ock();
+	return mutex->lock();
 }
 #endif
 
@@ -124,21 +124,13 @@ int(0..1) is_supertype_of(this_program a) {
 }
 
 string|String.Buffer render(void|String.Buffer buf) {
-    string ttype;
-
     if (!data) make_raw();
 
-    if (action) {
-		ttype = type + ":" + action;
-    } else {
-		ttype = type;
-    }
-
     if (buf) {
-		buf->add(sprintf("%s %d ", ttype, sizeof(data)));
+		buf->add(sprintf("%s %d ", type, sizeof(data)));
 		buf->add(data);
 		return buf;
-    } else return sprintf("%s %d %s", ttype, sizeof(data), data);
+    } else return sprintf("%s %d %s", type, sizeof(data), data);
 }
 
 string _sprintf(int t) {
