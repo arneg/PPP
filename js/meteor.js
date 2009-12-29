@@ -62,7 +62,7 @@ meteor.Connection = function(url, callback, error) {
 	this.reconnect = 1; // do a reconnect on close
 };
 meteor.debug = function() {
-	if (console.log) {
+	if (console && console.log) {
 		console.log.apply(window, arguments);
 	}
 };
@@ -284,7 +284,6 @@ meteor.Connection.prototype = {
 
 			delete this.meteor;
 			delete con.init_xhr;
-			//console.debug("not yet in readyState 4\n");
 		}
 	},
 	/**
