@@ -56,7 +56,7 @@ object gen_vars(void|mapping(string:object) v, void|mapping(string:object) ov) {
 	if (def) {
 		t += "buf->add(sprintf(\"_method %d %s\", sizeof(key), key)); buf->add(def->encode(val)->render());}";
 	} else {
-		t += "error(\"Cannot encode %O:%O in %O\\n\", key, val, m);}";
+		t += "werror(\"Cannot encode %O:%O in %O\\n\", key, val, m);}";
 	}
 	t+= "a->data = buf->get();";
 	t+= "return a->render(); }";
@@ -159,6 +159,7 @@ object Packet(object type) {
     if (!(o = this->type_cache[Serialization.Types.Packet][type])) {
 		object vars = Vars(0, ([
 			"_id" : Int(),
+			//"_hrtime" : Int(),
 			"_source" : Uniform(),
 			"_target" : Uniform(),
 			"_context" : Uniform(),
