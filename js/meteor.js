@@ -62,8 +62,12 @@ meteor.Connection = function(url, callback, error) {
 	this.reconnect = 1; // do a reconnect on close
 };
 meteor.debug = function() {
-	if (console && console.log) {
-		console.log.apply(window, arguments);
+	if (window.console && window.console.log) {
+		if (window.console.firebug) {
+			window.console.log.apply(window, arguments);
+		} else { //this is IE
+			window.console.log(arguments[0]);
+		}
 	}
 };
 meteor.Connection.prototype = {
