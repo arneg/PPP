@@ -25,6 +25,7 @@ string newline;
 // because asking for a _source should return even _source_relay 
 // or _source_technical if present...
 void create(object data, void|mapping(string:mixed) vars) {
+	vars["_hrtime"] = gethrtime(1);
 	if (mappingp(vars)) {
 		this_program::vars = has_index(vars, "_timestamp") ? vars : vars + ([ "_timestamp" : Calendar.now() ]);
 	} else this_program::vars = ([ "_timestamp" : Calendar.now() ]);
