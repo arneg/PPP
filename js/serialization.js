@@ -194,10 +194,10 @@ serialization.Date = serialization.Base.extend({
 		this.type = "_time";
 	},
 	can_encode : function(o) {
-		return o instanceof psyc.Date;
+		return o instanceof yakity.Date;
 	},
 	decode : function(atom) {
-		return new psyc.Date(parseInt(atom.data));
+		return new yakity.Date(parseInt(atom.data));
 	},
 	encode : function(o) {
 		return new serialization.Atom("_time", o.timestamp);
@@ -211,7 +211,7 @@ serialization.Message = serialization.Base.extend({
 		this.type = "_message";
 	},
 	can_encode : function(o) {
-		return o instanceof psyc.Message;
+		return o instanceof yakity.Message;
 	},
 	decode : function(atom) {
 		var p = new serialization.AtomParser();
@@ -243,7 +243,7 @@ serialization.Message = serialization.Base.extend({
 			data = 0;
 		} else throw("bad _message "+l); 
 
-		return new psyc.Message(method, data, vars);
+		return new yakity.Message(method, data, vars);
 	},
 	encode : function(o) {
 		var str = "";
@@ -339,7 +339,7 @@ serialization.Mapping = serialization.Base.extend({
 		return "Mapping()";
 	},
 	can_encode : function(o) {
-		return o instanceof psyc.Mapping;
+		return o instanceof Mapping;
 	},
 	can_decode : function(atom) {
 		if (!this.base(atom)) return false;
