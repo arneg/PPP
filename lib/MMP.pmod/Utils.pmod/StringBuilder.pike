@@ -9,7 +9,7 @@ int get_entries() {
     return entries;
 }
 
-array _add(array structure, string s) {
+array _add(array structure, string|void s) {
     if (structure) {
 	array current = structure;
 
@@ -33,14 +33,14 @@ array _add(array structure, string s) {
     }
 }
 
-array add(string s) {
+array add(string|void s) {
     array res = _add(tail, s);
 
     tail = tail[1];
     return res;
 }
 
-array add_pos(string s, int back) {
+array add_pos(string|void s, int back) {
     array structure = tail, res;
     int was_head;
 
