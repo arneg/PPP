@@ -83,8 +83,8 @@ int count_length(array node, array|void tail) {
     if (!tail) tail = this_program::tail;
 
     do {
-	if (stringp(node[3])) {
-	    len += sizeof(node[3]);
+	if (stringp(node[2])) {
+	    len += sizeof(node[2]);
 	}
     } while ((node = node[1]) != tail);
 
