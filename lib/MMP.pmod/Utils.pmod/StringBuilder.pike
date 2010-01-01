@@ -76,3 +76,17 @@ string get() {
 	return "";
     }
 }
+
+int count_length(array node, array|void tail) {
+    int len;
+
+    if (!tail) tail = this_program::tail;
+
+    do {
+	if (stringp(node[3])) {
+	    len += sizeof(node[3]);
+	}
+    } while ((node = node[1]) != tail);
+
+    return len;
+}
