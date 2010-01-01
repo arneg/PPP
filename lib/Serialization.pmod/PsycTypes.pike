@@ -30,6 +30,7 @@ object gen_vars(void|mapping(string:object) v, void|mapping(string:object) ov) {
 	if (def) {
 		t += "list[i] = list[i]->data; list[i+1] = def->decode(list[i+1]); }";
 	} else {
+		t += "}";
 		//t+="error(\"Cannot decode atom %O:%O in %O\\n\", list[i], list[i+1], a);}";
 	} 
 	t += "mapping m = aggregate_mapping(@list);";
@@ -56,6 +57,7 @@ object gen_vars(void|mapping(string:object) v, void|mapping(string:object) ov) {
 	if (def) {
 		t += "buf->add(sprintf(\"_method %d %s\", sizeof(key), key)); buf->add(def->encode(val)->render());}";
 	} else {
+		t += "}";
 		//t += "werror(\"Cannot encode %O:%O in %O\\n\", key, val, m);}";
 	}
 	t+= "a->data = buf->get();";
