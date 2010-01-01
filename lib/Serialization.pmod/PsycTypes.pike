@@ -43,7 +43,8 @@ object gen_vars(void|mapping(string:object) v, void|mapping(string:object) ov) {
 		 "  return a;}"
 		 "string to_raw(Serialization.Atom a) {"
 		 "	mapping m = a->typed_data[this];"
-		 "	String.Buffer buf = String.Buffer();"
+		 "	MMP.Utils.StringBuilder buf = MMP.Utils.StringBuilder();"
+		 "	array node = buf->add();
 		 "	foreach(m; string key; mixed val)";
 	if (sizeof(types)) {
 		t += "switch (key) {";

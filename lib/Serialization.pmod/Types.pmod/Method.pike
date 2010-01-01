@@ -25,6 +25,11 @@ Serialization.Atom encode(string s) {
 	return Serialization.Atom("_method", s);
 }
 
+MMP.Utils.StringBuilder render(string method, MMP.Utils.StringBuilder buf) {
+    buf->add(sprintf("%s %d %s", type, (sizeof(method)), method);
+    return buf;
+}
+
 string _sprintf(int type) {
     if (type == 'O') {
 		return sprintf("Serialization.Method(%s)", base);

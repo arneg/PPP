@@ -1,57 +1,62 @@
-inherit .Base;
 object etype;
-object itype = Serialization.Types.Int();
+string type = "_type";
 
 void create(object type) {
-    ::create("_list");
-
-	if (!objectp(type)) error("Bad type %O\n", type);
+    if (!objectp(type)) error("Bad type %O\n", type);
     
     this_program::etype = type;
 }
 
-void raw_to_medium(Serialization.Atom atom) {
-    atom->set_pdata(Serialization.parse_atoms(atom->data));
+Serialization.Atom encode(array list) {
+    Serialization.Atom a = Serialization.Atom();
+    a->set_typed_data(this, list);
+    return a;
 }
 
-void medium_to_raw(Serialization.Atom atom) {
-    String.Buffer buf = String.Buffer();
+array decode(Serialization.Atom atom) {
+    mixed o = atom->get_typed_data(this);
 
-    foreach (atom->pdata;;Serialization.Atom a) {
-		buf = a->render(buf);	
+    if (o) return o;
+    
+    array(Serialization.Atom) list = Serialization.parse_atoms(atom->data);
+    foreach (list; int i; Serialization.Atom a) {
+	list[i] = etype->decode(a);
+    }
+    atom->set_typed_data(this, list);
+    return list;
+}
+
+MMP.Utils.StringBuilder render(array list, MMP.Utils.StringBuilder buf) {
+    array node = buf->add();
+
+    foreach (list; int i; mixed o) {
+	etype->render(o, buf);
     }
 
-    atom->data = (string)buf;
+    node[3] = sprintf("%s %d ", type, buf->count_length(node));
+    return buf;
 }
 
-void medium_to_done(Serialization.Atom atom) {
-    atom->set_typed_data(this, map(atom->pdata, etype->decode));
+string render_payload(Serialization.Atom atom) {
+    array list = atom->get_typed_data(this);
+    if (!list) error("Using broken atom: %O\n", atom);
+    MMP.Utils.StringBuilder buf = MMP.Utils.StringBuilder();
+
+    foreach (atlist; int i; mixed element) {
+	etype->render(element, buf);
+    }
+
+    return buf->get();
 }
 
-void done_to_medium(Serialization.Atom atom) {
-    atom->set_pdata(map(atom->typed_data[this], etype->encode));
-}
-
-int (0..1) low_can_encode(mixed a) {
+int (0..1) can_encode(mixed a) {
     return arrayp(a);
-}
-
-int(0..1) can_encode(mixed a) {
-    if (low_can_decode(a)) return 1;
-    if (!arrayp(a)) return 0;
-
-    foreach (a;;mixed i) {
-	if (!etype->can_encode(i)) {
-	    return 0;
-	}
-    }
-
-    return 1;
+    // TODO: think about recursive deep check here
 }
 
 string _sprintf(int c) {
     if (c == 'O') {
-		return sprintf("List(%O)", etype);
+	return sprintf("List(%O)", etype);
     }
 
     return 0;

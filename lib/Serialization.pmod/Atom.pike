@@ -80,19 +80,19 @@ int(0..1) is_supertype_of(this_program a) {
 
 string|MMP.Utils.StringBuilder render(void|MMP.Utils.StringBuilder buf) {
     array node;
-    if (!data) {
-	if (buf) {
-	    node = buf->add();
-	    signature->render(this, buf);
-	} else {
-	    data = signature->render(this, MMP.Utils.StringBuilder())->get();
-    }
 
     if (buf) {
-		int length = buf->count_length(node);
-		node[3] = sprintf("%s %d ", type, i);
-		return buf;
-    } else return sprintf("%s %d %s", type, sizeof(data), data);
+	if (!data) {
+	    data = signature->render_payload(this);
+	}
+
+	buf->add(sprintf("%s %d %s", type, sizeof(data), data);
+	    
+	return buf;
+    } else {
+	if (!data) data = signature->render_payload(this);
+	return sprintf("%s %d %s", type, sizeof(data), data);
+    }
 }
 
 string _sprintf(int t) {
