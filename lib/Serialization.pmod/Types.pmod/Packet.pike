@@ -35,11 +35,12 @@ Serialization.Atom encode(MMP.Packet p) {
 
 MMP.Utils.StringBuilder render(MMP.Packet p, MMP.Utils.StringBuilder buf) {
     array node = buf->add();
+	int length = buf->length();
 
     dtype->render(p->data, buf);
     vtype->render(p->vars, buf);
 
-    node[2] = sprintf("%s %d ", type, buf->count_length(node));
+    buf->set_node(node, sprintf("%s %d ", type, buf->length() - length));
     return buf;
 }
 

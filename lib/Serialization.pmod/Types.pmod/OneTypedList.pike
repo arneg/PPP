@@ -28,12 +28,13 @@ array decode(Serialization.Atom atom) {
 
 MMP.Utils.StringBuilder render(array list, MMP.Utils.StringBuilder buf) {
     array node = buf->add();
+	int length = buf->length();
 
     foreach (list; int i; mixed o) {
-	etype->render(o, buf);
+		etype->render(o, buf);
     }
 
-    node[2] = sprintf("%s %d ", type, buf->count_length(node));
+    buf->set_node(node, sprintf("%s %d ", type, buf->length() - length));
     return buf;
 }
 

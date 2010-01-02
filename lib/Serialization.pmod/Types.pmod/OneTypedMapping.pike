@@ -41,8 +41,8 @@ string render_payload(Serialization.Atom atom) {
     MMP.Utils.StringBuilder buf = MMP.Utils.StringBuilder();
 
     foreach (m; mixed key; mixed value) {
-	ktype->render(key, buf);
-	vtype->render(value, buf);
+		ktype->render(key, buf);
+		vtype->render(value, buf);
     }
 
     return buf->get();
@@ -50,13 +50,14 @@ string render_payload(Serialization.Atom atom) {
 
 MMP.Utils.StringBuilder render(mapping m, MMP.Utils.StringBuilder buf) {
     array node = buf->add();
+	int length = buf->length();
 
     foreach (m; mixed key; mixed value) {
-	ktype->render(key, buf);
-	vtype->render(value, buf);
+		ktype->render(key, buf);
+		vtype->render(value, buf);
     }
 
-    buf->add(sprintf("%s %d ", type, buf->count_length(node)));
+    buf->set_node(node, sprintf("%s %d ", type, buf->length() - length));
 
     return buf;
 }

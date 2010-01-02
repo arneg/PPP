@@ -65,6 +65,7 @@ object gen_vars(void|mapping(string:object) v, void|mapping(string:object) ov) {
 	t+= "}";
 	t+= "MMP.Utils.StringBuilder render(mapping m, MMP.Utils.StringBuilder buf) {"
 		 "	array node = buf->add();"
+		 "	int length = buf->length();"
 		 "	foreach(m; string key; mixed val)";
 	if (sizeof(types)) {
 		t += "switch (key) {";
@@ -81,7 +82,7 @@ object gen_vars(void|mapping(string:object) v, void|mapping(string:object) ov) {
 		t += "}";
 		//t += "werror(\"Cannot encode %O:%O in %O\\n\", key, val, m);}";
 	}
-	t+= "node[2] = sprintf(\"%s %d \", type, buf->count_length(node));";
+	t+= "buf->set_node(node, sprintf(\"%s %d \", type, buf->length() - length));";
 	t+= "return buf;";
 	t+= "}";
 
