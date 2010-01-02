@@ -1,5 +1,6 @@
 // raw data
 string type, action, data;
+string done;
 
 #ifdef ENABLE_THREADS
 Thread.Mutex mutex = Thread.Mutex();
@@ -84,17 +85,24 @@ int(0..1) is_supertype_of(this_program a) {
 
 string|MMP.Utils.StringBuilder render(void|MMP.Utils.StringBuilder buf) {
 
-    if (buf) {
-	if (!data) {
-	    data = signature->render_payload(this);
+	if (done) {
+		if (buf) {
+			buf->add(done);
+			return buf;
+		} else return done;
 	}
 
-	buf->add(sprintf("%s %d %s", type, sizeof(data), data));
-	    
-	return buf;
+    if (buf) {
+		if (!data) {
+			data = signature->render_payload(this);
+		}
+
+		buf->add(sprintf("%s %d %s", type, sizeof(data), data));
+			
+		return buf;
     } else {
-	if (!data) data = signature->render_payload(this);
-	return sprintf("%s %d %s", type, sizeof(data), data);
+		if (!data) data = signature->render_payload(this);
+		return (done = sprintf("%s %d %s", type, sizeof(data), data));
     }
 }
 
