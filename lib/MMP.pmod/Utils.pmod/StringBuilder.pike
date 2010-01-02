@@ -1,4 +1,5 @@
-int entries;
+int entries = 0;
+int size = 0;
 array head, tail;
 
 void create(string|void s) {
@@ -11,26 +12,39 @@ int get_entries() {
 
 array _add(array structure, string|void s) {
     if (structure) {
-	array current = structure;
+		array current = structure;
 
-	structure = allocate(3);
-	structure[0] = current;
-	structure[1] = current[1];
-	structure[2] = s;
-	current[1] = structure;
-	entries++;
+		structure = allocate(3);
+		structure[0] = current;
+		structure[1] = current[1];
+		if (s) {
+			structure[2] = s;
+			size += sizeof(s);
+		}
+		current[1] = structure;
+		entries++;
 
-	return structure;
+		return structure;
     } else {
-	head = tail = structure = allocate(3);
+		head = tail = structure = allocate(3);
 
-	structure[0] = structure;
-	structure[1] = structure;
-	structure[2] = s;
-	entries++;
+		structure[0] = structure;
+		structure[1] = structure;
+		if (s) {
+			structure[2] = s;
+			size += sizeof(s);
+		}
+		entries++;
 
-	return structure;
+		return structure;
     }
+}
+
+void set_node(array node, string s) {
+	if (node[2]) {
+		size += sizeof(s) - sizeof(node[2]);
+	} else size += sizeof(s);
+	node[2] = s;
 }
 
 array add(string|void s) {
@@ -75,6 +89,10 @@ string get() {
     } else {
 	return "";
     }
+}
+
+int length() {
+	return size;
 }
 
 int count_length(array node, array|void tail) {
