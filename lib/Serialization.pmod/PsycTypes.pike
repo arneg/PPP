@@ -32,7 +32,6 @@ object gen_vars(void|mapping(string:object) v, void|mapping(string:object) ov) {
 	} else {
 		t += "}";
 		//t+="error(\"Cannot decode atom %O:%O in %O\\n\", list[i], list[i+1], a);}";
-		t += "}";
 	} 
 	t += "mapping m = aggregate_mapping(@list);";
 	t+= "a->set_typed_data(this, m);";
