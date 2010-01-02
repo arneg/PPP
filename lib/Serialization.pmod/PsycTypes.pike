@@ -30,6 +30,7 @@ object gen_vars(void|mapping(string:object) v, void|mapping(string:object) ov) {
 	if (def) {
 		t += "list[i] = list[i]->data; list[i+1] = def->decode(list[i+1]); }";
 	} else {
+		t += "}";
 		//t+="error(\"Cannot decode atom %O:%O in %O\\n\", list[i], list[i+1], a);}";
 		t += "}";
 	} 
@@ -41,14 +42,15 @@ object gen_vars(void|mapping(string:object) v, void|mapping(string:object) ov) {
 		 "	Serialization.Atom a = Serialization.Atom(\"_vars\", 0);"
 		 "	a->set_typed_data(this, m);"
 		 "  return a;}"
-		 "string to_raw(Serialization.Atom a) {"
+		 "string render_payload(Serialization.Atom a) {"
 		 "	mapping m = a->typed_data[this];"
-		 "	String.Buffer buf = String.Buffer();"
+		 "	MMP.Utils.StringBuilder buf = MMP.Utils.StringBuilder();"
+		 "	array node = buf->add();"
 		 "	foreach(m; string key; mixed val)";
 	if (sizeof(types)) {
 		t += "switch (key) {";
 		foreach (types; string m;) {
-			t += "case \""+m+"\": buf->add(\"_method "+(string)sizeof(m)+" "+m+"\"); buf->add(type"+m+"->encode(val)->render()); break;";
+			t += "case \""+m+"\": buf->add(\"_method "+(string)sizeof(m)+" "+m+"\"); type"+m+"->render(val, buf); break;";
 		}
 		t+="default:";
 	} else {
@@ -60,14 +62,34 @@ object gen_vars(void|mapping(string:object) v, void|mapping(string:object) ov) {
 		t += "}";
 		//t += "werror(\"Cannot encode %O:%O in %O\\n\", key, val, m);}";
 	}
-	t+= "a->data = buf->get();";
-	t+= "return a->render(); }";
+	t+= "return buf->get();";
+	t+= "}";
+	t+= "MMP.Utils.StringBuilder render(mapping m, MMP.Utils.StringBuilder buf) {"
+		 "	array node = buf->add();"
+		 "	foreach(m; string key; mixed val)";
+	if (sizeof(types)) {
+		t += "switch (key) {";
+		foreach (types; string m;) {
+			t += "case \""+m+"\": buf->add(\"_method "+(string)sizeof(m)+" "+m+"\"); type"+m+"->render(val, buf); break;";
+		}
+		t+="default:";
+	} else {
+		t += "{";
+	}
+	if (def) {
+		t += "buf->add(sprintf(\"_method %d %s\", sizeof(key), key)); buf->add(def->encode(val)->render());}";
+	} else {
+		t += "}";
+		//t += "werror(\"Cannot encode %O:%O in %O\\n\", key, val, m);}";
+	}
+	t+= "node[2] = sprintf(\"%s %d \", type, buf->count_length(node));";
+	t+= "return buf;";
+	t+= "}";
 
 	t += "int(0..1) can_encode(mixed a) { return mappingp(a); }";
 	t += "int(0..1) can_decode(Serialization.Atom a) { return a->type == \"_vars\"; }";
 	t += sprintf("string _sprintf(int type) { return %O; }", sprintf("MappingType(%O, %O)", types, def));
 	program p = compile(t);
-	werror("");
 	object o = p();
 	foreach (types; string m; object type) {
 		o["type"+m] = type;
@@ -97,10 +119,10 @@ object Vars(void|mapping(string:object) m, void|mapping(string:object) m2) {
     object mangler = Serialization.Mangler(args);
     object method = Method(), o;
 
-    if (!(o = this->type_cache[Serialization.Types.Vars][mangler])) {
+    if (!(o = this->type_cache[object_program(mangler)][mangler])) {
 		o = gen_vars(m, m2);
 		//o = Serialization.Types.Vars(method, m, m2);
-		this->type_cache[Serialization.Types.Vars][mangler] = o;
+		this->type_cache[object_program(mangler)][mangler] = o;
     }
 
     return o;
@@ -108,7 +130,7 @@ object Vars(void|mapping(string:object) m, void|mapping(string:object) m2) {
 
 object Method(string|void base) {
     object method;
-    if (!base) base = 0;
+if (!base) base = 0;
 
     if (!(method = this->type_cache[Serialization.Types.Method][base])) {
 		method = Serialization.Types.Method(base);

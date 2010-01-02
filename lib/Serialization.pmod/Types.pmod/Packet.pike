@@ -7,17 +7,20 @@ void create(object dtype, object vtype) {
 }
 
 MMP.Packet decode(Serialization.Atom atom) {
-	if (has_index(atom->typed_data, this)) return atom->typed_data[this];
+	MMP.Packet p = atom->get_typed_data(this);
+
+	if (p) return p;
+
 	array(Serialization.Atom) list = Serialization.parse_atoms(atom->data);	
 
 	if (sizeof(list) != 2) {
 		error("Malformed Packet atom: %O\n", atom);
 	}
 
-	MMP.Packet p = MMP.Packet(dtype->decode(list[0]), vtype->decode(list[1]));
+	p = MMP.Packet(dtype->decode(list[0]), vtype->decode(list[1]));
 	//p->set_atom(atom);
 	atom->set_typed_data(this, p);
-	return p;	
+	return p;
 }
 
 Serialization.Atom encode(MMP.Packet p) {
@@ -30,9 +33,26 @@ Serialization.Atom encode(MMP.Packet p) {
 	return a;
 }
 
-void to_raw(Serialization.Atom a) {
-	MMP.Packet p = a->typed_data[this];
-	a->data = (dtype->encode(p->data)->render() + vtype->encode(p->vars)->render());
+MMP.Utils.StringBuilder render(MMP.Packet p, MMP.Utils.StringBuilder buf) {
+    array node = buf->add();
+
+    dtype->render(p->data, buf);
+    vtype->render(p->vars, buf);
+
+    node[2] = sprintf("%s %d ", type, buf->count_length(node));
+    return buf;
+}
+
+string render_payload(Serialization.Atom atom) {
+    MMP.Packet p = atom->get_typed_data(this);
+
+    if (!p) error("Rendering empty atom: %O\n", atom);
+    MMP.Utils.StringBuilder buf = MMP.Utils.StringBuilder();
+
+    dtype->render(p->data, buf);
+    vtype->render(p->vars, buf);
+
+    return buf->get();
 }
 
 string _sprintf(int c) {

@@ -26,6 +26,12 @@ Serialization.Atom encode(MMP.Uniform u) {
 	return Serialization.Atom("_uniform", (string)u);
 }
 
+MMP.Utils.StringBuilder render(MMP.Uniform uniform, MMP.Utils.StringBuilder buf) {
+    string s = (string)uniform;
+    buf->add(sprintf("%s %d %s", type, (sizeof(s)), s));
+    return buf;
+}
+
 string _sprintf(int c) {
     if (c == 'O') {
 		return "Uniform()";

@@ -5,7 +5,7 @@ string type = "_method";
 #define CHECK(x)	do { if (!OK(x)) error("%O is not a submethod of '%s'.\n", (x), base); } while(0);
 
 void create(void|string base) {
-    if (base) this_program::base = base || "_";
+    this_program::base = base || "_";
 }
 
 int(0..1) can_encode(mixed a) {
@@ -23,6 +23,11 @@ string decode(Serialization.Atom a) {
 Serialization.Atom encode(string s) {
 	CHECK(s);
 	return Serialization.Atom("_method", s);
+}
+
+MMP.Utils.StringBuilder render(string method, MMP.Utils.StringBuilder buf) {
+    buf->add(sprintf("%s %d %s", type, (sizeof(method)), method));
+    return buf;
 }
 
 string _sprintf(int type) {
