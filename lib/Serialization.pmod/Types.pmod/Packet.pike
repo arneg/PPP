@@ -33,13 +33,13 @@ Serialization.Atom encode(MMP.Packet p) {
 	return a;
 }
 
-MMP.Utils.StringBuilder render(array list, MMP.Utils.StringBuilder buf) {
+MMP.Utils.StringBuilder render(MMP.Packet p, MMP.Utils.StringBuilder buf) {
     array node = buf->add();
 
     dtype->render(p->data, buf);
     vtype->render(p->vars, buf);
 
-    node[3] = sprintf("%s %d ", type, buf->count_length(node));
+    node[2] = sprintf("%s %d ", type, buf->count_length(node));
     return buf;
 }
 
@@ -47,7 +47,7 @@ string render_payload(Serialization.Atom atom) {
     MMP.Packet p = atom->get_typed_data(this);
 
     if (!p) error("Rendering empty atom: %O\n", atom);
-    MMP.Utils.StringBuilder buf = MMP.Utils.StringBuilde();
+    MMP.Utils.StringBuilder buf = MMP.Utils.StringBuilder();
 
     dtype->render(p->data, buf);
     vtype->render(p->vars, buf);

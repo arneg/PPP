@@ -21,7 +21,7 @@ int(0..1) can_encode(mixed a) {
 
 MMP.Utils.StringBuilder render(int i, MMP.Utils.StringBuilder buf) {
     string s = (string)i;
-    buf->add(sprintf("%s %d %s", type, (sizeof(s)), s);
+    buf->add(sprintf("%s %d %s", type, (sizeof(s)), s));
     return buf;
 }
 

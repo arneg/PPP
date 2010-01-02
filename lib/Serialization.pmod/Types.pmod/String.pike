@@ -18,7 +18,7 @@ int(0..1) can_encode(mixed a) {
 
 MMP.Utils.StringBuilder render(string s, MMP.Utils.StringBuilder buf) {
     s = string_to_utf8(s);
-    buf->add(sprintf("%s %d %s", type, (sizeof(s)), s);
+    buf->add(sprintf("%s %d %s", type, (sizeof(s)), s));
     return buf;
 }
 

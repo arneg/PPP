@@ -6,17 +6,17 @@ mapping ptypes = ([]);
 
 void register_type(string|program ptype, string atype, object type) {
     if (!has_index(ptypes, ptype)) {
-		ptypes[ptype] = ({ type });
+	ptypes[ptype] = ({ type });
     } else {
-		ptypes[ptype] += ({ type });
+	ptypes[ptype] += ({ type });
     }
 
     array t = atypes[atype];
 
     if (t) {
-		atypes[atype] += ({ type });
+	atypes[atype] += ({ type });
     } else {
-		atypes[atype] = ({ type });
+	atypes[atype] = ({ type });
     }
 }
 
@@ -72,7 +72,7 @@ int(0..1) can_encode(mixed v) {
     array t;
 
     if (t = ptypes[key]) foreach (t;; object type) {
-		if (type->can_encode(v)) return 1;	
+	    if (type->can_encode(v)) return 1;	
     }
 
     return 0;
@@ -84,16 +84,25 @@ Serialization.Atom encode(mixed v) {
     array t;
 
     if (t = ptypes[key]) {
-		foreach (t;; object type) {
-			catch {
-				if (type->can_encode(v)) return type->encode(v);
-			};
-		}
-	}
+	    foreach (t;; object type) {
+		if (type->can_encode(v)) return type->encode(v);
+	    }
+    }
     
     error("Cannot encode %O\n", v);
 }
 
-string render(Serialization.Atom atom) {
-	return atom->render();
+string render_payload(Serialization.Atom atom) {
+    return atom->signature->render_payload(atom);
+}
+
+MMP.Utils.StringBuilder render(mixed t, MMP.Utils.StringBuilder buf) {
+    mixed key = objectp(t) ? object_program(t) : basetype(t);
+
+    if (has_index(ptypes, key)) {
+	    foreach (ptypes[key];; object type) {
+		    if (type->can_encode(t)) return type->render(t, buf);
+	    }
+    }
+    error("Cannot render %O\n", t);
 }

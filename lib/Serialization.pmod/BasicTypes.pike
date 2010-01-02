@@ -17,6 +17,7 @@ object List(object type, object ... args) {
     return o;
 }
 
+#if 1
 object Mapping(object|mapping(object:object) m, object|void type2, object ... args) {
     object o;
 
@@ -65,6 +66,7 @@ object Mapping(object|mapping(object:object) m, object|void type2, object ... ar
 
     return o;
 }
+#endif
 
 #if 0
 object Or(object type, object ... types) {

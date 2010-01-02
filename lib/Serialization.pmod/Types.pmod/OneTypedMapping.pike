@@ -15,18 +15,14 @@ int(0..1) can_decode(Serialization.Atom a) {
 mapping decode(Serialization.Atom a) {
 	if (has_index(a->typed_data, this)) return a->typed_date[this];
 
-	if (!a->has_pdata()) {
-		a->set_pdata(Serialization.parse_atoms(a->data));
-	}
+	array list = Serialization.parse_atoms(a->data);
 
-	if (sizeof(a->pdata) & 1) error("Mapping %O has odd numbered list.\n", a);
+	if (sizeof(list) & 1) error("Mapping %O has odd numbered list.\n", a);
 
-	array list = allocate(sizeof(a->pdata));
-
-	for (int i = 0; i < sizeof(a->pdata); i++) {
-		list[i] = ktype->decode(a->pdata[i]);
-		if (vtype) list[i] = vtype->decode(a->pdata[++i]);
-
+	for (int i = 0; i < sizeof(list); i++) {
+		list[i] = ktype->decode(list[i]);
+		i++;
+		list[i] = vtype->decode(list[i]);
 	}
 
 	mapping m = aggregate_mapping(@list);
@@ -40,26 +36,29 @@ Serialization.Atom encode(mapping m) {
 	return atom;
 }
 
-string to_raw(Serialization.Atom a) {
-	array list;
-	if (!a->has_pdata()) {
-		mapping m = a->typed_data[this];
-		list = allocate(sizeof(m)*2);
-		int i = 0;
-		foreach (m; mixed key; mixed val) {
-			list[i++] = ktype->encode(key);	
-			if (vtype) list[i++] = vtype->encode(val);	
-		}
-		a->set_pdata(list);
-	} else list = a->pdata;
+string render_payload(Serialization.Atom atom) {
+    mapping m = atom->get_typed_data(this);
+    MMP.Utils.StringBuilder buf = MMP.Utils.StringBuilder();
 
-	String.Buffer buf = String.Buffer();
-	foreach (list;;Serialization.Atom a) {
-		a->render(buf);
-	}
+    foreach (m; mixed key; mixed value) {
+	ktype->render(key, buf);
+	vtype->render(value, buf);
+    }
 
-	a->data = buf->get();
-	return a->render();
+    return buf->get();
+}
+
+MMP.Utils.StringBuilder render(mapping m, MMP.Utils.StringBuilder buf) {
+    array node = buf->add();
+
+    foreach (m; mixed key; mixed value) {
+	ktype->render(key, buf);
+	vtype->render(value, buf);
+    }
+
+    buf->add(sprintf("%s %d ", type, buf->count_length(node)));
+
+    return buf;
 }
 
 int(0..1) can_encode(mixed a) {

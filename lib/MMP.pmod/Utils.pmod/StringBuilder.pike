@@ -82,11 +82,13 @@ int count_length(array node, array|void tail) {
 
     if (!tail) tail = this_program::tail;
 
-    do {
+    for(;;node = node[1]) {
 	if (stringp(node[2])) {
 	    len += sizeof(node[2]);
 	}
-    } while ((node = node[1]) != tail);
+
+	if (node == tail) break;
+    }
 
     return len;
 }

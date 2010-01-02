@@ -43,7 +43,7 @@ void clear() {
 
 void condense() {
 	if (signature) {
-		if (!data) data = signature->render(this);
+		if (!data) data = signature->render_payload(this);
 		typed_data = ([]);
 		signature = 0;
 	}
@@ -66,6 +66,10 @@ void set_typed_data(object signature, mixed d) {
     typed_data[signature] = d;
 }
 
+mixed get_typed_data(object signature) {
+    return typed_data[signature];
+}
+
 array(string) subtypes() {
     return .subtypes(type);	
 }
@@ -79,14 +83,13 @@ int(0..1) is_supertype_of(this_program a) {
 }
 
 string|MMP.Utils.StringBuilder render(void|MMP.Utils.StringBuilder buf) {
-    array node;
 
     if (buf) {
 	if (!data) {
 	    data = signature->render_payload(this);
 	}
 
-	buf->add(sprintf("%s %d %s", type, sizeof(data), data);
+	buf->add(sprintf("%s %d %s", type, sizeof(data), data));
 	    
 	return buf;
     } else {

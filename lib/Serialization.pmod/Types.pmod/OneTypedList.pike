@@ -8,7 +8,7 @@ void create(object type) {
 }
 
 Serialization.Atom encode(array list) {
-    Serialization.Atom a = Serialization.Atom();
+    Serialization.Atom a = Serialization.Atom(type, 0);
     a->set_typed_data(this, list);
     return a;
 }
@@ -33,7 +33,7 @@ MMP.Utils.StringBuilder render(array list, MMP.Utils.StringBuilder buf) {
 	etype->render(o, buf);
     }
 
-    node[3] = sprintf("%s %d ", type, buf->count_length(node));
+    node[2] = sprintf("%s %d ", type, buf->count_length(node));
     return buf;
 }
 
@@ -42,7 +42,7 @@ string render_payload(Serialization.Atom atom) {
     if (!list) error("Using broken atom: %O\n", atom);
     MMP.Utils.StringBuilder buf = MMP.Utils.StringBuilder();
 
-    foreach (atlist; int i; mixed element) {
+    foreach (list; int i; mixed element) {
 	etype->render(element, buf);
     }
 
