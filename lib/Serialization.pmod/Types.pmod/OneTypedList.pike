@@ -1,16 +1,10 @@
+inherit .Base;
 object etype;
-string type = "_type";
 
 void create(object type) {
     if (!objectp(type)) error("Bad type %O\n", type);
-    
+	this_program::type = "_list";
     this_program::etype = type;
-}
-
-Serialization.Atom encode(array list) {
-    Serialization.Atom a = Serialization.Atom(type, 0);
-    a->set_typed_data(this, list);
-    return a;
 }
 
 array decode(Serialization.Atom atom) {
