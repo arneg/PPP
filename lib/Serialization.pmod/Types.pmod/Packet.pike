@@ -7,10 +7,7 @@ void create(object dtype, object vtype) {
 }
 
 MMP.Packet decode(Serialization.Atom atom) {
-	MMP.Packet p = atom->get_typed_data(this);
-
-	if (p) return p;
-
+	MMP.Packet p;
 	array(Serialization.Atom) list = Serialization.parse_atoms(atom->data);	
 
 	if (sizeof(list) != 2) {
@@ -18,8 +15,7 @@ MMP.Packet decode(Serialization.Atom atom) {
 	}
 
 	p = MMP.Packet(dtype->decode(list[0]), vtype->decode(list[1]));
-	//p->set_atom(atom);
-	atom->set_typed_data(this, p);
+	p->set_atom(atom);
 	return p;
 }
 
@@ -28,12 +24,26 @@ Serialization.Atom encode(MMP.Packet p) {
 
 	Serialization.Atom a = Serialization.Atom("_mmp", 0);
 	a->set_typed_data(this, p);
-	
 	p->set_atom(a);
+
 	return a;
 }
 
-MMP.Utils.StringBuilder render(MMP.Packet p, MMP.Utils.StringBuilder buf) {
+string|MMP.Utils.StringBuilder render(MMP.Packet p, void|MMP.Utils.StringBuilder buf) {
+	int nbuf = !buf;
+
+	if (nbuf) {
+		if (p->atom) {
+			return p->atom->render();
+		}
+
+		buf = MMP.Utils.StringBuilder();
+	}
+
+	if (p->atom) {
+		return p->atom->render(buf);
+	}
+
     array node = buf->add();
 	int length = buf->length();
 
@@ -41,6 +51,7 @@ MMP.Utils.StringBuilder render(MMP.Packet p, MMP.Utils.StringBuilder buf) {
     vtype->render(p->vars, buf);
 
     buf->set_node(node, sprintf("%s %d ", type, buf->length() - length));
+	if (nbuf) return buf->get();
     return buf;
 }
 
