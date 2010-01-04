@@ -97,8 +97,7 @@ string|MMP.Utils.StringBuilder render(void|MMP.Utils.StringBuilder buf) {
 			data = signature->render_payload(this);
 		}
 
-		buf->add(sprintf("%s %d %s", type, sizeof(data), data));
-			
+		buf->add(done = sprintf("%s %d %s", type, sizeof(data), data));
 		return buf;
     } else {
 		if (!data) data = signature->render_payload(this);
