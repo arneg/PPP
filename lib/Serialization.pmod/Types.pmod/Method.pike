@@ -13,7 +13,7 @@ int(0..1) can_encode(mixed a) {
 }
 
 int(0..1) can_decode(Serialization.Atom a) {
-	return a->type == "_method";
+	return a->type == type;
 }
 
 string decode(Serialization.Atom a) {
@@ -22,7 +22,7 @@ string decode(Serialization.Atom a) {
 
 Serialization.Atom encode(string s) {
 	CHECK(s);
-	return Serialization.Atom("_method", s);
+	return Serialization.Atom(type, s);
 }
 
 MMP.Utils.StringBuilder render(string method, MMP.Utils.StringBuilder buf) {
