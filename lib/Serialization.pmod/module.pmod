@@ -46,11 +46,14 @@ array(.Atom) parse_atoms(string s) {
 
 	int bytes;
 	string type;
+	string ts;
 
-    while (sizeof(s) && 3 == sscanf(s, "%[_a-zA-Z] %d %s", type, bytes, s)) {
+    while (sizeof(s) && 3 == sscanf(s, "%[_a-zA-Z] %d %s", type, bytes, ts)) {
 		if (sizeof(s) < bytes) error("Cannot parse this.");
 
-		.Atom t = .Atom(type, s[0..bytes-1]);
+		.Atom t = .Atom(type, ts[0..bytes-1]);
+		t->done = s[0..bytes-1 + sizeof(s) - sizeof(ts)];
+		s = ts;
 
 		if (sizeof(s) > bytes) s = s[bytes..];
 		else s = "";
