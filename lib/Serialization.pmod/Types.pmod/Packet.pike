@@ -15,6 +15,7 @@ MMP.Packet decode(Serialization.Atom atom) {
 	}
 
 	p = MMP.Packet(dtype->decode(list[0]), vtype->decode(list[1]));
+	//atom->set_typed_data(this, p);
 	p->set_atom(atom);
 	return p;
 }
@@ -32,17 +33,12 @@ Serialization.Atom encode(MMP.Packet p) {
 string|MMP.Utils.StringBuilder render(MMP.Packet p, void|MMP.Utils.StringBuilder buf) {
 	int nbuf = !buf;
 
-	if (nbuf) {
-		if (p->atom) {
-			return p->atom->render();
-		}
-
-		buf = MMP.Utils.StringBuilder();
-	}
-
 	if (p->atom) {
-		return p->atom->render(buf);
+		if (nbuf) return p->atom->render();
+		else return p->atom->render(buf);
 	}
+
+	if (nbuf) buf = MMP.Utils.StringBuilder();
 
     array node = buf->add();
 	int length = buf->length();
