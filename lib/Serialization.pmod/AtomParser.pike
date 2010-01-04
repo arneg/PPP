@@ -26,27 +26,36 @@ int left() {
 }
 
 int|.Atom parse(void|string data) {
-    if (data) feed(data);
+    if (data) buf += data;
+	int len = 0;
+	string s;
 
     if (!sizeof(buf)) return 0;
 
     if (!bytes && zero_type(bytes)) {
-
-		if (3 == sscanf(buf, "%[_a-zA-Z] %d %s", type, bytes, buf)) {
-			buf = String.Buffer() + buf;
+		if (3 == sscanf(buf, "%[_a-zA-Z] %d %s", type, bytes, s)) {
+			string temp;
+			len = sizeof(buf) - sizeof(s);
+			temp = buf;
+			buf = s;
+			s = temp;
 		} else {
 			bytes = UNDEFINED;
+			return 0;
 		}
     }
 
     if (bytes == 0) {
 		object atom = .Atom(type, "", action);
+		if (s) atom->done = s[0..len-1];
 		buf = (string)buf;
 		reset(0);
 		return atom;
     } else if (sizeof(buf) >= bytes) {
 		buf = (string)buf;
 		object atom = .Atom(type, ([string]buf)[0..bytes-1], action);
+		if (s) atom->done = s[0..len+bytes-1];
+		
 		reset(bytes);	
 		return atom;
     }
