@@ -15,7 +15,7 @@ int(0..1) can_encode(mixed a) {
 }
 
 int(0..1) can_decode(Serialization.Atom a) {
-	return a->type == "_uniform";
+	return a->type == uniform;
 }
 
 MMP.Uniform decode(Serialization.Atom a) {
@@ -23,7 +23,7 @@ MMP.Uniform decode(Serialization.Atom a) {
 }
 
 Serialization.Atom encode(MMP.Uniform u) {
-	return Serialization.Atom("_uniform", (string)u);
+	return Serialization.Atom(uniform, (string)u);
 }
 
 MMP.Utils.StringBuilder render(MMP.Uniform uniform, MMP.Utils.StringBuilder buf) {
