@@ -25,7 +25,7 @@ Serialization.Atom encode(MMP.Packet p) {
 
 	Serialization.Atom a = Serialization.Atom("_mmp", 0);
 	a->set_typed_data(this, p);
-	p->set_atom(a);
+	//p->set_atom(a);
 
 	return a;
 }
