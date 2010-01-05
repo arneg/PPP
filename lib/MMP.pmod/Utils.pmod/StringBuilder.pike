@@ -15,8 +15,11 @@ array _add(array structure, string|void s) {
 		array current = structure;
 
 		structure = allocate(3);
-		structure[0] = current;
-		structure[1] = current[1];
+#ifdef TRACE_SOFT_MEMLEAKS
+		structure[0] = MMP.Utils.Screamer();
+#endif
+		//structure[0] = current;
+		//structure[1] = current[1];
 		if (s) {
 			structure[2] = s;
 			size += sizeof(s);
@@ -28,8 +31,11 @@ array _add(array structure, string|void s) {
     } else {
 		head = tail = structure = allocate(3);
 
-		structure[0] = structure;
-		structure[1] = structure;
+#ifdef TRACE_SOFT_MEMLEAKS
+		structure[0] = MMP.Utils.Screamer();
+#endif
+		//structure[0] = structure;
+		//structure[1] = structure;
 		if (s) {
 			structure[2] = s;
 			size += sizeof(s);
@@ -48,31 +54,8 @@ void set_node(array node, string s) {
 }
 
 array add(string|void s) {
-    array res = _add(tail, s);
-
-    tail = tail[1];
-    return res;
-}
-
-array add_pos(string|void s, int back) {
-    array structure = tail, res;
-    int was_head;
-
-    for (back; back > 0; back--) {
-	structure = structure[0];
-    }
-
-    if (structure[1] == head) {
-	was_head = 1;
-    }
-
-    res = _add(structure, s);
-
-    if (was_head) {
-	head = structure[1];
-    }
-
-    return res;
+    tail = _add(tail, s);
+    return tail;
 }
 
 string get() {
@@ -110,3 +93,24 @@ int count_length(array node, array|void tail) {
 
     return len;
 }
+array add_pos(string|void s, int back) {
+    array structure = tail, res;
+    int was_head;
+
+    for (back; back > 0; back--) {
+	structure = structure[0];
+    }
+
+    if (structure[1] == head) {
+	was_head = 1;
+    }
+
+    res = _add(structure, s);
+
+    if (was_head) {
+	head = structure[1];
+    }
+
+    return res;
+}
+
