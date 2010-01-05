@@ -34,6 +34,7 @@ string|MMP.Utils.StringBuilder render(MMP.Packet p, void|MMP.Utils.StringBuilder
 	int nbuf = !buf;
 
 	if (p->atom) {
+		p->atom->condense();
 		if (nbuf) return p->atom->render();
 		else return p->atom->render(buf);
 	}
