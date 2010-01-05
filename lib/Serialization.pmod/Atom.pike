@@ -1,4 +1,7 @@
 // raw data
+#ifdef TRACE_SOFT_MEMLEAKS
+inherit MMP.Utils.Screamer;
+#endif
 string type, action, data;
 string done;
 
