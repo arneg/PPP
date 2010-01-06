@@ -26,7 +26,7 @@ string newline;
 // or _source_technical if present...
 void create(object data, void|mapping(string:mixed) vars) {
 #ifdef ATOM_TRACE
-	vars["_hrtime"] = gethrtime(1);
+	vars["_hrtime"] = gethrvtime(1);
 #endif
 	if (mappingp(vars)) {
 		this_program::vars = has_index(vars, "_timestamp") ? vars : vars + ([ "_timestamp" : Calendar.now() ]);
