@@ -79,9 +79,9 @@ int|array add(string|void s) {
 	}
 
 	if (s) {
-	    data[entries] = s;
 	    size += sizeof(s);
 	}
+	data[entries] = s;
 
 	entries++;
 	return entries-1;
