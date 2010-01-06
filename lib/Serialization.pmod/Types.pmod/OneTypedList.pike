@@ -21,7 +21,7 @@ array decode(Serialization.Atom atom) {
 }
 
 MMP.Utils.StringBuilder render(array list, MMP.Utils.StringBuilder buf) {
-    array node = buf->add();
+    int|array node = buf->add();
 	int length = buf->length();
 
     foreach (list; int i; mixed o) {

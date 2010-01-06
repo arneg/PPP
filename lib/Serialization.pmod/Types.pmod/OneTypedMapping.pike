@@ -49,7 +49,7 @@ string render_payload(Serialization.Atom atom) {
 }
 
 MMP.Utils.StringBuilder render(mapping m, MMP.Utils.StringBuilder buf) {
-    array node = buf->add();
+    int|array node = buf->add();
 	int length = buf->length();
 
     foreach (m; mixed key; mixed value) {

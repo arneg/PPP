@@ -64,7 +64,7 @@ object gen_vars(mapping params) {
 	t+= "return buf->get();";
 	t+= "}";
 	t+= "MMP.Utils.StringBuilder render(mapping m, MMP.Utils.StringBuilder buf) {"
-		 "	array node = buf->add();"
+		 "	int|array node = buf->add();"
 		 "	int length = buf->length();"
 		 "	foreach(m; string key; mixed val)";
 	if (sizeof(types)) {
