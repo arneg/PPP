@@ -33,10 +33,15 @@ int main() {
 		}\
 	}\ ");
 	object poly = Serialization.Types.Polymorphic();
-	poly->register_type("string", "_string", UTF8String());
-	poly->register_type("string", "_method", Method());
-	poly->register_type("array", "_list", List(poly));
-	poly->register_type("mapping", "_mapping", Mapping(Method(), poly));
+	poly->register_type("string", "_string");
+	poly->register_type("string", "_method");
+	poly->register_type("array", "_list");
+	poly->register_type("mapping", "_mapping");
+	poly = poly->optimize();
+	poly->t1 = UTF8String();
+	poly->t2 = Method();
+	poly->t3 = List(poly);
+	poly->t4 = Mapping(Method(), poly);
 
 	object p = Mapping(Method(), poly);
 	int td = -(gethrvtime(1) - gethrvtime(1));
