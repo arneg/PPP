@@ -13,7 +13,7 @@ int(0..1) can_decode(Serialization.Atom a) {
 }
 
 mapping decode(Serialization.Atom a) {
-	if (has_index(a->typed_data, this)) return a->typed_date[this];
+	if (has_index(a->typed_data, this)) return a->typed_data[this];
 
 	array list = Serialization.parse_atoms(a->data);
 
