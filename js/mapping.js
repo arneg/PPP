@@ -131,6 +131,64 @@ along with the Program.
  * Flexible mapping/dictionary class that allows for arbitrary key types.
  * @constructor
  */
+function get_random_key(length) {
+	var a = new Array();
+	// put some logic here to tune length of id and amount of items
+	for (var i = 0; i < length; i++) {
+		a.push(65 + Math.floor(Math.random() * 24));
+	}
+
+	return String.fromCharCode.apply(window, a);
+}
+
+function get_unique_key(length, set) {
+	var id;
+	while (set.hasOwnProperty((id = get_random_key(length)))) { }
+	return id;
+}
+
+function HigherDMapping() {
+	this.n = new Mapping();
+	this.i2k = {};
+}
+HigherDMapping.prototype = {
+	set : function(key, value) {
+		var m = this.n.get(key);
+		var id;
+
+		if (!m) {
+			m = {};
+			this.n.set(key, m);
+		}
+
+		id = get_unique_key(6, m);
+		m[id] = value;
+
+		this.i2k[id] = key;
+
+		return id;
+	},
+	get : function(key) {
+		var m = this.n.get(key);
+
+		if (m) {
+			return m.values();
+		} else return [];
+	},
+	remove : function(id) {
+		if (!this.i2k.hasOwnProperty(id)) {
+			return;
+		}
+		var m = this.n.get(this.i2k[id]);
+
+		if (!m) {
+			delete this.i2k[id];
+			return;
+		}
+
+		m.remove(id);
+	}
+};
 function Mapping() {
 	if (arguments.length & 1) throw("odd number of mapping members.");
 	this.n = new Object();
@@ -144,19 +202,8 @@ Mapping.prototype = {
 	constructor : Mapping,
 	id_cache : new Object(), // shared cached for all implementations
 	get_new_id : function(o) {
-		var a = new Array();
-		// put some logic here to tune length of id and amount of items
-		for (var i = 0; i < 10; i++) {
-			a.push(65 + Math.floor(Math.random() * 24));
-		}
-
-		var id = String.fromCharCode.apply(window, a);
-
-		if (this.id_cache.hasOwnProperty(id)) {
-			return this.get_new_id();
-		}
-
-		return id;
+		// TODO: 6 is just not good
+		return get_unique_key(6, this.id_cache);
 	},
     sfy : function(key) { // sfy ==> stringify
 		// better use if (key.__proto__ == String.prototype) { ??
