@@ -68,7 +68,7 @@ int main() {
 
 	string s;
 	void f1() {
-		s = ptype->render(packet, MMP.Utils.StringBuilder())->get();
+		s = ptype->render(packet);
 	};
 	void f2() {
 		object atom = Serialization.parse_atoms(s)[0];
