@@ -13,7 +13,7 @@ mapping misc = set_weak_flag(([]), Pike.WEAK);
 //! Data contained in the Packet. Could be a @expr{string@} of arbitrary
 //! data or an object. Objects are expected to be subclasses of 
 //! @[PSYC.Packet] in many parts of the @[PSYC] code.
-string|object data;
+mixed data;
 
 function parsed = 0, sent = 0; 
 #ifdef LOVE_TELNET
@@ -24,7 +24,7 @@ string newline;
 // this actually does not exactly what we want.. 
 // because asking for a _source should return even _source_relay 
 // or _source_technical if present...
-void create(object data, void|mapping(string:mixed) vars) {
+void create(mixed data, void|mapping(string:mixed) vars) {
 #ifdef ATOM_TRACE
 	vars["_hrtime"] = gethrvtime(1);
 #endif
