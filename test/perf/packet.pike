@@ -8,6 +8,25 @@ void create() {
 	::create(Serialization.TypeCache());
 }
 
+class S { 
+	MMP.Uniform get_uniform(string u) {
+		return MMP.Uniform(u);
+	}
+}
+
+float average(int(1..) n, function f, mixed ... args) {
+	int t1 = gethrvtime(1);
+
+	int m = n;
+	while (m--) {
+		f(@args);
+	}
+	
+	return (gethrvtime(1) - t1)/(float)n;
+}
+
+object server = S();
+
 int main() {
 
 	mapping m = Public.Parser.JSON2.parse("{\
@@ -32,47 +51,30 @@ int main() {
 			}\
 		}\
 	}\ ");
+
+	MMP.Packet packet = MMP.Packet(m, ([ "_source" : MMP.Uniform("psyc://example.org/~user1"), "_target" : MMP.Uniform("psyc://example.org/~user2") ]));
+	
 	object poly = Serialization.Types.Polymorphic();
 	poly->register_type("string", "_string");
 	poly->register_type("string", "_method");
 	poly->register_type("array", "_list");
 	poly->register_type("mapping", "_mapping");
 	poly = poly->optimize();
-	poly->t1 = UTF8String();
-	poly->t2 = Method();
-	poly->t3 = List(poly);
-	poly->t4 = Mapping(Method(), poly);
+	poly->t0 = UTF8String();
+	poly->t1 = Method();
+	poly->t2 = List(poly);
+	poly->t3 = Mapping(Method(), poly);
+	object ptype = Packet(Mapping(Method(), poly));
 
-	object p = Mapping(Method(), poly);
-	int td = -(gethrvtime(1) - gethrvtime(1));
-
-	int tt;
-	int t1 = gethrvtime(1);
-	do {
-		string s = Public.Parser.JSON2.render(m);
-		tt = gethrvtime(1);
-		mapping n = Public.Parser.JSON2.parse(s);
-	} while (0);
-	int t2 = gethrvtime(1);
-	werror("json2: r:%2.3f p:%2.3f micros\n", (tt-t1)*1E-3, (t2-tt)*1E-3);
-
-	t1 = gethrvtime(1);
-	do {
-		string s = p->render(m, MMP.Utils.StringBuilder())->get();
-		tt = gethrvtime(1);
+	string s;
+	void f1() {
+		s = ptype->render(packet, MMP.Utils.StringBuilder())->get();
+	};
+	void f2() {
 		object atom = Serialization.parse_atoms(s)[0];
-		mapping n = p->decode(atom);
-	} while (0);
-	t2 = gethrvtime(1);
-	werror("atom: r:%2.3f p:%2.3f micros\n", (tt-t1)*1E-3, (t2-tt)*1E-3);
-
-	t1 = gethrvtime(1);
-	do {
-		object atom = p->encode(m);
-		mapping n = p->decode(atom);
-	} while (0);
-	t2 = gethrvtime(1);
-	werror("atom cached: %2.3f micros\n", (t2-t1)*1E-3);
+		MMP.Packet n = ptype->decode(atom);
+	};
+	werror("atom: r: %2.3f p: %2.3f micros\n", average(1000, f1)*1E-3, average(1000, f2)*1E-3);
 
 	return 0;
 }
