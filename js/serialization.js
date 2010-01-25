@@ -200,7 +200,7 @@ serialization.Date = serialization.Base.extend({
 		return new yakity.Date(parseInt(atom.data));
 	},
 	encode : function(o) {
-		return new serialization.Atom("_time", o.timestamp);
+		return new serialization.Atom("_time", o.toInt());
 	}
 });
 serialization.Message = serialization.Base.extend({
