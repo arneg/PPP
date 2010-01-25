@@ -194,13 +194,13 @@ serialization.Date = serialization.Base.extend({
 		this.type = "_time";
 	},
 	can_encode : function(o) {
-		return o instanceof yakity.Date;
+		return o instanceof mmp.Date;
 	},
 	decode : function(atom) {
-		return new yakity.Date(parseInt(atom.data));
+		return new mmp.Date(parseInt(atom.data));
 	},
 	encode : function(o) {
-		return new serialization.Atom("_time", o.toInt());
+		return new serialization.Atom("_time", o.toInt().toString());
 	}
 });
 serialization.Message = serialization.Base.extend({
@@ -450,27 +450,16 @@ serialization.Vars = serialization.Base.extend({
 		return "Vars()";
 	},
 	can_encode : function(o) {
-		var name;
-		var matched = 0;
-
-		for (name in this.types) if (this.types.hasOwnProperty(name) && (o.hasOwnProperty(name))) {
-			if (!this.types[name].can_encode(o[name])) {
-				return false;
-			}
-			matched++;
-		}
-
-		// dont use it if none matches
-		return !!matched;
+		return o instanceof mmp.Vars;
 	},
 	encode : function(o) {
 		var l = [];
 		var name;
 
-		for (name in this.types) if (this.types.hasOwnProperty(name) && o.hasOwnProperty(name)) {
-			if (this.types[name].can_encode(o[name])) {
+		for (name in this.types) if (this.types.hasOwnProperty(name) && o.hasIndex(name)) {
+			if (this.types[name].can_encode(o.get(name))) {
 				l.push("_method "+name.length+" "+name);
-				l.push(this.types[name].encode(o[name]).render());
+				l.push(this.types[name].encode(o.get(name)).render());
 			}
 		}
 
@@ -479,7 +468,7 @@ serialization.Vars = serialization.Base.extend({
 	decode : function(atom) {
 		var p = new serialization.AtomParser();
 		var l = p.parse(atom.data);
-		var i, name, vars = {};
+		var i, name, vars = new mmp.Vars();
 
 		if (l.length & 1) throw(atom+" has odd number of entries.");
 
@@ -491,7 +480,7 @@ serialization.Vars = serialization.Base.extend({
 					throw("Cannot decode entry "+name);
 				}
 
-				vars[name] = this.types[name].decode(l[i+1]);
+				vars.set(name, this.types[name].decode(l[i+1]));
 			}
 		}
 
@@ -532,9 +521,7 @@ serialization.Struct = serialization.Base.extend({
 		if (l.length != this.types.length) throw("Cannot encode atom "+atom.toString());
 
 		for (var i = 0; i < l.length; i++) {
-			if (this.types[i].can_encode(l[i])) {
-				d += this.types[i].encode(l[i]).render();
-			}
+			d += this.types[i].encode(l[i]).render();
 		}
 
 		return new serialization.Atom(this.type, d);
