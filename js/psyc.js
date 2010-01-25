@@ -305,7 +305,7 @@ functionp = function(f) { return (typeof(f) == "function" || f instanceof Functi
 objectp = function(o) { return typeof(o) == "object"; }
 /**
  * Set this to a mapping of templates that should be used automatically when displaying messages inside Chat tabs. PSYC method inheritance is used when accessing the templates. Hence a template for "_message" will also be used for "_message_public" if there is no template for it. Therefore setting a template for "_" effectively sets a default template for all methods.
- * @type psyc#Vars
+ * @type mmp#Vars
  * @name psyc.templates
  * @field
  * @example
@@ -337,22 +337,22 @@ psyc.find_abbrev = function(obj, key) {
  * PSYC message class.
  * @constructor
  * @param {String} method PSYC method
- * @param {psyc#Vars} vars variables
+ * @param {mmp#Vars} vars variables
  * @param {String} data Payload
  * @property {String} method PSYC method
- * @property {psyc#Vars} vars variables
+ * @property {mmp#Vars} vars variables
  * @property {String} data Payload
  */
 psyc.Message = function(method, vars, data) {
     this.method = method;
     if (vars) {
-		if (vars instanceof psyc.Vars) {
+		if (vars instanceof mmp.Vars) {
 			this.vars = vars;
 		} else if (objectp(vars)) {
-			this.vars = new psyc.Vars(vars);
+			this.vars = new mmp.Vars(vars);
 		}
     } else {
-		this.vars = new psyc.Vars();
+		this.vars = new mmp.Vars();
     }
 
     if (data) {
@@ -422,40 +422,6 @@ psyc.abbreviations = function(method) {
 	return ret;
 }
 /**
- * Generic PSYC Variable class. This should be used to represent PSYC message variables. 
- * @constructor
- * @augments Mapping
- */
-psyc.Vars = function() {
-	this.get = function(key) {
-		do {
-			if (this.hasIndex(key)) {
-				return psyc.Vars.prototype.get.call(this, key);
-			}
-		} while (key = psyc.abbrev(key));
-
-		return undefined;
-	};
-
-	Mapping.call(this);
-
-	if (arguments.length == 1) {
-		var vars = arguments[0];
-
-		for (var i in vars) {
-			if (vars.hasOwnProperty(i)) {
-				this.set(i, vars[i]);
-			}
-		}
-	} else if (arguments.length & 1) {
-		throw("odd number of mapping members.");
-	} else for (var i = 0; i < arguments.length; i += 2) {
-        this.set(arguments[i], arguments[i+1]);
-    }
-};
-psyc.Vars.prototype = new Mapping();
-psyc.Vars.prototype.constructor = psyc.Vars;
-/**
  * Returns the value associated with key or an abbreviation of key.
  * @param {String} key PSYC variable name.
  */
@@ -504,7 +470,7 @@ psyc.default_polymorphic = function() {
 	pol.register_type("_float", "float", new serialization.Float());
 	pol.register_type("_method", "string", method);
 	//pol.register_type("_message", psyc.Message, new serialization.Message(method, pol, pol));
-	pol.register_type("_mapping", psyc.Vars, new serialization.Vars(pol));
+	pol.register_type("_mapping", mmp.Vars, new serialization.Vars(pol));
 	pol.register_type("_mapping", psyc.Mapping, new serialization.Mapping(pol, pol));
 	pol.register_type("_list", Array, new serialization.Array(pol));
 	pol.register_type("_time", psyc.Date, new serialization.Date());
@@ -595,7 +561,7 @@ psyc.Client.prototype = {
 		for (var i = 0; this.icount+i+1 <= count; i++) {
 			list[i] = this.icount+i+1;
 		}
-		var message = new psyc.Message("_request_history", new psyc.Vars("_messages", list, "_target", this.uniform));
+		var message = new psyc.Message("_request_history", new mmp.Vars("_messages", list, "_target", this.uniform));
 		this.send(message);
 	},
 	_notice_logout : function (m) {
@@ -762,7 +728,7 @@ psyc.Base = function() {
 	};
 	this.sendmsg = function(target, method, vars, data) {
 		if (!vars) {
-			vars = new psyc.Vars();
+			vars = new mmp.Vars();
 		}
 
 		vars.set("_target", target);
@@ -922,7 +888,7 @@ psyc.Chat.prototype = {
 	 * Requests membership in the given room. If the room has been entered successfully a new tab will be opened automatically.
 	 */
 	enterRoom : function(uniform) {
-		var message = new psyc.Message("_request_enter", new psyc.Vars("_target", uniform));
+		var message = new psyc.Message("_request_enter", new mmp.Vars("_target", uniform));
 		this.client.send(message);
 	},
 	/**
@@ -930,7 +896,7 @@ psyc.Chat.prototype = {
 	 * Leaves a room.
 	 */
 	leaveRoom : function(uniform) {
-		var message = new psyc.Message("_request_leave", new psyc.Vars("_target", uniform));
+		var message = new psyc.Message("_request_leave", new mmp.Vars("_target", uniform));
 		this.client.send(message);
 		// close window after _notice_leave is there or after double click on close button
 	}
@@ -1100,7 +1066,7 @@ psyc.ProfileData.prototype._request_profile = function(m) {
 		this.profile = new Mapping();
 	}
 
-	this.sendmsg(source, "_update_profile", new psyc.Vars({ _profile : this.profile }));
+	this.sendmsg(source, "_update_profile", new mmp.Vars({ _profile : this.profile }));
 	return psyc.STOP;
 };
 psyc.UserList = function(client, profiles) {

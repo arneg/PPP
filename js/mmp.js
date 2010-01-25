@@ -91,10 +91,98 @@ mmp.Uniform.prototype = {
 	},
 	constructor : mmp.Uniform
 };
+/**
+ * Returns the value associated with key or an abbreviation of key.
+ * @param {String} key PSYC variable name.
+ */
+// not being able to use inheritance here stinks like fish.
+mmp.Date = function(timestamp) {
+	this.date = new Date();
+	if (timestamp) {
+	    this.date.setTime(timestamp * 1000);
+	}
+	this.render = function(type) {
+		var fill = function(n, length) {
+			var ret = n.toString();
+			for (var i = length - ret.length; i > 0; i--) {
+				ret = "0"+ret;	
+			}
+
+			return ret;
+		}
+		switch (type) {
+		case "_month": return this.date.getMonth();
+		case "_month_utc": return this.date.getUTCMonth();
+		case "_weekday": return this.date.getDay();
+		case "_monthday": return this.date.getDate();
+		case "_monthday_utc": return this.date.getUTCDate();
+		case "_minutes": return fill(this.date.getMinutes(), 2);
+		case "_minutes_utc": return fill(this.date.getUTCMinutes(), 2);
+		case "_seconds": return fill(this.date.getSeconds(), 2);
+		case "_seconds_utc": return fill(this.date.getUTCSeconds(), 2);
+		case "_timezone_offset": return this.date.getTimezoneOffset();
+		case "_year": return fill(this.date.getFullYear(), 4);
+		case "_year_utc": return fill(this.date.getUTCFullYear(), 4);
+		case "_hours": return this.date.getHours();
+		case "_hours_utc": return this.date.getUTCHours();
+		}
+		return this.date.toLocaleString();
+	};
+	this.toString = function() {
+		return this.date.toLocaleString();
+	};
+	this.toInt = function() {
+	    	return this.date.getTime() / 1000;
+	};
+};
+/**
+ * Generic PSYC Variable class. This should be used to represent PSYC message variables. 
+ * @constructor
+ * @augments Mapping
+ */
+mmp.Vars = function() {
+	this.get = function(key) {
+		do {
+			if (this.hasIndex(key)) {
+				return mmp.Vars.prototype.get.call(this, key);
+			}
+		} while (key = mmp.abbrev(key));
+
+		return undefined;
+	};
+	this.hasIndex = function(key) {
+	    return (this.get(key) != undefined);
+	}
+
+	Mapping.call(this);
+
+	if (arguments.length == 1) {
+		var vars = arguments[0];
+
+		for (var i in vars) {
+			if (vars.hasOwnProperty(i)) {
+				this.set(i, vars[i]);
+			}
+		}
+	} else if (arguments.length & 1) {
+		throw("odd number of mapping members.");
+	} else for (var i = 0; i < arguments.length; i += 2) {
+        this.set(arguments[i], arguments[i+1]);
+    }
+};
+mmp.Vars.prototype = new Mapping();
+mmp.Vars.prototype.constructor = mmp.Vars;
 mmp.Packet = Base.extend({
 	constructor : function(data, vars) {
 		this.data = data;
-		this.vars = vars ? vars : {};
+		if (vars.prototype == mmp.Vars) {
+			this.vars = vars;
+		} else {
+			this.vars = new mmp.Vars(vars);
+		}
+		if (!this.vars.hasIndex("_timestamp")) {
+			this.vars.set("_timestamp", new mmp.Date());
+		}
 	},
 	source : function(uniform) {
 		if (uniform) {
@@ -107,21 +195,20 @@ mmp.Packet = Base.extend({
 		} else return this.vars["_target"];
 	},
 	V : function(key) {
-		return this.vars.hasOwnProperty(key);
+		return this.vars.hasIndex(key);
 	},
 	v : function(key) {
-		if (this.vars.hasOwnProperty(key)) {
-			return this.vars[key];
-		}
-		return null;
+		return this.vars.get(key);
 	},
 	forEach : function(fun, obj) {
 		var name;
 		if (!obj) obj = window;
 
-		for (name in this.vars) if (this.vars.hasOwnProperty(name)) {
-			fun.call(obj, name, this.vars[name]);
-		}
+		var cb = function() {
+		    fun.call(obj, name, this.vars.get(name));
+		};
+
+		this.vars.forEach(cb, this);
 	},
 	id : function() {
 		return this.v("_id");
