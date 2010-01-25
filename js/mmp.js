@@ -132,9 +132,30 @@ mmp.Date = function(timestamp) {
 		return this.date.toLocaleString();
 	};
 	this.toInt = function() {
-	    	return this.date.getTime() / 1000;
+	    	return Math.round(this.date.getTime() / 1000);
 	};
 };
+/**
+ * Does a one-step abbreviation of a psyc method. For instance, _message_public turns into _message. Returns 0 if no further abbreviation is possible.
+ * @param {String} method PSYC method
+ */
+mmp.abbrev = function(method) {
+	var i = method.lastIndexOf("_");
+	if (i == -1) {
+		return 0;
+	} else if (i == 0) {
+		if (method.length == 1) return 0;
+		return "_";
+	} else {
+		return method.substr(0, i);
+	}
+}
+mmp.abbreviations = function(method) {
+	var ret = new Array();
+	do { ret.push(method); } while( (method = mmp.abbrev(method)) );
+
+	return ret;
+}
 /**
  * Generic PSYC Variable class. This should be used to represent PSYC message variables. 
  * @constructor
@@ -143,7 +164,7 @@ mmp.Date = function(timestamp) {
 mmp.Vars = function() {
 	this.get = function(key) {
 		do {
-			if (this.hasIndex(key)) {
+			if (mmp.Vars.prototype.hasIndex.call(this, key)) {
 				return mmp.Vars.prototype.get.call(this, key);
 			}
 		} while (key = mmp.abbrev(key));
@@ -175,7 +196,7 @@ mmp.Vars.prototype.constructor = mmp.Vars;
 mmp.Packet = Base.extend({
 	constructor : function(data, vars) {
 		this.data = data;
-		if (vars.prototype == mmp.Vars) {
+		if (vars instanceof mmp.Vars) {
 			this.vars = vars;
 		} else {
 			this.vars = new mmp.Vars(vars);
@@ -186,13 +207,13 @@ mmp.Packet = Base.extend({
 	},
 	source : function(uniform) {
 		if (uniform) {
-			this.vars["_source"] = uniform;
-		} else return this.vars["_source"];
+			this.vars.set("_source", uniform);
+		} else return this.vars.get("_source");
 	},
 	target : function(uniform) {
 		if (uniform) {
-			this.vars["_target"] = uniform;
-		} else return this.vars["_target"];
+			this.vars.set("_target", uniform);
+		} else return this.vars.get("_target");
 	},
 	V : function(key) {
 		return this.vars.hasIndex(key);
