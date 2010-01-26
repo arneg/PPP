@@ -198,8 +198,10 @@ mmp.Packet = Base.extend({
 		this.data = data;
 		if (vars instanceof mmp.Vars) {
 			this.vars = vars;
-		} else {
+		} else if (vars) {
 			this.vars = new mmp.Vars(vars);
+		} else {
+			this.vars = new mmp.Vars();
 		}
 		if (!this.vars.hasIndex("_timestamp")) {
 			this.vars.set("_timestamp", new mmp.Date());
