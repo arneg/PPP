@@ -77,7 +77,7 @@ object gen_vars(mapping params) {
 		t += "{";
 	}
 	if (def) {
-		t += "buf->add(sprintf(\"_method %d %s\", sizeof(key), key)); buf->add(def->encode(val)->render());}";
+		t += "buf->add(sprintf(\"_method %d %s\", sizeof(key), key)); def->render(val, buf);}";
 	} else {
 		t += "}";
 		//t += "werror(\"Cannot encode %O:%O in %O\\n\", key, val, m);}";
