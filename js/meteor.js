@@ -54,12 +54,13 @@ meteor.Connection = function(url, callback, error) {
     this.buffer = "";
     this.callback = callback;
     this.error = error;
-	this.client_id = 0;
-	this.new_incoming = 0;
-	this.incoming = 0;
-	this.outgoing = 0;
-	this.init_xhr = 0;
-	this.reconnect = 1; // do a reconnect on close
+    this.async = true;
+    this.client_id = 0;
+    this.new_incoming = 0;
+    this.incoming = 0;
+    this.outgoing = 0;
+    this.init_xhr = 0;
+    this.reconnect = 1; // do a reconnect on close
 };
 meteor.debug = function() {
 	if (window.console && window.console.log) {
@@ -122,6 +123,16 @@ meteor.Connection.prototype = {
 		xhr.onreadystatechange = this.new_incoming_state_change;
 		xhr.meteor = this;
 		xhr.send("");
+	},
+	set_nonblocking : function() {
+		this.async = true;
+		this.outgoing.async = true;
+		this.outgoing.onreadystatechange = outgoing_state_change;
+	},
+	set_blocking : function() {
+		this.async = false;
+		this.outgoing.onreadystatechange = null;
+		this.outgoing.async = false;	
 	},
 	incoming_state_change : function() {
 		var con = this.meteor;
@@ -240,7 +251,6 @@ meteor.Connection.prototype = {
 		if (this.readyState == 4) {
 
 			if (this.status == 200) {
-				
 				con.connect_outgoing();
 			} else {
 				con.error(this.statusText);
@@ -259,10 +269,12 @@ meteor.Connection.prototype = {
 		}
 		//this.error("outgoing state is " + xhr.readyState);
 
-		xhr.open("POST", this.url + "&id=" + escape(this.client_id).replace(/\+/g, "%2B"), true);
+		xhr.open("POST", this.url + "&id=" + escape(this.client_id).replace(/\+/g, "%2B"), this.async);
 		// we do this charset hackery because we have internal utf8 and plain ascii
 		// for the rest of atom. this is supposed to be a binary transport
-		xhr.onreadystatechange = this.outgoing_state_change;
+		if (this.async) {
+		    xhr.onreadystatechange = this.outgoing_state_change;
+		}
 		xhr.meteor = this;
 		this.ready = 1;
 
@@ -333,7 +345,10 @@ meteor.Connection.prototype = {
 		// check for status
 		this.buffer += data;
 
-		if (this.client_id && this.ready && !this.will_write) {
+		if (this.client_id && this.ready) { 
+		    if (!this.async) {
+			this.write();
+		    } else if (!this.will_write) {
 			// ifdef firefox
 			//this.outgoing.setRequestHeader("Content-Length", this.buffer.length);
 			// endif
@@ -344,6 +359,7 @@ meteor.Connection.prototype = {
 			}
 			this.will_write = 1;		
 			window.setTimeout(cb, 20);
+		    }
 		}
 	},
 	write : function() {
