@@ -165,12 +165,13 @@ serialization.Polymorphic = serialization.Base.extend({
 		if (t == "object") t = o.constructor;
 		var types = this.ptype_to_type.get(t);
 
-		for (var i = 0; i < types.length; i ++) {
+		if (types) for (var i = 0; i < types.length; i ++) {
 			if (types[i].can_encode(o)) {
 				return types[i].encode(o);
 			}
 		}
 
+		meteor.debug("No type found for %o in %o.\n", t, this.ptype_to_type);
 		throw("Cannot encode ("+t+","+o.toString()+")");
 	},
 	register_type : function(atype, ptype, o) {
@@ -247,7 +248,7 @@ serialization.Message = serialization.Base.extend({
 	},
 	encode : function(o) {
 		var str = "";
-		str += this.vtype.encode(o.vars).render();		
+		if (o.vars.length > 0) str += this.vtype.encode(o.vars).render();		
 
 		str += this.mtype.encode(o.method).render();
 
@@ -394,27 +395,16 @@ serialization.OneTypedVars = serialization.Base.extend({
 		return "Vars("+this.vtype+")";
 	},
 	can_encode : function(o) {
-		var name;
-
-		for (name in o) if (o.hasOwnProperty(name)) {
-			if (!this.vtype.can_encode(o[name])) {
-				return false;
-			}
-		}
-
-		return true;
+		return o instanceof mmp.Vars;
 	},
 	encode : function(o) {
 		var l = [];
-		var name;
 		var type = this.vtype;
 
-		for (name in o) if (o.hasOwnProperty(name)) {
-			if (type.can_encode(o[name])) {
-				l.push("_method "+name.length+" "+name);
-				l.push(type.encode(o[name]).render());
-			}
-		}
+		o.forEach(function(name, value) {
+		    l.push("_method "+name.length+" "+name);
+		    l.push(type.encode(value).render());
+		});
 
 		return new serialization.Atom("_vars", l.join(""));
 	},
@@ -422,20 +412,14 @@ serialization.OneTypedVars = serialization.Base.extend({
 		var p = new serialization.AtomParser();
 		var l = p.parse(atom.data);
 		var type = this.vtype;
-		var i, name, vars = {};
+		var vars = new mmp.Vars();
 
 		if (l.length & 1) throw(atom+" has odd number of entries.");
 
-		for (i = 0; i < l.length; i+=2) {
+		for (var i = 0; i < l.length; i+=2) {
 			if (l[i].type === "_method") {
-				name = l[i].data;
-
-				if (!type.can_decode(l[i+1])) {
-					throw("Cannot decode entry "+name);
-				}
-
-				vars[name] = type.decode(l[i+1]);
-			}
+				vars.set(l[i].data, type.decode(l[i+1]));
+			} else throw("Bad key type in _vars: " + l[i].type);
 		}
 
 		return vars;
