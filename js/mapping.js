@@ -172,7 +172,11 @@ HigherDMapping.prototype = {
 		var m = this.n.get(key);
 
 		if (m) {
-			return m.values();
+		    	var ret = [];
+			for (var i in m) if (m.hasOwnProperty(i)) {
+				ret.push(m[i]);
+			}
+			return ret;
 		} else return [];
 	},
 	remove : function(id) {
@@ -186,7 +190,7 @@ HigherDMapping.prototype = {
 			return;
 		}
 
-		m.remove(id);
+		delete m[id];
 	}
 };
 function Mapping() {
