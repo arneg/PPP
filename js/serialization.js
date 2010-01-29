@@ -384,7 +384,7 @@ serialization.Mapping = serialization.Base.extend({
 			str += this.vtype.encode(val).render();	
 		}, this);
 		return new serialization.Atom("_mapping", str);
-	},
+	}
 });
 serialization.OneTypedVars = serialization.Base.extend({
 	constructor : function(type) { 
