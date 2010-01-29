@@ -54,7 +54,7 @@ int main() {
 
 	MMP.Packet packet = MMP.Packet(m, ([ "_source" : MMP.Uniform("psyc://example.org/~user1"), "_target" : MMP.Uniform("psyc://example.org/~user2") ]));
 	
-	object poly = Serialization.Types.Polymorphic();
+	object poly = Serialization.Types.PBuilder();
 	poly->register_type("string", "_string");
 	poly->register_type("string", "_method");
 	poly->register_type("array", "_list");
