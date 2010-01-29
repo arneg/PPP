@@ -116,3 +116,6 @@ UTIL.hasClass = function(o, cl) {
 	var classes = o.className.split(' ');
 	return (-1 != UTIL.search_array(classes, cl));
 }
+UTIL.removeClass = function(o, cl) {
+	UTIL.replaceClass(o, cl);
+}
