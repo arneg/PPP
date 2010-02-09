@@ -1,3 +1,4 @@
+#define ARRAY_BUILDER
 int entries = 0;
 int size = 0;
 #ifndef ARRAY_BUILDER
