@@ -49,12 +49,12 @@ object Uniform() {
 		error("No Uniform creator without server.\n");
 	}
 
-    if (!(u = this->type_cache[Serialization.Types.Uniform][this->server])) {
-		u = Serialization.Types.Uniform(this->server);
-		this->type_cache[Serialization.Types.Method][this->server] = u;
-    }
-    
-    return u;
+	if (!(u = this->type_cache[Serialization.Types.Uniform][this->server])) {
+		    u = Serialization.Types.Uniform(this->server);
+		    this->type_cache[Serialization.Types.Uniform][this->server] = u;
+	}
+	
+	return u;
 }
 
 /*
