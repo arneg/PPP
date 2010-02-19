@@ -128,7 +128,7 @@ UTIL.url_escape = function(s) {
 UTIL.make_url = function(url, vars) {
     	var list = [];
 	var key;
-	if (vars) for (key in vars) if (vars.haѕOwnProperty(key)) {
+	if (vars) for (key in vars) if (vars.hasOwnProperty(key)) {
 	    list.push(key + "=" + UTIL.url_escape(vars[key]));
 	} else return url;
 
