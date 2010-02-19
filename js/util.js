@@ -48,7 +48,7 @@ UTIL.replace = function(reg, s, cb) {
 	}
 
 	return ret;
-}
+};
 UTIL.split_replace = function(reg, s, cb) {
 	var res;
 	var last = 0;
@@ -71,22 +71,22 @@ UTIL.split_replace = function(reg, s, cb) {
 	}
 
 	return ret;
-}
+};
 UTIL.has_prefix = function(s, n) {
 	if (s.length < n.length) return false;
 	return (n == s.substr(0, n.length));
-}
+};
 UTIL.has_suffix = function(s, n) {
 	if (s.length < n.length) return false;
 	return (n == s.substr(s.length-n.length, n.length));
-}
+};
 UTIL.search_array = function(a, n) {
 	for (var i = 0; i < a.length; i++) {
 		if (n == a[i]) return i;
 	}
 
 	return -1;
-}
+};
 UTIL.replaceClass = function(o, cl1, cl2) {
 	var classes = o.className.length ? o.className.split(' ') : [];
 	var i = UTIL.search_array(classes, cl1);
@@ -102,7 +102,7 @@ UTIL.replaceClass = function(o, cl1, cl2) {
 		classes.splice(i, 1);
 	}
 	o.className = classes.join(" ");
-}
+};
 UTIL.addClass = function(o, cl) {
 	var classes = o.className.length ? o.className.split(' ') : [];
 	var i = UTIL.search_array(classes, cl);
@@ -111,11 +111,26 @@ UTIL.addClass = function(o, cl) {
 		classes.push(cl);
 		o.className = classes.join(" ");
 	}
-}
+};
 UTIL.hasClass = function(o, cl) {
 	var classes = o.className.split(' ');
 	return (-1 != UTIL.search_array(classes, cl));
-}
+};
 UTIL.removeClass = function(o, cl) {
 	UTIL.replaceClass(o, cl);
-}
+};
+UTIL.url_escape = function(s) {
+    	s = escape(s);
+	s.replace(/\+/g, "%2B");
+	s.replace(/\//g, "%2F");
+	return s;
+};
+UTIL.make_url = function(url, vars) {
+    	var list = [];
+	var key;
+	if (vars) for (key in vars) if (vars.haѕOwnProperty(key)) {
+	    list.push(key + "=" + UTIL.url_escape(vars[key]));
+	} else return url;
+
+	return url + "?" + list.join("&");
+};
