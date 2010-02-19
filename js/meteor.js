@@ -49,13 +49,13 @@ meteor.dismantle = function(xhr) {
  * connection = new meteor.Connection("http://example.org/meteor/", incoming, alert);
  * connection.init();
  */
-meteor.Connection = function(url, callback, error) {
+meteor.Connection = function(url, vars, callback, error) {
     this.url = url;
+    this.vars = vars;
     this.buffer = "";
     this.callback = callback;
     this.error = error;
     this.async = true;
-    this.client_id = 0;
     this.new_incoming = 0;
     this.incoming = 0;
     this.outgoing = 0;
@@ -113,7 +113,7 @@ meteor.Connection.prototype = {
 		this.new_incoming = xhr;
 		xhr.pos = 0;
 			
-		xhr.open("POST", this.url + "&id=" + escape(this.client_id).replace(/\+/g, "%2B"), true);
+		xhr.open("POST", UTIL.make_url(this.url, this.vars), true);
 		// both opera and IE dont handle binary data correctly.
 		if (!window.opera && navigator.appName != 'Microsoft Internet Explorer') {
 			xhr.setRequestHeader("Content-Type", "application/octet-stream");
@@ -269,7 +269,7 @@ meteor.Connection.prototype = {
 		}
 		//this.error("outgoing state is " + xhr.readyState);
 
-		xhr.open("POST", this.url + "&id=" + escape(this.client_id).replace(/\+/g, "%2B"), this.async);
+		xhr.open("POST", UTIL.make_url(this.url, this.vars), this.async);
 		// we do this charset hackery because we have internal utf8 and plain ascii
 		// for the rest of atom. this is supposed to be a binary transport
 		if (this.async) {
@@ -284,8 +284,8 @@ meteor.Connection.prototype = {
 		var con = this.meteor;
 		if (this.readyState == 4) {
 			if (this.status == 200) {
-				con.client_id = this.responseText;
-				meteor.debug("got client ID " + con.client_id);
+				con.vars["id"] = this.responseText;
+				meteor.debug("got client ID " + con.vars["id"]);
 
 				meteor.dismantle(con.init_xhr);
 				delete con.init_xhr;
@@ -345,7 +345,7 @@ meteor.Connection.prototype = {
 		// check for status
 		this.buffer += data;
 
-		if (this.client_id && this.ready) { 
+		if (this.vars["id"] && this.ready) { 
 		    if (!this.async) {
 			this.write();
 		    } else if (!this.will_write) {
