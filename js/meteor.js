@@ -314,7 +314,7 @@ meteor.Connection.prototype = {
 
 		xhr.onreadystatechange = this.init_state_change;
 		xhr.meteor = this;
-		xhr.open("GET", this.url, true);
+		xhr.open("GET", UTIL.make_url(this.url, this.vars), true);
 		xhr.send("");
 	},
 	/**
