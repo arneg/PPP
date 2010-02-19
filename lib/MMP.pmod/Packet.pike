@@ -29,8 +29,8 @@ void create(mixed data, void|mapping(string:mixed) vars) {
 	vars["_hrtime"] = gethrvtime(1);
 #endif
 	if (mappingp(vars)) {
-		this_program::vars = has_index(vars, "_timestamp") ? vars : vars + ([ "_timestamp" : Calendar.now() ]);
-	} else this_program::vars = ([ "_timestamp" : Calendar.now() ]);
+		this_program::vars = has_index(vars, "_timestamp") ? vars : vars + ([ "_timestamp" : time(1) ]);
+	} else this_program::vars = ([ "_timestamp" : time(1) ]);
 	this_program::data = data||0; 
 }
 
