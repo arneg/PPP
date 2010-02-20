@@ -263,8 +263,8 @@ meteor.Connection.prototype = {
 		// for the rest of atom. this is supposed to be a binary transport
 		if (this.async) {
 		    xhr.onreadystatechange = UTIL.make_callback(this, this.outgoing_state_change);
+		    xhr.onerror = UTIL.make_callback(this, this.outgoing_onerror);
 		}
-		xhr.onerror = UTIL.make_callback(this, this.outgoing_onerror);
 		this.ready = 1;
 
 		if (this.buffer.length > 0) this.write();
