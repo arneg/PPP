@@ -133,7 +133,11 @@ UTIL.make_url = function(url, vars) {
 };
 UTIL.make_callback = function(obj, fun) {
 	return (function() {
-	    fun.apply(obj, [ this ].concat(arguments));
+		return fun.apply(obj, [ this ].concat(Array.prototype.concat.call(arguments)));
 	});
-
+};
+UTIL.make_method = function(obj, fun) {
+    	return (function () { 
+		return fun.apply(obj, Array.prototype.slice.call(arguments));
+	});
 };
