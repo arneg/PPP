@@ -110,7 +110,6 @@ meteor.Connection.prototype = {
 
 		var xhr = new XMLHttpRequest();
 		this.new_incoming = xhr;
-		this.this = 0;
 			
 		xhr.open("POST", UTIL.make_url(this.url, this.vars), true);
 		// both opera and IE dont handle binary data correctly.
