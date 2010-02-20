@@ -120,10 +120,7 @@ UTIL.removeClass = function(o, cl) {
 	UTIL.replaceClass(o, cl);
 };
 UTIL.url_escape = function(s) {
-    	s = escape(s);
-	s.replace(/\+/g, "%2B");
-	s.replace(/\//g, "%2F");
-	return s;
+    	return escape(s).replace(/\+/g, "%2B").replace(/\//g, "%2F");
 };
 UTIL.make_url = function(url, vars) {
     	var list = [];
