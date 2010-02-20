@@ -367,6 +367,7 @@ meteor.Connection.prototype = {
 		}
 	},
 	write : function() {
+		meteor.debug("outgoing state change is "+this.outgoing.onreadystatechange);
 		if (this.outgoing.sendAsBinary) {
 			this.outgoing.setRequestHeader("Content-Type", "application/octet-stream");
 			this.outgoing.setRequestHeader("Content-Length", this.buffer.length);
