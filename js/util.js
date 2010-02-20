@@ -131,3 +131,9 @@ UTIL.make_url = function(url, vars) {
 
 	return url + "?" + list.join("&");
 };
+UTIL.make_callback = function(obj, fun) {
+	return (function() {
+	    fun.apply(obj, [ this ].concat(arguments));
+	});
+
+};
