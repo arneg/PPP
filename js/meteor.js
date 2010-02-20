@@ -68,6 +68,7 @@ meteor.Connection = function(url, vars, callback, error) {
     this.incoming = 0;
     this.outgoing = 0;
     this.init_xhr = 0;
+    this.pos = 0;
     this.reconnect = 1; // do a reconnect on close
 };
 meteor.Connection.prototype = {
@@ -109,7 +110,7 @@ meteor.Connection.prototype = {
 
 		var xhr = new XMLHttpRequest();
 		this.new_incoming = xhr;
-		xhr.pos = 0;
+		this.this = 0;
 			
 		xhr.open("POST", UTIL.make_url(this.url, this.vars), true);
 		// both opera and IE dont handle binary data correctly.
@@ -149,6 +150,8 @@ meteor.Connection.prototype = {
 			if (s == 200) {
 				var length = xhr.responseBody ? xhr.responseBody.length : xhr.responseText.length;
 
+				meteor.debug("length: %d > %d", length, this.pos);
+
 				if (length > this.pos) {
 					meteor.debug((length-this.pos)+" bytes received in readyState "+xhr.readyState);
 					var str;
@@ -167,11 +170,8 @@ meteor.Connection.prototype = {
 							str = String.fromCharCode.apply(window, t);
 						}
 
-						if (this.callback.obj) {
-							this.callback.call(con.callback.obj, str);
-						} else {
-							this.callback(str);
-						}
+						meteor.debug("calling callback: %o with %db of data", this.callback, str.length);
+						this.callback(str);
 					} catch (error) {
 						meteor.debug("ERROR: "+error);
 					}
@@ -328,6 +328,7 @@ meteor.Connection.prototype = {
 	 * @param {String} data String to be sent.
 	 */
 	send : function(data) {
+		meteor.debug("sending "+data.length+" bytes");
 		// check for status
 		this.buffer += data;
 
@@ -338,18 +339,15 @@ meteor.Connection.prototype = {
 			// ifdef firefox
 			//this.outgoing.setRequestHeader("Content-Length", this.buffer.length);
 			// endif
-			var self = this;
-			var cb = function() {
-				self.will_write = 0;
-				self.write();
-			}
-			this.will_write = 1;
-			window.setTimeout(cb, 20);
+			this.will_write = true;
+			this.write();
 		    }
 		}
 	},
 	write : function() {
-		meteor.debug("outgoing state change is "+this.outgoing.onreadystatechange);
+		this.will_write = false;
+		this.outgoing.onreadystatechange = UTIL.make_callback(this, this.outgoing_state_change);
+		//meteor.debug("outgoing state change is %o", this.outgoing.onreadystatechange);
 		if (this.outgoing.sendAsBinary) {
 			this.outgoing.setRequestHeader("Content-Type", "application/octet-stream");
 			this.outgoing.setRequestHeader("Content-Length", this.buffer.length);
