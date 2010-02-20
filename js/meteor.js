@@ -32,7 +32,15 @@ meteor.BUFFER_MAX = 1 << 16; // limit for incoming buffer, exceeding this buffer
 meteor.dismantle = function(xhr) {
 	delete xhr.onreadystatechange;
 	try { xhr.abort(); } catch (e) {};
-	delete xhr.meteor;
+};
+meteor.debug = function() {
+	if (window.console && window.console.log) {
+		if (window.console.firebug) {
+			window.console.log.apply(window, arguments);
+		} else { //this is IE
+			window.console.log(arguments[0]);
+		}
+	}
 };
 /**
  * Meteor connection class. This is usually used with Atom serialization on top. Use psyc.Client if unsure.
@@ -62,15 +70,6 @@ meteor.Connection = function(url, vars, callback, error) {
     this.init_xhr = 0;
     this.reconnect = 1; // do a reconnect on close
 };
-meteor.debug = function() {
-	if (window.console && window.console.log) {
-		if (window.console.firebug) {
-			window.console.log.apply(window, arguments);
-		} else { //this is IE
-			window.console.log(arguments[0]);
-		}
-	}
-};
 meteor.Connection.prototype = {
 	reconnect_incoming : function() {
 		meteor.debug("reconnecting due to timeout.\n");
@@ -84,13 +83,12 @@ meteor.Connection.prototype = {
 		}
 		this.connect_new_incoming();
 	},
-	new_incoming_state_change : function() {
-		var con = this.meteor;
-		meteor.debug("new_incoming state is " + this.readyState);
+	new_incoming_state_change : function(xhr) {
+		meteor.debug("new_incoming state is " + xhr.readyState);
 		// we should check here for buffer length. maybe set a max
 		// amount to shut down the main one ungracefully
-		if (this.readyState >= 3) {
-			con.connect_incoming();
+		if (xhr.readyState >= 3) {
+			this.connect_incoming();
 		}
 	},
 	connect_new_incoming : function() {
@@ -120,54 +118,48 @@ meteor.Connection.prototype = {
 		}
 		//xhr.overrideMimeType("text/plain; charset=ISO-8859-1");
 		if (xhr.overrideMimeType) xhr.overrideMimeType('text/plain; charset=x-user-defined');
-		xhr.onreadystatechange = this.new_incoming_state_change;
-		xhr.meteor = this;
+		xhr.onreadystatechange = UTIL.make_callback(this, this.new_incoming_state_change);
 		xhr.send("");
 	},
 	set_nonblocking : function() {
 		this.async = true;
 		this.outgoing.async = true;
-		this.outgoing.onreadystatechange = outgoing_state_change;
+		this.outgoing.onreadystatechange = UTIL.make_callback(this, this.outgoing_state_change);
 	},
 	set_blocking : function() {
 		this.async = false;
 		this.outgoing.onreadystatechange = null;
-		this.outgoing.async = false;	
+		this.outgoing.async = false;
 	},
-	incoming_state_change : function() {
-		var con = this.meteor;
-		var status;
+	incoming_state_change : function(xhr) {
+		var s;
 
-		if (!con) {
-			meteor.debug("xhr lost connection to reality.");
-			return;
-		}
-		if (this.readyState >= 3) {
+		if (xhr.readyState >= 3) {
 			//this.readyState = 2;
 			
 			// workaround for IE
 			try {
-				status = this.status;
+				s = xhr.status;
 			} catch(e) {
 				// this is ie country
 				// this is ie
 				meteor.debug("fucking ie");
 			}
 
-			if (status == 200) {
-				var length = this.responseBody ? this.responseBody.length : this.responseText.length;
+			if (s == 200) {
+				var length = xhr.responseBody ? xhr.responseBody.length : xhr.responseText.length;
 
 				if (length > this.pos) {
-					meteor.debug((length-this.pos)+" bytes received in readyState "+this.readyState);
+					meteor.debug((length-this.pos)+" bytes received in readyState "+xhr.readyState);
 					var str;
 
 					try {
 						if (window.opera) {
-							str = this.responseText.slice(this.pos);
-						} else if (this.responseBody) {
-							str = this.responseBody.join("");
+							str = xhr.responseText.slice(this.pos);
+						} else if (xhr.responseBody) {
+							str = xhr.responseBody.join("");
 						} else {
-							str = this.responseText.slice(this.pos);
+							str = xhr.responseText.slice(this.pos);
 							var t = str.split("");
 							for (var i = 0; i < str.length; i++) {
 								t[i] = t[i].charCodeAt(0) & 0xff;
@@ -175,10 +167,10 @@ meteor.Connection.prototype = {
 							str = String.fromCharCode.apply(window, t);
 						}
 
-						if (con.callback.obj) {
-							con.callback.call(con.callback.obj, str);
+						if (this.callback.obj) {
+							this.callback.call(con.callback.obj, str);
 						} else {
-							con.callback(str);
+							this.callback(str);
 						}
 					} catch (error) {
 						meteor.debug("ERROR: "+error);
@@ -187,12 +179,12 @@ meteor.Connection.prototype = {
 					this.pos = length;
 				}
 
-				if (this.readyState == 4 || this.pos >= meteor.BUFFER_MAX) {
+				if (xhr.readyState == 4 || this.pos >= meteor.BUFFER_MAX) {
 					if (this.operatimer) {
 						clearTimeout(this.operatimer);
 						delete this.operatimer;
 					}
-					if (con.reconnect) con.connect_new_incoming();
+					if (this.reconnect) this.connect_new_incoming();
 				}
 			} else {
 			// this throws an exception in firefox. brain
@@ -202,11 +194,7 @@ meteor.Connection.prototype = {
 	},
 	incoming_on_error : function() {
 		meteor.debug("INCOMING ERROR!");
-		var self = this;
-		var cb = function() {
-			self.meteor.connect_new_incoming();
-		};
-		window.setTimeout(cb, 500);
+		window.setTimeout(UTIL.make_callback(this, this.connect_new_incoming), 500);
 	},
 	connect_incoming : function(xhr) {
 		if (!xhr) {
@@ -228,34 +216,32 @@ meteor.Connection.prototype = {
 			delete this.operatimer;
 		}
 
-		xhr.onreadystatechange = this.incoming_state_change;
-		xhr.onerror = this.incoming_on_error;
+		xhr.onreadystatechange = UTIL.make_callback(this, this.incoming_state_change);
+		xhr.onerror = UTIL.make_callback(this, this.incoming_on_error);
 		meteor.debug("moved new incoming to incoming.");
 		this.new_incoming = 0;
 		this.incoming = xhr;
-		meteor.Connection.prototype.incoming_state_change.call(xhr);
+		this.incoming_state_change(xhr);
 
 		// This code polls the xhr for new data in case opera is used. its necessary
 		// because opera does not trigger an event if new data is available in state 3.
 		if (window.opera) {
-			var fun = function() {
-				meteor.Connection.prototype.incoming_state_change.call(xhr);
-			};
-			this.operatimer = setInterval(fun, 100);
+			this.operatimer = setInterval(UTIL.make_callback(this, this.incoming_state_change), 100);
 			meteor.debug("timer: "+this.operatimer);
 		}
 	},
-	outgoing_state_change : function() {
-		var con = this.meteor;
+	outgoing_onerror : function(xhr) {
+		meteor.debug("error while connecting outgoing. data lost, we should write back to buffer and retry.");
+	},
+	outgoing_state_change : function(xhr) {
+		meteor.debug("outgoing state is "+xhr.readyState);
 
-		meteor.debug("outgoing state is "+this.readyState);
+		if (xhr.readyState == 4) {
 
-		if (this.readyState == 4) {
-
-			if (this.status == 200) {
-				con.connect_outgoing();
+			if (xhr.status == 200) {
+				this.connect_outgoing();
 			} else {
-				con.error(this.statusText);
+				this.error(xhr.statusText);
 			}
 		}
 	},
@@ -277,33 +263,31 @@ meteor.Connection.prototype = {
 		// we do this charset hackery because we have internal utf8 and plain ascii
 		// for the rest of atom. this is supposed to be a binary transport
 		if (this.async) {
-		    xhr.onreadystatechange = this.outgoing_state_change;
+		    xhr.onreadystatechange = UTIL.make_callback(this, this.outgoing_state_change);
 		}
-		xhr.meteor = this;
+		xhr.onerror = UTIL.make_callback(this, this.outgoing_onerror);
 		this.ready = 1;
 
 		if (this.buffer.length > 0) this.write();
 	},
-	init_state_change : function(change_event) { // fetch the client_id and go
-		var con = this.meteor;
-		if (this.readyState == 4) {
-			if (this.status == 200) {
-				con.vars["id"] = this.responseText;
-				meteor.debug("got client ID " + con.vars["id"]);
+	init_state_change : function(xhr) { // fetch the client_id and go
+		if (xhr.readyState == 4) {
+			if (xhr.status == 200) {
+				this.vars["id"] = this.responseText;
+				meteor.debug("got client ID " + this.vars["id"]);
 
 				// we can reuse this object
-				con.outgoing = con.init_xhr;
+				this.outgoing = this.init_xhr;
 
-				con.connect_outgoing();
-				con.connect_new_incoming();
-			} else if (this.status == 404) {
-				con.error(this.responseText);
+				this.connect_outgoing();
+				this.connect_new_incoming();
+			} else if (xhr.status == 404) {
+				this.error(xhr.responseText);
 			} else {
-				con.error(this.statusText);
+				this.error(xhr.statusText);
 			}
 
-			delete this.meteor;
-			delete con.init_xhr;
+			delete this.init_xhr;
 		}
 	},
 	/**
@@ -311,13 +295,11 @@ meteor.Connection.prototype = {
 	 */
 	init : function() { // fetch the client_id and go
 		var xhr = new XMLHttpRequest();
-		xhr.meteor = this;
 		this.reconnect = 1;
 		this.init_xhr = xhr;
 		//this.error("initialization state is " + xhr.readyState);
 
-		xhr.onreadystatechange = this.init_state_change;
-		xhr.meteor = this;
+		xhr.onreadystatechange = UTIL.make_callback(this, this.init_state_change);
 		xhr.open("GET", UTIL.make_url(this.url, this.vars), true);
 		xhr.send("");
 	},
