@@ -273,7 +273,7 @@ meteor.Connection.prototype = {
 	init_state_change : function(xhr) { // fetch the client_id and go
 		if (xhr.readyState == 4) {
 			if (xhr.status == 200) {
-				this.vars["id"] = this.responseText;
+				this.vars["id"] = xhr.responseText;
 				meteor.debug("got client ID " + this.vars["id"]);
 
 				// we can reuse this object
