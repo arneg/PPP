@@ -248,6 +248,8 @@ meteor.Connection.prototype = {
 	outgoing_state_change : function() {
 		var con = this.meteor;
 
+		meteor.debug("outgoing state is "+this.readyState);
+
 		if (this.readyState == 4) {
 
 			if (this.status == 200) {
@@ -259,6 +261,8 @@ meteor.Connection.prototype = {
 	},
 	connect_outgoing : function() {
 		var xhr;
+
+		meteor.debug("connecting new outgoing.");
 
 		if (this.outgoing) {
 			this.outgoing.abort();
@@ -287,8 +291,8 @@ meteor.Connection.prototype = {
 				con.vars["id"] = this.responseText;
 				meteor.debug("got client ID " + con.vars["id"]);
 
-				meteor.dismantle(con.init_xhr);
-				delete con.init_xhr;
+				// we can reuse this object
+				con.outgoing = con.init_xhr;
 
 				con.connect_outgoing();
 				con.connect_new_incoming();
@@ -357,7 +361,7 @@ meteor.Connection.prototype = {
 				self.will_write = 0;
 				self.write();
 			}
-			this.will_write = 1;		
+			this.will_write = 1;
 			window.setTimeout(cb, 20);
 		    }
 		}
@@ -370,7 +374,7 @@ meteor.Connection.prototype = {
 		} else {
 			this.outgoing.send(this.buffer);   
 		}
-		meteor.debug("Sending ("+this.buffer.substr(this.buffer.length-40, 39)+")\n");
+		meteor.debug("writing "+this.buffer.length+" bytes\n");
 		this.ready = 0;
 		this.buffer = "";
 	}
