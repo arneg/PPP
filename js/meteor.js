@@ -31,7 +31,9 @@ meteor = new Object();
 meteor.BUFFER_MAX = 1 << 16; // limit for incoming buffer, exceeding this buffer triggers a reconnect
 meteor.dismantle = function(xhr) {
 	delete xhr.onreadystatechange;
-	try { xhr.abort(); } catch (e) {};
+	if (xhr.readyState < 4) {
+	    try { xhr.abort(); } catch (e) {};
+	}
 };
 meteor.debug = function() {
 	if (window.console && window.console.log) {
@@ -64,10 +66,6 @@ meteor.Connection = function(url, vars, callback, error) {
     this.callback = callback;
     this.error = error;
     this.async = true;
-    this.new_incoming = 0;
-    this.incoming = 0;
-    this.outgoing = 0;
-    this.init_xhr = 0;
     this.pos = 0;
     this.reconnect = 1; // do a reconnect on close
 };
@@ -123,20 +121,14 @@ meteor.Connection.prototype = {
 	},
 	set_nonblocking : function() {
 		this.async = true;
-		this.outgoing.async = true;
-		this.outgoing.onreadystatechange = UTIL.make_callback(this, this.outgoing_state_change);
 	},
 	set_blocking : function() {
 		this.async = false;
-		this.outgoing.onreadystatechange = null;
-		this.outgoing.async = false;
 	},
 	incoming_state_change : function(xhr) {
 		var s;
 
 		if (xhr.readyState >= 3) {
-			//this.readyState = 2;
-			
 			// workaround for IE
 			try {
 				s = xhr.status;
@@ -148,8 +140,6 @@ meteor.Connection.prototype = {
 
 			if (s == 200) {
 				var length = xhr.responseBody ? xhr.responseBody.length : xhr.responseText.length;
-
-				meteor.debug("length: %d > %d", length, this.pos);
 
 				if (length > this.pos) {
 					meteor.debug((length-this.pos)+" bytes received in readyState "+xhr.readyState);
@@ -229,64 +219,20 @@ meteor.Connection.prototype = {
 			meteor.debug("timer: "+this.operatimer);
 		}
 	},
-	outgoing_onerror : function(xhr) {
-		meteor.debug("error while connecting outgoing. data lost, we should write back to buffer and retry.");
-	},
-	outgoing_state_change : function(xhr) {
-		meteor.debug("outgoing state is "+xhr.readyState);
-
-		if (xhr.readyState == 4) {
-
-			if (xhr.status == 200) {
-				this.connect_outgoing();
-			} else {
-				this.error(xhr.statusText);
-			}
-		}
-	},
-	connect_outgoing : function() {
-		var xhr;
-
-		meteor.debug("connecting new outgoing.");
-
-		if (this.outgoing) {
-			this.outgoing.abort();
-			xhr = this.outgoing;
-		} else {
-			xhr = new XMLHttpRequest();
-			this.outgoing = xhr;
-		}
-		//this.error("outgoing state is " + xhr.readyState);
-
-		xhr.open("POST", UTIL.make_url(this.url, this.vars), this.async);
-		// we do this charset hackery because we have internal utf8 and plain ascii
-		// for the rest of atom. this is supposed to be a binary transport
-		if (this.async) {
-		    xhr.onreadystatechange = UTIL.make_callback(this, this.outgoing_state_change);
-		    xhr.onerror = UTIL.make_callback(this, this.outgoing_onerror);
-		}
-		this.ready = 1;
-
-		if (this.buffer.length > 0) this.write();
-	},
 	init_state_change : function(xhr) { // fetch the client_id and go
 		if (xhr.readyState == 4) {
 			if (xhr.status == 200) {
 				this.vars["id"] = xhr.responseText;
 				meteor.debug("got client ID " + this.vars["id"]);
 
-				// we can reuse this object
-				this.outgoing = this.init_xhr;
+				meteor.dismantle(xhr);
 
-				this.connect_outgoing();
 				this.connect_new_incoming();
 			} else if (xhr.status == 404) {
 				this.error(xhr.responseText);
 			} else {
 				this.error(xhr.statusText);
 			}
-
-			delete this.init_xhr;
 		}
 	},
 	/**
@@ -295,8 +241,6 @@ meteor.Connection.prototype = {
 	init : function() { // fetch the client_id and go
 		var xhr = new XMLHttpRequest();
 		this.reconnect = 1;
-		this.init_xhr = xhr;
-		//this.error("initialization state is " + xhr.readyState);
 
 		xhr.onreadystatechange = UTIL.make_callback(this, this.init_state_change);
 		xhr.open("GET", UTIL.make_url(this.url, this.vars), true);
@@ -306,7 +250,7 @@ meteor.Connection.prototype = {
 	 * Close incoming connection and clean up cyclic references.
 	 */
 	close : function() {
-		var list = [this.init_xhr, this.new_incoming, this.incoming, this.outgoing];
+		var list = [this.new_incoming, this.incoming];
 		for (var i = 0; i < list.length; i++) {
 			var t = list[i];
 			try {
@@ -315,10 +259,8 @@ meteor.Connection.prototype = {
 				}
 			} catch(e) { }
 		}
-		delete this.init_xhr;
 		delete this.incoming;
 		delete this.new_incoming;
-		delete this.outgoing;
 		delete this.callback;
 		delete this.error;
 	},
@@ -331,31 +273,71 @@ meteor.Connection.prototype = {
 		// check for status
 		this.buffer += data;
 
-		if (this.vars["id"] && this.ready) { 
+		if (this.vars["id"]) { 
 		    if (!this.async) {
 			this.write();
 		    } else if (!this.will_write) {
-			// ifdef firefox
-			//this.outgoing.setRequestHeader("Content-Length", this.buffer.length);
-			// endif
 			this.will_write = true;
-			this.write();
+			// we give a small window for more data coming in in the same loop
+			window.setTimeout(UTIL.make_method(this, this.write), 20);
 		    }
 		}
 	},
+	outgoing_onerror : function(xhr) {
+		meteor.debug("error while connecting outgoing. data lost, we should write back to buffer and retry.");
+	},
+	outgoing_state_change : function(xhr) {
+		meteor.debug("outgoing state is "+xhr.readyState);
+
+		if (xhr.readyState == 4) {
+			xhr.onreadystatechange = null;
+			if (xhr.status == 200) {
+			    	// we do this do avoid opening too many connections. this should be enough
+				this.will_write = false;
+				if (this.buffer.length) window.setTimeout(UTIL.make_method(this, this.write), 20);
+			} else  { // this basically means, that the server does not know the id
+			    	this.error("It seems like the id timed out or something went wrong.");
+			/* this should happen on timeout, but we dont have this right now
+			} else { // we may retry here?
+				this.error(xhr.statusText);
+				this.buffer = this.old_buffer + this.buffer;
+				// RETRY
+				*/
+			}
+		}
+	},
 	write : function() {
-		this.will_write = false;
-		this.outgoing.onreadystatechange = UTIL.make_callback(this, this.outgoing_state_change);
-		//meteor.debug("outgoing state change is %o", this.outgoing.onreadystatechange);
-		if (this.outgoing.sendAsBinary) {
-			this.outgoing.setRequestHeader("Content-Type", "application/octet-stream");
-			this.outgoing.setRequestHeader("Content-Length", this.buffer.length);
-			this.outgoing.sendAsBinary(this.buffer);
+		if (this.buffer.length == 0) return;
+
+		var xhr = new XMLHttpRequest();
+
+		/*
+		if (this.outgoing) {
+			// we could reuse the xhr object, however this
+			// is not completely safe on safari/chrome
+			// TODO: do it for firefox, opera, ie
+			meteor.dismantle(this.outgoing);
+		}
+		*/
+
+		xhr.open("POST", UTIL.make_url(this.url, this.vars), this.async);
+		// we do this charset hackery because we have internal utf8 and plain ascii
+		// for the rest of atom. this is supposed to be a binary transport
+		if (this.async) {
+		    xhr.onreadystatechange = UTIL.make_callback(this, this.outgoing_state_change);
+		    xhr.onerror = UTIL.make_callback(this, this.outgoing_onerror);
+		}
+
+		//meteor.debug("outgoing state change is %o", xhr.onreadystatechange);
+		if (xhr.sendAsBinary) {
+			xhr.setRequestHeader("Content-Type", "application/octet-stream");
+			xhr.setRequestHeader("Content-Length", this.buffer.length);
+			xhr.sendAsBinary(this.buffer);
 		} else {
-			this.outgoing.send(this.buffer);   
+			xhr.send(this.buffer);   
 		}
 		meteor.debug("writing "+this.buffer.length+" bytes\n");
-		this.ready = 0;
+		this.old_buffer = this.buffer;
 		this.buffer = "";
 	}
 };
