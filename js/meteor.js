@@ -129,6 +129,8 @@ meteor.Connection.prototype = {
 	incoming_state_change : function(xhr) {
 		var s;
 
+		//meteor.debug("incoming state is "+xhr.readyState);
+
 		if (xhr.readyState >= 3) {
 			// workaround for IE
 			try {
@@ -168,6 +170,8 @@ meteor.Connection.prototype = {
 
 					this.pos = length;
 				}
+
+				//meteor.debug("position %d (max %d)", this.pos, meteor.BUFFER_MAX);
 
 				if (xhr.readyState == 4 || this.pos >= meteor.BUFFER_MAX) {
 					if (this.operatimer) {
@@ -212,6 +216,7 @@ meteor.Connection.prototype = {
 		meteor.debug("moved new incoming to incoming.");
 		this.new_incoming = 0;
 		this.incoming = xhr;
+		this.pos = 0;
 		this.incoming_state_change(xhr);
 
 		// This code polls the xhr for new data in case opera is used. its necessary
