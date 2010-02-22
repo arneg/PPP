@@ -222,7 +222,7 @@ meteor.Connection.prototype = {
 		// This code polls the xhr for new data in case opera is used. its necessary
 		// because opera does not trigger an event if new data is available in state 3.
 		if (window.opera) {
-			this.operatimer = setInterval(UTIL.make_callback(this, this.incoming_state_change), 100);
+			this.operatimer = setInterval(UTIL.make_callback(this, function() { this.incoming_state_change(xhr) }), 100);
 			meteor.debug("timer: "+this.operatimer);
 		}
 	},
