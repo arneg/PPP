@@ -30,8 +30,8 @@ meteor = new Object();
  */
 meteor.BUFFER_MAX = 1 << 16; // limit for incoming buffer, exceeding this buffer triggers a reconnect
 meteor.dismantle = function(xhr) {
-	delete xhr.onreadystatechange;
-	delete xhr.onerror;
+	if (xhr.hasOwnProperty("onerror")) delete xhr.onreadystatechange;
+	if (xhr.hasOwnProperty("onerror")) delete xhr.onerror;
 	if (xhr.readyState < 4) {
 	    try { xhr.abort(); } catch (e) {};
 	}
