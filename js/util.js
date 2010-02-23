@@ -154,7 +154,7 @@ UTIL.make_method = function(obj, fun) {
 	});
 };
 UTIL.is_opera = !!window.opera;
-UTIL.is_ie = !!window.all && !UTIL.is_opera;
+UTIL.is_ie = !!document.all && !UTIL.is_opera;
 // The following are copied from http://www.thespanner.co.uk/2009/01/29/detecting-browsers-javascript-hacks/
 UTIL.is_firefox = /a/[-1]=='a';
 UTIL.is_safari = /a/.__proto__=='//';
