@@ -131,9 +131,9 @@ UTIL.make_url = function(url, vars) {
 
 	return url + "?" + list.join("&");
 };
-UTIL.make_callback_keep = function(obj, fun) {
+UTIL.make_method_keep_this = function(obj, fun) {
     	if (arguments.length > 2) {
-	    var list = Array.prototype.splice.call(arguments, 2);
+	    var list = Array.prototype.slice.call(arguments, 2);
 	    return (function() {
 		    return fun.apply(obj, [ this ].concat(list).concat(Array.prototype.concat.call(arguments)));
 	    });
@@ -144,7 +144,7 @@ UTIL.make_callback_keep = function(obj, fun) {
 };
 UTIL.make_method = function(obj, fun) {
     	if (arguments.length > 2) {
-	    var list = Array.prototype.splice.call(arguments, 2);
+	    var list = Array.prototype.slice.call(arguments, 2);
 	    return (function () { 
 		    return fun.apply(obj, list.concat(Array.prototype.slice.call(arguments)));
 	    });
