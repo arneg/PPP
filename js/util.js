@@ -131,13 +131,31 @@ UTIL.make_url = function(url, vars) {
 
 	return url + "?" + list.join("&");
 };
-UTIL.make_callback = function(obj, fun) {
+UTIL.make_callback_keep = function(obj, fun) {
+    	if (arguments.length > 2) {
+	    var list = Array.prototype.splice.call(arguments, 2);
+	    return (function() {
+		    return fun.apply(obj, [ this ].concat(list).concat(Array.prototype.concat.call(arguments)));
+	    });
+	}
 	return (function() {
 		return fun.apply(obj, [ this ].concat(Array.prototype.concat.call(arguments)));
 	});
 };
 UTIL.make_method = function(obj, fun) {
+    	if (arguments.length > 2) {
+	    var list = Array.prototype.splice.call(arguments, 2);
+	    return (function () { 
+		    return fun.apply(obj, list.concat(Array.prototype.slice.call(arguments)));
+	    });
+	}
     	return (function () { 
 		return fun.apply(obj, Array.prototype.slice.call(arguments));
 	});
 };
+UTIL.is_opera = !!window.opera;
+UTIL.is_ie = !!window.all && !UTIL.is_opera;
+// The following are copied from http://www.thespanner.co.uk/2009/01/29/detecting-browsers-javascript-hacks/
+UTIL.is_firefox = /a/[-1]=='a';
+UTIL.is_safari = /a/.__proto__=='//';
+UTIL.is_chrome = /source/.test((/a/.toString+''));
