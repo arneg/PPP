@@ -30,11 +30,11 @@ meteor = new Object();
  */
 meteor.BUFFER_MAX = 1 << 16; // limit for incoming buffer, exceeding this buffer triggers a reconnect
 meteor.dismantle = function(xhr) {
-	if (xhr.onreadystatechange) delete xhr.onreadystatechange;
-	if (xhr.onerror) delete xhr.onerror;
-	if (xhr.readyState < 4) {
-	    try { xhr.abort(); } catch (e) {};
-	}
+	xhr.onreadystatechange = new window.Function;
+	xhr.onerror = new window.Function;
+	if (xhr.readyState < 4) try { 
+	    xhr.abort(); 
+	} catch (e) {};
 };
 meteor.debug = function() {
 	if (window.console && window.console.log) {
@@ -112,12 +112,12 @@ meteor.Connection.prototype = {
 			
 		xhr.open("POST", UTIL.make_url(this.url, this.vars), true);
 		// both opera and IE dont handle binary data correctly.
-		if (!window.opera && navigator.appName != 'Microsoft Internet Explorer') {
+		if (!UTIL.is_opera && navigator.appName != 'Microsoft Internet Explorer') {
 			xhr.setRequestHeader("Content-Type", "application/octet-stream");
 		}
 		//xhr.overrideMimeType("text/plain; charset=ISO-8859-1");
 		if (xhr.overrideMimeType) xhr.overrideMimeType('text/plain; charset=x-user-defined');
-		xhr.onreadystatechange = UTIL.make_callback(this, this.new_incoming_state_change);
+		xhr.onreadystatechange = UTIL.make_method(this, this.new_incoming_state_change, xhr);
 		xhr.send("");
 	},
 	set_nonblocking : function() {
@@ -149,7 +149,7 @@ meteor.Connection.prototype = {
 					var str;
 
 					try {
-						if (window.opera) {
+						if (UTIL.is_opera) {
 							str = xhr.responseText.slice(this.pos);
 						} else if (xhr.responseBody) {
 							str = xhr.responseBody.join("");
@@ -188,7 +188,7 @@ meteor.Connection.prototype = {
 	},
 	incoming_on_error : function() {
 		meteor.debug("INCOMING ERROR!");
-		window.setTimeout(UTIL.make_callback(this, this.connect_new_incoming), 500);
+		window.setTimeout(UTIL.make_method(this, this.connect_new_incoming), 500);
 	},
 	connect_incoming : function(xhr) {
 		if (!xhr) {
@@ -211,8 +211,8 @@ meteor.Connection.prototype = {
 			delete this.operatimer;
 		}
 
-		xhr.onreadystatechange = UTIL.make_callback(this, this.incoming_state_change);
-		xhr.onerror = UTIL.make_callback(this, this.incoming_on_error);
+		xhr.onreadystatechange = UTIL.make_method(this, this.incoming_state_change, xhr);
+		xhr.onerror = UTIL.make_method(this, this.incoming_on_error, xhr);
 		meteor.debug("moved new incoming to incoming.");
 		this.new_incoming = 0;
 		this.incoming = xhr;
@@ -221,8 +221,8 @@ meteor.Connection.prototype = {
 
 		// This code polls the xhr for new data in case opera is used. its necessary
 		// because opera does not trigger an event if new data is available in state 3.
-		if (window.opera) {
-			this.operatimer = setInterval(UTIL.make_callback(this, function() { this.incoming_state_change(xhr) }), 100);
+		if (UTIL.is_opera) {
+			this.operatimer = setInterval(UTIL.make_method(this, this.incoming_state_change, xhr), 100);
 			meteor.debug("timer: "+this.operatimer);
 		}
 	},
@@ -249,7 +249,7 @@ meteor.Connection.prototype = {
 		var xhr = new XMLHttpRequest();
 		this.reconnect = 1;
 
-		xhr.onreadystatechange = UTIL.make_callback(this, this.init_state_change);
+		xhr.onreadystatechange = UTIL.make_method(this, this.init_state_change, xhr);
 		xhr.open("GET", UTIL.make_url(this.url, this.vars), true);
 		xhr.send("");
 	},
@@ -333,8 +333,8 @@ meteor.Connection.prototype = {
 		// for the rest of atom. this is supposed to be a binary transport
 		if (this.async) {
 		    meteor.debug("doing async request. setting callbacks");
-		    xhr.onreadystatechange = UTIL.make_callback(this, this.outgoing_state_change);
-		    xhr.onerror = UTIL.make_callback(this, this.outgoing_onerror);
+		    xhr.onreadystatechange = UTIL.make_method(this, this.outgoing_state_change, xhr);
+		    xhr.onerror = UTIL.make_method(this, this.outgoing_onerror, xhr);
 		    var cb = UTIL.make_method(this, function() {
 			meteor.dismantle(xhr);
 			delete this.outgoing;
