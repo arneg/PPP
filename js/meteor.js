@@ -88,6 +88,8 @@ meteor.Connection.prototype = {
 		// we should check here for buffer length. maybe set a max
 		// amount to shut down the main one ungracefully
 		if (xhr.readyState >= 3) {
+		    	window.clearTimeout(this.new_incoming_timeout);
+			delete this.new_incoming_timeout;
 			this.connect_incoming();
 		}
 	},
@@ -112,12 +114,19 @@ meteor.Connection.prototype = {
 			
 		xhr.open("POST", UTIL.make_url(this.url, this.vars), true);
 		// both opera and IE dont handle binary data correctly.
-		if (!UTIL.is_opera && navigator.appName != 'Microsoft Internet Explorer') {
+		if (!UTIL.is_opera && !UTIL.is_ie) {
 			xhr.setRequestHeader("Content-Type", "application/octet-stream");
 		}
 		//xhr.overrideMimeType("text/plain; charset=ISO-8859-1");
 		if (xhr.overrideMimeType) xhr.overrideMimeType('text/plain; charset=x-user-defined');
 		xhr.onreadystatechange = UTIL.make_method(this, this.new_incoming_state_change, xhr);
+		var cb = UTIL.make_method(this, function() {
+			meteor.dismantle(xhr);
+			delete this.new_incoming;
+			delete this.new_incoming_timeout;
+			this.connect_new_incoming();
+		});
+		this.new_incoming_timeout = window.setTimeout(cb, 5000);
 		xhr.send("");
 	},
 	set_nonblocking : function() {
