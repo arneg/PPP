@@ -212,7 +212,7 @@ serialization.Message = serialization.Base.extend({
 		this.type = "_message";
 	},
 	can_encode : function(o) {
-		return o instanceof yakity.Message;
+		return o instanceof Yakity.Message;
 	},
 	decode : function(atom) {
 		var p = new serialization.AtomParser();
@@ -244,7 +244,7 @@ serialization.Message = serialization.Base.extend({
 			data = 0;
 		} else throw("bad _message "+l); 
 
-		return new yakity.Message(method, data, vars);
+		return new Yakity.Message(method, data, vars);
 	},
 	encode : function(o) {
 		var str = "";
