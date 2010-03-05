@@ -163,29 +163,32 @@ UTIL.Audio = function (params) {
 	} 
 
 	if (this.url) {
-	    this.div = document.createElement("div");
-	    if (params.hidden) {
-		this.div.style.display = "none";
-	    }
-	    var audio = document.createElement("audio");
-	    audio.autoplay = params.hasOwnProperty("autoplay") ? !!params.autoplay : false;
-	    if (!audio.autoplay) {
-		audio.autobuffer = params.hasOwnProperty("autobuffer") ? !!params.autobuffer : true;
-	    }
-	    audio.controls = params.hasOwnProperty("controls") ? !!params.controls : true;
-	    audio.src = this.url;
-	    this.domnode = audio;
-	    this.div.appendChild(audio);
-	    this.getDomNode = function() {
-		return this.div;
-	    };
 	    this.play = function() {
-		this.domnode.play();
+		this.audio = new Audio();
+		this.audio.preload = !!params.autobuffer;
+		this.audio.autoplay = !!params.autoplay;
+		this.audio.loop = !!params.loop;
+		this.audio.controls = !!params.controls;
+		this.audio.src = this.url;
+		if (this.div) {
+		    if (this.div.firstChild) {
+			this.div.replaceChild(this.audio, this.div.firstChild);
+		    } else {
+			this.div.appendChild(this.audio);
+		    }
+		}
+		this.audio.play();
+		
 	    };
 	    this.stop = function() {
-		this.domnode.pause();
-		this.domnode.position(0);
+		this.audio.pause();
 	    };
+	    if (!!params.controls || !!params.hidden) {
+		this.div = document.createElement("div");
+		this.getDomNode = function () {
+		    return this.div;
+		};
+	    }
 	} else {
 	    if (!params.wav) throw("You are trying to use UTIL.Audio without html5 and a wav file. This will not work.");
 
@@ -209,16 +212,17 @@ UTIL.Audio = function (params) {
 		};
 	    } else if (UTIL.App.is_ie) { // IE
 		this.url = params.wav;
-		this.getDomNode = function () { 
-		    if (!document.all.sound) {
-			var bgsound = document.createElement("bgsound");
-			bgsound.id = "sound";
-			document.body.appendChild(bgsound);
-		    }
-		    return document.createElement("div"); // just return an empty div here.
+		if (!document.all.sound) {
+		    var bgsound = document.createElement("bgsound");
+		    bgsound.id = "sound";
+		    document.body.appendChild(bgsound);
 		}
-		this.play = function () { document.all.sound.src = this.url; }
-		this.stop = function () { document.all.sound.src = null; }
+		this.play = function () { 
+		    document.all.sound.src = this.url; 
+		}
+		this.stop = function () { 
+		    document.all.sound.src = null; 
+		}
 	    } else {
 		this.div = document.createElement("div");
 		this.div.style.width = 0;
