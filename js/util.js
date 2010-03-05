@@ -153,18 +153,96 @@ UTIL.make_method = function(obj, fun) {
 		return fun.apply(obj, Array.prototype.slice.call(arguments));
 	});
 };
-UTIL.is_opera = !!window.opera;
-UTIL.is_ie = !!document.all && !UTIL.is_opera;
-// The following are copied from http://www.thespanner.co.uk/2009/01/29/detecting-browsers-javascript-hacks/
-UTIL.is_firefox = /a/[-1]=='a';
-UTIL.is_safari = /a/.__proto__=='//';
-UTIL.is_chrome = /source/.test((/a/.toString+''));
+Util.Audio = function (params) {
+	if (UTIL.App.has_vorbis && !!params.ogg) {
+		this.url = params.ogg;	
+	} else if (UTIL.App.has_mp3 && !!params.mp3) {
+		this.url = params.mp3;	
+	} else if (UTIL.App.has_wav && !!params.wav) {
+		this.url = params.wav;
+	} 
+
+	if (this.url) {
+	    this.getDomNode = function() {
+		var audio = document.createElement("audio");
+		audio.autoplay = params.hasOwnProperty("autoplay") ? !!params.autoplay : false;
+		if (!audio.autoplay) {
+		    audio.autobuffer = params.hasOwnProperty("autobuffer") ? !!params.autobuffer : true;
+		}
+		audio.controls = params.hasOwnProperty("controls") ? !!params.controls : true;
+		audio.src = this.url;
+		this.domnode = audio;
+		return audio;
+	    };
+	    this.play = function() {
+		this.domnode.play();
+	    };
+	    this.stop = function() {
+		this.domnode.stop();
+	    };
+	} else {
+	    if (!params.wav) throw("You are trying to use Util.Audio without html5 and a wav file. This will not work.");
+
+	    if (UTIL.App.is_opera || navigator.appVersion.indexOf("Mac") != -1) {
+		this.div = document.createElement("div");
+		if (navigator.appVersion.indexOf("Linux") != -1) {
+		    this.play = function () {
+			this.div.innerHTML = "<embed src=\""+params.wav+"\" type=\"application/x-mplayer2\" autostart=true height=0 width=0 hidden=true>";
+		    };
+		} else {
+		    this.play = function() {
+			this.div.innerHTML = "<embed src=\""+params.wav+"\" type=\"audio/wav\" autostart=true height=0 width=0 hidden=true cache=true>";
+		    }
+		}
+		this.getDomNode = function() {
+		    return this.div;
+		};
+	    } else if (UTIL.App.is_ie) { // IE
+		this.url = params.wav;
+		this.getDomNode = function () { 
+		    if (!document.all.sound) {
+			var bgsound = document.createElement("bgsound");
+			bgsound.id = "sound";
+			document.body.appendChild(bgsound);
+		    }
+		    return document.createElement("div"); // just return an empty div here.
+		}
+		this.play = function () { document.all.sound.src = this.url; }
+		this.stop = function () { document.all.sound.src = null; }
+	    } else {
+		this.embed = document.createElement("embed");
+		this.embed.type = "audio/wav";
+		this.embed.autostart = params.hasOwnProperty("autoplay") ? !!params.autoplay : false;
+		this.embed.width = 0;
+		this.embed.height = 0;
+		this.embed.enablejavascript = true;
+		this.embed.cache = params.hasOwnProperty("autobuffer") ? !!params.autobuffer : true;
+
+		this.getDomNode = function () { return this.embed; }
+
+		if (this.embed.Play) {
+		    this.play = function () { this.embed.Play(); }
+		else if (this.embed.DoPlay) {
+		    this.play = function () { this.embed.DoPlay(); }
+		} else throw("embed does not have a play method. Something is wrong.");
+
+		this.stop = function () { this.embed.Stop(); }
+	    }
+	}
+};
 UTIL.App = {};
+UTIL.App.is_opera = !!window.opera;
+UTIL.App.is_ie = !!document.all && !UTIL.is_opera;
+// The following are copied from http://www.thespanner.co.uk/2009/01/29/detecting-browsers-javascript-hacks/
+UTIL.App.is_firefox = /a/[-1]=='a';
+UTIL.App.is_safari = /a/.__proto__=='//';
+UTIL.App.is_chrome = /source/.test((/a/.toString+''));
 try { 
     UTIL.App.audio = document.createElement('audio');
     UTIL.App.has_audio = !!UTIL.App.audio && !!Util.App.audio.canPlayType && !!Util.App.audio.play;
     UTIL.App.has_vorbis = UTIL.App.has_audio && Util.App.audio.canPlayType("audio/ogg") != "" && Util.App.audio.canPlayType("audio/ogg") != "no";
     UTIL.App.has_mp3 = UTIL.App.has_audio && Util.App.audio.canPlayType("audio/mpeg") != "" && Util.App.audio.canPlayType("audio/mpeg") != "no";
+    UTIL.App.has_wav = UTIL.App.has_audio && Util.App.audio.canPlayType("audio/wav") != "" && Util.App.audio.canPlayType("audio/wav") != "no";
     delete Util.App.audio;
 } catch (e) {
     UTIL.App.has_audio = false;
