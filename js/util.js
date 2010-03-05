@@ -159,3 +159,15 @@ UTIL.is_ie = !!document.all && !UTIL.is_opera;
 UTIL.is_firefox = /a/[-1]=='a';
 UTIL.is_safari = /a/.__proto__=='//';
 UTIL.is_chrome = /source/.test((/a/.toString+''));
+UTIL.App = {};
+try { 
+    UTIL.App.audio = document.createElement('audio');
+    UTIL.App.has_audio = !!UTIL.App.audio && !!Util.App.audio.canPlayType && !!Util.App.audio.play;
+    UTIL.App.has_vorbis = UTIL.App.has_audio && Util.App.audio.canPlayType("audio/ogg") != "" && Util.App.audio.canPlayType("audio/ogg") != "no";
+    UTIL.App.has_mp3 = UTIL.App.has_audio && Util.App.audio.canPlayType("audio/mpeg") != "" && Util.App.audio.canPlayType("audio/mpeg") != "no";
+    delete Util.App.audio;
+} catch (e) {
+    UTIL.App.has_audio = false;
+    UTIL.App.has_vorbis = false;
+    UTIL.App.has_mp3 = false;
+}
