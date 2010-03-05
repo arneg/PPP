@@ -85,12 +85,15 @@ meteor.Connection.prototype = {
 	},
 	new_incoming_state_change : function(xhr) {
 		meteor.debug("new_incoming state is " + xhr.readyState);
+
+		if (xhr.readyState >= 2) {
+		    	window.clearTimeout(this.new_incoming_timeout);
+			delete this.new_incoming_timeout;
+		}
 		// we should check here for buffer length. maybe set a max
 		// amount to shut down the main one ungracefully
 		if (xhr.readyState >= 3) {
-		    	window.clearTimeout(this.new_incoming_timeout);
-			delete this.new_incoming_timeout;
-			this.connect_incoming();
+			this.connect_incoming(xhr);
 		}
 	},
 	connect_new_incoming : function() {
@@ -114,13 +117,14 @@ meteor.Connection.prototype = {
 			
 		xhr.open("POST", UTIL.make_url(this.url, this.vars), true);
 		// both opera and IE dont handle binary data correctly.
-		if (!UTIL.is_opera && !UTIL.is_ie) {
+		if (!UTIL.App.is_opera && !UTIL.App.is_ie) {
 			xhr.setRequestHeader("Content-Type", "application/octet-stream");
 		}
 		//xhr.overrideMimeType("text/plain; charset=ISO-8859-1");
 		if (xhr.overrideMimeType) xhr.overrideMimeType('text/plain; charset=x-user-defined');
 		xhr.onreadystatechange = UTIL.make_method(this, this.new_incoming_state_change, xhr);
 		var cb = UTIL.make_method(this, function() {
+			meteor.debug("connecting new_incoming timed out. dropping.\n");
 			meteor.dismantle(xhr);
 			delete this.new_incoming;
 			delete this.new_incoming_timeout;
@@ -158,7 +162,7 @@ meteor.Connection.prototype = {
 					var str;
 
 					try {
-						if (UTIL.is_opera) {
+						if (UTIL.App.is_opera) {
 							str = xhr.responseText.slice(this.pos);
 						} else if (xhr.responseBody) {
 							str = xhr.responseBody.join("");
@@ -223,14 +227,14 @@ meteor.Connection.prototype = {
 		xhr.onreadystatechange = UTIL.make_method(this, this.incoming_state_change, xhr);
 		xhr.onerror = UTIL.make_method(this, this.incoming_on_error, xhr);
 		meteor.debug("moved new incoming to incoming.");
-		this.new_incoming = 0;
+		delete this.new_incoming;
 		this.incoming = xhr;
 		this.pos = 0;
 		this.incoming_state_change(xhr);
 
 		// This code polls the xhr for new data in case opera is used. its necessary
 		// because opera does not trigger an event if new data is available in state 3.
-		if (UTIL.is_opera) {
+		if (UTIL.App.is_opera) {
 			this.operatimer = setInterval(UTIL.make_method(this, this.incoming_state_change, xhr), 100);
 			meteor.debug("timer: "+this.operatimer);
 		}
