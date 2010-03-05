@@ -26,6 +26,11 @@ UTIL = new Object();
  * @param {Function} cb Callback to be called for every match. Parameters to the callback will be the result returned by the call to RegExp.exec and possible extra arguments that were passed to replace.
  * @returns The resulting string.
  */
+UTIL.intp = function(i) { return (typeof(i) == "number" && i%1 == 0); };
+UTIL.arrayp = function(a) { return (typeof(a) == "object" && a instanceof Array); };
+UTIL.stringp = function(s) { return typeof(s) == "string"; };
+UTIL.functionp = function(f) { return (typeof(f) == "function" || f instanceof Function); };
+UTIL.objectp = function(o) { return typeof(o) == "object"; }
 UTIL.replace = function(reg, s, cb) {
 	var res;
 	var last = 0;
