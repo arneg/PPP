@@ -153,7 +153,7 @@ UTIL.make_method = function(obj, fun) {
 		return fun.apply(obj, Array.prototype.slice.call(arguments));
 	});
 };
-Util.Audio = function (params) {
+UTIL.Audio = function (params) {
 	if (UTIL.App.has_vorbis && !!params.ogg) {
 		this.url = params.ogg;	
 	} else if (UTIL.App.has_mp3 && !!params.mp3) {
@@ -163,28 +163,38 @@ Util.Audio = function (params) {
 	} 
 
 	if (this.url) {
+	    this.div = document.createElement("div");
+	    if (params.hidden) {
+		this.div.style.display = "none";
+	    }
+	    var audio = document.createElement("audio");
+	    audio.autoplay = params.hasOwnProperty("autoplay") ? !!params.autoplay : false;
+	    if (!audio.autoplay) {
+		audio.autobuffer = params.hasOwnProperty("autobuffer") ? !!params.autobuffer : true;
+	    }
+	    audio.controls = params.hasOwnProperty("controls") ? !!params.controls : true;
+	    audio.src = this.url;
+	    this.domnode = audio;
+	    this.div.appendChild(audio);
 	    this.getDomNode = function() {
-		var audio = document.createElement("audio");
-		audio.autoplay = params.hasOwnProperty("autoplay") ? !!params.autoplay : false;
-		if (!audio.autoplay) {
-		    audio.autobuffer = params.hasOwnProperty("autobuffer") ? !!params.autobuffer : true;
-		}
-		audio.controls = params.hasOwnProperty("controls") ? !!params.controls : true;
-		audio.src = this.url;
-		this.domnode = audio;
-		return audio;
+		return this.div;
 	    };
 	    this.play = function() {
 		this.domnode.play();
 	    };
 	    this.stop = function() {
-		this.domnode.stop();
+		this.domnode.pause();
+		this.domnode.position(0);
 	    };
 	} else {
-	    if (!params.wav) throw("You are trying to use Util.Audio without html5 and a wav file. This will not work.");
+	    if (!params.wav) throw("You are trying to use UTIL.Audio without html5 and a wav file. This will not work.");
 
 	    if (UTIL.App.is_opera || navigator.appVersion.indexOf("Mac") != -1) {
 		this.div = document.createElement("div");
+		if (params.hidden) {
+		    this.div.style.width = 0;
+		    this.div.style.height = 0;
+		}
 		if (navigator.appVersion.indexOf("Linux") != -1) {
 		    this.play = function () {
 			this.div.innerHTML = "<embed src=\""+params.wav+"\" type=\"application/x-mplayer2\" autostart=true height=0 width=0 hidden=true>";
@@ -210,6 +220,9 @@ Util.Audio = function (params) {
 		this.play = function () { document.all.sound.src = this.url; }
 		this.stop = function () { document.all.sound.src = null; }
 	    } else {
+		this.div = document.createElement("div");
+		this.div.style.width = 0;
+		this.div.style.height = 0;
 		this.embed = document.createElement("embed");
 		this.embed.type = "audio/wav";
 		this.embed.autostart = params.hasOwnProperty("autoplay") ? !!params.autoplay : false;
@@ -217,12 +230,13 @@ Util.Audio = function (params) {
 		this.embed.height = 0;
 		this.embed.enablejavascript = true;
 		this.embed.cache = params.hasOwnProperty("autobuffer") ? !!params.autobuffer : true;
+		this.div.appendChild(this.embed);
 
-		this.getDomNode = function () { return this.embed; }
+		this.getDomNode = function () { return this.div; }
 
 		if (this.embed.Play) {
 		    this.play = function () { this.embed.Play(); }
-		else if (this.embed.DoPlay) {
+		} else if (this.embed.DoPlay) {
 		    this.play = function () { this.embed.DoPlay(); }
 		} else throw("embed does not have a play method. Something is wrong.");
 
@@ -239,13 +253,14 @@ UTIL.App.is_safari = /a/.__proto__=='//';
 UTIL.App.is_chrome = /source/.test((/a/.toString+''));
 try { 
     UTIL.App.audio = document.createElement('audio');
-    UTIL.App.has_audio = !!UTIL.App.audio && !!Util.App.audio.canPlayType && !!Util.App.audio.play;
-    UTIL.App.has_vorbis = UTIL.App.has_audio && Util.App.audio.canPlayType("audio/ogg") != "" && Util.App.audio.canPlayType("audio/ogg") != "no";
-    UTIL.App.has_mp3 = UTIL.App.has_audio && Util.App.audio.canPlayType("audio/mpeg") != "" && Util.App.audio.canPlayType("audio/mpeg") != "no";
-    UTIL.App.has_wav = UTIL.App.has_audio && Util.App.audio.canPlayType("audio/wav") != "" && Util.App.audio.canPlayType("audio/wav") != "no";
-    delete Util.App.audio;
+    UTIL.App.has_audio = !!UTIL.App.audio && !!UTIL.App.audio.canPlayType && !!UTIL.App.audio.play;
+    UTIL.App.has_vorbis = UTIL.App.has_audio && UTIL.App.audio.canPlayType("audio/ogg") != "" && UTIL.App.audio.canPlayType("audio/ogg") != "no";
+    UTIL.App.has_mp3 = UTIL.App.has_audio && UTIL.App.audio.canPlayType("audio/mpeg") != "" && UTIL.App.audio.canPlayType("audio/mpeg") != "no";
+    UTIL.App.has_wav = UTIL.App.has_audio && UTIL.App.audio.canPlayType("audio/wav") != "" && UTIL.App.audio.canPlayType("audio/wav") != "no";
+    delete UTIL.App.audio;
 } catch (e) {
     UTIL.App.has_audio = false;
     UTIL.App.has_vorbis = false;
     UTIL.App.has_mp3 = false;
+    UTIL.App.has_wav = false;
 }
