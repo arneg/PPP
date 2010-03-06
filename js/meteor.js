@@ -195,7 +195,7 @@ meteor.Connection.prototype = {
 				}
 			} else {
 			// this throws an exception in firefox. brain
-			//	con.error(this.statusText);
+				this.error("HTTP "+s);
 			}
 		}
 	},
