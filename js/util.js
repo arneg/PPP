@@ -266,10 +266,19 @@ try {
     UTIL.App.has_vorbis = UTIL.App.has_audio && UTIL.App.audio.canPlayType("audio/ogg") != "" && UTIL.App.audio.canPlayType("audio/ogg") != "no";
     UTIL.App.has_mp3 = UTIL.App.has_audio && UTIL.App.audio.canPlayType("audio/mpeg") != "" && UTIL.App.audio.canPlayType("audio/mpeg") != "no";
     UTIL.App.has_wav = UTIL.App.has_audio && UTIL.App.audio.canPlayType("audio/wav") != "" && UTIL.App.audio.canPlayType("audio/wav") != "no";
-    delete UTIL.App.audio;
 } catch (e) {
     UTIL.App.has_audio = false;
     UTIL.App.has_vorbis = false;
     UTIL.App.has_mp3 = false;
     UTIL.App.has_wav = false;
 }
+delete UTIL.App.audio;
+try {
+    UTIL.App.video = document.createElement('video');
+    UTIL.App.has_video = !!UTIL.App.video && !!UTIL.App.video.canPlayType && !!UTIL.App.video.play;
+    UTIL.App.has_theora = UTIL.App.has_video && UTIL.App.video.canPlayType("video/ogg") != "" && UTIL.App.video.canPlayType("video/ogg") != "no";
+} catch (e) {
+    UTIL.App.has_video = false;
+    UTIL.App.has_theora = false;
+}
+delete UTIL.App.video;
