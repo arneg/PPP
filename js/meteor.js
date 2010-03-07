@@ -145,16 +145,12 @@ meteor.Connection.prototype = {
 		//meteor.debug("incoming state is "+xhr.readyState);
 
 		if (xhr.readyState >= 3) {
-			// workaround for IE
-			try {
-				s = xhr.status;
-			} catch(e) {
-				// this is ie country
-				// this is ie
-				meteor.debug("fucking ie");
+
+		    	if (UTIL.App.is_ie && xhr.readyState == 3) {
+			    return;
 			}
 
-			if (s == 200) {
+			if (xhr.status == 200) {
 				var length = xhr.responseBody ? xhr.responseBody.length : xhr.responseText.length;
 
 				if (length > this.pos) {
