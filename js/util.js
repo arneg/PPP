@@ -133,9 +133,7 @@ UTIL.make_url = function(url, vars) {
 	if (vars) for (key in vars) if (vars.hasOwnProperty(key)) {
 	    var a = vars[key];
 	    if (UTIL.arrayp(a)) {
-		a = a.concat();
-		for (var i = 0; i < a.length; i++) a[i] = UTIL.url_escape(a[i]);
-		list.push(UTIL.url_escape(key) + "=" + a.join(","));
+		for (var i = 0; i < a.length; i++) list.push(UTIL.url_escape(key) + "=" + UTIL.url_escape(a[i]));
 	    } else list.push(UTIL.url_escape(key) + "=" + UTIL.url_escape(a));
 	} else return url;
 
