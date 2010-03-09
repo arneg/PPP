@@ -131,7 +131,12 @@ UTIL.make_url = function(url, vars) {
     	var list = [];
 	var key;
 	if (vars) for (key in vars) if (vars.hasOwnProperty(key)) {
-	    list.push(key + "=" + UTIL.url_escape(vars[key]));
+	    var a = vars[key];
+	    if (UTIL.arrayp(a)) {
+		a = a.concat();
+		for (var i = 0; i < a.length; i++) a[i] = UTIL.url_escape(a[i]);
+		list.push(UTIL.url_escape(key) + "=" + a.join(","));
+	    } else list.push(UTIL.url_escape(key) + "=" + UTIL.url_escape(a));
 	} else return url;
 
 	return url + "?" + list.join("&");
@@ -252,6 +257,28 @@ UTIL.Audio = function (params) {
 		this.stop = function () { this.embed.Stop(); }
 	    }
 	}
+};
+UTIL.merge_objects = function() {
+    var o = {};
+    var i;
+    var key;
+
+    for (var i = 0; i < arguments.length; i++) for (key in arguments[i]) if (arguments[i].hasOwnProperty(key)) o[key] = arguments[i][key];
+    return o;
+};
+UTIL.get_random_key = function (length) {
+	var a = new Array();
+	// put some logic here to tune length of id and amount of items
+	for (var i = 0; i < length; i++) {
+		a.push(65 + Math.floor(Math.random() * 24));
+	}
+
+	return String.fromCharCode.apply(window, a);
+};
+UTIL.get_unique_key = function (length, set) {
+	var id;
+	while (set.hasOwnProperty((id = UTIL.get_random_key(length)))) { }
+	return id;
 };
 UTIL.App = {};
 UTIL.App.is_opera = !!window.opera;

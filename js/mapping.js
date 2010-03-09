@@ -131,22 +131,6 @@ along with the Program.
  * Flexible mapping/dictionary class that allows for arbitrary key types.
  * @constructor
  */
-function get_random_key(length) {
-	var a = new Array();
-	// put some logic here to tune length of id and amount of items
-	for (var i = 0; i < length; i++) {
-		a.push(65 + Math.floor(Math.random() * 24));
-	}
-
-	return String.fromCharCode.apply(window, a);
-}
-
-function get_unique_key(length, set) {
-	var id;
-	while (set.hasOwnProperty((id = get_random_key(length)))) { }
-	return id;
-}
-
 function HigherDMapping() {
 	this.n = new Mapping();
 	this.i2k = {};
@@ -161,7 +145,7 @@ HigherDMapping.prototype = {
 			this.n.set(key, m);
 		}
 
-		id = get_unique_key(6, m);
+		id = UTIL.get_unique_key(6, m);
 		m[id] = value;
 
 		this.i2k[id] = key;
