@@ -114,15 +114,16 @@ XSS.html_string_encode = function(s) {
 		var c = s.charCodeAt(i);
 
 		switch (c) {
-		case '&': ret += "&amp;"; break;
-		case '<': ret += "&lt;"; break;
-		case '>': ret += "&gt;"; break;
-		case '/': ret += "&#x2f;"; break;
-		case '\'': ret += "&#x27;"; break;
-		case '"': ret += "&quot;"; break;
+		case 38: ret += "&amp;"; break;
+		case 60: ret += "&lt;"; break;
+		case 62: ret += "&gt;"; break;
+		case 47: ret += "&#x2f;"; break;
+		case 39: ret += "&#x27;"; break;
+		case 34: ret += "&quot;"; break;
 		default: ret += String.fromCharCode(c); break;
 		}
 	}
 
 	return ret;
 };
+
