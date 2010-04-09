@@ -34,24 +34,32 @@ Serialization.Atom encode(MMP.Packet p) {
 MMP.Utils.StringBuilder buffer = MMP.Utils.StringBuilder();
 
 string|MMP.Utils.StringBuilder render(MMP.Packet p, void|MMP.Utils.StringBuilder buf) {
-	int nbuf = !buf;
+    int nbuf = !buf;
 
-	if (p->atom) {
-		p->atom->condense();
-		if (nbuf) return p->atom->render();
-		else return p->atom->render(buf);
-	}
+    if (nbuf && p->raw) {
+	return p->raw;
+    }
 
-	if (nbuf) buf = buffer;
+    if (p->atom) {
+	    p->atom->condense();
+	    if (nbuf) return p->atom->render();
+	    else return p->atom->render(buf);
+    }
+
+    if (nbuf) buf = buffer;
 
     int|array node = buf->add();
-	int length = buf->length();
+    int length = buf->length();
 
     dtype->render(p->data, buf);
     vtype->render(p->vars, buf);
 
     buf->set_node(node, sprintf("%s %d ", type, buf->length() - length));
-	if (nbuf) return buf->get();
+
+    if (nbuf) {
+	p->raw = MMP.Utils.Cloak(buf->get());
+	return p->raw;
+    }
     return buf;
 }
 
