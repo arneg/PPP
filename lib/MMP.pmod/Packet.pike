@@ -15,6 +15,8 @@ mapping misc = set_weak_flag(([]), Pike.WEAK);
 //! @[PSYC.Packet] in many parts of the @[PSYC] code.
 mixed data;
 
+mixed raw;
+
 function parsed = 0, sent = 0; 
 #ifdef LOVE_TELNET
 string newline;
