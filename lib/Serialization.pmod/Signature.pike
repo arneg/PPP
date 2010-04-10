@@ -1,4 +1,4 @@
-object type_cache;
+object type_cache = Serialization.default_type_cache;
 
 void create(object o) {
 //    werror("cache: %O\n", o);

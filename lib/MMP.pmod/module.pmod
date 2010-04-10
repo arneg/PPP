@@ -1,15 +1,17 @@
 // vim:syntax=lpc
 
+#include <debug.h>
+
 //! Implementation of MMP Circuits as described nowhere really.
 class Circuit {
     inherit MMP.Utils.Queue;
+    inherit Serialization.Signature;
+    inherit Serialization.PsycTypes;
 
     //! The socket used.
-    Stdio.File|Stdio.FILE socket;
-
-    MMP.Utils.Queue q_neg = MMP.Utils.Queue();
-    int write_ready, write_okay; // sending may be forbidden during
-				 // certain parts of neg
+    MMP.Utils.BufferedStream socket = MMP.Utils.BufferedStream();
+    Serialization.Types.Packet mmp_signature;
+    Serialization.AtomParser parser = Serialization.AtomParser();
 
     int pcount = 0;
 
@@ -47,52 +49,18 @@ class Circuit {
     void create(Stdio.File|Stdio.FILE socket, function cb, function close_cb,
 		void|function parse_uni) {
 	P2(("MMP.Circuit", "create(%O, %O, %O)\n", so, cb, closecb))
-	this_program::socket = socket;
-	socket->set_nonblocking(start_read, write, close);
+
+	this_program::socket->assign(socket);
+
+	socket->set_read_callback(read);
+	socket->set_close_callback(close);
 	this_program::close_cb = close_cb;
 	get_uniform = parse_uni||MMP.parse_uniform;
 
+	mmp_signature = Packet(Atom());
+
 	localip = (socket->query_address(1) / " ")[0];
 	peerip = (socket->query_address() / " ")[0];
-
-	q_neg->push(Packet());
-
-	void msg_cb(MMP.Packet p) {
-	    P2(("MMP.Circuit", "parsed %O.\n", p))
-	    if (p->data) {
-		// TODO: HOOK
-		if (p->parsed)
-		    p->parsed();
-		if (objectp(p["_target"])) {
-
-		    if (pcount < 3) {
-			if (!p["_target"]->reconnectable) p["_target"]->islocal = 1;
-		    }
-
-		}
-	    } else {
-		P2(("MMP.Circuit", "Got a ping.\n"))
-	    }
-
-	    cb(p, this); 
-	    pcount++;
-	};
-
-	mixed transform(string key, mixed value) {
-
-	    // TODO: has_prefix is not quite right...
-	    if (stringp(value)) {
-		if (has_prefix(key, "_source") 
-		||  has_prefix(key, "_target")
-		||  has_prefix(key, "_context"))
-		    return get_uniform(value);
-	    }
-
-	    return value;
-	};
-
-	parser = MMP.Parser(([ "callback" : msg_cb, "transform" : transform ]));
-	//::create();
     }
 
     string _sprintf(int type) {
@@ -112,19 +80,6 @@ class Circuit {
 	if (write_ready) write();
     }
 
-    //! Send a negotiation packet. @expr{packet@} will be send even
-    //! if the @[Circuit] has not been activated using @[activate()].
-    //! @note
-    //!	    Use this with care and for negotiation only!
-    void send_neg(Packet packet) {
-	P3(("MMP.Circuit", "%O->send_neg(%O)\n", this, packet))
-	q_neg->push(packet);
-
-	if (write_ready) {
-	    write();
-	}
-    }
-
     //! Register a packet for sending.
     //! @param holder
     //!	    A @[MMP.Utils.Queue] which holds the @[MMP.Packet] to be sent.
@@ -134,117 +89,22 @@ class Circuit {
     //! @seealso
     //!	    Remember to @[activate()] the Circuit, otherwise no packet
     //!	    will be sent.
-    void msg(MMP.Utils.Queue holder) {
-	P3(("MMP.Circuit", "%O->msg(%O)\n", this, holder))
-	P3(("MMP.Circuit", "%O->msg(%O) where write_ok: %O, write_ready: %O\n", this, sizeof(holder), write_okay, write_ready))
-	push(holder);
+    void send(MMP.Packet p) {
 
-	if (write_ready) {
-	    write();
-	}
-    }
-
-    int write(void|mixed id) {
-	MMP.Utils.Queue currentQ, realQ;
-	// we could go for speed with
-	// function currentshift, currentunshift;
-	// as we'd only have to do the -> lookup for q_neg packages then ,)
+	P3(("MMP.Circuit", "%O->send(%O)\n", this, p))
 	
-	if (!write_okay) return (write_ready = 1, 0);
-
-	if (!q_neg->isEmpty()) {
-	    currentQ = q_neg;
-	    P2(("MMP.Circuit", "Negotiation stuff..\n"))
-	} else if (!isEmpty()) {
-	    currentQ = this;
-	    P2(("MMP.Circuit", "Normal queue...\n"))
-	} 
-#if DEBUG
-	else {
-	    P2(("MMP.Circuit", "No packets in queue.\n"))
-	}
-#endif
-
-	realQ = currentQ;
-
-	if (!currentQ) {
-	    write_ready = 1;
-	} else {
-	    int written;
-	    mixed tmp;
-	    string s;
-
-	    write_ready = 0;
-
-	    if (currentQ == this) realQ = shift();
-
-	    tmp = realQ->shift();
-
-	    if (arrayp(tmp)) {
-		[s, tmp] = tmp;
-		// it seems more logical to me, to put all this logic into
-		// close.
-		if (tmp) (realQ = shift())->shift();
-	    } else /* if (objectp(tmp)) */ {
-		s = tmp->next();
-		if (tmp->has_next()) {
-		    realQ->push(tmp);
-		    realQ = 0;
-		}
-		// TODO: HOOK
-	    }
-
-	    // TODO: encode
-	    //s = trigger("encode", s);
-	    written = socket->write(s);
-
-	    P2(("MMP.Circuit", "%O wrote (%O) %d (of %d) bytes.\n", this, s, written, 
-		sizeof(s)))
-
-	    if (written != sizeof(s)) {
-		if (realQ) {
-		    q_neg->unshift(({ s[written..], tmp }));
-		    unshift(realQ);
-		    realQ->unshift(tmp);	
-		} else {
-		    q_neg->unshift(({ s[written..], 0 }));
-		}
-	    } else {
-		if (tmp->sent)
-		    tmp->sent();
-	    }
-	}
-
-	return 1;
-    }
-
-    int start_read(mixed id, string data) {
-
-	// is there anyone who would send \n\r ???
-	if (data[0 .. 1] != ".\n") {
-	    // TODO: error message
-	    socket->close();
-	    close(0);
-	    return 1;
-	}
-
-	// the reset has been called before.
-	P2(("MMP.Circuit", "%s sent a proper initialisation packet.\n", 
-	    peeraddr))
-	if (sizeof(data) > 2) {
-	    read(0, data[2 ..]);
-	}
-
-	socket->set_read_callback(read);
+	socket->write(mmp_signature->render(p)->get());
     }
 
     int read(mixed id, string data) {
-	// TODO: decode
-
 	P2(("MMP.Circuit", "read %d bytes.\n", sizeof(data)))
 
 	array(mixed) exception = catch {
-	    parser->parse(data);
+	    parser->feed(data);
+
+	    while (Serialization.Atom atom = parser->parse()) {
+		cb(mmp_signature->decode(atom), this);
+	    }
 	};
 
 	if (exception) {
@@ -259,7 +119,6 @@ class Circuit {
 	    socket->close();
 	    close(0);
 	}
-
 
 	return 1;	
     }
@@ -283,6 +142,7 @@ class Circuit {
     }
 }
 
+#if 0
 //! A @[Circuit] that is active (i.e. an outgoing connection).
 class Active {
     inherit Circuit;
@@ -343,6 +203,7 @@ class Server {
 	return -1;
     }
 }
+#endif
 
 //! This is an intermediate object which tries to keep a @[Circuit] to a certain
 //! target open. Multiple of this adapters may share the same @[Circuit].

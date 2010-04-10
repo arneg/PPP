@@ -40,6 +40,10 @@ string next() {
 	return (string)this;
 }
 
+mixed cast(string type) {
+	error("Go party next door!\n");
+}
+
 int has_next() { 
 	return 0;
 }

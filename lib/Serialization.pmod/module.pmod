@@ -1,3 +1,5 @@
+object default_type_cache = Serialization.TypeCache();
+
 //! Checks if a is a subtype of b.
 int(0..1) is_subtype_of(string a, string b) {
     if (a == b) return 1;
