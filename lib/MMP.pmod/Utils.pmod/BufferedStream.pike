@@ -3,7 +3,7 @@
     int will_write, close_on_finish;
     function(mixed|void:mixed|void) _write_cb;
     function(void | mixed, void | int : void | mixed) _error_cb;
-    array(string) out_buffer = allocate(64);
+    array(string) out_buffer = allocate(32);
     int out_buffer_stop = -1;
     int out_buffer_length = 0;
 
@@ -66,7 +66,7 @@
 	    length = sizeof(what);
 
 	    if (sizeof(out_buffer) == out_buffer_stop + 1)	{
-		    out_buffer += allocate(64);
+		    out_buffer += allocate(32);
 	    } 
 
 	    out_buffer[++out_buffer_stop] = what;
@@ -75,16 +75,14 @@
 	} else { 
 	    if (sizeof(out_buffer) - 1 - out_buffer_stop >= sizeof(what)) {
 		foreach (what;int i;string t) out_buffer[out_buffer_stop+i+1] = t;
-	    } else 
-		out_buffer = out_buffer[0..out_buffer_stop] + what + allocate(64);
+	    } else {
+		out_buffer = out_buffer[0..out_buffer_stop] + what + allocate(32);
 	    }
 	    out_buffer_stop += sizeof(what);
 	    length = `+(@map(what, sizeof));
 	}
 
 	out_buffer_length += length;
-#endif
-
 
 	if (!will_write) {
 		will_write = 1;
@@ -118,10 +116,14 @@
 		return;
 	} 
 
+	if (written < 0) {
+	    _error_cb(query_id());
+	    return;
+	}
+
 #if constant(Meteor)
 	Meteor.measure(written);
 #endif
-
 	if (written < out_buffer_length) {
 		out_buffer_length -= written;
 
@@ -139,21 +141,19 @@
 			    written -= sizeof(t);
 			}
 		}
-	} else if (close_on_finish) {
+	    return;
+	} 
+	
+	if (close_on_finish) {
 	    close();
 	    out_buffer = ({});
-	    out_buffer_stop = -1;
-	    out_buffer_length = 0;
-	    close_on_finish = 0;
-	    will_write = 0;
-	    ::set_write_callback(0);
 	    return;
 	} else {
-	    will_write = 0;
-	    ::set_write_callback(0);
-	    out_buffer_stop = -1;
-	    out_buffer_length = 0;
-	    return;
+	    out_buffer = allocate(32);
 	}
 
+	::set_write_callback(0);
+	will_write = 0;
+	out_buffer_stop = -1;
+	out_buffer_length = 0;
     }
