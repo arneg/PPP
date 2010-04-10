@@ -1,6 +1,5 @@
 // vim:syntax=lpc
 
-#if 0
 //! Implementation of MMP Circuits as described nowhere really.
 class Circuit {
     inherit MMP.Utils.Queue;
@@ -540,7 +539,6 @@ class VirtualCircuit {
 	if (circuit) circuit->msg(this);
     }
 }
-#endif
 
 //! @returns
 //!	@int
