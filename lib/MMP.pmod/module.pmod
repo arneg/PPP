@@ -301,7 +301,6 @@ class VirtualCircuit {
 
     void on_connect(MMP.Circuit c) {
 	if (c) {
-	    int sof = _sizeof();
 	    circuit = c;
 	    destruct(cres);
 
@@ -310,8 +309,8 @@ class VirtualCircuit {
 	    werror("circ: %O\n", circuit);
 	    circuit->add_close_cb(on_close);
 
-	    for (int i = 0; i < sof; i++) {
-		circuit->msg(this);
+	    for (;!is_empty();) {
+		circuit->send(shift());
 	    }
 	} else {
 	    if (cres) {
