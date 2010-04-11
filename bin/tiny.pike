@@ -36,7 +36,7 @@ void close(mixed ... args) {
 }
 
 void connected(int success, mixed ... args) {
-    werror("got connected (%O)\n", args);
+    werror("connected (%O)\n", args);
     out = MMP.Circuit(args[0], msg, close, server);
 }
 
@@ -78,5 +78,5 @@ void connect(string|void host, int|void port) {
 #ifdef BIND
     f->open_socket(UNDEFINED, BIND);
 #endif
-    f->async_connect(host || "127.0.0.1", port || 4044, connected, f, sprintf("%s:%d", host || "127.0.0.1", port || 4404));
+    f->async_connect(host || "127.0.0.1", port || 4044, connected, f, sprintf("%s:%d", host || "127.0.0.1", port || 4044));
 }

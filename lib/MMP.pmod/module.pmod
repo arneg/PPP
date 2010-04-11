@@ -97,11 +97,12 @@ class Circuit {
 	    parser->feed(data);
 
 	    while (Serialization.Atom atom = parser->parse()) {
-		cb(mmp_signature->decode(atom), this);
+		call_out(cb, 0, mmp_signature->decode(atom), this);
 	    }
 	};
 
 	if (exception) {
+	    werror("EXCEPTION: %O\n", exception);
 	    if (objectp(exception)
 		&& Program.inherits(object_program(exception), Error.Generic)) {
 		P0(("MMP.Circuit", "Caught an error: %O, %O\n", exception,
@@ -251,6 +252,8 @@ class VirtualCircuit {
     void create(MMP.Uniform peer, object server, function|void error, 
 		function|void check_out, MMP.Circuit|void c) {
 	P2(("VirtualCircuit", "create(%O, %O, %O)\n", _peer, srv, c))
+	werror("create(%O, %O, %O)\n", peer, server, c);
+
 
 	this_program::peer = peer;
 	targethost = peer->host;
@@ -279,7 +282,20 @@ class VirtualCircuit {
     }
 
     void on_close() {
+	circuit->remove_close_cb(on_close);
 	circuit = 0;
+	
+	if (!peer->reconnectable) {
+	    server = 0;
+	    peer = 0;
+	    failure_delivery = 0;
+	    if (check_out) {
+		check_out();
+		check_out = 0;
+	    } else error("And I never checked out from Outlook Hotel.\n");
+	    return;
+	}
+
 	init();
     }
 
@@ -291,6 +307,7 @@ class VirtualCircuit {
 
 	    // so we will get notified when the connection can't be
 	    // maintained any longer (connection break, reconnect fails)
+	    werror("circ: %O\n", circuit);
 	    circuit->add_close_cb(on_close);
 
 	    for (int i = 0; i < sof; i++) {
@@ -331,10 +348,12 @@ class VirtualCircuit {
 	}
     }
 
+#if 0
     void destroy() { // just in case... dunno when the maintenance in here
 		     // is neccessary. probably never, but doesn't hurt much.
-	circuit->remove_close_cb(on_close);
+	if (circuit) circuit->remove_close_cb(on_close);
     }
+#endif
 
     void srv_step() {
 	if (cres->has_next()) {
