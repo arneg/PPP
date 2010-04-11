@@ -23,7 +23,8 @@ class Circuit {
     //! Ip adress of the local- and peerhost of the tcp connection used.
     string peerip, localip;
 
-    function close_cb, get_uniform;
+    function close_cb, cb;
+    object server;
     mapping(function:array) close_cbs = ([ ]); // close_cb == server, close_cbs
 					       // contains the callbacks of
 					       // the VCs.
@@ -46,16 +47,16 @@ class Circuit {
     //! @param parse_uni
     //!	    Function to use to parse Uniforms. This is used in @[PSYC.Server] to
     //!	    keep the Uniform cache consistent.
-    void create(Stdio.File|Stdio.FILE socket, function cb, function close_cb,
-		void|function parse_uni) {
+    void create(Stdio.File|Stdio.FILE socket, function cb, function close_cb, object server) {
 	P2(("MMP.Circuit", "create(%O, %O, %O)\n", so, cb, closecb))
 
 	this_program::socket->assign(socket);
+	this_program::cb = cb;
+	this_program::close_cb = close_cb;
+	this_program::server = server;
 
 	socket->set_read_callback(read);
 	socket->set_close_callback(close);
-	this_program::close_cb = close_cb;
-	get_uniform = parse_uni||MMP.parse_uniform;
 
 	mmp_signature = Packet(Atom());
 
@@ -69,15 +70,6 @@ class Circuit {
 	case 'O':
 	    return sprintf("MMP.Circuit(%O)", peeraddr);
 	}
-    }
-
-    //! Start actually sending packets.
-    //! @note
-    //!	    This will be called for you by @[Server].
-    void activate() {
-	P3(("MMP.Circuit", "%O->activate()\n", this))
-	write_okay = 1;
-	if (write_ready) write();
     }
 
     //! Register a packet for sending.
