@@ -407,9 +407,9 @@ class VirtualCircuit {
 	    failure_delivery(p["_target"] || peer, p);
 	    return;
 	}
-	push(p);
 
-	if (circuit) circuit->msg(this);
+	if (circuit) circuit->send(p);
+	else push(p);
     }
 }
 
