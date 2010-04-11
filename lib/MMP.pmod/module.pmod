@@ -2,6 +2,8 @@
 
 #include <debug.h>
 
+constant DEFAULT_PORT = 4044;
+
 //! Implementation of MMP Circuits as described nowhere really.
 class Circuit {
     inherit MMP.Utils.Queue;
@@ -267,7 +269,7 @@ class VirtualCircuit {
 
     void init() {
 	int port = targetport;
-	if (MMP.Utils.Net.is_ip(targethost) && !port) port = 4404;
+	if (MMP.Utils.Net.is_ip(targethost) && !port) port = DEFAULT_PORT;
 
 	if (port) {
 	    connect_host(targethost, port);
@@ -308,7 +310,7 @@ class VirtualCircuit {
     }
 
     void connect_ip(string ip, int port) {
-	server->circuit_to(peer, on_connect);
+	server->circuit_to(ip, port, on_connect);
     }
 
     void connect_host(string host, int port) {
