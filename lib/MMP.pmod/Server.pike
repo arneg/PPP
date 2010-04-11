@@ -15,6 +15,9 @@ void circuit_to(string host, int port, function(MMP.Circuit:void) cb) {
     if (t = circuit_cache[hip]) {
 	call_out(cb, 0, t);
 	return;
+    } else if (has_index(vhosts, hip)) {
+	call_out(cb, 0, 0);
+	return;
     }
 
     Stdio.File f = Stdio.File();
@@ -53,8 +56,9 @@ void msg(MMP.Packet p, void|object c) {
 
     hip = sprintf("%s:%d", host, port);
 
-    if (s = vhosts[hip]) {
-	if (s == this) {
+    if (has_index(vhosts, hip)) {
+	mixed s = vhosts[hip];
+	if (!s || Program.inherits(object_program(s), MMP.Utils.EventAggregator)) {
 	    object o = get_entity(target);
 
 	    if (o) o->msg(p);
@@ -93,12 +97,54 @@ void accept(mixed id) {
 	werror("An old Vcircuit existed %O. cleaning up.\n", circuit_cache[hip]);
     }
 
-    vcircuit_cache[hip] = MMP.VirtualCircuit(get_uniform("psyc://"+hip+"/"), this, verror_cb, Function.curry(check_out)(hip), c);
+    // got connection from local vhost
+    if (has_index(vhosts, hip)) {
+	mixed t = vhosts[hip];
+
+	if (t == this) { // we are not vhost anymore
+	    m_delete(vhosts, hip);
+	} else if (Program.inherits(t, MMP.Utils.Aggregator)) {
+	    t->disable();
+	    vhosts[hip] = this;
+	    if (has_index(circuit_cache, hip)) {
+		circuit_cache[hip]->close();
+	    }
+	}
+    }
+
+    // local vhost detection goes here
+    string lhip = replace(f->query_address(1), " ", ":");
+
+    MMP.Utils.Aggregator e;
+    if (has_index(vhosts, lhip)) {
+	mixed t = vhosts[lhip];
+	if (t && Program.inherits(object_program(t), MMP.Utils.Aggregator)) {
+	    e = t;
+	}
+    } else {
+
+	vhosts[lhip] = MMP.Utils.Aggregator(Function.curry(m_delete)(vhosts, lhip));
+    }
+
+    if (e) {
+	function f = e->get_cb();
+	e->done();
+
+	void c_out() {	
+	    check_out(hip);
+	    f();
+	};
+	vcircuit_cache[hip] = MMP.VirtualCircuit(get_uniform("psyc://"+hip+"/"), this, verror_cb, c_out, c);
+    } else {
+	vcircuit_cache[hip] = MMP.VirtualCircuit(get_uniform("psyc://"+hip+"/"), this, Function.curry(check_out)(hip), c_out, c);
+    }
+
 }
 
 void bind(void|string ip, void|int port) {
     Stdio.Port p = Stdio.Port(port, accept, ip);
     p->set_id(p);
+    vhosts[replace(p->query_address(), " ", ":")] = 1;
 }
 
 MMP.Circuit get_route(MMP.Uniform target) {

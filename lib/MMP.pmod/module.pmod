@@ -281,26 +281,30 @@ class VirtualCircuit {
 	}
     }
 
+    void say_goodbye() {
+	server = 0;
+	peer = 0;
+	failure_delivery = 0;
+	if (check_out) {
+	    check_out();
+	    check_out = 0;
+	} else error("And I never checked out from Outlook Hotel.\n");
+    }
+
     void on_close() {
 	circuit->remove_close_cb(on_close);
 	circuit = 0;
 	
 	if (!peer->reconnectable) {
-	    server = 0;
-	    peer = 0;
-	    failure_delivery = 0;
-	    if (check_out) {
-		check_out();
-		check_out = 0;
-	    } else error("And I never checked out from Outlook Hotel.\n");
+	    say_goodbye();
 	    return;
 	}
 
 	init();
     }
 
-    void on_connect(MMP.Circuit c) {
-	if (c) {
+    void on_connect(MMP.Circuit|int c) {
+	if (objectp(c)) {
 	    circuit = c;
 	    destruct(cres);
 
@@ -312,6 +316,9 @@ class VirtualCircuit {
 	    for (;!is_empty();) {
 		circuit->send(shift());
 	    }
+	} else if (c == 1) {
+	    // empty queue?
+	    say_goodbye();
 	} else {
 	    if (cres) {
 		srv_step();

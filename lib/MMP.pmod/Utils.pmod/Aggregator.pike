@@ -1,5 +1,5 @@
 int _upcnt;
-int(0..1) _done;
+int(0..1) _done, _disabled;
 mapping _res = ([ ]);
 function _cb;
 
@@ -11,22 +11,42 @@ void done() {
     _done = 1;
 
     if (!_upcnt) {
-	_cb(_res);
+	if (!_disabled) {
+	    if (sizeof(_res)) {
+		_cb(_res);
+	    } else {
+		_cb();
+	    }
+	}
+	destruct(this);
     }
 }
 
-function get_cb(mixed name, int|void one) {
+void disable() {
+    _disabled = 1;
+}
+
+function get_cb(mixed|void name, int|void one) {
     _upcnt++;
 
     void cb(mixed ... args) {
-	if (one && sizeof(args) == 1) {
-	    _res[name] = args[0];
-	} else {
-	    _res[name] = args;
+	if (name || !zero_type(name)) {
+	    if (one && sizeof(args) == 1) {
+		_res[name] = args[0];
+	    } else {
+		_res[name] = args;
+	    }
 	}
 
 	if (!--_upcnt && _done) {
-	    _cb(_res);
+	    if (!_disabled) {
+		if (sizeof(_res)) {
+		    _cb(_res);
+		} else {
+		    _cb();
+		}
+	    }
+	    destruct(this);
 	}
     };
 
