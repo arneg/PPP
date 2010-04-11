@@ -17,6 +17,7 @@ MMP.Packet decode(Serialization.Atom atom) {
 	p = MMP.Packet(dtype->decode(list[0]), vtype->decode(list[1]));
 	//atom->set_typed_data(this, p);
 	p->set_atom(atom);
+	p->raw = MMP.Utils.Cloak(atom->render());
 	return p;
 }
 
