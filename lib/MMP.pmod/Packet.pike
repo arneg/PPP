@@ -1,7 +1,9 @@
 //! Implementation of an MMP Packet as descibed in 
 //! @[http://about.psyc.eu/MMP].
 
+#ifdef TRACE_SOFT_MEMLEAKS
 inherit .Utils.Screamer;
+#endif
 inherit Serialization.ObjectCache;
 
 //! MMP Variables of the Packet. These variables are routing information.
@@ -17,11 +19,6 @@ mixed data;
 
 mixed raw;
 
-function parsed = 0, sent = 0; 
-#ifdef LOVE_TELNET
-string newline;
-#endif
-
 // experimental variable family inheritance...
 // this actually does not exactly what we want.. 
 // because asking for a _source should return even _source_relay 
@@ -34,18 +31,6 @@ void create(mixed data, void|mapping(string:mixed) vars) {
 		this_program::vars = has_index(vars, "_timestamp") ? vars : vars + ([ "_timestamp" : time(1) ]);
 	} else this_program::vars = ([ "_timestamp" : time(1) ]);
 	this_program::data = data||0; 
-}
-
-string next() {
-	return (string)this;
-}
-
-mixed cast(string type) {
-	error("Go party next door!\n");
-}
-
-int has_next() { 
-	return 0;
 }
 
 //! @returns
@@ -113,31 +98,6 @@ mixed `[]=(string id, mixed val) {
 
 	error("put psyc variable (%s) into mmp packet (%O).", id, this);
 }
-
-#if 0
-mixed `->(mixed id) {
-	switch(id) {
-		case "lsource":
-			if (has_index(vars, "_source_relay")) {
-				mixed s = vars["_source_relay"];
-
-				if (arrayp(s)) {
-					s = s[-1];
-				}
-
-				return s;
-			}
-		case "source":
-			if (has_index(vars, "_source_identification")) {
-				return vars["_source_identification"];
-			}
-
-			return vars["_source"];
-	}
-
-	return ::`->(id);
-}
-#endif
 
 //! @returns
 //!	    The target of this packet i.e., the Uniform of the entity this 
