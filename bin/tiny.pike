@@ -50,7 +50,7 @@ void send(void|int id) {
     MMP.Packet p = MMP.Packet(Serialization.Atom("_string", "payload goes here"), ([ 
 		    "_id" : id,
 		    "_source" : MMP.Uniform("psyc://example.org/"), 
-		    "_target" : MMP.Uniform("psyc://example.org/~user")
+		    "_target" : MMP.Uniform("psyc://188.40.42.213/~user")
 		    ]));
     out->send(p);
 }

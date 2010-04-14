@@ -1,3 +1,97 @@
-- fix MMP.Circuits to do negotiation of modules..
-- make TELNET do proper tagging and checking for tags
-- check for hosts of incoming mmp packets..
+CURRENT STATUS
+- Birth of new project - wztz
+- Networking
+  * dynamic localhost detection 
+  * external delivery using VirtualCircuit
+  * DNS SRV resolution
+  * vHost support
+  * external vHost support
+
+FUTURE STATUS
+- PSYC
+  * Baseclass supporting _id based retransmission and sequence support (_id, (_sequence_pos, _sequence_max), 
+    _ack)
+    * _ack to ack last packet (before missing packets)
+    * _sequence_max and _sequence_pos to indicate sequences that need to be handled in order
+    * _id = 0 initiates an _id reset and needs to be acked
+      * the acking object must resend all packets that have not been acked before
+    * _id_reply to identify replies
+  * Baseclass supporting _context based routing, i.e. API for requesting context membership from the
+    root object
+  * Integrate Yakity
+  * PSYC syntax/semantics
+    * method is the new Atom type of psyc messages (e.g. _message_public, _notice_context_enter)
+    * _vars type syntax is (<method> . ' ' . <atom>)*
+  * API
+    * MMP.ReplyGatherer(object)
+      ->send(MMP.Packet);
+      ->on_reply(function f);
+    * MMP.Packet
+      ->reply();
+      ->on_reply(function f);
+    * MMP.Base(server, uniform)
+      ->msg(p);
+      ->send(p);
+      ->ReplyGatherer(void|function f); // factory
+      ->enter_context(uniform, function(int(0..2) success:void) callback);
+      ->leave_context(uniform);
+      
+- CONTEXT ROUTING
+  * necessary routing information
+    * local objects ask their root for membership (_request_context_enter with _supplicant)
+    * virtual circuits and external vhosts ask room membership
+    * root acks membership for _supplicant
+      * in general if context advertised beeing public before (specifying TTL or default value (4044 secs))
+      * if the context acked it
+    * root denies membership 
+      * if the context denies it
+      * in general
+        * if the context denies it in general (either specifying a TTL or default value (4044 secs))
+	* if the contexts denial TTL is still valid
+   * switching from public to private _notice_context_private
+      * every membership must be rerequested
+   * switching from private to public (_notice_context_public optional)
+      * all membership information must be discarded
+   * API
+      * MMP.Base
+      _request_context_enter -> general denial
+      _notice_context_leave -> ignore
+      ->Channel(string name)
+      Channel()->enter(uniform)
+      Channel()->leave(uniform)
+      Channel()->send(payload)
+   
+- CHANNEL ROUTING
+   * context advertises membership (_notice_channel_enter, _notice_channel_leave)
+     * routers either add local object to channel or
+       * send ad to vhost or virtualcircuit that is the root for _supplicant
+       * send ad to all vhosts and virtualcirtuits in context if room is public and broadcast all messages on channel from now on until one
+         new node replies
+
+
+MMP(Or(PSYC(), Polymorphic(...)))
+class User {
+    object sig = PSYC.MessagePublic();
+
+    void msg(Packet p) {
+	PSYC.Message m = sig->decode(p->data);
+
+	if (has_index(this, p->data->type)) {
+	    this[p->data->type](p);
+	}
+    }
+
+    void _notice_enter(Packet p) {
+	PSYC.Message m = sig->decode(p->data);
+    }
+}
+polymorphic(([
+    _message : Psyc,
+    _notice : Psyc,
+    _request : Psyc,
+    _integer : Int(),
+    _string : String(),
+    .
+    .
+    .
+    ]);
