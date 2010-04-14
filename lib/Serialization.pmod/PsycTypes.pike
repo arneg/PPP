@@ -85,6 +85,9 @@ object Packet(object type) {
     if (!(o = this->type_cache[Serialization.Types.Packet][type])) {
 		object vars = Vars(0, ([
 			"_id" : Int(),
+			"_ack" : Int(),
+			"_sequence_max" : Int(),
+			"_sequence_pos" : Int(),
 			//"_hrtime" : Int(),
 			"_source" : Uniform(),
 			"_target" : Uniform(),
