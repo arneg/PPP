@@ -58,7 +58,7 @@ void msg(MMP.Packet p, void|object c) {
 
     if (has_index(vhosts, hip)) {
 	mixed s = vhosts[hip];
-	if (!s || Program.inherits(object_program(s), MMP.Utils.EventAggregator)) {
+	if (!s || Program.inherits(object_program(s), MMP.Utils.Aggregator)) {
 	    object o = get_entity(target);
 
 	    if (o) o->msg(p);
@@ -136,7 +136,7 @@ void accept(mixed id) {
 	};
 	vcircuit_cache[hip] = MMP.VirtualCircuit(get_uniform("psyc://"+hip+"/"), this, verror_cb, c_out, c);
     } else {
-	vcircuit_cache[hip] = MMP.VirtualCircuit(get_uniform("psyc://"+hip+"/"), this, Function.curry(check_out)(hip), c_out, c);
+	vcircuit_cache[hip] = MMP.VirtualCircuit(get_uniform("psyc://"+hip+"/"), this, verror_cb, Function.curry(check_out)(hip), c);
     }
 
 }
@@ -144,7 +144,7 @@ void accept(mixed id) {
 void bind(void|string ip, void|int port) {
     Stdio.Port p = Stdio.Port(port, accept, ip);
     p->set_id(p);
-    vhosts[replace(p->query_address(), " ", ":")] = 1;
+    vhosts[replace(p->query_address(), " ", ":")] = this;
 }
 
 MMP.Circuit get_route(MMP.Uniform target) {
