@@ -98,13 +98,6 @@ UTF8.decode = function(str) {
 							   | (c4 & 0x3f));
 				i+=3;
 			} else {
-				if (meteor.debug) {
-					var o = "";
-					for (var j = 0; j < str.length; j++) {
-						o += str.charCodeAt(j)+".";
-					}
-					meteor.debug(o);
-				}
 				throw("Invalid UTF8 sequence ("+c.toString()+") at pos "+i);
 			}
 
