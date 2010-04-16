@@ -1,8 +1,7 @@
 // vim:syntax=lpc
 
-#include <debug.h>
-
 constant DEFAULT_PORT = 4044;
+inherit MMP.Utils.Debug;
 
 //! Implementation of MMP Circuits as described nowhere really.
 class Circuit {
@@ -50,7 +49,7 @@ class Circuit {
     //!	    Function to use to parse Uniforms. This is used in @[PSYC.Server] to
     //!	    keep the Uniform cache consistent.
     void create(Stdio.File|Stdio.FILE socket, function cb, function close_cb, object server) {
-	P2(("MMP.Circuit", "create(%O, %O, %O)\n", so, cb, closecb))
+	P2("MMP.Circuit", "create(%O, %O, %O)\n", socket, cb, close_cb);
 
 	this_program::socket->assign(socket);
 	this_program::cb = cb;
@@ -58,7 +57,7 @@ class Circuit {
 	this_program::server = server;
 
 	socket->set_read_callback(read);
-	socket->set_close_callback(close);
+	socket->set_close_callback(on_close);
 
 	mmp_signature = Packet(Atom());
 
@@ -70,7 +69,7 @@ class Circuit {
 	switch (type) {
 	case 's':
 	case 'O':
-	    return sprintf("MMP.Circuit(%O)", peeraddr);
+	    return sprintf("MMP.Circuit(%s)", (socket && socket->is_open()) ? socket->query_address() : "closed");
 	}
     }
 
@@ -85,13 +84,13 @@ class Circuit {
     //!	    will be sent.
     void send(MMP.Packet p) {
 
-	P3(("MMP.Circuit", "%O->send(%O)\n", this, p))
+	P3("MMP.Circuit", "%O->send(%O)\n", this, p);
 	
 	socket->write(mmp_signature->render(p)->get());
     }
 
     int read(mixed id, string data) {
-	P2(("MMP.Circuit", "read %d bytes.\n", sizeof(data)))
+	P2("MMP.Circuit", "read %d bytes.\n", sizeof(data));
 
 	array(mixed) exception = catch {
 	    parser->feed(data);
@@ -105,21 +104,24 @@ class Circuit {
 	    werror("EXCEPTION: %O\n", exception);
 	    if (objectp(exception)
 		&& Program.inherits(object_program(exception), Error.Generic)) {
-		P0(("MMP.Circuit", "Caught an error: %O, %O\n", exception,
-		    exception->backtrace()))
+		P0("MMP.Circuit", "Caught an error: %O, %O\n", exception, exception->backtrace());
 	    } else {
-		P0(("MMP.Circuit", "Caught an error: %O\n", exception))
+		P0("MMP.Circuit", "Caught an error: %O\n", exception);
 	    }
 	    // TODO: error message
 	    socket->close();
-	    close(0);
+	    on_close(0);
 	}
 
 	return 1;	
     }
 
-    int close(mixed id) {
-	P0(("MMP.Circuit", "%O: Connection closed.\n", this))
+    void close() {
+	werror("closing %O not implemented.\n", this);
+    }
+
+    int on_close(mixed id) {
+	P0("MMP.Circuit", "%O: Connection closed.\n", this);
 	// TODO: error message
 	close_cb(this);
 
@@ -136,69 +138,6 @@ class Circuit {
 	m_delete(close_cbs, cb);
     }
 }
-
-#if 0
-//! A @[Circuit] that is active (i.e. an outgoing connection).
-class Active {
-    inherit Circuit;
-
-    void create(Stdio.File|Stdio.FILE so, function cb, function closecb, void|function get_uniform) {
-
-	void _cb(MMP.Packet p, object c) {
-	    if (!p->data) {
-		// drop pings..
-		return;
-	    }
-
-	    cb(p, c);
-	};
-
-	::create(so, _cb, closecb, get_uniform);
-
-	string peerhost = so->query_address(1);
-	localaddr = get_uniform("psyc://"+((peerhost / " ") * ":-"));
-	localaddr->islocal = 1;
-	peerhost = so->query_address();
-	peeraddr = get_uniform("psyc://"+((peerhost / " ") * ":"));
-	peeraddr->islocal = 0;
-	//peeraddr->handler = this;
-    }
-}
-
-//! A @[Circuit] that is passive (i.e. an inbound connection). Use this for 
-//! already @[Stdio.Port()->accept()]ed sockets (sockets ready to transport
-//! MMP).
-class Server {
-    inherit Circuit;
-
-    void create(Stdio.File|Stdio.FILE so, function cb, function closecb, void|function get_uniform) {
-	
-	void _cb(MMP.Packet p, object c) {
-	    if (!p->data) {
-		send_neg(Packet());
-		return;
-	    }
-
-	    cb(p, c);
-	};
-
-	::create(so, _cb, closecb, get_uniform);
-
-	string peerhost = so->query_address(1);
-	localaddr = get_uniform("psyc://"+((peerhost / " ") * ":"));
-	localaddr->islocal = 1;
-	peerhost = so->query_address();
-	peeraddr = get_uniform("psyc://"+((peerhost / " ") * ":-"));
-	peeraddr->islocal = 0;
-
-	activate();
-    }
-
-    int sgn() {
-	return -1;
-    }
-}
-#endif
 
 //! This is an intermediate object which tries to keep a @[Circuit] to a certain
 //! target open. Multiple of this adapters may share the same @[Circuit].
@@ -251,9 +190,7 @@ class VirtualCircuit {
     //!	    "breaks".
     void create(MMP.Uniform peer, object server, function|void error, 
 		function|void check_out, MMP.Circuit|void c) {
-	P2(("VirtualCircuit", "create(%O, %O, %O)\n", _peer, srv, c))
-	werror("create(%O, %O, %O)\n", peer, server, c);
-
+	P2("VirtualCircuit", "create(%O, %O, %O)\n", peer, server, c);
 
 	this_program::peer = peer;
 	targethost = peer->host;
@@ -377,7 +314,7 @@ class VirtualCircuit {
 
     void connect_srv() {
 	void srvcb(string query, MMP.Utils.DNS.SRVReply|int result) {
-	    P3(("VirtualCircuit", "srvcb(%O, %O)\n", query, result))
+	    P3("VirtualCircuit", "srvcb(%O, %O)\n", query, result);
 	    if (objectp(result)) {
 		if (result->has_next()) {
 		    if (has_value(result->result->target, ".")) {
@@ -409,7 +346,7 @@ class VirtualCircuit {
     //! If delivery fails, eventually opening new circuits to other
     //! (responsible) servers will be opened.
     void msg(MMP.Packet p) {
-	P2(("VirtualCircuit", "%O->msg(%O)\n", peer, p))
+	P2("VirtualCircuit", "%O->msg(%O)\n", peer, p);
 	if (dead) {
 	    failure_delivery(p["_target"] || peer, p);
 	    return;
@@ -417,6 +354,11 @@ class VirtualCircuit {
 
 	if (circuit) circuit->send(p);
 	else push(p);
+    }
+
+    void close() {
+	// TODO
+	werror("close %O not implemented.\n", this);
     }
 }
 
