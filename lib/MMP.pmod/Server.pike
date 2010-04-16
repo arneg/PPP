@@ -3,6 +3,7 @@ inherit MMP.Utils.UniformCache;
 MMP.Circuit out;
 string bind_local;
 
+mapping(MMP.Uniform:object) entities = ([]);
 mapping(string:MMP.Circuit) circuit_cache = set_weak_flag(([ ]), Pike.WEAK_VALUES);
 mapping(string:MMP.VirtualCircuit) vcircuit_cache = ([]);
 mapping (string:object) vhosts = ([ ]);
@@ -32,10 +33,11 @@ void circuit_to(string host, int port, function(MMP.Circuit:void) cb) {
 }
 
 void register_entity(MMP.Uniform u, object o) {
+    entities[u] = o;
 }
 
 object get_entity(MMP.Uniform u) {
-    return 0;
+    return entities[u];
 }
 
 void msg(MMP.Packet p, void|object c) {
@@ -47,9 +49,15 @@ void msg(MMP.Packet p, void|object c) {
 
     if (c) {
 	// CHECK FOR SANITY
+	werror("got: %O from %O\n", p, c);
     }
 
-    werror("got: %O from %O\n", p, c);
+
+    if (has_index(entities, target)) {
+	entities[target]->msg(p);
+	return;
+    }
+
 
     host = target->host;
     port = target->port || .DEFAULT_PORT;
