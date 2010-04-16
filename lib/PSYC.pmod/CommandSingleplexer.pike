@@ -1,6 +1,5 @@
 // vim:syntax=lpc
-#include <debug.h>
-
+inherit MMP.Utils.Debug;
 //! This provides a neat framework for working with user commands.
 //! Even has storage support. You'll like it!
 
@@ -39,7 +38,7 @@ void add_commands(PSYC.Commands.Base ... args) {
 //! 	The command the user entered, but without "command chars", like a
 //! 	preceeding slash.
 void cmd(string input) {
-    P3(("PSYC.CommandSingleplexer", "cmd(%O)\n", input))
+    P3("PSYC.CommandSingleplexer", "cmd(%O)\n", input);
     int i;
 
     i = search(input, ' ');
@@ -55,7 +54,7 @@ void cmd(string input) {
 	args = input[i ..];
     }
 	
-    P3(("Command", "%O\n", commands))
+    P3("Command", "%O\n", commands);
 
     if (has_index(commands, command)) {
 COMMAND: foreach (commands[command];;array pair) {
@@ -74,7 +73,7 @@ COMMAND: foreach (commands[command];;array pair) {
 		[type, name] = spec;
 
 		if (sizeof(args) <= i) {
-		    P1(("PSYC.CommandSingleplexer", "sizeof(args)(==%O) <= %O\n", sizeof(args), i))
+		    P1("PSYC.CommandSingleplexer", "sizeof(args)(==%O) <= %O\n", sizeof(args), i);
 		    break COMMAND;
 		}
 		
@@ -85,7 +84,7 @@ COMMAND: foreach (commands[command];;array pair) {
 		} 
 
 		if (stat == 0) {
-		    P1(("PSYC.CommandSingleplexer", "a parse(%O) failed, hooray.\n", type))
+		    P1("PSYC.CommandSingleplexer", "a parse(%O) failed, hooray.\n", type);
 		    break COMMAND;
 		}
 
@@ -93,12 +92,12 @@ COMMAND: foreach (commands[command];;array pair) {
 		results += ({ result });
 	    }
 
-	    P1(("PSYC.CommandSingleplexer", "results == %O\n", results))
+	    P1("PSYC.CommandSingleplexer", "results == %O\n", results);
 
     	    fun(@results, args);
 	    return;
 	}
     }
     
-    P0(("PSYC.CommandSingleplexer", "Cannot find a handler for command '%s'.\n", command))
+    P0("PSYC.CommandSingleplexer", "Cannot find a handler for command '%s'.\n", command);
 }

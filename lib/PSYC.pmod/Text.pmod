@@ -1,7 +1,4 @@
 // vim:syntax=lpc
-#include <debug.h>
-#define unless(x)	if(!(x))
-#define member	has_index
 
 string psyctext(string fmt, mapping|void vars) {
     if (vars) {
@@ -55,9 +52,6 @@ string psyctext(string fmt, mapping|void vars) {
 }
 //#define NO_CACHE
 
-#define unless(x)	if(!(x))
-#define member	has_index
-
 //! Base TextDB class.
 class TextDB {
     mapping fmts = ([ ]);
@@ -82,6 +76,7 @@ class TextDB {
 //! Standard TextDB class that reads templates from the classical psycmuve template directories.
 class FileTextDB {
     inherit TextDB;
+    inherit MMP.Utils.Debug;
 
     string tdbpath;
 
@@ -90,7 +85,7 @@ class FileTextDB {
     //! @note
     //! 	You usually won't have to create your own @[FileTextDB]s, but use @[FileTextDBFactoryFactory()]
      void create(string path) {
- 	P3(("FileTextDB", "create(%O)\n", path))
+ 	P3("FileTextDB", "create(%O)\n", path);
 	tdbpath = path;
 
 	if (path[-1] != '/') {
@@ -107,11 +102,11 @@ class FileTextDB {
     //! @param extra
     //! 	Arguments to be passed on to the callback.
     void fetch(string mc, function cb, mixed ... extra) {
-	P3(("text", "fetch(%O, %O, %O)\n", mc, cb, extra))
+	P3("text", "fetch(%O, %O, %O)\n", mc, cb, extra);
 	string filename, fmt, before, match, after;
 	Stdio.File file;
 
-	if (member(fmts, mc)) {
+	if (has_index(fmts, mc)) {
 	    call_out(cb, 0, 1, @extra);
 
 	    return;
@@ -119,14 +114,14 @@ class FileTextDB {
 
 	filename = tdbpath + Stdio.simplify_path(replace(mc, "_", "/")) + ".fmt";
 
-	P3(("Text", "opening %O\n", filename))
+	P3("Text", "opening %O\n", filename);
 	if (Stdio.is_file(filename)) {
-	    P3(("Text", "is_file\n"))
+	    P3("Text", "is_file\n");
 	    file = Stdio.File(filename, "r");
 	    fmt = file->read();
 	    file->close();
 	} else {
-	    P3(("Text", "else\n"))
+	    P3("Text", "else\n");
 	    array(string) l = mc / "_";
 
 	    if (sizeof(l) > 2) {
