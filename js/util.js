@@ -124,6 +124,47 @@ UTIL.hasClass = function(o, cl) {
 UTIL.removeClass = function(o, cl) {
 	UTIL.replaceClass(o, cl);
 };
+UTIL.render_html = function(template, vars) {
+	var reg = /\[[\w-\|]+\]/g;
+
+	var cb = function(result) {
+	    var s = result[0].substr(1, result[0].length-2);
+
+	    if (vars.hasOwnProperty(s)) {
+		return XSS.strip_html(vars[s]);
+	    } else return "";
+	};
+	return UTIL.split_replace(reg, template, cb).join("");
+};
+UTIL.render_into = function(node, template, vars) {
+	var reg = /\[[\w-\|]+\]/g;
+
+	var cb = function(result) {
+	    var s = result[0].substr(1, result[0].length-2);
+	    var l = s.split("|");
+	    var tag;
+
+	    if (l.length > 1) {
+		tag = l[0];
+		s = l[1];
+	    } else {
+		tag = "span";
+	    }
+
+	    if (vars.hasOwnProperty(s)) {
+		var node = document.createElement(tag);
+		UTIL.addClass(node, s);
+		node.appendChild(document.createTextNode(vars[s]));
+		return node;
+	    } else return 0;
+	};
+	var a = UTIL.split_replace(reg, template, cb);
+
+	for (var i = 0; i < a.length; i++) {
+		if (UTIL.stringp(a[i])) node.appendChild(document.createTextNode(a[i]));
+		else if (UTIL.objectp(a[i])) node.appendChild(a[i]);
+	}
+};
 UTIL.url_escape = function(s) {
     	return escape(s).replace(/\+/g, "%2B").replace(/\//g, "%2F");
 };
