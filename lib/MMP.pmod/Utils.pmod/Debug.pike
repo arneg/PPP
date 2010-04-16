@@ -4,11 +4,6 @@
 
 // yes, technically we don't really need this reference here, but it might
 // come in handy in the future
-#if constant(Public.Logging.PPP)
-.DebugManager _debugmanager = Public.Logging.PPP.get_default_manager();
-#else
-.DebugManager _debugmanager;
-#endif
 
 //! @decl void do_throw(string fmt, mixed ... args)
 //! See @[DebugManager()->do_throw()]
@@ -19,11 +14,12 @@
 
 // so the backtrace won't get messed up
 #if constant(Public.Logging.PPP)
-function debug = Public.Logging.PPP.get_default_manager()->debug;
-function do_throw = Public.Logging.PPP.get_default_manager()->do_throw;
+.DebugManager _debugmanager = Public.Logging.PPP.get_default_manager();
+void debug(mixed ... args) {
+    _debugmanager->debug(@args);
+}
 #else
-function debug;
-function do_throw;
+void debug(mixed ... args) {}
 #endif
 
 //! @param s
@@ -39,14 +35,41 @@ function do_throw;
 //!	and overload @expr{create()@}), or with an empty argument list, which
 //!	will both lead to the default @[DebugManager] being used.
 void create(.DebugManager|void s) {
-    if (!(_debugmanager = s)) {
-#if !constant(Public.Logging.PPP)
-	throw(({ "No DebugManager given.\n", backtrace() }));
-#else
-	return;
+#if constant(Public.Logging.PPP)
+    if (s) _debugmanager = s;
 #endif
-    }
-
-    debug = s->debug;
-    do_throw = s->do_throw;
 }
+
+#if constant(Public.Logging.PPP)
+# define P(n) 	void P##n(string module, string fmt, mixed ... args) { _debugmanager->debug(module, fmt, @args); }
+#else
+# define P(n) 	void P##n(string module, string fmt, mixed ... args) { werror("%s: %s", module, sprintf(fmt, @args)); }
+#endif
+#define D(n) 	void P##n(string module, string fmt, mixed ... args) {}
+
+#ifdef DEBUG
+P(0)
+# if DEBUG > 0
+P(1)
+# else
+D(1)
+# endif
+# if DEBUG > 1
+P(2)
+# else
+D(2)
+# endif
+# if DEBUG > 2
+P(3)
+# else
+D(3)
+# endif
+# if DEBUG > 3
+P(4)
+# else
+D(4)
+# endif
+#else
+D(0) D(1) D(2) D(3) D(4)
+#endif
+
