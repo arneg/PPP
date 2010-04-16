@@ -103,6 +103,10 @@ XSS.html_string_decode = function(s) {
 		}
 	});
 };
+XSS.strip_html = function(s) {
+	s = s.replace(/<\/?[^>]+(>|$)/g, "");
+	return XSS.html_string_encode(s);
+};
 /**
  * @param {String} s String possibly containing HTML sequences.
  * @returns The original string with certain characters replaced by HTML escape sequences.
