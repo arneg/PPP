@@ -1,9 +1,26 @@
+/*
+Copyright (C) 2010  Arne Goedeke
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+version 2 as published by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
+WIDGET = {};
 WIDGET.StateMachine = Base.extend({
 	constructor : function(transitions, actions) {
 		this.t = transitions;
 		this.a = {};
 		for (var i in actions) if (actions.hasOwnProperty(i)) {
-			if (UTILS.arrayp(actions[i])) this.a[i] = actions[i];
+			if (UTIL.arrayp(actions[i])) this.a[i] = actions[i];
 			else this.registerEvent(i, actions[i]);
 		}
 		this.state = "start";
@@ -31,6 +48,7 @@ WIDGET.StateMachine = Base.extend({
 });
 WIDGET.Base = WIDGET.StateMachine.extend({
 	constructor : function(node, states, actions) {
+		this.node = node;
 		var transitions = {
 			start : {}
 		};
@@ -69,4 +87,3 @@ WIDGET.SimpleButton = WIDGET.Base.extend({
 		this.base(node, classes, actions);
 	},
 });
-
