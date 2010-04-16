@@ -26,7 +26,7 @@ void msg(MMP.Packet p) {
 		if (PSYC.STOP == f(p, m)) return;
 	    }
 
-	    string(array) t = method/"_";
+	    array(string) t = method/"_";
 
 	    for (int i = sizeof(t)-2; i > 0; i--) {
 		f = this[t[0..i]*"_"];
@@ -50,7 +50,7 @@ void sendmsg(MMP.Uniform target, string method, void|string data, void|mapping m
 	send(target, PSYC.Message(method, data, m));
 }
 
-void _request_retrieval(MMP.Packet p, PSYC.Message m) {
+int _request_retrieval(MMP.Packet p, PSYC.Message m) {
     array ids = m["_ids"];
 
     object state = get_state(p->source());
@@ -60,4 +60,6 @@ void _request_retrieval(MMP.Packet p, PSYC.Message m) {
 	if (!packet) werror("Packet with id %d not available for retransmission\n", i);
 	else send(packet);
     }
+
+    return PSYC.GOON;
 }
