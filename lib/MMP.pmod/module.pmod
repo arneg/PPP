@@ -1,13 +1,13 @@
 // vim:syntax=lpc
 
 constant DEFAULT_PORT = 4044;
-inherit MMP.Utils.Debug;
 
 //! Implementation of MMP Circuits as described nowhere really.
 class Circuit {
     inherit MMP.Utils.Queue;
     inherit Serialization.Signature;
     inherit Serialization.PsycTypes;
+    inherit MMP.Utils.Debug;
 
     //! The socket used.
     MMP.Utils.BufferedStream socket = MMP.Utils.BufferedStream();
@@ -148,6 +148,7 @@ class Circuit {
 //! Supports SRV records in domain resolution.
 class VirtualCircuit {
     inherit MMP.Utils.Queue; // me hulk! me can queue!
+    inherit MMP.Utils.Debug;
 
     MMP.Circuit circuit;
     MMP.Utils.DNS.SRVReply cres;
