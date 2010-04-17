@@ -103,7 +103,7 @@ class FileTextDB {
     //! 	Arguments to be passed on to the callback.
     void fetch(string mc, function cb, mixed ... extra) {
 	P3("text", "fetch(%O, %O, %O)\n", mc, cb, extra);
-	string filename, fmt, before, match, after;
+	string filename, fmt;
 	Stdio.File file;
 
 	if (has_index(fmts, mc)) {
