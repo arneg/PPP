@@ -1,11 +1,12 @@
-inherit MMP.Base;
+inherit MMP.Base : B;
 inherit Serialization.Signature;
 inherit Serialization.PsycTypes;
 
 object msig;
 
 void create(object server, MMP.Uniform uniform) {
-    ::create(server, uniform);
+    B::create(server, uniform);
+    //S::create(server->type_cache);
 
     msig = Message(); // whatever
 }
@@ -22,7 +23,7 @@ void msg(MMP.Packet p) {
 	    mixed f = this[method];
 	    
 	    if (functionp(f)) {
-		if (!m) m = decode_message(p->data);
+		if (!m) m = msig->decode(p->data);
 		if (PSYC.STOP == f(p, m)) return;
 	    }
 
@@ -31,7 +32,7 @@ void msg(MMP.Packet p) {
 	    for (int i = sizeof(t)-2; i > 0; i--) {
 		f = this[t[0..i]*"_"];
 		if (functionp(f)) {
-		    if (!m) m = decode_message(p->data);
+		    if (!m) m = msig->decode(p->data);
 		    if (PSYC.STOP == f(p, m)) return;
 		}
 	    }
@@ -39,7 +40,7 @@ void msg(MMP.Packet p) {
 	    f = this->_;
 
 	    if (functionp(f)) {
-		if (!m) m = decode_message(p->data);
+		if (!m) m = msig->decode(p->data);
 		if (PSYC.STOP == f(p, m)) return;
 	    }
 	}
@@ -47,7 +48,7 @@ void msg(MMP.Packet p) {
 }
 
 void sendmsg(MMP.Uniform target, string method, void|string data, void|mapping m) {
-	send(target, PSYC.Message(method, data, m));
+	send(target, msig->encode(PSYC.Message(method, data, m)));
 }
 
 int _request_retrieval(MMP.Packet p, PSYC.Message m) {
@@ -58,7 +59,7 @@ int _request_retrieval(MMP.Packet p, PSYC.Message m) {
     foreach (ids;;int i) {
 	MMP.Packet packet = state->cache[i];
 	if (!packet) werror("Packet with id %d not available for retransmission\n", i);
-	else send(packet);
+	else server->msg(packet);
     }
 
     return PSYC.GOON;
