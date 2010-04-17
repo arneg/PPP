@@ -141,3 +141,21 @@ object Int() {
 
     return o;
 }
+
+object default_polymorphic() {
+    object o;
+
+    if (!(o = this->type_cache[Serialization.Types.Polymorphic][0])) {
+		o = Serialization.Types.Polymorphic();
+		o->register_type("int", "_integer", Int());
+		o->register_type("string", "_string", UTF8String());
+		o->register_type("float", "_float", Float());
+		o->register_type("array", "_list", List(o));
+		o->register_type("mapping", "_mapping", Mapping(o, o));
+		o->register_type(Serialization.Atom, "_", Atom());
+		o->register_type(Calendar.Second, "_time", Atom());
+		this->type_cache[Serialization.Types.Polymorphic][0] = o;
+    }
+
+    return o;
+}
