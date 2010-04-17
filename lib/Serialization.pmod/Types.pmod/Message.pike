@@ -19,6 +19,12 @@ string render_payload(Serialization.Atom atom) {
 	return buf->get();
 }
 
+Serialization.Atom encode(PSYC.Message m) {
+    Serialization.Atom a = ::encode(m);
+    a->type = m->method;
+    return a;
+}
+
 MMP.Utils.StringBuilder render(PSYC.Message m, MMP.Utils.StringBuilder buf) {
 	array node = buf->add();
 
