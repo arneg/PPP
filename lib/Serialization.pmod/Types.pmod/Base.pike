@@ -7,7 +7,7 @@ int(0..1) can_decode(Serialization.Atom atom) {
 
 string _sprintf(int t) {
     if (t == 'O') {
-		return sprintf("Serialization.Type(%s)", type);
+		return sprintf("Serialization.Type(%s)", type||sprintf("%O", this_program));
     }
 
     return 0;
