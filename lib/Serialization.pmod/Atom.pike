@@ -110,9 +110,9 @@ string|MMP.Utils.StringBuilder render(void|MMP.Utils.StringBuilder buf) {
 
 string _sprintf(int t) {
     if (t == 'O') {
-		return sprintf("Atom(%s, %O)", type, data || (signature && has_index(typed_data, signature) ? typed_data[signature] : UNDEFINED));
+		return sprintf("Atom(%O, %O)", type, data || (signature && has_index(typed_data, signature) ? typed_data[signature] : UNDEFINED));
     } else if (t == 's') {
-		return sprintf("Atom(%s)", type);
+		return sprintf("Atom(%O)", type);
     }
 }
 
