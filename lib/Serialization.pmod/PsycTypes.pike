@@ -57,25 +57,31 @@ object Uniform() {
 	return u;
 }
 
-/*
-object PsycPacket(string base, void|object data, void|mapping m, void|mapping m2) {
-    object method, vars;
+object default_polymorphic() {
+    object o = ::default_polymorphic();
+    if (!has_index(o->ptypes, MMP.Uniform)) o->register_type(MMP.Uniform, "_uniform", Uniform());
+}
+
+
+object Message(void|object data, void|mapping m, void|mapping m2) {
+    object vars;
     object o;
+
+    if (!data) data = UTF8String();
 
     if (m || m2) vars = Vars(m, m2);
 
-    method = Method(base);
-     
-    object mangler = Serialization.Mangler(({ method, data, vars }));
+    object mangler = Serialization.Mangler(({ data, vars }));
     
-    if (!(o = this->type_cache[Serialization.Types.PsycPacket][mangler])) {
-		o = Serialization.Types.PsycPacket(method, vars, data);
-		this->type_cache[Serialization.Types.PsycPacket][mangler] = o;
+    if (!vars) vars = Vars(0, ([ "_" : default_polymorphic() ]));
+
+    if (!(o = this->type_cache[Serialization.Types.Message][mangler])) {
+		o = Serialization.Types.Message(vars, data);
+		this->type_cache[Serialization.Types.Message][mangler] = o;
     }
 
     return o;
 }
-*/
 
 object Packet(object type) {
     object o;
