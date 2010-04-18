@@ -12,6 +12,7 @@ void create(object server, MMP.Uniform uniform) {
 }
 
 void msg(MMP.Packet p) {
+    if (random(1.0) < 0.3) return;
     ::msg(p);
 
 
@@ -53,6 +54,7 @@ void sendmsg(MMP.Uniform target, string method, void|string data, void|mapping m
 
 int _request_retrieval(MMP.Packet p, PSYC.Message m) {
     array ids = m["_ids"];
+    werror("%O: _request_retrieval(%d) of %O\n", p->source(), p["_id"], ids);
 
     object state = get_state(p->source());
 
@@ -63,4 +65,8 @@ int _request_retrieval(MMP.Packet p, PSYC.Message m) {
     }
 
     return PSYC.GOON;
+}
+
+int _message_public(MMP.Packet p, PSYC.Message m) {
+    werror("%O: _message_public(%d)\n", uniform, p["_id"]);
 }
