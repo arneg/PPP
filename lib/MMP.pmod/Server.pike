@@ -54,7 +54,8 @@ void msg(MMP.Packet p, void|object c) {
 
 
     if (has_index(entities, target)) {
-	entities[target]->msg(p);
+	// THIS IS ONLY FOR SAFETY REASONS
+	call_out(entities[target]->msg, 0, p);
 	return;
     }
 
