@@ -1,7 +1,7 @@
 class State {
     int local_id = 0;
     int remote_id = -1; 
-    int last_in_sequence = 0;
+    int last_in_sequence = -1;
 
     mapping(int:int) missing = ([]);
     mapping(int:MMP.Packet) cache = ([]);
@@ -35,7 +35,7 @@ void sendmsg(MMP.Uniform target, string method, void|string data, void|mapping v
 
 // TODO: these mmp objects are not really capable of doing the _request_retrieval, so we should probably have a
 // callback for that. or something. lets assume we have a sendmsg
-void msg(MMP.Packet p) {
+int msg(MMP.Packet p) {
 	int id = p["_id"];
 	int ack = p["_ack"];
 	object state = get_state(p["_source"]);
@@ -47,27 +47,31 @@ void msg(MMP.Packet p) {
 	    // and cached aswell.
 	}
 
-	if (id == state->last_in_sequence + 1) {
-	    if (!sizeof(state->missing)) state->last_in_sequence = id;
-	    state->remote_id = id;
+	if (id == state->remote_id + 1) {
+	    if (state->last_in_sequence == state->remote_id) state->last_in_sequence = id;
 	} else if (id > state->remote_id + 1) { // missing messages
 	    // we will request retrieval only once
 	    // maybe use missing = indices(state->missing) here?
 	    array(int) missing = enumerate(id - state->remote_id - 1, 1, state->remote_id + 1);
+	    werror("missing: %O\n", missing);
 	    state->missing += mkmapping(missing, allocate(sizeof(missing), 1));
-	    sendmsg(p["_source"], "_request_retrieval", 0, ([ "_ids" : missing ]));
+	    call_out(sendmsg, 0, p["_source"], "_request_retrieval", 0, ([ "_ids" : indices(state->missing) ]));
 	    state->remote_id = id;
 	} else if (id <= state->remote_id) { // retrieval
+	    werror("got retransmission of %d (still missing: %s)\n", id, (array(string))indices(state->missing) * ", ");
 	    if (has_index(state->missing, id)) {
 		m_delete(state->missing, id);
 		if (!sizeof(state->missing)) state->last_in_sequence = state->remote_id;
-	    } else return; // we can drop it
+		else state->last_in_sequence = min(@indices(state->missing))-1;
+	    } return 0;
 	}
 
-
+	if (id > state->remote_id) state->remote_id = id;
 
 	// would like to use something like filter(state->cache, Function.curry(`>)(ack)) ...
 	for (int i = ack; has_index(state->cache, i); i--) m_delete(state->cache, i);
+
+	return 1;
 }
 
 void send(MMP.Uniform target, Serialization.Atom m, void|MMP.Uniform relay) {
