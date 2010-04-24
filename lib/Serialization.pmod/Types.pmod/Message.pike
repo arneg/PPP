@@ -28,7 +28,7 @@ Serialization.Atom encode(PSYC.Message m) {
 MMP.Utils.StringBuilder render(PSYC.Message m, MMP.Utils.StringBuilder buf) {
 	array node = buf->add();
 
-	vars->render(m->vars||([]), buf);
+	vars->render(m->vars, buf);
 	data->render(m->data, buf);
 	node[2] = sprintf("%s %d ", m->method, buf->count_length(node));
 
@@ -61,6 +61,7 @@ int(0..1) can_decode(Serialization.Atom atom) {
     case "_message":
     case "_notice":
     case "_request":
+    case "_error":
     case "_status":
     	return 1;
     }
