@@ -60,6 +60,7 @@ object Uniform() {
 object default_polymorphic() {
     object o = ::default_polymorphic();
     if (!has_index(o->ptypes, MMP.Uniform)) o->register_type(MMP.Uniform, "_uniform", Uniform());
+    return o;
 }
 
 
