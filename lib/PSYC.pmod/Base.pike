@@ -2,24 +2,20 @@ inherit MMP.Base : B;
 inherit Serialization.Signature;
 inherit Serialization.PsycTypes;
 
-object msig;
+object message_signature;
 
 void create(object server, MMP.Uniform uniform) {
     B::create(server, uniform);
     //S::create(server->type_cache);
 
-    msig = Message(); // whatever
+    message_signature = Message(); // whatever
 }
 
+
 void msg(MMP.Packet p) {
-    if (random(1.0) < 0.3) {
-	werror("LOST %d\n", p->vars->_id);
-	return;
-    }
     if (!::msg(p)) return; // drop old packets
 
-
-    if (msig->can_decode(p->data)) { // this is a psyc mc or something
+    if (message_signature->can_decode(p->data)) { // this is a psyc mc or something
 	string method = p->data->type;
 	PSYC.Message m;
 
@@ -27,7 +23,7 @@ void msg(MMP.Packet p) {
 	    mixed f = this[method];
 	    
 	    if (functionp(f)) {
-		if (!m) m = msig->decode(p->data);
+		if (!m) m = message_signature->decode(p->data);
 		if (PSYC.STOP == f(p, m)) return;
 	    }
 
@@ -36,7 +32,7 @@ void msg(MMP.Packet p) {
 	    for (int i = sizeof(t)-2; i > 0; i--) {
 		f = this[t[0..i]*"_"];
 		if (functionp(f)) {
-		    if (!m) m = msig->decode(p->data);
+		    if (!m) m = message_signature->decode(p->data);
 		    if (PSYC.STOP == f(p, m)) return;
 		}
 	    }
@@ -44,7 +40,7 @@ void msg(MMP.Packet p) {
 	    f = this->_;
 
 	    if (functionp(f)) {
-		if (!m) m = msig->decode(p->data);
+		if (!m) m = message_signature->decode(p->data);
 		if (PSYC.STOP == f(p, m)) return;
 	    }
 	}
@@ -52,7 +48,7 @@ void msg(MMP.Packet p) {
 }
 
 void sendmsg(MMP.Uniform target, string method, void|string data, void|mapping m) {
-	send(target, msig->encode(PSYC.Message(method, data, m)));
+	send(target, message_signature->encode(PSYC.Message(method, data, m)));
 }
 
 int _request_retrieval(MMP.Packet p, PSYC.Message m) {
