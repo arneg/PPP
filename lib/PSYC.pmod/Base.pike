@@ -12,8 +12,11 @@ void create(object server, MMP.Uniform uniform) {
 }
 
 void msg(MMP.Packet p) {
-    if (random(1.0) < 0.3) return;
-    ::msg(p);
+    if (random(1.0) < 0.3) {
+	werror("LOST %d\n", p->vars->_id);
+	return;
+    }
+    if (!::msg(p)) return; // drop old packets
 
 
     if (msig->can_decode(p->data)) { // this is a psyc mc or something
@@ -60,6 +63,7 @@ int _request_retrieval(MMP.Packet p, PSYC.Message m) {
 
     foreach (ids;;int i) {
 	MMP.Packet packet = state->cache[i];
+	werror("retransmission of %d\n", i);
 	if (!packet) werror("Packet with id %d not available for retransmission\n", i);
 	else server->msg(packet);
     }
