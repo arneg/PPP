@@ -121,7 +121,7 @@
 	    return;
 	}
 
-#if constant(Meteor)
+#if constant(Meteor) && constant(Meteor.measure)
 	Meteor.measure(written);
 #endif
 	if (written < out_buffer_length) {
