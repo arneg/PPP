@@ -191,7 +191,7 @@ Mapping.prototype = {
 	id_cache : new Object(), // shared cached for all implementations
 	get_new_id : function(o) {
 		// TODO: 6 is just not good
-		return get_unique_key(6, this.id_cache);
+		return UTIL.get_unique_key(6, this.id_cache);
 	},
     sfy : function(key) { // sfy ==> stringify
 		// better use if (key.__proto__ == String.prototype) { ??
