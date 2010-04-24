@@ -205,11 +205,22 @@ serialization.Date = serialization.Base.extend({
 	}
 });
 serialization.Message = serialization.Base.extend({
-	constructor : function(method, vars, data) {
-		this.mtype = method;
+	constructor : function(vars, data) {
 		this.vtype = vars;
 		this.dtype = data;
 		this.type = "_message";
+	},
+	can_decode : function(atom) {
+		switch (mmp.abbreviations(atom.type)[1]) {
+		case "_message":
+		case "_request":
+		case "_error":
+		case "_notice":
+		case "_update":
+		case "_status":
+			return 1;
+		}
+		return 0;
 	},
 	can_encode : function(o) {
 		return o instanceof Yakity.Message;
@@ -217,46 +228,17 @@ serialization.Message = serialization.Base.extend({
 	decode : function(atom) {
 		var p = new serialization.AtomParser();
 		var l = p.parse(atom.data);
-		var method;
-		var data;
-		var vars;
+		var vars = this.vtype.decode(l[0]);		
+		var data = this.dtype.decode(l[1]);
 
-		if (l.length == 3 && this.vtype.can_decode(l[0]) && this.dtype.can_decode(l[2]) && this.mtype.can_decode(l[1])) {
-			vars = this.vtype.decode(l[0]);		
-			data = this.dtype.decode(l[2]);
-			method = this.mtype.decode(l[1]);
-		} else if (l.length == 2) {
-			if (l[0].type.substr(0, 7) == "_method") { // its teh vars
-				if (!this.mtype.can_decode(l[0])) throw(this.mtype + " cannot decode " + l[0]);
-				if (!this.dtype.can_decode(l[1])) throw(this.dtype + " cannot decode " + l[1]);
-				method = this.mtype.decode(l[0]);
-				data = this.dtype.decode(l[1]);	
-			} else {
-				if (!this.vtype.can_decode(l[0])) throw(this.vtype + " cannot decode " + l[0]);
-				if (!this.mtype.can_decode(l[1])) throw(this.mtype + " cannot decode " + l[1]);
-				vars = this.vtype.decode(l[0]);	
-				method = this.mtype.decode(l[1]);
-				data = 0;
-			}
-		} else if (l.length == 1) {
-			if (!this.mtype.can_decode(l[0])) throw(this.mtype + " cannot decode " + l[0]);
-			method = this.mtype.decode(l[0]);
-			data = 0;
-		} else throw("bad _message "+l); 
-
-		return new Yakity.Message(method, data, vars);
+		return new Yakity.Message(atom.type, data, vars);
 	},
 	encode : function(o) {
 		var str = "";
-		if (o.vars.length > 0) str += this.vtype.encode(o.vars).render();		
+		str += this.vtype.encode(o.vars).render();		
+		str += this.dtype.encode(o.data).render();
 
-		str += this.mtype.encode(o.method).render();
-
-		if (o.data != undefined) {
-			str += this.dtype.encode(o.data).render();
-		}
-
-		return new serialization.Atom("_message", str);
+		return new serialization.Atom(o.method, str);
 	}
 });
 serialization.String = serialization.Base.extend({
@@ -522,6 +504,9 @@ serialization.Packet = serialization.Struct.extend({
 			_target : uniform, 
 			_context : uniform, 
 			_id : integer, 
+			_ack : integer, 
+			_sequence_max : integer, 
+			_sequence_pos : integer, 
 			_source_relay : uniform 
 		}));
 	},
