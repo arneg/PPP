@@ -34,7 +34,7 @@ MMP.Utils.StringBuilder render(MMP.Uniform uniform, MMP.Utils.StringBuilder buf)
 
 string _sprintf(int c) {
     if (c == 'O') {
-		return "Uniform()";
+		return sprintf("Uniform(%O)", server);
     }
 
     return 0;
