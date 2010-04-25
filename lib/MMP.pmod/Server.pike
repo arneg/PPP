@@ -8,6 +8,14 @@ mapping(string:MMP.Circuit) circuit_cache = set_weak_flag(([ ]), Pike.WEAK_VALUE
 mapping(string:MMP.VirtualCircuit) vcircuit_cache = ([]);
 mapping (string:object) vhosts = ([ ]);
 
+string _sprintf(int type) {
+    if (type == 'O') {
+	return sprintf("MMP.Server(%O)", bind_local||vhosts);
+    }
+
+    error("wrong format.");
+}
+
 void circuit_to(string host, int port, function(MMP.Circuit:void) cb) {
     if (!port) port = .DEFAULT_PORT;
     string hip = sprintf("%s:%d", host, port);
@@ -36,6 +44,10 @@ void register_entity(MMP.Uniform u, object o) {
     entities[u] = o;
 }
 
+void unregister_entity(MMP.Uniform u) {
+    m_delete(entities, u);
+}
+
 object get_entity(MMP.Uniform u) {
     return entities[u];
 }
@@ -46,12 +58,12 @@ void msg(MMP.Packet p, void|object c) {
     string host, hip;
     int port;
 
+    //werror("%O: %s -> %O\n", this, p->data->type, target);
 
     if (c) {
 	// CHECK FOR SANITY
 	werror("got: %O from %O\n", p, c);
     }
-
 
     if (has_index(entities, target)) {
 	// THIS IS ONLY FOR SAFETY REASONS
@@ -72,7 +84,11 @@ void msg(MMP.Packet p, void|object c) {
 
 	    if (o) o->msg(p);
 	    else werror("Dont know how to create object for %O\n", target);
-	} else s->msg(p);
+	} else if (s == this) {
+	    werror("Failure to deliver: %O\n", p);
+	} else {
+	    s->msg(p);
+	}
     } else {
 	werror("Connecting to %O\n", hip);
 	MMP.VirtualCircuit v = vcircuit_cache[hip];
@@ -152,8 +168,12 @@ void accept(mixed id) {
 
 void bind(void|string ip, void|int port) {
     Stdio.Port p = Stdio.Port(port, accept, ip);
-    p->set_id(p);
-    vhosts[replace(p->query_address(), " ", ":")] = this;
+    if (p->errno()) {
+	werror("Cannot bind port %s:%d: %s\n", ip||"", port, strerror(p->errno()));
+    } else {
+	p->set_id(p);
+	vhosts[replace(p->query_address(), " ", ":")] = this;
+    }
 }
 
 MMP.Circuit get_route(MMP.Uniform target) {
