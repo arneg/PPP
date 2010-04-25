@@ -1,9 +1,9 @@
-    mapping(string:MMP.Uniform) c = ([]);
+    mapping(string:MMP.Uniform) uniform_cache = ([]);
 
     MMP.Uniform get_uniform(string s) {
-	if (!has_index(c, s)) {
-	    c[s] = MMP.Uniform(s);
+	if (!has_index(uniform_cache, s)) {
+	    uniform_cache[s] = MMP.Uniform(s);
 	}
 
-	return c[s];
+	return uniform_cache[s];
     }
