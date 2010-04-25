@@ -161,38 +161,48 @@ mmp.abbreviations = function(method) {
  * @constructor
  * @augments Mapping
  */
-mmp.Vars = function() {
-	this.get = function(key) {
-		do {
-			if (mmp.Vars.prototype.hasIndex.call(this, key)) {
-				return mmp.Vars.prototype.get.call(this, key);
-			}
-		} while (key = mmp.abbrev(key));
-
-		return undefined;
-	};
-	this.hasIndex = function(key) {
-	    return (this.get(key) != undefined);
-	}
-
-	Mapping.call(this);
-
-	if (arguments.length == 1) {
-		var vars = arguments[0];
-
-		for (var i in vars) {
-			if (vars.hasOwnProperty(i)) {
-				this.set(i, vars[i]);
-			}
-		}
-	} else if (arguments.length & 1) {
+mmp.Vars = Base.extend({
+	constructor : function() {
+	    if (arguments.length == 1 && typeof(arguments[0]) == "object") {
+		this.m = arguments[0];
+	    } else if (arguments.length & 1) {
 		throw("odd number of mapping members.");
-	} else for (var i = 0; i < arguments.length; i += 2) {
-        this.set(arguments[i], arguments[i+1]);
-    }
-};
-mmp.Vars.prototype = new Mapping();
-mmp.Vars.prototype.constructor = mmp.Vars;
+	    } else {
+		this.m = {};
+		for (var i = 0; i < arguments.length; i += 2) {
+		    this.m[arguments[i]] = arguments[i+1];
+		}
+	    }
+	},
+	get : function(key) {
+	    do {
+		if (this.m.hasOwnProperty(key)) {
+		    return this.m[key];
+		}
+	    } while (key = mmp.abbrev(key));
+
+	    return undefined;
+	},
+	hasIndex : function(key) {
+	    return this.m.hasOwnProperty(key);
+	},
+	set : function(k, v) {
+	    this.m[k] = v;
+	},
+	remove : function(k) {
+	    delete this.m[k];
+	},
+	forEach : function(callback, context) {
+	    if (context) for (var k in this.m) if (this.m.hasOwnProperty(k)) {
+		callback.call(context, k, this.m[k]);
+	    } else for (var k in this.m) if (this.m.hasOwnProperty(k)) {
+		callback(k, this.m[k]);
+	    }
+	},
+	toString : function() {
+	    return "mmp.Vars(" + this.m + ")";
+	}
+});
 mmp.Packet = Base.extend({
 	constructor : function(data, vars) {
 		this.data = data;
