@@ -31,6 +31,10 @@ State get_state(MMP.Uniform u) {
     return state;
 }
 
+void delete_state(MMP.Uniform u) {
+    m_delete(states, u);
+}
+
 void sendmsg(MMP.Uniform target, string method, void|string data, void|mapping vars);
 
 // TODO: these mmp objects are not really capable of doing the _request_retrieval, so we should probably have a
@@ -38,14 +42,17 @@ void sendmsg(MMP.Uniform target, string method, void|string data, void|mapping v
 int msg(MMP.Packet p) {
 	int id = p["_id"];
 	int ack = p["_ack"];
+
+	if (0 == id) {
+	    werror("%O received initial packet from %O\n", uniform, p["_source"]);
+	    delete_state(p["_source"]);
+	    // TODO we should check what happened to _ack. maybe we dont have to throw
+	    // away all of it
+	}
+
 	object state = get_state(p["_source"]);
 
 	werror("%O received %d (ack: %d, remote: %d, seq: %d)\n", uniform, id, ack, state->remote_id, state->last_in_sequence);
-
-	if (id == 0) {
-	    // this is the special reinitialization case. we need to drop all missing
-	    // and cached aswell.
-	}
 
 	if (id == state->remote_id + 1) {
 	    if (state->last_in_sequence == state->remote_id) state->last_in_sequence = id;
