@@ -142,10 +142,10 @@ object Int() {
     return o;
 }
 
-object default_polymorphic() {
+object default_polymorphic(void|object index) {
     object o;
 
-    if (!(o = this->type_cache[Serialization.Types.Polymorphic][0])) {
+    if (!(o = this->type_cache[Serialization.Types.Polymorphic][index])) {
 		o = Serialization.Types.Polymorphic();
 		o->register_type("int", "_integer", Int());
 		o->register_type("string", "_string", UTF8String());
@@ -154,7 +154,7 @@ object default_polymorphic() {
 		o->register_type("mapping", "_mapping", Mapping(o, o));
 		o->register_type(Serialization.Atom, "_", Atom());
 		o->register_type(Calendar.Second, "_time", Atom());
-		this->type_cache[Serialization.Types.Polymorphic][0] = o;
+		this->type_cache[Serialization.Types.Polymorphic][index] = o;
     }
 
     return o;
