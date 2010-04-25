@@ -93,7 +93,7 @@ meteor.Connection.prototype = {
 		// we should check here for buffer length. maybe set a max
 		// amount to shut down the main one ungracefully
 		if (xhr.readyState >= 3) {
-			this.connect_incoming(xhr);
+			window.setTimeout(UTIL.make_method(this, this.connect_incoming, xhr), 100);
 		}
 	},
 	connect_new_incoming : function() {
