@@ -326,7 +326,7 @@ class VirtualCircuit {
 			srv_step();
 		    }
 		} else {
-		    connect_host(targethost, 4404);
+		    connect_host(targethost, MMP.DEFAULT_PORT);
 		}
 	    }
 	};
