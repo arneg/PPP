@@ -43,14 +43,15 @@ int msg(MMP.Packet p) {
 	int id = p["_id"];
 	int ack = p["_ack"];
 
-	if (0 == id) {
+	object state = get_state(p["_source"]);
+
+	if (0 == id && state->remote_id != -1) {
 	    werror("%O received initial packet from %O\n", uniform, p["_source"]);
 	    delete_state(p["_source"]);
+	    state = get_state(p["_source"]);
 	    // TODO we should check what happened to _ack. maybe we dont have to throw
 	    // away all of it
 	}
-
-	object state = get_state(p["_source"]);
 
 	werror("%O received %d (ack: %d, remote: %d, seq: %d)\n", uniform, id, ack, state->remote_id, state->last_in_sequence);
 
