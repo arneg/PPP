@@ -69,7 +69,9 @@ class Circuit {
 	switch (type) {
 	case 's':
 	case 'O':
-	    return sprintf("MMP.Circuit(%s)", (socket && socket->is_open()) ? socket->query_address() : "closed");
+	    string s = (socket && socket->is_open()) ? socket->query_address() : "closed";
+	    if (!stringp(s)) s = sprintf("error: %s", strerror(socket->errno()));
+	    return sprintf("MMP.Circuit(%s)", s);
 	}
     }
 
@@ -123,10 +125,14 @@ class Circuit {
     int on_close(mixed id) {
 	P0("MMP.Circuit", "%O: Connection closed.\n", this);
 	// TODO: error message
-	close_cb(this);
+	mixed err = catch {
+	    close_cb(this);
+	};
+	if (err) werror("Close callback %O threw an exception: %O\n", close_cb, describe_error(err));
 
 	foreach (close_cbs; function cb; array args) {
-	    cb(@args);
+	    err = catch { cb(@args); };
+	    if (err) werror("Close callback %O threw an exception: %O\n", cb, describe_error(err));
 	}
     }
 
