@@ -410,7 +410,7 @@ serialization.OneTypedVars = serialization.Base.extend({
 });
 serialization.Vars = serialization.Base.extend({
 	constructor : function(types) { 
-		this.types = types;
+		this.types = new mmp.Vars(types);
 		this.type = "_vars";
 	},
 	toString : function() {
@@ -423,12 +423,12 @@ serialization.Vars = serialization.Base.extend({
 		var l = [];
 		var name;
 
-		for (name in this.types) if (this.types.hasOwnProperty(name) && o.hasIndex(name)) {
-			if (this.types[name].can_encode(o.get(name))) {
-				l.push("_method "+name.length+" "+name);
-				l.push(this.types[name].encode(o.get(name)).render());
-			}
-		}
+		o.forEach(function(key, value) {
+			var t = this.types.get(key);
+			if (!t) throw("Cannot encode entry "+key);
+			l.push("_method "+key.length+" "+key);
+			l.push(t.encode(value).render());
+		}, this);
 
 		return new serialization.Atom("_vars", l.join(""));
 	},
@@ -442,12 +442,15 @@ serialization.Vars = serialization.Base.extend({
 		for (i = 0; i < l.length; i+=2) {
 			if (l[i].type === "_method") {
 				name = l[i].data;
+				var t = this.types.get(name);
 
-				if (!this.types.hasOwnProperty(name)) {
+				if (!t) {
 					throw("Cannot decode entry "+name);
 				}
 
-				vars.set(name, this.types[name].decode(l[i+1]));
+				vars.set(name, t.decode(l[i+1]));
+			} else {
+				throw("Non-method key in Vars: "+l[i].type);
 			}
 		}
 
