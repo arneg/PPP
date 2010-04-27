@@ -183,6 +183,15 @@ mmp.Vars = Base.extend({
 
 	    return undefined;
 	},
+	getIndex : function(key) {
+	    do {
+		if (this.m.hasOwnProperty(key)) {
+		    return key;
+		}
+	    } while (key = mmp.abbrev(key));
+
+	    return false;
+	},
 	hasIndex : function(key) {
 	    return this.m.hasOwnProperty(key);
 	},
@@ -228,7 +237,7 @@ mmp.Packet = Base.extend({
 		} else return this.vars.get("_target");
 	},
 	V : function(key) {
-		return this.vars.hasIndex(key);
+		return this.vars.getIndex(key);
 	},
 	v : function(key) {
 		return this.vars.get(key);
