@@ -211,7 +211,8 @@ serialization.Message = serialization.Base.extend({
 		this.type = "_message";
 	},
 	can_decode : function(atom) {
-		switch (mmp.abbreviations(atom.type)[1]) {
+		var abbrevs = mmp.abbreviations(atom.type);
+		if (abbrevs.length > 1) switch (abbrevs[abbrevs.length - 2]) {
 		case "_message":
 		case "_request":
 		case "_error":
