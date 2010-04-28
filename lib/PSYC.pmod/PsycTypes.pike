@@ -1,6 +1,5 @@
 //vim:syntax=lpc
 import Serialization.Types;
-
 inherit Serialization.BasicTypes;
 
 object Vars(void|mapping(string:object) m, void|mapping(string:object) m2) {
@@ -50,9 +49,9 @@ object Uniform() {
 		error("No Uniform creator without server.\n");
 	}
 
-	if (!(u = this->type_cache[Serialization.Types.Uniform][this->server])) {
-		    u = Serialization.Types.Uniform(this->server);
-		    this->type_cache[Serialization.Types.Uniform][this->server] = u;
+	if (!(u = this->type_cache[MMP.Types.Uniform][this->server])) {
+		    u = MMP.Types.Uniform(this->server);
+		    this->type_cache[MMP.Types.Uniform][this->server] = u;
 	}
 
 	return u;
@@ -78,9 +77,9 @@ object Message(void|object data, void|mapping m, void|mapping m2) {
     
     if (!vars) vars = Vars(0, ([ "_" : default_polymorphic() ]));
 
-    if (!(o = this->type_cache[Serialization.Types.Message][mangler])) {
-		o = Serialization.Types.Message(vars, data);
-		this->type_cache[Serialization.Types.Message][mangler] = o;
+    if (!(o = this->type_cache[PSYC.Types.Message][mangler])) {
+		o = PSYC.Types.Message(vars, data);
+		this->type_cache[PSYC.Types.Message][mangler] = o;
     }
 
     return o;
@@ -93,7 +92,7 @@ object Packet(object type) {
 
     object mangler = Serialization.Mangler(({ type, this->server }));
      
-    if (!(o = this->type_cache[Serialization.Types.Packet][mangler])) {
+    if (!(o = this->type_cache[MMP.Types.Packet][mangler])) {
 	object uniform = Uniform();
 	object integer = Int();
 	object vars = Vars(0, ([
@@ -109,8 +108,8 @@ object Packet(object type) {
 		"_timestamp" : Time(),
 	]));
 
-	o = Serialization.Types.Packet(type, vars);
-	this->type_cache[Serialization.Types.Packet][mangler] = o;
+	o = MMP.Types.Packet(type, vars);
+	this->type_cache[MMP.Types.Packet][mangler] = o;
     }
 
     return o;
