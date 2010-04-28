@@ -70,7 +70,7 @@ object optimize() {
 	}
 	ret +=	" } ";
 	ret += "error(\"cannot encode cannot %O\\n\", v); }"
-		   "\n\nMMP.Utils.StringBuilder render(mixed v, MMP.Utils.StringBuilder buf) {\n"
+		   "\n\nSerialization.StringBuilder render(mixed v, Serialization.StringBuilder buf) {\n"
 			"switch (objectp(v) ? object_program(v) : basetype(v)) {\n";
 	foreach (ptypes;string|program p;array types) {
 		ret += sprintf("case %O:\n", p);

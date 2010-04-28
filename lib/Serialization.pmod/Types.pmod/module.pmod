@@ -43,7 +43,7 @@ object gen_vars(mapping params) {
 		 "  return a;}"
 		 "string render_payload(Serialization.Atom a) {"
 		 "	mapping m = a->typed_data[this];"
-		 "	MMP.Utils.StringBuilder buf = MMP.Utils.StringBuilder();"
+		 "	Serialization.StringBuilder buf = Serialization.StringBuilder();"
 		 "	array node = buf->add();"
 		 "	foreach(m; string key; mixed val)";
 	if (sizeof(types)) {
@@ -63,7 +63,7 @@ object gen_vars(mapping params) {
 	}
 	t+= "return buf->get();";
 	t+= "}";
-	t+= "MMP.Utils.StringBuilder render(mapping m, MMP.Utils.StringBuilder buf) {"
+	t+= "Serialization.StringBuilder render(mapping m, Serialization.StringBuilder buf) {"
 		 "	int|array node = buf->add();"
 		 "	int length = buf->length();"
 		 "	foreach(m; string key; mixed val)";

@@ -96,7 +96,7 @@ string render_payload(Serialization.Atom atom) {
     return atom->signature->render_payload(atom);
 }
 
-MMP.Utils.StringBuilder render(mixed t, MMP.Utils.StringBuilder buf) {
+Serialization.StringBuilder render(mixed t, Serialization.StringBuilder buf) {
     mixed key = objectp(t) ? object_program(t) : basetype(t);
 
     if (has_index(ptypes, key)) {

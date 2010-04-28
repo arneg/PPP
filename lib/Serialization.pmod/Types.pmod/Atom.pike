@@ -22,6 +22,6 @@ mixed encode(Serialization.Atom atom) {
 	return atom;
 }
 
-MMP.Utils.StringBuilder render(Serialization.Atom atom, MMP.Utils.StringBuilder buf) {
+Serialization.StringBuilder render(Serialization.Atom atom, Serialization.StringBuilder buf) {
     return atom->render(buf);
 }

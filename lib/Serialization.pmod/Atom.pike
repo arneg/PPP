@@ -86,7 +86,7 @@ int(0..1) is_supertype_of(this_program a) {
     return .is_supertype_of(type, a->type);
 }
 
-string|MMP.Utils.StringBuilder render(void|MMP.Utils.StringBuilder buf) {
+string|Serialization.StringBuilder render(void|Serialization.StringBuilder buf) {
 
 	if (done) {
 		if (buf) {

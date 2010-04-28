@@ -16,7 +16,7 @@ int(0..1) can_encode(mixed a) {
     return stringp(a);
 }
 
-MMP.Utils.StringBuilder render(string s, MMP.Utils.StringBuilder buf) {
+Serialization.StringBuilder render(string s, Serialization.StringBuilder buf) {
     s = string_to_utf8(s);
     buf->add(sprintf("%s %d %s", type, (sizeof(s)), s));
     return buf;

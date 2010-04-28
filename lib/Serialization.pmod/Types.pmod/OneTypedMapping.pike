@@ -38,7 +38,7 @@ Serialization.Atom encode(mapping m) {
 
 string render_payload(Serialization.Atom atom) {
     mapping m = atom->get_typed_data(this);
-    MMP.Utils.StringBuilder buf = MMP.Utils.StringBuilder();
+    Serialization.StringBuilder buf = Serialization.StringBuilder();
 
     foreach (m; mixed key; mixed value) {
 		ktype->render(key, buf);
@@ -48,7 +48,7 @@ string render_payload(Serialization.Atom atom) {
     return buf->get();
 }
 
-MMP.Utils.StringBuilder render(mapping m, MMP.Utils.StringBuilder buf) {
+Serialization.StringBuilder render(mapping m, Serialization.StringBuilder buf) {
     int|array node = buf->add();
 	int length = buf->length();
 

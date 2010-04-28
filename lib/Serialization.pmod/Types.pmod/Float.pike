@@ -14,7 +14,7 @@ int(0..1) can_encode(mixed a) {
     return floatp(a);
 }
 
-MMP.Utils.StringBuilder render(float f, MMP.Utils.StringBuilder buf) {
+Serialization.StringBuilder render(float f, Serialization.StringBuilder buf) {
     string s = (string)f;
     buf->add(sprintf("%s %d %s", type, (sizeof(s)), s));
     return buf;

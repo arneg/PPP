@@ -25,7 +25,7 @@ Serialization.Atom encode(string s) {
 	return Serialization.Atom(type, s);
 }
 
-MMP.Utils.StringBuilder render(string method, MMP.Utils.StringBuilder buf) {
+Serialization.StringBuilder render(string method, Serialization.StringBuilder buf) {
     buf->add(sprintf("%s %d %s", type, (sizeof(method)), method));
     return buf;
 }

@@ -20,7 +20,7 @@ array decode(Serialization.Atom atom) {
     return list;
 }
 
-MMP.Utils.StringBuilder render(array list, MMP.Utils.StringBuilder buf) {
+Serialization.StringBuilder render(array list, Serialization.StringBuilder buf) {
     int|array node = buf->add();
 	int length = buf->length();
 
@@ -35,7 +35,7 @@ MMP.Utils.StringBuilder render(array list, MMP.Utils.StringBuilder buf) {
 string render_payload(Serialization.Atom atom) {
     array list = atom->get_typed_data(this);
     if (!list) error("Using broken atom: %O\n", atom);
-    MMP.Utils.StringBuilder buf = MMP.Utils.StringBuilder();
+    Serialization.StringBuilder buf = Serialization.StringBuilder();
 
     foreach (list; int i; mixed element) {
 	etype->render(element, buf);
