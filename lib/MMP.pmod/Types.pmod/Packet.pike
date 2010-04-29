@@ -32,9 +32,9 @@ Serialization.Atom encode(MMP.Packet p) {
 	return a;
 }
 
-MMP.Utils.StringBuilder buffer = MMP.Utils.StringBuilder();
+Serialization.StringBuilder buffer = Serialization.StringBuilder();
 
-string|MMP.Utils.StringBuilder render(MMP.Packet p, void|MMP.Utils.StringBuilder buf) {
+string|Serialization.StringBuilder render(MMP.Packet p, void|Serialization.StringBuilder buf) {
     int nbuf = !buf;
 
     if (nbuf && p->raw) {
@@ -68,7 +68,7 @@ string render_payload(Serialization.Atom atom) {
     MMP.Packet p = atom->get_typed_data(this);
 
     if (!p) error("Rendering empty atom: %O\n", atom);
-    MMP.Utils.StringBuilder buf = buffer;
+    Serialization.StringBuilder buf = buffer;
 
     dtype->render(p->data, buf);
     vtype->render(p->vars, buf);

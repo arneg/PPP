@@ -10,7 +10,7 @@ void create(object vars, object data) {
 // TODO: may not throw due to can_decode
 string render_payload(Serialization.Atom atom) {
 	PSYC.Message m = atom->get_typed_data(this);
-	MMP.Utils.StringBuilder buf = MMP.Utils.StringBuilder();
+	Serialization.StringBuilder buf = Serialization.StringBuilder();
 
 	vars->render(m->vars, buf);
 	data->render(m->data, buf);
@@ -25,7 +25,7 @@ Serialization.Atom encode(PSYC.Message m) {
     return a;
 }
 
-MMP.Utils.StringBuilder render(PSYC.Message m, MMP.Utils.StringBuilder buf) {
+Serialization.StringBuilder render(PSYC.Message m, Serialization.StringBuilder buf) {
 	array node = buf->add();
 
 	vars->render(m->vars, buf);
