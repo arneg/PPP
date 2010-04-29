@@ -11,7 +11,7 @@ class Circuit {
 
     //! The socket used.
     MMP.Utils.BufferedStream socket = MMP.Utils.BufferedStream();
-    Serialization.Types.Packet mmp_signature;
+    MMP.Types.Packet mmp_signature;
     Serialization.AtomParser parser = Serialization.AtomParser();
 
     int pcount = 0;
