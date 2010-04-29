@@ -20,9 +20,10 @@ class Circuit {
     MMP.Uniform peeraddr, localaddr;
 
     //! Ip adress of the local- and peerhost of the tcp connection used.
-    string peerip, localip, hip;
+    string hip, lhip;
 
     function cb;
+    object server;
     mapping(function:array) close_cbs = ([ ]); 
 
     // cb(received & parsed mmp_message);
@@ -43,13 +44,14 @@ class Circuit {
     //! @param parse_uni
     //!	    Function to use to parse Uniforms. This is used in @[PSYC.Server] to
     //!	    keep the Uniform cache consistent.
-    void create(Stdio.File|Stdio.FILE socket, function cb, int(0..1) inbound) {
+    void create(Stdio.File|Stdio.FILE socket, function cb, object server, int(0..1) inbound) {
 	P2("MMP.Circuit", "create(%O, %O, %O)\n", socket, cb);
 
 	if (!socket->is_open()) error("Socket %O is not open. This should not happen!\n", socket);
 
 	this_program::socket->assign(socket);
 	this_program::cb = cb;
+	this_program::server = server;
 
 	socket->set_read_callback(read);
 	socket->set_close_callback(on_close);
@@ -130,7 +132,7 @@ class Circuit {
 	P0("MMP.Circuit", "%O: Connection closed.\n", this);
 	// TODO: error message
 	foreach (close_cbs; function cb; array args) {
-	    err = catch { cb(this, @args); };
+	    mixed err = catch { cb(this, @args); };
 	    if (err) werror("Close callback %O threw an exception: %O\n", cb, describe_error(err));
 	}
 
@@ -139,6 +141,8 @@ class Circuit {
 	socket->set_read_callback(0);
 	socket->set_close_callback(0);
 	socket = 0;
+	server = 0;
+	mmp_signature = 0;
     }
 
     void add_close_cb(function cb, mixed ... args) {

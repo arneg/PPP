@@ -41,7 +41,7 @@ void circuit_to(string host, int port, function(MMP.Circuit:void) cb) {
 		c = circuit_cache[hip];
 		f->close();
 	    } else {
-		circuit_cache[hip] = c = MMP.Circuit(f, msg, 0));
+		circuit_cache[hip] = c = MMP.Circuit(f, msg, this, 0);
 	    }
 
 	    cb(c);
@@ -120,7 +120,7 @@ void verror_cb(mixed ... args) {
 
 void accept(mixed id) {
     Stdio.File f = id->accept();
-    MMP.Circuit c = MMP.Circuit(f, msg, 1);
+    MMP.Circuit c = MMP.Circuit(f, msg, this, 1);
     c->add_close_cb(close);
     string hip = c->hip;
 
