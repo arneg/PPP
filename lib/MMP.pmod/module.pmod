@@ -6,7 +6,7 @@ constant DEFAULT_PORT = 4044;
 class Circuit {
     inherit MMP.Utils.Queue;
     inherit Serialization.Signature;
-    inherit Serialization.PsycTypes;
+    inherit PSYC.PsycTypes;
     inherit MMP.Utils.Debug;
 
     //! The socket used.

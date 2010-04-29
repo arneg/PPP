@@ -4,8 +4,7 @@ inherit Test.Simple;
 
 class Test1 {
     inherit Serialization.Signature;
-    inherit Serialization.BasicTypes;
-    inherit Serialization.PsycTypes;
+    inherit PSYC.PsycTypes;
 
     object m, p, pp;
     mapping t = ([ 

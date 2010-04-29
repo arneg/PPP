@@ -1,8 +1,7 @@
 // test examples from json.org
 
 inherit Serialization.Signature;
-inherit Serialization.BasicTypes;
-inherit Serialization.PsycTypes;
+inherit PSYC.PsycTypes;
 
 void create() {
 	::create(Serialization.TypeCache());

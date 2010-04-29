@@ -1,6 +1,6 @@
 inherit MMP.Base : B;
 inherit Serialization.Signature;
-inherit Serialization.PsycTypes;
+inherit PSYC.PsycTypes;
 
 object message_signature;
 
