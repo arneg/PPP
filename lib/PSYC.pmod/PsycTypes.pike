@@ -2,46 +2,6 @@
 import Serialization.Types;
 inherit Serialization.BasicTypes;
 
-object Vars(void|mapping(string:object) m, void|mapping(string:object) m2) {
-    // get a better mangler
-    int a = (mappingp(m)) ? sizeof(m)*2 : 0;
-    int b = (mappingp(m2)) ? sizeof(m2)*2 : 0;
-    array args = allocate(a + b);
-
-    if (a) foreach (sort(indices(m));int i; string ktype) {
-		args[i] = ktype;
-		args[i+1] = m[ktype];
-    }
-
-    if (b) foreach (sort(indices(m2));int i; string ktype) {
-		i+=a;
-		args[i] = ktype;
-		args[i+1] = m2[ktype];
-    }
-
-    object mangler = Serialization.Mangler(args);
-    object o;
-
-    if (1 || !(o = this->type_cache[object_program(mangler)][mangler])) {
-		o = Serialization.Types.gen_vars(([ "mandatory" : m, "optional" : m2 ]));
-		this->type_cache[object_program(mangler)][mangler] = o;
-    }
-
-    return o;
-}
-
-object Method(string|void base) {
-    object method;
-if (!base) base = 0;
-
-    if (!(method = this->type_cache[Serialization.Types.Method][base])) {
-		method = Serialization.Types.Method(base);
-		this->type_cache[Serialization.Types.Method][base] = method;
-    }
-    
-    return method;
-}
-
 object Uniform() {
 	object u; 
 
