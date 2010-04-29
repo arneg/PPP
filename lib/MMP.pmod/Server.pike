@@ -34,7 +34,18 @@ void circuit_to(string host, int port, function(MMP.Circuit:void) cb) {
 
     void connected(int success) {
 	if (!success) werror("Could not connect to host %s\n", hip);
-	else cb(MMP.Circuit(f, msg, close, this));
+	else {
+	    MMP.Circuit c;
+
+	    if (has_index(circuit_cache, hip)) {
+		c = circuit_cache[hip];
+		f->close();
+	    } else {
+		circuit_cache[hip] = c = MMP.Circuit(f, msg, 0));
+	    }
+
+	    cb(c);
+	}
     };
     
     f->async_connect(host, port, connected);
@@ -98,8 +109,9 @@ void msg(MMP.Packet p, void|object c) {
     }
 }
 
-void close(mixed ... args) {
-    werror("%O was closed.\n", args);
+void close(MMP.Circuit c) {
+    werror("%O was closed.\n", c);
+    m_delete(circuit_cache, c->hip);
 }
 
 void verror_cb(mixed ... args) {
@@ -108,15 +120,9 @@ void verror_cb(mixed ... args) {
 
 void accept(mixed id) {
     Stdio.File f = id->accept();
-    MMP.Circuit c = MMP.Circuit(f, msg, close, this);
-    string host = f->query_address();
-    string hip;
-    int port;
-
-    if (stringp(host)) sscanf(host, "%s %d", host, port);
-    else error("Some error occured after accept of %O: %s\n", f, strerror(f->errno()));
-
-    hip = sprintf("%s:-%d", host, port);
+    MMP.Circuit c = MMP.Circuit(f, msg, 1);
+    c->add_close_cb(close);
+    string hip = c->hip;
 
     if (has_index(circuit_cache, hip)) {
 	werror("An old Vcircuit existed %O. cleaning up.\n", circuit_cache[hip]);
@@ -138,7 +144,7 @@ void accept(mixed id) {
     }
 
     // local vhost detection goes here
-    string lhip = replace(f->query_address(1), " ", ":");
+    string lhip = c->lhip;
 
     MMP.Utils.Aggregator e;
     if (has_index(vhosts, lhip)) {
@@ -147,7 +153,6 @@ void accept(mixed id) {
 	    e = t;
 	}
     } else {
-
 	vhosts[lhip] = MMP.Utils.Aggregator(Function.curry(m_delete)(vhosts, lhip));
     }
 

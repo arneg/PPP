@@ -14,21 +14,16 @@ class Circuit {
     MMP.Types.Packet mmp_signature;
     Serialization.AtomParser parser = Serialization.AtomParser();
 
-    int pcount = 0;
-
     //! @[MMP.Uniform] associated with this connection. @expr{localaddr@} and
     //! and @expr{remoteaddr@} include the port, they are therefore not 
     //! necessarily equal to the adresses of the two @[PSYC.Root] objects.
     MMP.Uniform peeraddr, localaddr;
 
     //! Ip adress of the local- and peerhost of the tcp connection used.
-    string peerip, localip;
+    string peerip, localip, hip;
 
-    function close_cb, cb;
-    object server;
-    mapping(function:array) close_cbs = ([ ]); // close_cb == server, close_cbs
-					       // contains the callbacks of
-					       // the VCs.
+    function cb;
+    mapping(function:array) close_cbs = ([ ]); 
 
     // cb(received & parsed mmp_message);
     //
@@ -48,21 +43,31 @@ class Circuit {
     //! @param parse_uni
     //!	    Function to use to parse Uniforms. This is used in @[PSYC.Server] to
     //!	    keep the Uniform cache consistent.
-    void create(Stdio.File|Stdio.FILE socket, function cb, function close_cb, object server) {
-	P2("MMP.Circuit", "create(%O, %O, %O)\n", socket, cb, close_cb);
+    void create(Stdio.File|Stdio.FILE socket, function cb, int(0..1) inbound) {
+	P2("MMP.Circuit", "create(%O, %O, %O)\n", socket, cb);
+
+	if (!socket->is_open()) error("Socket %O is not open. This should not happen!\n", socket);
 
 	this_program::socket->assign(socket);
 	this_program::cb = cb;
-	this_program::close_cb = close_cb;
-	this_program::server = server;
 
 	socket->set_read_callback(read);
 	socket->set_close_callback(on_close);
 
 	mmp_signature = Packet(Atom());
 
-	localip = (socket->query_address(1) / " ")[0];
-	peerip = (socket->query_address() / " ")[0];
+	hip = socket->query_address();
+	lhip = socket->query_address(1);
+
+	if (!stringp(hip) || !stringp(lhip)) error("Socket %O is broken: %s\n", socket, strerror(socket->errno()));
+
+	if (inbound) {
+	    hip = replace(hip, " ", ":-");
+	    lhip = replace(hip, " ", ":");
+	} else {
+	    hip = replace(hip, " ", ":");
+	    lhip = replace(hip, " ", ":-");
+	}
     }
 
     string _sprintf(int type) {
@@ -70,7 +75,7 @@ class Circuit {
 	case 's':
 	case 'O':
 	    string s = (socket && socket->is_open()) ? socket->query_address() : "closed";
-	    if (!stringp(s)) s = sprintf("error: %s", strerror(socket->errno()));
+	    if (!stringp(s)) s = sprintf("error: %s (was: %s)", strerror(socket->errno()), hip);
 	    return sprintf("MMP.Circuit(%s)", s);
 	}
     }
@@ -85,7 +90,6 @@ class Circuit {
     //!	    Remember to @[activate()] the Circuit, otherwise no packet
     //!	    will be sent.
     void send(MMP.Packet p) {
-
 	P3("MMP.Circuit", "%O->send(%O)\n", this, p);
 	
 	socket->write(mmp_signature->render(p)->get());
@@ -125,15 +129,16 @@ class Circuit {
     int on_close(mixed id) {
 	P0("MMP.Circuit", "%O: Connection closed.\n", this);
 	// TODO: error message
-	mixed err = catch {
-	    close_cb(this);
-	};
-	if (err) werror("Close callback %O threw an exception: %O\n", close_cb, describe_error(err));
-
 	foreach (close_cbs; function cb; array args) {
-	    err = catch { cb(@args); };
+	    err = catch { cb(this, @args); };
 	    if (err) werror("Close callback %O threw an exception: %O\n", cb, describe_error(err));
 	}
+
+	close_cbs = 0;
+	cb = 0;
+	socket->set_read_callback(0);
+	socket->set_close_callback(0);
+	socket = 0;
     }
 
     void add_close_cb(function cb, mixed ... args) {
@@ -235,7 +240,7 @@ class VirtualCircuit {
 	} else error("And I never checked out from Outlook Hotel.\n");
     }
 
-    void on_close() {
+    void on_close(MMP.Circuit c) {
 	circuit->remove_close_cb(on_close);
 	circuit = 0;
 	
