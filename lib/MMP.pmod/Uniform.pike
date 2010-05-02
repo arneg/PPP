@@ -12,7 +12,7 @@ string scheme;
 string host;
 
 //! The (optional) port. Will be 0 if none is given which will
-//! then be used as 4404, the standard PSYC port.
+//! then be used as 4044, the standard PSYC port.
 int port;
 
 string transport;
