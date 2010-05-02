@@ -202,6 +202,10 @@ UTIL.make_method = function(obj, fun) {
 		return fun.apply(obj, Array.prototype.slice.call(arguments));
 	});
 };
+UTIL.getDateOffset = function(date1, date2) {
+    if (!date2) date2 = new Date();
+    return (date2.getTime() - date1.getTime()) * 1000 + date2.getMilliseconds() - date1.getMilliseconds();
+}
 UTIL.Audio = function (params) {
 	if (UTIL.App.has_vorbis && !!params.ogg) {
 		this.url = params.ogg;	
