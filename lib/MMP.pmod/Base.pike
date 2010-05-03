@@ -7,7 +7,7 @@ class State {
     mapping(int:MMP.Packet) cache = ([]);
 
     int get_id() {
-	return local_id++;
+	return ++local_id;
     }
 }
 
