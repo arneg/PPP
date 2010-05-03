@@ -14,6 +14,11 @@ mmp.get_uniform = function(str) {
 	mmp.uniform_cache.set(str, uniform);
 	return uniform;
 };
+mmp.methodre = /^(_(\w)+)+$/;
+mmp.methodp = function(method) {
+    if (!UTIL.stringp(method)) return false;
+    return mmp.methodre.test(method);
+};
 /**
  * Class representing uniforms.
  * @constructor
