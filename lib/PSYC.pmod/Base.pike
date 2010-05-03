@@ -12,8 +12,8 @@ void create(object server, MMP.Uniform uniform) {
 }
 
 
-void msg(MMP.Packet p) {
-    if (!::msg(p)) return; // drop old packets
+int msg(MMP.Packet p) {
+    if (!::msg(p)) return PSYC.STOP; // drop old packets
 
     if (message_signature->can_decode(p->data)) { // this is a psyc mc or something
 	string method = p->data->type;
@@ -24,7 +24,7 @@ void msg(MMP.Packet p) {
 	    
 	    if (functionp(f)) {
 		if (!m) m = message_signature->decode(p->data);
-		if (PSYC.STOP == f(p, m)) return;
+		if (PSYC.STOP == f(p, m)) return PSYC.STOP;
 	    }
 
 	    array(string) t = method/"_";
@@ -33,7 +33,7 @@ void msg(MMP.Packet p) {
 		f = this[t[0..i]*"_"];
 		if (functionp(f)) {
 		    if (!m) m = message_signature->decode(p->data);
-		    if (PSYC.STOP == f(p, m)) return;
+		    if (PSYC.STOP == f(p, m)) return PSYC.STOP;
 		}
 	    }
 
@@ -41,10 +41,12 @@ void msg(MMP.Packet p) {
 
 	    if (functionp(f)) {
 		if (!m) m = message_signature->decode(p->data);
-		if (PSYC.STOP == f(p, m)) return;
+		if (PSYC.STOP == f(p, m)) return PSYC.STOP;
 	    }
 	}
     }
+
+    return PSYC.GOON;
 }
 
 void sendmsg(MMP.Uniform target, string method, void|string data, void|mapping m) {
