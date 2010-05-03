@@ -242,9 +242,13 @@ meteor.Connection.prototype = {
 	init_state_change : function(xhr) { // fetch the client_id and go
 		if (xhr.readyState == 4) {
 			if (xhr.status == 200) {
-				this.vars["id"] = xhr.responseText;
-				meteor.debug("got client ID " + this.vars["id"]);
+			    	var v = new serialization.Vars({ _ : new serialization.String() }).decode(new serialization.AtomParser().parse(xhr.responseText)[0]);
+				v = v.m;
+				this.vars["id"] = v._id;
 
+				if (this.onconnect) this.onconnect(v);
+
+				meteor.debug("got client ID " + this.vars["id"]);
 				meteor.dismantle(xhr);
 
 				this.connect_new_incoming();
