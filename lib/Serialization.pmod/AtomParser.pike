@@ -1,4 +1,4 @@
-// vim:syntax=c
+// vim:syntax=lpc
 string type;
 string action;
 int bytes = UNDEFINED;
@@ -61,4 +61,12 @@ int|.Atom parse(void|string data) {
     }
 
     return 0;
+}
+
+string parse_method() {
+    	string method;
+	if (2 == sscanf(buf, "%[_a-zA-Z] %s", method, buf)) {
+		return method;
+	}
+	return 0;
 }
