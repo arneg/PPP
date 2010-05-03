@@ -2,11 +2,30 @@ inherit MMP.Utils.UniformCache;
 
 MMP.Circuit out;
 string bind_local;
+string domain;
 
 mapping(MMP.Uniform:object) entities = ([]);
 mapping(string:MMP.Circuit) circuit_cache = set_weak_flag(([ ]), Pike.WEAK_VALUES);
 mapping(string:MMP.VirtualCircuit) vcircuit_cache = ([]);
-mapping (string:object) vhosts = ([ ]);
+mapping(string:object) vhosts = ([ ]);
+
+MMP.Uniform to_uniform(void|int type, void|string name) {
+	if (type && name) {
+		name = Standards.IDNA.to_ascii(name);
+		return get_uniform(sprintf("psyc://%s/%c%s", domain, type, name));
+	} else {
+		return get_uniform(sprintf("psyc://%s", domain));
+	}
+}
+
+MMP.Uniform get_temporary() {
+	//string s = sprintf("psyc://%s/$%s", domain, Standards.IDNA.to_ascii(random_string(6)));
+	string s = sprintf("psyc://%s/$%s", domain, MIME.encode_base64(random_string(6)));
+
+	if (!has_index(uniform_cache, s)) return get_uniform(s);
+
+	return get_temporary();
+}
 
 string _sprintf(int type) {
     if (type == 'O') {
@@ -133,10 +152,10 @@ void accept(mixed id) {
 	mixed t = vhosts[hip];
 
 	if (t == this) { // we are not vhost anymore
-	    m_delete(vhosts, hip);
+	    remove_vhost(hip);
 	} else if (Program.inherits(t, MMP.Utils.Aggregator)) {
 	    t->disable();
-	    vhosts[hip] = this;
+	    add_vhost(hip);
 	    if (has_index(circuit_cache, hip)) {
 		circuit_cache[hip]->close();
 	    }
@@ -153,7 +172,7 @@ void accept(mixed id) {
 	    e = t;
 	}
     } else {
-	vhosts[lhip] = MMP.Utils.Aggregator(Function.curry(m_delete)(vhosts, lhip));
+	add_vhost(lhip, MMP.Utils.Aggregator(Function.curry(m_delete)(vhosts, lhip)));
     }
 
     if (e) {
@@ -177,7 +196,7 @@ void bind(void|string ip, void|int port) {
 	werror("Cannot bind port %s:%d: %s\n", ip||"", port, strerror(p->errno()));
     } else {
 	p->set_id(p);
-	vhosts[replace(p->query_address(), " ", ":")] = this;
+	add_vhost(replace(p->query_address(), " ", ":"));
     }
 }
 
@@ -233,6 +252,14 @@ void create(mapping settings) {
 }
 
 void add_vhost(string hip, void|object server) {
+    if (!domain) {
+	string host;
+	int port;
+
+	sscanf(hip, "%[^:]:%d", host, port);
+	if (port == .DEFAULT_PORT) domain = host;
+	else domain = hip;
+    }
     vhosts[hip] = server || this;
 }
 
