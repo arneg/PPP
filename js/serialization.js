@@ -55,6 +55,9 @@ serialization.AtomParser = Base.extend({
 		this.type = 0;
 		this.length = -1;
 	},
+	feed : function(data) {
+		this.buffer += data;
+	},
 	/**
 	 * Parse one or more Atom objects from a string.
 	 * @returns An array of serialization#Atom objects.
@@ -121,7 +124,14 @@ serialization.AtomParser = Base.extend({
 		this.reset();
 		
 		return a;
-    }
+	},
+	parse_method : function() {
+		var pos = this.buffer.indexOf(" ");
+		if (-1 == pos) return 0;
+		var method = this.buffer.substr(0, pos);
+		this.buffer = this.buffer.slice(pos+1);
+		return method;
+	}
 });
 serialization.Base = Base.extend({
 	can_decode : function(atom) {
@@ -130,6 +140,12 @@ serialization.Base = Base.extend({
 	toString : function() {
 		return "serialization.Base("+this.type+")";
 	}
+});
+serialization.Any = Base.extend({
+	can_decode : function(atom) { return atom instanceof serialization.Atom; },
+	can_encode : function(o) { return atom instanceof serialization.Atom; },
+	decode : function(atom) { return atom; },
+	encode : function(o) { return o; }
 });
 serialization.Polymorphic = serialization.Base.extend({
 	constructor: function() {
@@ -202,44 +218,6 @@ serialization.Date = serialization.Base.extend({
 	},
 	encode : function(o) {
 		return new serialization.Atom("_time", o.toInt().toString());
-	}
-});
-serialization.Message = serialization.Base.extend({
-	constructor : function(vars, data) {
-		this.vtype = vars;
-		this.dtype = data;
-		this.type = "_message";
-	},
-	can_decode : function(atom) {
-		var abbrevs = mmp.abbreviations(atom.type);
-		if (abbrevs.length > 1) switch (abbrevs[abbrevs.length - 2]) {
-		case "_message":
-		case "_request":
-		case "_error":
-		case "_notice":
-		case "_update":
-		case "_status":
-			return 1;
-		}
-		return 0;
-	},
-	can_encode : function(o) {
-		return o instanceof Yakity.Message;
-	},
-	decode : function(atom) {
-		var p = new serialization.AtomParser();
-		var l = p.parse(atom.data);
-		var vars = this.vtype.decode(l[0]);		
-		var data = this.dtype.decode(l[1]);
-
-		return new Yakity.Message(atom.type, data, vars);
-	},
-	encode : function(o) {
-		var str = "";
-		str += this.vtype.encode(o.vars).render();		
-		str += this.dtype.encode(o.data).render();
-
-		return new serialization.Atom(o.method, str);
 	}
 });
 serialization.String = serialization.Base.extend({
@@ -424,34 +402,29 @@ serialization.Vars = serialization.Base.extend({
 		var name;
 
 		o.forEach(function(key, value) {
+			if (!mmp.methodp(key)) throw("The _vars type only allows method keys (got "+key+")");
 			var t = this.types.get(key);
 			if (!t) throw("Cannot encode entry "+key);
-			l.push("_method "+key.length+" "+key);
-			l.push(t.encode(value).render());
+			l.push(key+" "+t.encode(value).render());
 		}, this);
 
 		return new serialization.Atom("_vars", l.join(""));
 	},
 	decode : function(atom) {
 		var p = new serialization.AtomParser();
-		var l = p.parse(atom.data);
+		p.feed(atom.data);
 		var i, name, vars = new mmp.Vars();
 
-		if (l.length & 1) throw(atom+" has odd number of entries.");
+		while (p.buffer.length) {
+		    var key = p.parse_method();
+		    var atom = p._parse();
 
-		for (i = 0; i < l.length; i+=2) {
-			if (l[i].type === "_method") {
-				name = l[i].data;
-				var t = this.types.get(name);
+		    if (!key || !atom) throw("Malformed _vars Atom: "+p.buffer);
+		    if (!mmp.methodp(key)) throw("Malformed method in _vars: "+key);
+		    var t = this.types.get(key);
+		    if (!t) throw("Cannot decode entry "+key);
 
-				if (!t) {
-					throw("Cannot decode entry "+name);
-				}
-
-				vars.set(name, t.decode(l[i+1]));
-			} else {
-				throw("Non-method key in Vars: "+l[i].type);
-			}
+		    vars.set(key, t.decode(atom));
 		}
 
 		return vars;

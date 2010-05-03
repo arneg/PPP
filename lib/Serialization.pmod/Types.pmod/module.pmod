@@ -13,83 +13,106 @@ object gen_vars(mapping params) {
 	}
 	if (def) t += "object def;";
 
-	t += "mixed decode(Serialization.Atom a) {";
-	t += "if (has_index(a->typed_data, this)) return a->typed_data[this];";
-	t += "array list = Serialization.parse_atoms(a->data);";
-	t += "if (sizeof(list) & 1) error(\"Cannot decode mapping with odd number of entries.\\n\");";
-	t += "for (int i = 0; i < sizeof(list); i+=2)";
+	t += #"
+mixed decode(Serialization.Atom a) {
+    if (has_index(a->typed_data, this)) return a->typed_data[this];
+    object p = Serialization.AtomParser();
+    p->feed(a->data);
+    mapping m = ([]);
+    while (p->left()) {
+	    string key = p->parse_method();
+	    Serialization.Atom atom = p->parse();
+	    if (!key || !atom) error(\"Malformed _vars in %O\\n\", a);
+";
 	if (sizeof(types)) {
-		t += "switch (list[i]->data) {";
+		t += #"
+	switch (key) {
+";
 		foreach (types; string m;) {
-			t += "case \""+m+"\": list[i] = \""+m+"\"; list[i+1] = type"+m+"->decode(list[i+1]); break;";
+			t += "case \""+m+"\": m[key] = type"+m+"->decode(atom); break;";
 		}
 		t += "default:";
-	} else {
-		t += "{";
 	}
 	if (def) {
-		t += "list[i] = list[i]->data; list[i+1] = def->decode(list[i+1]); }";
+		t += "m[key] = def->decode(atom);";
 	} else {
 		t += "}";
 		//t+="error(\"Cannot decode atom %O:%O in %O\\n\", list[i], list[i+1], a);}";
 	} 
-	t += "mapping m = aggregate_mapping(@list);";
-	t+= "a->set_typed_data(this, m);";
-	t+= "return m;}";
+	t+= #"
+    }
+    a->set_typed_data(this, m);
+    return m;
+}
 
-	t += "Serialization.Atom encode(mapping m) {"
-		 "	Serialization.Atom a = Serialization.Atom(type, 0);"
-		 "	a->set_typed_data(this, m);"
-		 "  return a;}"
-		 "string render_payload(Serialization.Atom a) {"
-		 "	mapping m = a->typed_data[this];"
-		 "	Serialization.StringBuilder buf = Serialization.StringBuilder();"
-		 "	array node = buf->add();"
-		 "	foreach(m; string key; mixed val)";
+Serialization.Atom encode(mapping m) {
+    Serialization.Atom a = Serialization.Atom(type, 0);
+    a->set_typed_data(this, m);
+    return a;
+}
+string render_payload(Serialization.Atom a) {
+    mapping m = a->typed_data[this];
+    Serialization.StringBuilder buf = Serialization.StringBuilder();
+    array node = buf->add();
+    foreach(m; string key; mixed val)";
 	if (sizeof(types)) {
 		t += "switch (key) {";
 		foreach (types; string m;) {
-			t += "case \""+m+"\": buf->add(\"_method "+(string)sizeof(m)+" "+m+"\"); type"+m+"->render(val, buf); break;";
+			t += "case \""+m+"\": buf->add(\""+m+" \"); type"+m+"->render(val, buf); break;";
 		}
 		t+="default:";
 	} else {
 		t += "{";
 	}
 	if (def) {
-		t += "buf->add(sprintf(\"_method %d %s\", sizeof(key), key)); buf->add(def->encode(val)->render());}";
+		t += "buf->add(sprintf(\"%s \", key)); buf->add(def->encode(val)->render());}";
 	} else {
 		t += "}";
 		//t += "werror(\"Cannot encode %O:%O in %O\\n\", key, val, m);}";
 	}
-	t+= "return buf->get();";
-	t+= "}";
-	t+= "Serialization.StringBuilder render(mapping m, Serialization.StringBuilder buf) {"
-		 "	int|array node = buf->add();"
-		 "	int length = buf->length();"
-		 "	foreach(m; string key; mixed val)";
+	t+= #"return buf->get();
+	}
+	Serialization.StringBuilder render(mapping m, Serialization.StringBuilder buf) {
+		 	int|array node = buf->add();
+		 	int length = buf->length();
+		 	foreach(m; string key; mixed val)";
 	if (sizeof(types)) {
 		t += "switch (key) {";
 		foreach (types; string m;) {
-			t += "case \""+m+"\": buf->add(\"_method "+(string)sizeof(m)+" "+m+"\"); type"+m+"->render(val, buf); break;";
+			t += "case \""+m+"\": buf->add(\""+m+" \"); type"+m+"->render(val, buf); break;";
 		}
 		t+="default:";
 	} else {
 		t += "{";
 	}
 	if (def) {
-		t += "buf->add(sprintf(\"_method %d %s\", sizeof(key), key)); def->render(val, buf);}";
+		t += "buf->add(key+\" \"); def->render(val, buf);}";
 	} else {
 		t += "}";
 		//t += "werror(\"Cannot encode %O:%O in %O\\n\", key, val, m);}";
 	}
-	t+= "buf->set_node(node, sprintf(\"%s %d \", type, buf->length() - length));";
-	t+= "return buf;";
-	t+= "}";
+	t+= #"
+	buf->set_node(node, sprintf(\"%s %d \", type, buf->length() - length));
+	return buf;
+}
 
-	t += "int(0..1) can_encode(mixed a) { return mappingp(a); }";
-	t += "int(0..1) can_decode(Serialization.Atom a) { return a->type == type; }";
-	t += sprintf("string _sprintf(int type) { return %O; }", sprintf("MappingType(%O, %O)", types, def));
-	program p = compile(t);
+	int(0..1) can_encode(mixed a) { return mappingp(a); }
+	int(0..1) can_decode(Serialization.Atom a) { return a->type == type; }
+";
+	t += sprintf("string _sprintf(int type) { return %O; }\n", sprintf("MappingType(%O, %O)", types, def));
+	program p;
+	mixed err = catch {
+	    p = compile(t);
+	};
+
+	if (err) {
+	    	
+		werror("compile error %s in:\n", describe_error(err));
+		foreach (t/"\n"; int i; string line) {
+		    werror("%d:  %s\n", i+1, line);
+		}
+	}
+
 	object o = p();
 	foreach (types; string m; object type) {
 		o["type"+m] = type;
