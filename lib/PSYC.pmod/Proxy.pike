@@ -18,28 +18,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 inherit PSYC.Base;
 
 object session;
-function logout_cb; // logout callback
 object mmp_signature;
 
 mapping(MMP.Uniform:int) clients = ([]);
 
-void create(object server, object uniform, function logout, object session) {
+void create(object server, object uniform, object session) {
 	::create(server, uniform);
-	logout_cb = logout;
 	mmp_signature = Packet(Atom());
 	session->cb = incoming;
 	session->error_cb = session_error;
 	this_program::session = session;
-}
-
-void implicit_logout() {
-	if (logout_cb) {
-		logout_cb(this);
-		logout_cb = 0;
-	} else {
-		werror("NO logout callback given. Cleanup seems impossible.\n");
-	}
-
 }
 
 void session_error(object session, string err) {
