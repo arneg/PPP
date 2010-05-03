@@ -59,7 +59,9 @@ mmp.Uniform = function(str) {
 		} else if (this.type == 64) {
 			this.is_person = function() { return 0; }
 			this.is_room = function() { return 1; }
-
+		} else if (this.type == 36) {
+			this.is_person = function() { return 0; }
+			this.is_room = function() { return 0; }
 		} else {
 			throw("Invalid uniform: " + this.str);
 		}
@@ -259,5 +261,96 @@ mmp.Packet = Base.extend({
 	},
 	id : function() {
 		return this.v("_id");
+	}
+});
+mmp.Base = Base.extend({
+	constructor : function(server, uniform) {
+		this.server = server;
+		this.uniform = uniform;
+		this.states = new Mapping();
+	},
+	getState : function(uniform) {
+		if (this.states.hasIndex(uniform)) {
+			return this.states.get(uniform);
+		}
+		var state = {
+			local_id : 0,
+			remote_id : -1,
+			last_in_sequence : -1,
+			missing : new Mapping(),
+			cache : {}
+		};
+		this.states.set(uniform, state);
+
+		return state;
+	},
+	deleteState : function(uniform) {
+		this.states.remove(uniform);
+	},
+	msg : function(p) {
+		// This part is essentially copied and turned into the corresponding js
+		var id = p.v("_id");
+		var ack = p.v("_ack");
+
+		var state = this.getState(p.v("_source"));
+
+		if (0 == id && state.remote_id != -1) {
+		    console.log("%o received initial packet from %O\n", uniform, p.v("_source"));
+		    this.deleteState(p.v("_source"));
+		    state = this.getState(p.v("_source"));
+		    // TODO we should check what happened to _ack. maybe we dont have to throw
+		    // away all of it
+		}
+
+		console.log("%o received %d (ack: %d, remote: %d, seq: %d)\n", this.uniform, id, ack, state.remote_id, state.last_in_sequence);
+
+		if (id == state.remote_id + 1) {
+		    if (state.last_in_sequence == state.remote_id) state.last_in_sequence = id;
+		} else if (id > state.remote_id + 1) { // missing messages
+		    // we will request retrieval only once
+		    // maybe use missing = indices(state.missing) here?
+		    for (var i = state.remote_id + 1, j = 0; i < id; i++, j++) {
+			state.missing[i] = true;
+		    }
+
+		    console.log("missing: %o\n", missing);
+		    sendmsg(p.v("_source"), "_request_retrieval", 0, { "_ids" : state.missing.indices() });
+		    state.remote_id = id;
+		} else if (id <= state.remote_id) { // retrieval
+		    console.log("got retransmission of %d (still missing: %s)\n", id, state.missing.indices().join(", "));
+		    if (state.missing.hasIndex(id)) {
+			delete state.missing[id];
+			if (!sizeof(state.missing)) state.last_in_sequence = state.remote_id;
+			else state.last_in_sequence = Math.min.apply(Math, state.missing.indices())-1;
+		    } return false; // drop this packet
+		}
+
+		if (id > state.remote_id) state.remote_id = id;
+
+		// would like to use something like filter(state.cache, Function.curry(`>)(ack)) ...
+		for (var i = ack; state.cache.hasOwnProperty(i); i--) delete state.cache[i];
+
+		return true;
+	},
+	sendmsg : function(target, method, data, vars) {
+		throw("mmp.Base.sendmsg needs to be implemented by the subclass.");
+	},
+	send : function(target, data, relay) {
+		var state = this.getState(target);
+		var id = ++state.local_id;
+		var vars = {
+			_source : this.uniform, 
+			_target : target,
+			_id : id,
+			_ack : state.last_in_sequence,
+		};
+
+		if (relay) {
+			vars["_source_relay"] = relay;
+		}
+
+		var p = mmp.Packet(data, vars);
+		state.cache[id] = p;
+		server.msg(p);
 	}
 });
