@@ -1,5 +1,5 @@
-WIDGET = {};
-WIDGET.StateMachine = Base.extend({
+Widget = {};
+Widget.StateMachine = Base.extend({
 	constructor : function(transitions, actions) {
 		this.t = transitions;
 		this.a = {};
@@ -40,7 +40,7 @@ WIDGET.StateMachine = Base.extend({
 		else if (this.t[from][when] != to) throw("Transition in "+from+" on "+when+" is already pointing at "+this.t[from][when]);
 	}
 });
-WIDGET.Base = WIDGET.StateMachine.extend({
+Widget.Base = Widget.StateMachine.extend({
 	constructor : function(node, states, actions) {
 		this.node = node;
 		var transitions = {
@@ -113,7 +113,7 @@ WIDGET.Base = WIDGET.StateMachine.extend({
 		}
 	}
 });
-WIDGET.CSS = WIDGET.Base.extend({
+Widget.CSS = Widget.Base.extend({
 	constructor : function(node, classes, actions) {
 		if (!actions) actions = {};
 
@@ -127,7 +127,7 @@ WIDGET.CSS = WIDGET.Base.extend({
 		}
 	}
 });
-WIDGET.Fader = WIDGET.Base.extend({
+Widget.Fader = Widget.Base.extend({
 	constructor : function(node) {
 		
 		this.base(node);	
@@ -137,7 +137,7 @@ WIDGET.Fader = WIDGET.Base.extend({
 	hide : function() { UTIL.addClass(this.node, "hidden"); },
 	show : function() { UTIL.removeClass(this.node, "hidden"); }
 });
-WIDGET.SlowFader = WIDGET.Fader.extend({
+Widget.SlowFader = Widget.Fader.extend({
 	constructor : function(node, params) {
 		if (arguments.length < 2) params = {};
 		this.T = params.effect_duration || 10000;
@@ -196,7 +196,7 @@ WIDGET.SlowFader = WIDGET.Fader.extend({
 		this.base();
 	}
 });
-WIDGET.Cycle = Base.extend({
+Widget.Cycle = Base.extend({
 	constructor : function() {
 		this.items = [];
 	},

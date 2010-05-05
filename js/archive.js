@@ -114,9 +114,9 @@ ARCHIVE.PagedSearch = ARCHIVE.Search.extend({
 	constructor : function(node, what, per_page) {
 		this.per_page = per_page;
 		this.base(what, { per_page : per_page });
-		this.next = new WIDGET.SimpleButton(document.createElement("div"), { hover : "hover" }, { click : UTIL.make_method(this, this.next) });
+		this.next = new Widget.SimpleButton(document.createElement("div"), { hover : "hover" }, { click : UTIL.make_method(this, this.next) });
 		UTIL.addClass(this.next.node, "next");
-		this.prev = new WIDGET.SimpleButton(document.createElement("div"), { hover : "hover" }, { click : UTIL.make_method(this, this.prev) });
+		this.prev = new Widget.SimpleButton(document.createElement("div"), { hover : "hover" }, { click : UTIL.make_method(this, this.prev) });
 		UTIL.addClass(this.prev.node, "prev");
 		this.container = document.createElement("div");
 		UTIL.addClass(this.container, "container");
