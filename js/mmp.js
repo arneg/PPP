@@ -263,8 +263,9 @@ mmp.Packet = Base.extend({
 		return this.v("_id");
 	}
 });
-mmp.Base = Base.extend({
+mmp.Base = UTIL.EventSource.extend({
 	constructor : function(server, uniform) {
+		this.base();
 		this.server = server;
 		this.uniform = uniform;
 		this.states = new Mapping();
@@ -349,8 +350,8 @@ mmp.Base = Base.extend({
 			vars["_source_relay"] = relay;
 		}
 
-		var p = mmp.Packet(data, vars);
+		var p = new mmp.Packet(data, vars);
 		state.cache[id] = p;
-		server.msg(p);
+		this.server.msg(p);
 	}
 });
