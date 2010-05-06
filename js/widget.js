@@ -10,6 +10,7 @@ Widget.StateMachine = Base.extend({
 		this.state = "start";
 	},
 	trigger : function(e, ev) {
+		console.log("%o->trigger(%s)", this.node, e);
 		if (!ev && UTIL.App.is_ie && window.event) ev = window.event;
 		//console.log("%o.trigger(%s)", this, e);
 		if (this.t[this.state].hasOwnProperty(e)) {
@@ -71,19 +72,19 @@ Widget.Base = Widget.StateMachine.extend({
 	addCallback : function(e, name) {
 		switch (e) {
 		    case "hover":
-			this.low_addCallback("mouseover");
-			this.low_addCallback("mouseout");
-			this.addTransition("start", "mouseover", "hover");
-			this.addTransition("hover", "mouseout", "start");
-			break;
+				this.low_addCallback("mouseover");
+				this.low_addCallback("mouseout");
+				this.addTransition("start", "mouseover", "hover");
+				this.addTransition("hover", "mouseout", "start");
+				break;
 		    case "clicked":
-			this.addTransition("start", "mousedown", "clicked");
-			this.addTransition("hover", "mousedown", "clicked");
-			this.addTransition("clicked", "mouseup", "start");
-			this.addTransition("clicked", "mouseout", "start");
-			this.low_addCallback("mousedown");
-			this.low_addCallback("mouseup");
-			break;
+				this.addTransition("start", "mousedown", "clicked");
+				this.addTransition("hover", "mousedown", "clicked");
+				this.addTransition("clicked", "mouseup", "start");
+				this.addTransition("clicked", "mouseout", "start");
+				this.low_addCallback("mousedown");
+				this.low_addCallback("mouseup");
+				break;
 		    case "blur":
 		    case "change":
 		    case "click":
@@ -98,11 +99,10 @@ Widget.Base = Widget.StateMachine.extend({
 		    case "select":
 		    case "submit":
 		    case "unload":
-			this.low_addCallback(e);
-		    	break;
-		    default:
-		    	this.addTransition("start", e, e);
-			this.addTransition(e, "un"+e, "start");
+				this.low_addCallback(e);
+				break;
+			case "start":
+		    default: return;
 		}
 	},
 	low_addCallback : function(e, name) {
@@ -137,63 +137,149 @@ Widget.Fader = Widget.Base.extend({
 	hide : function() { UTIL.addClass(this.node, "hidden"); },
 	show : function() { UTIL.removeClass(this.node, "hidden"); }
 });
+Widget.Fx = {};
+Widget.Fx.CSS = Widget.Base.extend({
+	constructor : function(node, states, transitions, fade_properties) {
+		this.css_states = states;
+		this.current_css_state = states.start;
+		this.fade_properties = fade_properties || { duration : 3000 };
+		this.fade_object = null;
+		this.onDone = {};
+		this.onStart = {};
+		var actions = {};
+
+		for (var i in transitions) if (states.hasOwnProperty(i)) {
+			for (var e in transitions[i]) if (transitions[i].hasOwnProperty(e)) {
+				var from_state = i;
+				var to_state = transitions[i][e];
+				var from = states[i];
+				var	to = states[transitions[i][e]]
+
+
+				if (to) {
+					if (to.onDone) {
+						this.onDone[to_state] = to["onDone"];
+					}
+
+					if (to.onStart) {
+						this.onStart[to_state] = to.onStart;
+					}
+
+					actions[from_state+">"+to_state] = UTIL.make_method(this, this.fade, to_state, to);
+				}
+			}
+		}
+		this.base(node, transitions, actions);
+	},
+	fade : function(to_state, to, properties) {
+		if (this.fade_object) {
+			this.fade_object.stop();
+			this.fade_object = null;
+		}
+
+		console.log("fading %o to %o", this.node, to);
+		//this.fade_object = Uize.Fx.fadeStyle(this.node, null, to, this.fade_properties);
+		this.fade_object = Uize.Fx.fadeStyle(this.node, null, to, 2000, properties || this.fade_properties);
+		if (this.onDone[to_state]) this.fade_object.wire("Done", UTIL.make_method(this, this.onDone[to_state], this.node));
+		if (this.onStart[to_state]) UTIL.make_method(this, this.onStart[to_state], this.node)();
+		this.fade_object.start();
+	}
+});
 Widget.SlowFader = Widget.Fader.extend({
 	constructor : function(node, params) {
 		if (arguments.length < 2) params = {};
-		this.T = params.effect_duration || 10000;
-		this.fps = params.effect_fps || 15;
-		this.stop = params.stop || 100;
-		if (params.transform) this.transform = params.transform;
-		this.ofade = UTIL.make_method(this, this.fade);
+		this.hiding = false;
+		this.hide_duration = params.hide_duration || params.duration || 2000;
+		this.show_duration = params.show_duration || params.duration || 2000;
+		this.fps = params.effect_fps || 20;
+		this.hide_max = params.hide_max || params.max || 100;
+		this.show_max = params.show_max || params.max || 100;
+		this.hide_transform = params.hide_transform || params.transform;
+		this.show_transform = params.show_transform || params.transform;
 		this.base(node);
 	},
-	fade : function() {
+	fade : function(transform, start, duration, max) {
 		var percent;
+		var npercent;
 		var now;
-
-		if (!this.start) {
-		    this.start = new Date();
+		
+		if (!start) {
+		    start = new Date();
 		    percent = 0;
 		} else {
 		    now = new Date();
-		    percent = UTIL.getDateOffset(this.start)/this.T;
+		    percent = UTIL.getDateOffset(start, now)/duration * 100;
 		}
 
-		if (percent > this.stop) {
-		    	this.start = null;
+		if (percent < max) {
+			if (transform && UTIL.intp(transform) || UTIL.floatp(transform)) {
+				if (transform < 0) npercent = 100 + transform*percent;
+				else npercent = transform * percent;
+			} else if (UTIL.functionp(transform)) npercent = transform(percent);
+			else npercent = percent;
+		}
+
+		if (percent >= max || npercent >= max) {
 			this.id = null;
-			UTIL.addClass(this.node, "hidden");
+
+			if (this.hiding) {
+				this.node.parentNode.style.minHeight = this.node.offsetHeight + "px";
+				this.node.parentNode.style.minWidth = this.node.offsetWidth + "px";
+				UTIL.addClass(this.node, "hidden");
+			}
+
+			if (UTIL.App.is_ie) {
+				this.node.style["-ms-filter"] = "";
+				this.node.style["filter"] = "";
+			} else {
+				this.node.style["opacity"] = "";
+			}
+
 			//TODO. would like to use ::hide();
 			return;
-		} else {
-			if (this.transform) percent = this.transform(percent);
-			percent = 100 - percent;
+		} 
+		//console.log("%o s of %o s\t%s.%s(%o)\t%o", now ? UTIL.getDateOffset(start, now)/1000 : 0.0, duration/1000, this.node.id, this.hiding ? "hide" : "show" , percent, npercent);
+
+		percent = npercent;
+		
+		if (this.hiding) percent = 100 - percent;
+
+		if (percent > 0) {
+			if (!this.hiding) {
+				UTIL.removeClass(this.node, "hidden");
+				this.node.parentNode.style.minHeight = "";
+				this.node.parentNode.style.minWidth = "";
+			}
 			if (UTIL.App.is_ie) {
-			    this.node.style["-ms-filter"] = "progid:DXImageTransform.Microsoft.Alpha(Opacity="+percent+")";
-			    this.node.style["filter"] = "alpha(opacity="+percentٌ+")";
+				this.node.style["-ms-filter"] = "progid:DXImageTransform.Microsoft.Alpha(Opacity="+percent+")";
+				this.node.style["filter"] = "alpha(opacity="+percentٌ+")";
 			} else {
-			    this.node.style["opacity"] = ""+percent/100.0;
+				this.node.style["opacity"] = ""+percent/100.0;
 			}
 		}
 
 		// we need to rethink. if rendering takes very long we should slow down a bit
-		var delay = 1000/this.fps - UTIL.getDateOffset(now||this.start);
-		if (delay < 20) delay = 20; // 50 fps is more than enough
-		this.id = window.setTimeout(this.ofade, delay);
+		var delay = 1000/this.fps - UTIL.getDateOffset(now||start);
+		if (delay < 25) delay = 25; // 40 fps is more than enough
+		this.id = window.setTimeout(UTIL.make_method(this, this.fade, transform, start, duration, max), delay);
 	},
 	hide : function() {
-		if (this.id) return; // we are already doing it
-		this.fade();
+		if (this.id) {
+			if (this.hiding) return;
+
+			window.clearTimeout(this.id);
+		}
+		this.hiding = true;
+		this.fade(this.hide_transform, 0, this.hide_duration, this.hide_max);
 	},
 	show : function() {
-		if (this.id) window.clearTimeout(this.id);
-		if (UTIL.App.is_ie) {
-		    delete this.node.style["-ms-filter"];
-		    delete this.node.style["filter"];
-		} else {
-		    this.node.style["opacity"] = "";
+		if (this.id) {
+			if (!this.hiding) return;
+
+			window.clearTimeout(this.id);
 		}
-		this.base();
+		this.hiding = false;
+		this.fade(this.show_transform, 0, this.show_duration, this.show_max);
 	}
 });
 Widget.Cycle = Base.extend({
@@ -201,11 +287,43 @@ Widget.Cycle = Base.extend({
 		this.items = [];
 	},
 	cycle : function(n) {
+		if (arguments.length == 0) n = 1;
 		if (this.items.length == 1) return;
-		this.items[0].trigger("hide");
+		var old = this.items[0];
 		if (n > 0) while (n-- > 0) this.items.push(this.items.shift());
 		else if (n < 0) while (n++ > 0) this.items.unshift(this.items.pop());
-		this.items[0].trigger("unhide");
+		var t = this.items[0];
+
+		old.trigger("hide");
+		t.trigger("unhide");
+	},
+	addItem : function(widget) {
+		this.items.push(widget);
+
+		if (this.items.length == 1) {
+			widget.trigger("unhide");
+		} else {
+			widget.trigger("hide");
+		}
+	},
+	addButton : function(button, step) {
+		button.registerEvent("click", UTIL.make_method(this, this.cycle, step||1));
+	}
+});
+Widget.Cycle = Base.extend({
+	constructor : function() {
+		this.items = [];
+	},
+	cycle : function(n) {
+		if (arguments.length == 0) n = 1;
+		if (this.items.length == 1) return;
+		var old = this.items[0];
+		if (n > 0) while (n-- > 0) this.items.push(this.items.shift());
+		else if (n < 0) while (n++ > 0) this.items.unshift(this.items.pop());
+		var t = this.items[0];
+
+		old.trigger("hide");
+		t.trigger("unhide");
 	},
 	addItem : function(widget) {
 		this.items.push(widget);
