@@ -27,6 +27,8 @@ UTIL = new Object();
  * @returns The resulting string.
  */
 UTIL.intp = function(i) { return (typeof(i) == "number" && i%1 == 0); };
+UTIL.floatp = function(i) { return (typeof(i) == "number" && i%1 != 0.0); };
+UTIL.numberp = function(i) { return typeof(i) == "number"; };
 UTIL.arrayp = function(a) { return (typeof(a) == "object" && a instanceof Array); };
 UTIL.stringp = function(s) { return typeof(s) == "string"; };
 UTIL.functionp = function(f) { return (typeof(f) == "function" || f instanceof Function); };
@@ -204,7 +206,7 @@ UTIL.make_method = function(obj, fun) {
 };
 UTIL.getDateOffset = function(date1, date2) {
     if (!date2) date2 = new Date();
-    return (date2.getTime() - date1.getTime()) * 1000 + date2.getMilliseconds() - date1.getMilliseconds();
+    return (date2.getTime() - date1.getTime());
 }
 UTIL.Audio = function (params) {
 	if (UTIL.App.has_vorbis && !!params.ogg) {
@@ -323,6 +325,30 @@ UTIL.get_unique_key = function (length, set) {
 	while (set.hasOwnProperty((id = UTIL.get_random_key(length)))) { }
 	return id;
 };
+UTIL.EventSource = Base.extend({
+	constructor : function() {
+		this.events = new HigherDMapping();
+	},
+	registerEvent : function(name, fun) {
+		return this.events.set(name, fun);	
+	},
+	unregisterEvent : function(id) {
+		return this.events.remove(id);
+	},
+	trigger : function(name) {
+		var list = this.events.get(name);
+		var arg;
+		if (arguments.length > 1) {
+		    arg = Array.prototype.slice.call(arguments, 1);
+		} else {
+		    arg = [];
+		}
+		
+		for (var i = 0; i < list.length; i++) {
+			list[i].apply(window, arg);
+		}
+	}
+});
 UTIL.App = {};
 UTIL.App.is_opera = !!window.opera;
 UTIL.App.is_ie = !!document.all && !UTIL.is_opera;
