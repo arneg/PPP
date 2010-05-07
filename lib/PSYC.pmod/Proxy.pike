@@ -38,6 +38,8 @@ void session_error(object session, string err) {
 void incoming(object session, Serialization.Atom atom) {
 	MMP.Packet p = mmp_signature->decode(atom);
 
+	//werror("%s <<<<<<< \t%s %O\n", (string)uniform, p->data->type, p->vars);
+
 	//werror("%s->incoming(%O, %O)\n", this, session, m);
 	p->vars["_source"] = uniform;
 	MMP.Uniform target = p->vars["_target"];
@@ -50,6 +52,8 @@ int msg(MMP.Packet p) {
 
     	// TODO: implement the proxy functionality here
 	//if (::msg(p) == PSYC.STOP) return PSYC.STOP;
+	
+	//werror("%s >>>>>>> \t%s %O\n", (string)uniform, p->data->type, p->vars);
 
 	string|MMP.Utils.Cloak atom;
 
@@ -65,7 +69,7 @@ int msg(MMP.Packet p) {
 		werror("Failed to encode %O: %s\n", p, describe_error(err));
 		return Yakity.STOP;
 	}
-	werror("SENDING: %O\n", atom->get());
+	//werror("SENDING: %O\n", atom->get());
 
 	session->send(atom); 
 }
