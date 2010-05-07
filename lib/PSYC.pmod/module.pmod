@@ -3,6 +3,7 @@
 //
 constant GOON = 0;
 constant STOP = 1;
+constant WAIT = 2;
 
 
 //! This module contains modules and classes for participating in the PSYC!
