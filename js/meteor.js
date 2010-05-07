@@ -84,7 +84,7 @@ meteor.Connection.prototype = {
 		this.connect_new_incoming();
 	},
 	new_incoming_state_change : function(xhr) {
-		meteor.debug("new_incoming state is " + xhr.readyState);
+		//meteor.debug("new_incoming state is " + xhr.readyState);
 
 		if (xhr.readyState >= 2) {
 		    	window.clearTimeout(this.new_incoming_timeout);
@@ -110,7 +110,7 @@ meteor.Connection.prototype = {
 			} else return this.connect_incoming();
 		}
 
-		meteor.debug("Connecting new incoming.\n");
+		//meteor.debug("Connecting new incoming.\n");
 
 		var xhr = new XMLHttpRequest();
 		this.new_incoming = xhr;
@@ -158,7 +158,7 @@ meteor.Connection.prototype = {
 				var length = xhr.responseBody ? xhr.responseBody.length : xhr.responseText.length;
 
 				if (length > this.pos) {
-					meteor.debug((length-this.pos)+" bytes received in readyState "+xhr.readyState);
+					//meteor.debug((length-this.pos)+" bytes received in readyState "+xhr.readyState);
 					var str;
 
 					try {
@@ -175,7 +175,7 @@ meteor.Connection.prototype = {
 							str = String.fromCharCode.apply(window, t);
 						}
 
-						meteor.debug("calling callback: %o with %db of data", this.callback, str.length);
+						//meteor.debug("calling callback: %o with %db of data", this.callback, str.length);
 						this.callback(str);
 					} catch (error) {
 						meteor.debug("ERROR: "+error);
@@ -226,7 +226,7 @@ meteor.Connection.prototype = {
 
 		xhr.onreadystatechange = UTIL.make_method(this, this.incoming_state_change, xhr);
 		xhr.onerror = UTIL.make_method(this, this.incoming_on_error, xhr);
-		meteor.debug("moved new incoming to incoming.");
+		//meteor.debug("moved new incoming to incoming.");
 		delete this.new_incoming;
 		this.incoming = xhr;
 		this.pos = 0;
@@ -236,7 +236,7 @@ meteor.Connection.prototype = {
 		// because opera does not trigger an event if new data is available in state 3.
 		if (UTIL.App.is_opera) {
 			this.operatimer = setInterval(UTIL.make_method(this, this.incoming_state_change, xhr), 100);
-			meteor.debug("timer: "+this.operatimer);
+			//meteor.debug("timer: "+this.operatimer);
 		}
 	},
 	init_state_change : function(xhr) { // fetch the client_id and go
@@ -248,7 +248,7 @@ meteor.Connection.prototype = {
 
 				if (this.onconnect) this.onconnect(v);
 
-				meteor.debug("got client ID " + this.vars["id"]);
+				//meteor.debug("got client ID " + this.vars["id"]);
 				meteor.dismantle(xhr);
 
 				this.connect_new_incoming();
@@ -294,7 +294,7 @@ meteor.Connection.prototype = {
 	 * @param {String} data String to be sent.
 	 */
 	send : function(data) {
-		meteor.debug("sending "+data.length+" bytes");
+		//meteor.debug("sending "+data.length+" bytes");
 		// check for status
 		this.buffer += data;
 
@@ -314,7 +314,7 @@ meteor.Connection.prototype = {
 		this.write();
 	},
 	outgoing_state_change : function(xhr) {
-		meteor.debug("outgoing state is "+xhr.readyState);
+		//meteor.debug("outgoing state is "+xhr.readyState);
 
 		if (xhr.readyState == 4) {
 		    	window.clearTimeout(this.outgoing_timeout);
@@ -355,7 +355,7 @@ meteor.Connection.prototype = {
 		// we do this charset hackery because we have internal utf8 and plain ascii
 		// for the rest of atom. this is supposed to be a binary transport
 		if (this.async) {
-		    meteor.debug("doing async request. setting callbacks");
+		    //meteor.debug("doing async request. setting callbacks");
 		    xhr.onreadystatechange = UTIL.make_method(this, this.outgoing_state_change, xhr);
 		    xhr.onerror = UTIL.make_method(this, this.outgoing_onerror, xhr);
 		    var cb = UTIL.make_method(this, function() {
@@ -366,7 +366,7 @@ meteor.Connection.prototype = {
 			this.write();
 		    });
 		    this.outgoing_timeout = window.setTimeout(cb, 3000);
-		} else meteor.debug("doing sync request.");
+		}// else meteor.debug("doing sync request.");
 
 		//meteor.debug("outgoing state change is %o", xhr.onreadystatechange);
 		if (xhr.sendAsBinary) {
@@ -376,7 +376,7 @@ meteor.Connection.prototype = {
 		} else {
 			xhr.send(this.buffer);   
 		}
-		meteor.debug("writing "+this.buffer.length+" bytes\n");
+		//meteor.debug("writing "+this.buffer.length+" bytes\n");
 		this.old_buffer = this.buffer;
 		this.buffer = "";
 	}
@@ -395,7 +395,7 @@ meteor.CallbackWrapper.prototype = {
 		||  (this.params.target && this.params.target != p.target())
 		) {
 			ok = false;
-			meteor.debug(p.toString()+" is not the one.\n");
+			//meteor.debug(p.toString()+" is not the one.\n");
 		}
 
 		if (ok) {
