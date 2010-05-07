@@ -120,20 +120,16 @@ MMP.Uniform source() {
 	return vars["_source"];
 }
 
-//! @returns
-//!	    The reply adress of this packet i.e., the Uniform of the entity
-//!	    that is meant to receive any reply to this Packet.
-//! @note
-//!	    @expr{_source_identification_reply || _source_reply || _source@}
-//! @seealso
-//!	    @[PSYC.Packet()->reply()]
-//! @example
-//!	    PSYC.Packet m = p->data; 
-//!	    sendmsg(p->reply(), m->reply("_notice_version"));
-MMP.Uniform reply() {
-	return vars["_source_identification_reply"]
-		|| vars["_source_reply"]
-		|| vars["_source"];
+this_program reply(mixed data) {
+	mapping nvars = ([
+		"_target" : vars["_source_identification_reply"] || vars["_source_reply"] || vars["_source"],
+	]);
+
+	if (has_index(vars, "_tag")) {
+		nvars["_tag_reply"] = vars["_tag"];
+	}
+
+	return this_program(data, nvars);
 }
 
 //! @returns
