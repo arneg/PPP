@@ -89,6 +89,7 @@ psyc.Base = mmp.Base.extend({
 		this.base(server, uniform);
 		this.message_signature = new psyc.Types.Message(new serialization.Vars({ _ : psyc.Types.default_polymorphic() }), new serialization.String());
 		this.callbacks = new Mapping();
+		this.tags = {};
 	},
 	/**
 	 * Register for certain incoming messages. This can be used to implement chat tabs or handlers for certain message types.
@@ -98,11 +99,13 @@ psyc.Base = mmp.Base.extend({
 	 */
 	register_method : function(params) {
 		var wrapper = new meteor.CallbackWrapper(params, this.callbacks);
-		
+
 		if (this.callbacks.hasIndex(params.method)) {
+			//meteor.debug("adding callbacks for %o for %o", params.method, params);
 			var list = this.callbacks.get(params.method);
 			list.push(wrapper);
 		} else {
+			//meteor.debug("adding callbacks for %o", params);
 			this.callbacks.set(params.method, new Array( wrapper ) );
 		}
 
@@ -111,20 +114,36 @@ psyc.Base = mmp.Base.extend({
 	msg : function(p) {
 		if (!this.base(p)) return; // drop old packets
 
+
 		if (this.message_signature.can_decode(p.data)) { // this is a psyc mc or something
 		    var m = this.message_signature.decode(p.data);
+			p.data = m;
+
+
 		    var method = m.method;
 		    var none = 1;
+
+			if (p.V("_tag_reply")) {
+				var tag = p.v("_tag_reply");
+				if (this.tags.hasOwnProperty(tag)) {
+					var fun = this.tags[tag];
+					delete this.tags[tag];
+					if (fun) {
+						none = 0;
+						if (psyc.STOP == fun.call(this, p, m)) return psyc.STOP;
+					}
+				}
+			}
 
 		    for (var t = method; t; t = mmp.abbrev(t)) {
 			    if (UTIL.functionp(this[t])) {
 				    none = 0;
 				    try {
-					if (psyc.STOP == this[t].call(this, p, m)) {
-						return psyc.STOP;
-					}
+						if (psyc.STOP == this[t].call(this, p, m)) {
+							return psyc.STOP;
+						}
 				    } catch (error) {
-					if (meteor.debug) meteor.debug("error when calling "+t+" in "+this+": %o", error);
+						if (meteor.debug) meteor.debug("error when calling "+t+" in "+this+": %o", error);
 				    }
 			    }
 		    }
@@ -136,17 +155,32 @@ psyc.Base = mmp.Base.extend({
 		    return psyc.GOON;
 		} else if (meteor.debug) meteor.debug("Bad method "+p);
 	},
- 	sendmsg : function(target, method, data, vars) {
+	get_tag : function(fun) {
+		var tag = UTIL.get_unique_key(5, this.tags);
+		this.tags[tag] = fun;
+		return tag;
+	},
+ 	sendmsg : function(target, method, data, vars, callback) {
 		var m = this.message_signature.encode(new psyc.Message(method, data, vars));
-		this.send(target, m);
+
+		if (callback) {
+			this.send(target, m, new mmp.Vars({ _tag : this.get_tag(callback) }));
+		} else this.send(target, m);
 	},
 	/**
 	 * Send a packet. This should be of type psyc.Message.
 	 * @params {Object} packet Message to send.
 	 */
-	send : function(target, m) {
+	send : function(target, m, vars, callback) {
 		if (m instanceof psyc.Message) m = this.message_signature.encode(m);
-		this.base(target, m);
+
+		if (callback) {
+			var tag = this.get_tag(callback);
+			if (vars) vars.set("_tag", tag);
+			else vars = new mmp.Vars({ _tag : tag });
+		} 
+
+		this.base(target, m, vars);
 	},
 	_ : function(p, m) {
 		var method = m.method;
@@ -158,6 +192,7 @@ psyc.Base = mmp.Base.extend({
 			var stop = 0;
 
 			for (var j = 0; j < list.length; j++) {
+				//meteor.debug("calling from register_method %s", t);
 				try {
 					if (psyc.STOP == list[j].msg(p, m)) {
 						stop = 1;
