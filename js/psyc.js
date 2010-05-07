@@ -32,6 +32,7 @@ psyc.Types.Message = serialization.Base.extend({
 		case "_request":
 		case "_error":
 		case "_notice":
+		case "_failure":
 		case "_update":
 		case "_status":
 			return 1;
