@@ -7,7 +7,7 @@ class State {
     mapping(int:MMP.Packet) cache = ([]);
 
     int get_id() {
-	return ++local_id;
+		return local_id++;
     }
 }
 
@@ -31,15 +31,19 @@ State get_state(MMP.Uniform u) {
     return state;
 }
 
+int(0..1) authenticate(MMP.Uniform u) {
+	return u == uniform;
+}
+
 void delete_state(MMP.Uniform u) {
     m_delete(states, u);
 }
 
-void sendmsg(MMP.Uniform target, string method, void|string data, void|mapping vars);
+void sendmsg(MMP.Uniform target, string method, void|string data, void|mapping vars, void|function callback);
 
 // TODO: these mmp objects are not really capable of doing the _request_retrieval, so we should probably have a
 // callback for that. or something. lets assume we have a sendmsg
-int msg(MMP.Packet p) {
+int msg(MMP.Packet p, function callback) {
 	int id = p["_id"];
 	int ack = p["_ack"];
 
@@ -53,7 +57,7 @@ int msg(MMP.Packet p) {
 	    // away all of it
 	}
 
-	werror("%O received %d (ack: %d, remote: %d, seq: %d)\n", uniform, id, ack, state->remote_id, state->last_in_sequence);
+	//werror("%O received %d (ack: %d, remote: %d, seq: %d)\n", uniform, id, ack, state->remote_id, state->last_in_sequence);
 
 	if (id == state->remote_id + 1) {
 	    if (state->last_in_sequence == state->remote_id) state->last_in_sequence = id;
@@ -71,7 +75,7 @@ int msg(MMP.Packet p) {
 		m_delete(state->missing, id);
 		if (!sizeof(state->missing)) state->last_in_sequence = state->remote_id;
 		else state->last_in_sequence = min(@indices(state->missing))-1;
-	    } return 0;
+	    } return PSYC.STOP;
 	}
 
 	if (id > state->remote_id) state->remote_id = id;
@@ -79,24 +83,44 @@ int msg(MMP.Packet p) {
 	// would like to use something like filter(state->cache, Function.curry(`>)(ack)) ...
 	for (int i = ack; has_index(state->cache, i); i--) m_delete(state->cache, i);
 
-	return 1;
+	return PSYC.GOON;
 }
 
-void send(MMP.Uniform target, Serialization.Atom m, void|MMP.Uniform relay) {
+void send(MMP.Uniform target, Serialization.Atom m, void|mapping vars) {
 	object state = get_state(target);
 	int id = state->get_id();
-	mapping vars = ([ 
+	if (!vars) vars = ([]);
+	vars = ([ 
 		"_source" : uniform, 
 		"_target" : target,
 		"_id" : id,
 		"_ack" : state->last_in_sequence,
-	]);
+	]) + vars;
 
-	if (relay) {
-		vars["_source_relay"] = relay;
-	}
+	werror("send(%s, %O)\n", m->type, vars);
 
 	MMP.Packet p = MMP.Packet(m, vars);
+	state->cache[id] = p;
+	server->msg(p);
+}
+
+void sendreply(MMP.Packet p, Serialization.Atom m, void|mapping vars) {
+	MMP.Uniform source = p->source();
+	p = p->reply(m);
+
+	object state = get_state(source);
+	int id = state->get_id();
+
+	p->vars += ([ 
+		"_source" : uniform, 
+		"_id" : id,
+		"_ack" : state->last_in_sequence,
+	]);
+
+	if (vars) p->vars += vars;
+
+	werror("send(%s, %O)\n", m->type, p->vars);
+
 	state->cache[id] = p;
 	server->msg(p);
 }
