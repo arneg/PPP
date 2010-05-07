@@ -208,7 +208,10 @@ void bind(void|string ip, void|int port) {
 		werror("Cannot bind port %s:%d: %s\n", ip||"", port, strerror(p->errno()));
     } else {
 		p->set_id(p);
-		add_vhost(replace(p->query_address(), " ", ":"));
+		// add the initial one first to keep hostnames
+		add_vhost(sprintf("%s:%d", host, port));
+		if (p->query_address() != sprintf("%s %d", host, port)) 
+			add_vhost(replace(p->query_address(), " ", ":"));
     }
 }
 
@@ -238,9 +241,9 @@ void create(mapping settings) {
 			MMP.Uniform t;
 
 			if (t = get_uniform(uni)) {
-			register_entity(t, o);
+				register_entity(t, o);
 			} else {
-			werror("'%s' is not a valid Uniform.\n");
+				werror("'%s' is not a valid Uniform.\n");
 			}
 		} else {
 			register_entity(stringp(uni) ? get_uniform(uni) : uni, o);
