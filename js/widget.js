@@ -310,31 +310,3 @@ Widget.Cycle = Base.extend({
 		button.registerEvent("click", UTIL.make_method(this, this.cycle, step||1));
 	}
 });
-Widget.Cycle = Base.extend({
-	constructor : function() {
-		this.items = [];
-	},
-	cycle : function(n) {
-		if (arguments.length == 0) n = 1;
-		if (this.items.length == 1) return;
-		var old = this.items[0];
-		if (n > 0) while (n-- > 0) this.items.push(this.items.shift());
-		else if (n < 0) while (n++ > 0) this.items.unshift(this.items.pop());
-		var t = this.items[0];
-
-		old.trigger("hide");
-		t.trigger("unhide");
-	},
-	addItem : function(widget) {
-		this.items.push(widget);
-
-		if (this.items.length == 1) {
-			widget.trigger("unhide");
-		} else {
-			widget.trigger("hide");
-		}
-	},
-	addButton : function(button, step) {
-		button.registerEvent("click", UTIL.make_method(this, this.cycle, step||1));
-	}
-});
