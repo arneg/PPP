@@ -228,8 +228,12 @@ mmp.Vars = Base.extend({
 		this.forEach(function(key, val) {
 			if (!m.hasIndex(key)) m.set(key, val);
 		}, this);
-
 		return m;
+	},
+	append : function(v) {
+		v.forEach(function(key, val) {
+			this.set(key, val);
+		}, this);
 	}
 });
 mmp.Packet = Base.extend({
@@ -310,14 +314,14 @@ mmp.Base = UTIL.EventSource.extend({
 		var state = this.getState(p.v("_source"));
 
 		if (0 == id && state.remote_id != -1) {
-		    meteor.debug("%o received initial packet from %O\n", this.uniform, p.v("_source"));
+		    //meteor.debug("%o received initial packet from %O\n", this.uniform, p.v("_source"));
 		    this.deleteState(p.v("_source"));
 		    state = this.getState(p.v("_source"));
 		    // TODO we should check what happened to _ack. maybe we dont have to throw
 		    // away all of it
 		}
 
-		meteor.debug("%o received %d (ack: %d, remote: %d, seq: %d)\n", this.uniform, id, ack, state.remote_id, state.last_in_sequence);
+		//meteor.debug("%o received %d (ack: %d, remote: %d, seq: %d)\n", this.uniform, id, ack, state.remote_id, state.last_in_sequence);
 
 		if (id == state.remote_id + 1) {
 		    if (state.last_in_sequence == state.remote_id) state.last_in_sequence = id;
@@ -360,7 +364,11 @@ mmp.Base = UTIL.EventSource.extend({
 		}); 
 
 		if (relay) {
-			vars.set("_source_relay", relay);
+			if (relay instanceof mmp.Vars) {
+				vars.append(relay);
+			} else if (relay instanceof mmp.Uniform) {
+				vars.set("_source_relay", relay);
+			} else throw("Bad vars: "+relay);
 		}
 
 		var p = new mmp.Packet(data, vars);
