@@ -33,7 +33,6 @@ KEY: while (p->left()) {
 		t+="array(string) a = MMP.abbreviations(k);\n";
 		t+=sprintf("for (int i = min(sizeof(a)-1, %d); i >= max(1, %d); i--) {\n", max_len - 1, min_len - 1);
 		t+= "		string key = a[i];\n";
-		t+=sprintf("werror(\"checking %%s\\n\", key);\n");
 		t += #"
 			switch (key) {
 ";
@@ -67,7 +66,6 @@ KEY: foreach(m; string k; mixed val) {";
 		t+="array(string) a = MMP.abbreviations(k);\n";
 		t+=sprintf("for (int i = min(sizeof(a)-1, %d); i >= max(1, %d); i--) {\n", max_len - 1, min_len - 1);
 		t+= "		string key = a[i];\n";
-		t+=sprintf("werror(\"checking %%s\\n\", key);\n");
 		t += #"
 			switch (key) {
 ";
@@ -91,7 +89,6 @@ KEY: foreach(m; string k; mixed val) {";
 		t+="array(string) a = MMP.abbreviations(k);\n";
 		t+=sprintf("for (int i = min(sizeof(a)-1, %d); i >= max(1, %d); i--) {\n", max_len - 1, min_len - 1);
 		t+= "		string key = a[i];\n";
-		t+=sprintf("werror(\"checking %%s\\n\", key);\n");
 		t += #"
 			switch (key) {
 ";
