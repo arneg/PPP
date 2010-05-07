@@ -53,23 +53,24 @@ object Packet(object type) {
     object mangler = Serialization.Mangler(({ type, this->server }));
      
     if (!(o = this->type_cache[MMP.Types.Packet][mangler])) {
-	object uniform = Uniform();
-	object integer = Int();
-	object vars = Vars(0, ([
-		"_id" : integer,
-		"_ack" : integer,
-		"_sequence_max" : integer,
-		"_sequence_pos" : integer,
-		//"_hrtime" : integer,
-		"_source" : uniform,
-		"_target" : uniform,
-		"_context" : uniform,
-		"_source_relay" : uniform,
-		"_timestamp" : Time(),
-	]));
+		object uniform = Uniform();
+		object integer = Int();
+		object vars = Vars(0, ([
+			"_id" : integer,
+			"_ack" : integer,
+			"_sequence_max" : integer,
+			"_sequence_pos" : integer,
+			//"_hrtime" : integer,
+			"_source" : uniform,
+			"_target" : uniform,
+			"_context" : uniform,
+			"_source_relay" : uniform,
+			"_timestamp" : Time(),
+			"_tag" : UTF8String(),
+		]));
 
-	o = MMP.Types.Packet(type, vars);
-	this->type_cache[MMP.Types.Packet][mangler] = o;
+		o = MMP.Types.Packet(type, vars);
+		this->type_cache[MMP.Types.Packet][mangler] = o;
     }
 
     return o;
