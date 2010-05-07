@@ -433,8 +433,8 @@ serialization.Vars = serialization.Base.extend({
 serialization.Struct = serialization.Base.extend({
 	constructor : function() {
 		this.types = Array.prototype.slice.call(arguments);
-		if (meteor.debug) meteor.debug("arguments "+arguments);
-		if (meteor.debug) meteor.debug("types "+this.types);
+		//if (meteor.debug) meteor.debug("arguments "+arguments);
+		//if (meteor.debug) meteor.debug("types "+this.types);
 	},
 	decode : function(atom) {
 		var p = new serialization.AtomParser();
@@ -484,7 +484,8 @@ serialization.Packet = serialization.Struct.extend({
 			_ack : integer, 
 			_sequence_max : integer, 
 			_sequence_pos : integer, 
-			_source_relay : uniform 
+			_source_relay : uniform,
+			_tag : new serialization.String()
 		}));
 	},
 	can_encode : function(o) {
