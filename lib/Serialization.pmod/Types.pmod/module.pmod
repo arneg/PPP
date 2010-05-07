@@ -6,12 +6,16 @@ object gen_vars(mapping params) {
 	string t = "";
 	mapping types = (v||([])) + (ov||([]));
 	object def = m_delete(types, "_");
+	int min_len = 2, max_len = 2;
 
 	t += sprintf("string type = %O;", type);
 	foreach (types; string m;) {
+		min_len = min(sizeof(MMP.abbreviations(m)), min_len);
+		max_len = max(sizeof(MMP.abbreviations(m)), max_len);
 		t += "object type"+m+";";
 	}
 	if (def) t += "object def;";
+
 
 	t += #"
 mixed decode(Serialization.Atom a) {
@@ -19,25 +23,28 @@ mixed decode(Serialization.Atom a) {
     object p = Serialization.AtomParser();
     p->feed(a->data);
     mapping m = ([]);
-    while (p->left()) {
-	    string key = p->parse_method();
+KEY: while (p->left()) {
+	    string k = p->parse_method();
 	    Serialization.Atom atom = p->parse();
-	    if (!key || !atom) error(\"Malformed _vars in %O\\n\", a);
+	    if (!k || !atom) error(\"Malformed _vars in %O\\n\", a);
 ";
+
 	if (sizeof(types)) {
+	t+="array(string) a = MMP.abbreviations(k);\n";
+	t+=sprintf("for (int i = min(sizeof(a)-1, %d); i >= max(1, %d); i--) {\n", max_len - 1, min_len - 1);
+	t+= "		string key = a[i];\n";
 		t += #"
-	switch (key) {
+			switch (key) {
 ";
 		foreach (types; string m;) {
-			t += "case \""+m+"\": m[key] = type"+m+"->decode(atom); break;";
+			t += "case \""+m+"\": m[k] = type"+m+"->decode(atom); continue KEY;\n";
 		}
-		t += "default:";
+		t+= "		}\n		}\n";
 	}
 	if (def) {
-		t += "m[key] = def->decode(atom);";
+		t += "m[k] = def->decode(atom);";
 	} else {
-		t += "}";
-		//t+="error(\"Cannot decode atom %O:%O in %O\\n\", list[i], list[i+1], a);}";
+		t+="error(\"Cannot decode atom %O:%O in %O\\n\", k, atom, a);";
 	} 
 	t+= #"
     }
@@ -100,6 +107,12 @@ string render_payload(Serialization.Atom a) {
 	int(0..1) can_decode(Serialization.Atom a) { return a->type == type; }
 ";
 	t += sprintf("string _sprintf(int type) { return %O; }\n", sprintf("MappingType(%O, %O)", types, def));
+
+#if 0
+	foreach (t/"\n"; int i; string line) {
+		werror("%d:  %s\n", i+1, line);
+	}
+#endif
 	program p;
 	mixed err = catch {
 	    p = compile(t);
@@ -111,6 +124,8 @@ string render_payload(Serialization.Atom a) {
 		foreach (t/"\n"; int i; string line) {
 		    werror("%d:  %s\n", i+1, line);
 		}
+
+		throw(err);	
 	}
 
 	object o = p();
