@@ -479,3 +479,13 @@ int(0..1) is_place(mixed o) {
     return is_thing(o, '@');
 }
 
+
+array(string) abbreviations(string m) {
+	array(string) a = m / "_";
+
+	if (sizeof(a[0]) && sizeof(a) < 2) error("Invalid method: %O\n", m);
+
+	for (int i = 1; i < sizeof(a); i++) a[i] = a[i-1] + "_" + a[i];
+
+	return a;
+}
