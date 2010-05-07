@@ -56,104 +56,106 @@
     }
 
     int write(array(string)|string what, mixed ... fmt) {
-	int length;
+		int length;
 
-	if (stringp(what)) {
-	    if (sizeof(fmt)) {
-		    what = sprintf(what, @fmt);
-	    }
+		if (stringp(what)) {
+			if (sizeof(fmt)) {
+				what = sprintf(what, @fmt);
+			}
 
-	    length = sizeof(what);
+			length = sizeof(what);
 
-	    if (sizeof(out_buffer) == out_buffer_stop + 1)	{
-		    out_buffer += allocate(32);
-	    } 
+			if (sizeof(out_buffer) == out_buffer_stop + 1)	{
+				out_buffer += allocate(32);
+			} 
 
-	    out_buffer[++out_buffer_stop] = what;
-	} else if (sizeof(fmt)) {
-	    error("That's not how this works.\n");
-	} else { 
-	    if (sizeof(out_buffer) - 1 - out_buffer_stop >= sizeof(what)) {
-		foreach (what;int i;string t) out_buffer[out_buffer_stop+i+1] = t;
-	    } else {
-		out_buffer = out_buffer[0..out_buffer_stop] + what + allocate(32);
-	    }
-	    out_buffer_stop += sizeof(what);
-	    length = `+(@map(what, sizeof));
-	}
+			out_buffer[++out_buffer_stop] = what;
+		} else if (sizeof(fmt)) {
+			error("That's not how this works.\n");
+		} else { 
+			if (sizeof(out_buffer) - 1 - out_buffer_stop >= sizeof(what)) {
+			foreach (what;int i;string t) out_buffer[out_buffer_stop+i+1] = t;
+			} else {
+			out_buffer = out_buffer[0..out_buffer_stop] + what + allocate(32);
+			}
+			out_buffer_stop += sizeof(what);
+			length = `+(@map(what, sizeof));
+		}
 
-	out_buffer_length += length;
+		out_buffer_length += length;
 
-	if (!will_write) {
-		will_write = 1;
-		::set_write_callback(do_write);
-	}
+		if (!will_write) {
+			will_write = 1;
+			::set_write_callback(do_write);
+		}
 
-	return length; // that's kind of a lie, as for Stdio.File it means
-			     // "the number of bytes that were actually written"
-			     // which.. aint' true for us.
-			     // so our meaning is:
-			     // "number of bytes BufferedStream takes care of."
-			     //
-			     // i really hope that that isn't inconsistent with
-			     // Stdio.File, because i could have had it way
-			     // easier with a class not extending Stdio.File
-			     // but providing basically the same functionality.
+		return length; // that's kind of a lie, as for Stdio.File it means
+					 // "the number of bytes that were actually written"
+					 // which.. aint' true for us.
+					 // so our meaning is:
+					 // "number of bytes BufferedStream takes care of."
+					 //
+					 // i really hope that that isn't inconsistent with
+					 // Stdio.File, because i could have had it way
+					 // easier with a class not extending Stdio.File
+					 // but providing basically the same functionality.
     }
 
     void do_write() {
-	int written;
+		int written;
 
-	written = ::write(out_buffer[0..out_buffer_stop]);
+		written = ::write(out_buffer[0..out_buffer_stop]);
 
-	if (written < 0) {
+		if (written < 0) {
 
-	    if (_error_cb) {
-		_error_cb(query_id(), written);
-	    } else {
-	        close();
-	    }
-		return;
-	} 
+			if (_error_cb) {
+			_error_cb(query_id(), written);
+			} else {
+				close();
+			}
+			return;
+		} 
 
-	if (written < 0) {
-	    _error_cb(query_id());
-	    return;
-	}
+		if (written < 0) {
+			_error_cb(query_id());
+			return;
+		}
 
 #if constant(Meteor) && constant(Meteor.measure)
-	Meteor.measure(written);
+		Meteor.measure(written);
 #endif
-	if (written < out_buffer_length) {
-		out_buffer_length -= written;
+		if (written < out_buffer_length) {
+			out_buffer_length -= written;
 
-	    	foreach (out_buffer;int i;string t) {
-			if (sizeof(t) > written) {
-			    out_buffer[i] = t[written..];
-			    out_buffer = out_buffer[i..];
-			    out_buffer_stop -= i;
-			    break;
-			} else if (sizeof(t) == written) {
-			    out_buffer = out_buffer[i+1..];
-			    out_buffer_stop -= i+1;
-			    break;
-			} else {
-			    written -= sizeof(t);
+				foreach (out_buffer;int i;string t) {
+				if (sizeof(t) > written) {
+					out_buffer[i] = t[written..];
+					out_buffer = out_buffer[i..];
+					out_buffer_stop -= i;
+					break;
+				} else if (sizeof(t) == written) {
+					out_buffer = out_buffer[i+1..];
+					out_buffer_stop -= i+1;
+					break;
+				} else {
+					written -= sizeof(t);
+				}
 			}
+			return;
+		} 
+		
+		if (close_on_finish) {
+			close();
+			out_buffer = ({});
+			out_buffer_stop = -1;
+			out_buffer_length = 0;
+			return;
+		} else {
+			out_buffer = allocate(32);
 		}
-	    return;
-	} 
-	
-	if (close_on_finish) {
-	    close();
-	    out_buffer = ({});
-	    return;
-	} else {
-	    out_buffer = allocate(32);
-	}
 
-	::set_write_callback(0);
-	will_write = 0;
-	out_buffer_stop = -1;
-	out_buffer_length = 0;
+		::set_write_callback(0);
+		will_write = 0;
+		out_buffer_stop = -1;
+		out_buffer_length = 0;
     }
