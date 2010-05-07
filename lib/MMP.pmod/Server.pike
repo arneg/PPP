@@ -1,8 +1,11 @@
+// vim:syntax=lpc
 inherit MMP.Utils.UniformCache;
 
 MMP.Circuit out;
 string bind_local;
 string domain;
+
+function get_new;
 
 mapping(MMP.Uniform:object) entities = ([]);
 mapping(string:MMP.Circuit) circuit_cache = set_weak_flag(([ ]), Pike.WEAK_VALUES);
@@ -91,14 +94,14 @@ void msg(MMP.Packet p, void|object c) {
     //werror("%O: %s -> %O\n", this, p->data->type, target);
 
     if (c) {
-	// CHECK FOR SANITY
-	werror("got: %O from %O\n", p, c);
+		// CHECK FOR SANITY
+		werror("got: %O from %O\n", p, c);
     }
 
     if (has_index(entities, target)) {
-	// THIS IS ONLY FOR SAFETY REASONS
-	call_out(entities[target]->msg, 0, p);
-	return;
+		// THIS IS ONLY FOR SAFETY REASONS
+		call_out(entities[target]->msg, 0, p);
+		return;
     }
 
 
@@ -108,23 +111,31 @@ void msg(MMP.Packet p, void|object c) {
     hip = sprintf("%s:%d", host, port);
 
     if (has_index(vhosts, hip)) {
-	mixed s = vhosts[hip];
-	if (!s || Program.inherits(object_program(s), MMP.Utils.Aggregator)) {
-	    object o = get_entity(target);
+		mixed s = vhosts[hip];
+		if (!s || Program.inherits(object_program(s), MMP.Utils.Aggregator)) {
+			object o = get_entity(target);
 
-	    if (o) o->msg(p);
-	    else werror("Dont know how to create object for %O\n", target);
-	} else if (s == this) {
-	    werror("Failure to deliver: %O\n", p);
-	} else {
-	    s->msg(p);
-	}
+			if (o) o->msg(p);
+			else werror("Dont know how to create object for %O\n", target);
+		} else if (s == this) {
+			if (get_new) {
+				object o = get_new(target);
+				if (o) {
+					register_entity(target, o);
+					o->msg(p);
+					return;
+				}
+			} // else root->sendmsgreply(p, "_error_delivery");
+			werror("Failure to deliver: %O\n", p);
+		} else {
+			s->msg(p);
+		}
     } else {
-	werror("Connecting to %O\n", hip);
-	MMP.VirtualCircuit v = vcircuit_cache[hip];
+		werror("Connecting to %O\n", hip);
+		MMP.VirtualCircuit v = vcircuit_cache[hip];
 
-	if (!v) vcircuit_cache[hip] = v = MMP.VirtualCircuit(target, this, verror_cb, Function.curry(check_out)(hip));
-	v->msg(p);
+		if (!v) vcircuit_cache[hip] = v = MMP.VirtualCircuit(target, this, verror_cb, Function.curry(check_out)(hip));
+		v->msg(p);
     }
 }
 
@@ -149,17 +160,17 @@ void accept(mixed id) {
 
     // got connection from local vhost
     if (has_index(vhosts, hip)) {
-	mixed t = vhosts[hip];
+		mixed t = vhosts[hip];
 
-	if (t == this) { // we are not vhost anymore
-	    remove_vhost(hip);
-	} else if (Program.inherits(t, MMP.Utils.Aggregator)) {
-	    t->disable();
-	    add_vhost(hip);
-	    if (has_index(circuit_cache, hip)) {
-		circuit_cache[hip]->close();
-	    }
-	}
+		if (t == this) { // we are not vhost anymore
+			remove_vhost(hip);
+		} else if (Program.inherits(t, MMP.Utils.Aggregator)) {
+			t->disable();
+			add_vhost(hip);
+			if (has_index(circuit_cache, hip)) {
+				circuit_cache[hip]->close();
+			}
+		}
     }
 
     // local vhost detection goes here
@@ -167,36 +178,37 @@ void accept(mixed id) {
 
     MMP.Utils.Aggregator e;
     if (has_index(vhosts, lhip)) {
-	mixed t = vhosts[lhip];
-	if (t && Program.inherits(object_program(t), MMP.Utils.Aggregator)) {
-	    e = t;
-	}
+		mixed t = vhosts[lhip];
+		if (t && Program.inherits(object_program(t), MMP.Utils.Aggregator)) {
+			e = t;
+		}
     } else {
-	add_vhost(lhip, MMP.Utils.Aggregator(Function.curry(m_delete)(vhosts, lhip)));
+		add_vhost(lhip, MMP.Utils.Aggregator(Function.curry(m_delete)(vhosts, lhip)));
     }
 
     if (e) {
-	function f = e->get_cb();
-	e->done();
+		function f = e->get_cb();
+		e->done();
 
-	void c_out() {	
-	    check_out(hip);
-	    f();
-	};
-	vcircuit_cache[hip] = MMP.VirtualCircuit(get_uniform("psyc://"+hip+"/"), this, verror_cb, c_out, c);
+		void c_out() {	
+			check_out(hip);
+			f();
+		};
+		vcircuit_cache[hip] = MMP.VirtualCircuit(get_uniform("psyc://"+hip+"/"), this, verror_cb, c_out, c);
     } else {
-	vcircuit_cache[hip] = MMP.VirtualCircuit(get_uniform("psyc://"+hip+"/"), this, verror_cb, Function.curry(check_out)(hip), c);
+		vcircuit_cache[hip] = MMP.VirtualCircuit(get_uniform("psyc://"+hip+"/"), this, verror_cb, Function.curry(check_out)(hip), c);
     }
 
 }
 
 void bind(void|string ip, void|int port) {
     Stdio.Port p = Stdio.Port(port, accept, ip);
+
     if (p->errno()) {
-	werror("Cannot bind port %s:%d: %s\n", ip||"", port, strerror(p->errno()));
+		werror("Cannot bind port %s:%d: %s\n", ip||"", port, strerror(p->errno()));
     } else {
-	p->set_id(p);
-	add_vhost(replace(p->query_address(), " ", ":"));
+		p->set_id(p);
+		add_vhost(replace(p->query_address(), " ", ":"));
     }
 }
 
@@ -206,59 +218,62 @@ MMP.Circuit get_route(MMP.Uniform target) {
 void create(mapping settings) {
     
     if (intp(settings->bind) || stringp(settings->bind)) {
-	settings->bind = ({ settings->bind });
+		settings->bind = ({ settings->bind });
     }
 
     foreach (settings->bind;; string|int t) {
-	if (intp(t)) bind(0, t);
-	else if (stringp(t)) {
-	    string host;
-	    int port;
+		if (intp(t)) bind(0, t);
+		else if (stringp(t)) {
+			string host;
+			int port;
 
-	    sscanf(t, "%[^:]:%d", host, port);
-	    if (host && !bind_local) bind_local = host;
-	    bind(host, port);
-	} else error("Cannot bind to this: %O\n", t);
-
+			sscanf(t, "%[^:]:%d", host, port);
+			if (host && !bind_local) bind_local = host;
+			bind(host, port);
+		} else error("Cannot bind to this: %O\n", t);
     }
 
     if (settings->entitites) foreach(settings->entities; mixed uni; object o) {
-	if (stringp(uni)) {
-	    MMP.Uniform t;
+		if (stringp(uni)) {
+			MMP.Uniform t;
 
-	    if (t = get_uniform(uni)) {
-		register_entity(t, o);
-	    } else {
-		werror("'%s' is not a valid Uniform.\n");
-	    }
-	} else {
-	    register_entity(stringp(uni) ? get_uniform(uni) : uni, o);
-	}
+			if (t = get_uniform(uni)) {
+			register_entity(t, o);
+			} else {
+			werror("'%s' is not a valid Uniform.\n");
+			}
+		} else {
+			register_entity(stringp(uni) ? get_uniform(uni) : uni, o);
+		}
     }
 
     if (settings->vhosts) foreach(settings->vhosts;; string hip) {
-	if (search(hip, ":") == -1) {
-	    hip = sprintf("%s:%d", hip, .DEFAULT_PORT);
-	}
-	add_vhost(hip);
+		if (search(hip, ":") == -1) {
+			hip = sprintf("%s:%d", hip, .DEFAULT_PORT);
+		}
+		add_vhost(hip);
     }
 
     if (settings->external_vhosts) foreach(settings->external_vhosts; string hip; object server) {
-	if (search(hip, ":") == -1) {
-	    hip = sprintf("%s:%d", hip, .DEFAULT_PORT);
-	}
-	add_vhost(hip, server);
+		if (search(hip, ":") == -1) {
+			hip = sprintf("%s:%d", hip, .DEFAULT_PORT);
+		}
+		add_vhost(hip, server);
     }
+
+	if (settings->get_new) {
+		this_program::get_new = settings->get_new;
+	}
 }
 
 void add_vhost(string hip, void|object server) {
     if (!domain) {
-	string host;
-	int port;
+		string host;
+		int port;
 
-	sscanf(hip, "%[^:]:%d", host, port);
-	if (port == .DEFAULT_PORT) domain = host;
-	else domain = hip;
+		sscanf(hip, "%[^:]:%d", host, port);
+		if (port == .DEFAULT_PORT) domain = host;
+		else domain = hip;
     }
     vhosts[hip] = server || this;
 }
