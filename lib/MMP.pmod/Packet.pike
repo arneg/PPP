@@ -122,7 +122,7 @@ MMP.Uniform source() {
 
 this_program reply(mixed data) {
 	mapping nvars = ([
-		"_target" : vars["_source_identification_reply"] || vars["_source_reply"] || vars["_source"],
+		"_target" : vars["_source_identification"] || vars["_source_relay"] || vars["_source"],
 	]);
 
 	if (has_index(vars, "_tag")) {
