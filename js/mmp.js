@@ -43,6 +43,10 @@ mmp.Uniform = function(str) {
 		root = str;
 		this.is_person = function() { return 0; }
 		this.is_room = function() { return 0; }
+		this.get_object = function(path) {
+			return mmp.get_uniform(this.uniform+"/"+path);
+		};
+		this.root = function() { return this; }
 		// this seems stupid. avoid cycles
     } else {
 		root = this.uniform.substr(0, 7+pos);
@@ -74,8 +78,9 @@ mmp.Uniform = function(str) {
 		} else {
 			this.base = this.object;
 		}
+		this.get_object = function(path) { return this.root().get_object(path); }
+		this.root = function() { return mmp.get_uniform(root); }
     }
-	this.root = function() { return mmp.get_uniform(root); }
 };
 mmp.Uniform.prototype = {
 	render : function(type) {
@@ -171,14 +176,14 @@ mmp.abbreviations = function(method) {
 mmp.Vars = Base.extend({
 	constructor : function() {
 	    if (arguments.length == 1 && typeof(arguments[0]) == "object") {
-		this.m = arguments[0];
+			this.m = arguments[0];
 	    } else if (arguments.length & 1) {
-		throw("odd number of mapping members.");
+			throw("odd number of mapping members.");
 	    } else {
-		this.m = {};
-		for (var i = 0; i < arguments.length; i += 2) {
-		    this.m[arguments[i]] = arguments[i+1];
-		}
+			this.m = {};
+			for (var i = 0; i < arguments.length; i += 2) {
+				this.m[arguments[i]] = arguments[i+1];
+			}
 	    }
 	},
 	get : function(key) {
@@ -217,6 +222,14 @@ mmp.Vars = Base.extend({
 	},
 	toString : function() {
 	    return "mmp.Vars(" + this.m + ")";
+	},
+	clone : function(t) {
+		var m = new mmp.Vars(t);
+		this.forEach(function(key, val) {
+			if (!m.hasIndex(key)) m.set(key, val);
+		}, this);
+
+		return m;
 	}
 });
 mmp.Packet = Base.extend({
@@ -236,7 +249,7 @@ mmp.Packet = Base.extend({
 	source : function(uniform) {
 		if (uniform) {
 			this.vars.set("_source", uniform);
-		} else return this.vars.get("_source");
+		} else return this.vars.get("_source_relay");// inheritence || this.vars.get("_source");
 	},
 	target : function(uniform) {
 		if (uniform) {
@@ -266,6 +279,7 @@ mmp.Packet = Base.extend({
 mmp.Base = UTIL.EventSource.extend({
 	constructor : function(server, uniform) {
 		this.base();
+		this.default_vars = new mmp.Vars();
 		this.server = server;
 		this.uniform = uniform;
 		this.states = new Mapping();
@@ -296,14 +310,14 @@ mmp.Base = UTIL.EventSource.extend({
 		var state = this.getState(p.v("_source"));
 
 		if (0 == id && state.remote_id != -1) {
-		    console.log("%o received initial packet from %O\n", uniform, p.v("_source"));
+		    meteor.debu("%o received initial packet from %O\n", this.uniform, p.v("_source"));
 		    this.deleteState(p.v("_source"));
 		    state = this.getState(p.v("_source"));
 		    // TODO we should check what happened to _ack. maybe we dont have to throw
 		    // away all of it
 		}
 
-		console.log("%o received %d (ack: %d, remote: %d, seq: %d)\n", this.uniform, id, ack, state.remote_id, state.last_in_sequence);
+		meteor.debu("%o received %d (ack: %d, remote: %d, seq: %d)\n", this.uniform, id, ack, state.remote_id, state.last_in_sequence);
 
 		if (id == state.remote_id + 1) {
 		    if (state.last_in_sequence == state.remote_id) state.last_in_sequence = id;
@@ -311,14 +325,14 @@ mmp.Base = UTIL.EventSource.extend({
 		    // we will request retrieval only once
 		    // maybe use missing = indices(state.missing) here?
 		    for (var i = state.remote_id + 1, j = 0; i < id; i++, j++) {
-			state.missing[i] = true;
+				state.missing[i] = true;
 		    }
 
-		    console.log("missing: %o\n", missing);
-		    sendmsg(p.v("_source"), "_request_retrieval", 0, { "_ids" : state.missing.indices() });
+		    meteor.debu("missing: %o\n", state.missing);
+		    this.sendmsg(p.v("_source"), "_request_retrieval", 0, { "_ids" : state.missing.indices() });
 		    state.remote_id = id;
 		} else if (id <= state.remote_id) { // retrieval
-		    console.log("got retransmission of %d (still missing: %s)\n", id, state.missing.indices().join(", "));
+		    meteor.debu("got retransmission of %d (still missing: %s)\n", id, state.missing.indices().join(", "));
 		    if (state.missing.hasIndex(id)) {
 			delete state.missing[id];
 			if (!sizeof(state.missing)) state.last_in_sequence = state.remote_id;
@@ -338,16 +352,15 @@ mmp.Base = UTIL.EventSource.extend({
 	},
 	send : function(target, data, relay) {
 		var state = this.getState(target);
-		var id = ++state.local_id;
-		var vars = {
-			_source : this.uniform, 
+		var id = state.local_id++;
+		var vars = this.default_vars.clone({
 			_target : target,
 			_id : id,
 			_ack : state.last_in_sequence,
-		};
+		}); 
 
 		if (relay) {
-			vars["_source_relay"] = relay;
+			vars.set("_source_relay", relay);
 		}
 
 		var p = new mmp.Packet(data, vars);
