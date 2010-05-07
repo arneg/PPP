@@ -23,7 +23,7 @@ void create(object server, MMP.Uniform uniform) {
     message_signature = Message(); // whatever
 }
 
-class Traverse(array(function) to_call, array args, void|function callback) {
+class Traverse(array(function|int) to_call, array args, void|function callback) {
 	int pos = 0;
 	int call_cb = 0;
 
@@ -42,7 +42,11 @@ class Traverse(array(function) to_call, array args, void|function callback) {
 
 	int start() {
 		werror("Calling %O\n", to_call[pos]);
-		int res = to_call[pos](@args, result);
+		int res;
+
+		if (intp(to_call[pos])) res = to_call[pos];
+		else res = to_call[pos](@args, result);
+
 		if (res != PSYC.WAIT) return result(res);
 
 		call_cb = 1;
@@ -89,8 +93,9 @@ int msg2(MMP.Packet p) {
 	if (sizeof(to_call)) return Traverse(to_call, ({ p, message_signature->decode(p->data) }))->start();
 }
 
-int msg(MMP.Packet p) {
-	return Traverse(({ ::msg, ident->msg, msg2 }), ({ p }))->start();
+int msg(MMP.Packet p, void|function cb) {
+	if (cb) return Traverse(({ ::msg, ident->msg, msg2 }), ({ p }), cb)->start();
+	else return Traverse(({ ::msg, ident->msg, msg2 }), ({ p }))->start();
 }
 
 void sendmsg(MMP.Uniform target, string method, void|string data, void|mapping m, void|function callback) {
