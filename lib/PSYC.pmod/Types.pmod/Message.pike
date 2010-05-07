@@ -61,6 +61,8 @@ int(0..1) can_decode(Serialization.Atom atom) {
     case "_message":
     case "_notice":
     case "_request":
+	case "_failure":
+	case "_update":
     case "_error":
     case "_status":
     	return 1;
