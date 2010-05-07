@@ -10,17 +10,17 @@ Widget.StateMachine = Base.extend({
 		this.state = "start";
 	},
 	trigger : function(e, ev) {
-		console.log("%o->trigger(%s)", this.node, e);
+		//console.log("%o->trigger(%s)", this.node, e);
 		if (!ev && UTIL.App.is_ie && window.event) ev = window.event;
 		//console.log("%o.trigger(%s)", this, e);
 		if (this.t[this.state].hasOwnProperty(e)) {
 			var nstate = this.t[this.state][e];
-			this.callEvent(this.state+">"+nstate, this.state, nstate, e, ev);
-			this.callEvent(this.state+">", this.state, nstate, e, ev);
-			this.callEvent(">"+nstate, this.state, nstate, e, ev);
+			this.callEvent(this.state+">"+nstate, [ e, ev, this.state, nstate ]);
+			this.callEvent(this.state+">", [e, ev, this.state, nstate ]);
+			this.callEvent(">"+nstate, [e, ev, this.state, nstate ]);
 			this.state = nstate;
 		}
-		this.callEvent(e, this.state, e, ev);
+		this.callEvent(e, this.state, [e, ev]);
 	},
 	callEvent : function(e) {
 		if (this.a.hasOwnProperty(e)) {
@@ -109,7 +109,7 @@ Widget.Base = Widget.StateMachine.extend({
 		try {
 		    this.node["on"+e] = UTIL.make_method(this, this.trigger, name||e);
 		} catch (err) {
-		    if (console && console.log) console.log("Setting the on%s event handler in %o failed.", e, this.node);
+		    //if (console && console.log) console.log("Setting the on%s event handler in %o failed.", e, this.node);
 		}
 	}
 });
@@ -171,15 +171,15 @@ Widget.Fx.CSS = Widget.Base.extend({
 		}
 		this.base(node, transitions, actions);
 	},
-	fade : function(to_state, to, properties) {
+	fade : function(to_state, to) {
 		if (this.fade_object) {
 			this.fade_object.stop();
 			this.fade_object = null;
 		}
 
-		console.log("fading %o to %o", this.node, to);
+		//console.log("fading %o to %o with %o", this.node, to, this.fade_properties);
 		//this.fade_object = Uize.Fx.fadeStyle(this.node, null, to, this.fade_properties);
-		this.fade_object = Uize.Fx.fadeStyle(this.node, null, to, 2000, properties || this.fade_properties);
+		this.fade_object = Uize.Fx.fadeStyle(this.node, null, to, this.fade_properties.duration);
 		if (this.onDone[to_state]) this.fade_object.wire("Done", UTIL.make_method(this, this.onDone[to_state], this.node));
 		if (this.onStart[to_state]) UTIL.make_method(this, this.onStart[to_state], this.node)();
 		this.fade_object.start();
