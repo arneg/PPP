@@ -30,9 +30,10 @@ KEY: while (p->left()) {
 ";
 
 	if (sizeof(types)) {
-	t+="array(string) a = MMP.abbreviations(k);\n";
-	t+=sprintf("for (int i = min(sizeof(a)-1, %d); i >= max(1, %d); i--) {\n", max_len - 1, min_len - 1);
-	t+= "		string key = a[i];\n";
+		t+="array(string) a = MMP.abbreviations(k);\n";
+		t+=sprintf("for (int i = min(sizeof(a)-1, %d); i >= max(1, %d); i--) {\n", max_len - 1, min_len - 1);
+		t+= "		string key = a[i];\n";
+		t+=sprintf("werror(\"checking %%s\\n\", key);\n");
 		t += #"
 			switch (key) {
 ";
@@ -61,44 +62,50 @@ string render_payload(Serialization.Atom a) {
     mapping m = a->typed_data[this];
     Serialization.StringBuilder buf = Serialization.StringBuilder();
     array node = buf->add();
-    foreach(m; string key; mixed val)";
+KEY: foreach(m; string k; mixed val) {";
 	if (sizeof(types)) {
-		t += "switch (key) {";
+		t+="array(string) a = MMP.abbreviations(k);\n";
+		t+=sprintf("for (int i = min(sizeof(a)-1, %d); i >= max(1, %d); i--) {\n", max_len - 1, min_len - 1);
+		t+= "		string key = a[i];\n";
+		t+=sprintf("werror(\"checking %%s\\n\", key);\n");
+		t += #"
+			switch (key) {
+";
 		foreach (types; string m;) {
-			t += "case \""+m+"\": buf->add(\""+m+" \"); type"+m+"->render(val, buf); break;";
+			t += "case \""+m+"\": buf->add(k+\" \"); type"+m+"->render(val, buf); continue KEY;";
 		}
-		t+="default:";
-	} else {
-		t += "{";
+		t+= "		}\n		}\n";
 	}
 	if (def) {
-		t += "buf->add(sprintf(\"%s \", key)); buf->add(def->encode(val)->render());}";
+		t += "buf->add(k+\" \"); def->render(val, buf);\n";
 	} else {
-		t += "}";
-		//t += "werror(\"Cannot encode %O:%O in %O\\n\", key, val, m);}";
-	}
-	t+= #"return buf->get();
+		t+="error(\"Cannot encode %O:%O in %O\\n\", k, val, a);";
+	} 
+	t+= #"}\nreturn buf->get();
 	}
 	Serialization.StringBuilder render(mapping m, Serialization.StringBuilder buf) {
 		 	int|array node = buf->add();
 		 	int length = buf->length();
-		 	foreach(m; string key; mixed val)";
+KEY: foreach(m; string k; mixed val) {"; 
 	if (sizeof(types)) {
-		t += "switch (key) {";
+		t+="array(string) a = MMP.abbreviations(k);\n";
+		t+=sprintf("for (int i = min(sizeof(a)-1, %d); i >= max(1, %d); i--) {\n", max_len - 1, min_len - 1);
+		t+= "		string key = a[i];\n";
+		t+=sprintf("werror(\"checking %%s\\n\", key);\n");
+		t += #"
+			switch (key) {
+";
 		foreach (types; string m;) {
-			t += "case \""+m+"\": buf->add(\""+m+" \"); type"+m+"->render(val, buf); break;";
+			t += "case \""+m+"\": buf->add(k+\" \"); type"+m+"->render(val, buf); continue KEY;";
 		}
-		t+="default:";
-	} else {
-		t += "{";
+		t+= "		}\n		}\n";
 	}
 	if (def) {
-		t += "buf->add(key+\" \"); def->render(val, buf);}";
+		t += "buf->add(sprintf(\"%s \", k)); buf->add(def->encode(val)->render());\n";
 	} else {
-		t += "}";
-		//t += "werror(\"Cannot encode %O:%O in %O\\n\", key, val, m);}";
-	}
-	t+= #"
+		t+="error(\"Cannot encode %O:%O in %O\\n\", k, val, a);";
+	} 
+	t+= #"}
 	buf->set_node(node, sprintf(\"%s %d \", type, buf->length() - length));
 	return buf;
 }
