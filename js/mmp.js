@@ -261,7 +261,7 @@ mmp.Packet = Base.extend({
 		} else return this.vars.get("_target");
 	},
 	V : function(key) {
-		return this.vars.getIndex(key);
+		return this.vars.hasIndex(key);
 	},
 	v : function(key) {
 		return this.vars.get(key);
@@ -374,5 +374,6 @@ mmp.Base = UTIL.EventSource.extend({
 		var p = new mmp.Packet(data, vars);
 		state.cache[id] = p;
 		this.server.msg(p);
+		return p;
 	}
 });
