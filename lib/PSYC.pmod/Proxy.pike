@@ -40,7 +40,7 @@ void incoming(object session, Serialization.Atom atom) {
 
 	//werror("%s <<<<<<< \t%s %O\n", (string)uniform, p->data->type, p->vars);
 
-	//werror("%s->incoming(%O, %O)\n", this, session, m);
+//	werror("%s->incoming(%s, %O)\n", (string)uniform, p->data->type, p->vars);
 	p->vars["_source"] = uniform;
 	MMP.Uniform target = p->vars["_target"];
 

@@ -41,7 +41,6 @@ class Traverse(array(function|int) to_call, array args, void|function callback) 
 	}
 
 	int start() {
-		werror("Calling %O\n", to_call[pos]);
 		int res;
 
 		if (intp(to_call[pos])) res = to_call[pos];
@@ -126,6 +125,6 @@ int _request_retrieval(MMP.Packet p, PSYC.Message m, function callback) {
 }
 
 int _message_public(MMP.Packet p, PSYC.Message m, function callback) {
-    werror("%O: _message_public(%d)\n", uniform, p["_id"]);
+   // werror("%O: _message_public(%d)\n", uniform, p["_id"]);
 	return PSYC.GOON;
 }

@@ -50,7 +50,7 @@ int msg(MMP.Packet p, function callback) {
 	object state = get_state(p["_source"]);
 
 	if (0 == id && state->remote_id != -1) {
-	    werror("%O received initial packet from %O\n", uniform, p["_source"]);
+	    //werror("%O received initial packet from %O\n", uniform, p["_source"]);
 	    delete_state(p["_source"]);
 	    state = get_state(p["_source"]);
 	    // TODO we should check what happened to _ack. maybe we dont have to throw
@@ -97,7 +97,7 @@ void send(MMP.Uniform target, Serialization.Atom m, void|mapping vars) {
 		"_ack" : state->last_in_sequence,
 	]) + vars;
 
-	werror("send(%s, %O)\n", m->type, vars);
+	//werror("send(%s, %O)\n", m->type, vars);
 
 	MMP.Packet p = MMP.Packet(m, vars);
 	state->cache[id] = p;
@@ -119,7 +119,7 @@ void sendreply(MMP.Packet p, Serialization.Atom m, void|mapping vars) {
 
 	if (vars) p->vars += vars;
 
-	werror("send(%s, %O)\n", m->type, p->vars);
+	//werror("send(%s, %O)\n", m->type, p->vars);
 
 	state->cache[id] = p;
 	server->msg(p);
