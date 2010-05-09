@@ -69,7 +69,7 @@ void create(MMP.Uniform peer, object server, function|void error,
 
 void init() {
 	int port = targetport;
-	if (MMP.Utils.Net.is_ip(targethost) && !port) port = DEFAULT_PORT;
+	if (MMP.Utils.Net.is_ip(targethost) && !port) port = MMP.DEFAULT_PORT;
 
 	if (port) {
 		connect_host(targethost, port);
