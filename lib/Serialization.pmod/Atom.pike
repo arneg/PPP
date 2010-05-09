@@ -42,6 +42,7 @@ void clear() {
 	typed_data = ([]);
 	data = 0;
 	type = 0;
+	done = 0;
 	signature = 0;
 }
 
@@ -54,14 +55,10 @@ void condense() {
 }
 
 #if 1
-void set_raw(string type, string action, string data) {
-
-    if (type != this_program::type) {
-		clear();
-    }
-
-    this_program::action = action;
-    this_program::data = action;
+void set_raw(string type, string data) {
+	clear();
+    this_program::type = type;
+    this_program::data = data;
 }
 #endif
 
