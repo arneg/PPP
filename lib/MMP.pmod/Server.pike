@@ -85,25 +85,15 @@ object get_entity(MMP.Uniform u) {
     return entities[u];
 }
 
-void msg(MMP.Packet p, void|object c) {
-    object s;
-    MMP.Uniform target = p->target();
-    string host, hip;
-    int port;
-
-    //werror("%O: %s -> %O\n", this, p->data->type, target);
-
-    if (c) {
-		// CHECK FOR SANITY
-		werror("got: %O from %O\n", p, c);
-    }
-
+object get_route(MMP.Uniform target) {
     if (has_index(entities, target)) {
 		// THIS IS ONLY FOR SAFETY REASONS
-		call_out(entities[target]->msg, 0, p);
-		return;
+		return entities[target];
     }
 
+    object s;
+    string host, hip;
+    int port;
 
     host = target->host;
     port = target->port || .DEFAULT_PORT;
@@ -113,30 +103,53 @@ void msg(MMP.Packet p, void|object c) {
     if (has_index(vhosts, hip)) {
 		mixed s = vhosts[hip];
 		if (!s || Program.inherits(object_program(s), MMP.Utils.Aggregator)) {
-			object o = get_entity(target);
-
-			if (o) o->msg(p);
-			else werror("Dont know how to create object for %O\n", target);
+			werror("Dont know how to create object for %O\n", target);
 		} else if (s == this) {
 			if (get_new) {
 				object o = get_new(target);
 				if (o) {
 					register_entity(target, o);
-					o->msg(p);
-					return;
+					return o;
 				}
 			} // else root->sendmsgreply(p, "_error_delivery");
-			werror("Failure to deliver: %O\n", p);
 		} else {
-			s->msg(p);
+			return s;
 		}
     } else {
 		werror("Connecting to %O\n", hip);
 		MMP.VirtualCircuit v = vcircuit_cache[hip];
 
 		if (!v) vcircuit_cache[hip] = v = MMP.VirtualCircuit(target, this, verror_cb, Function.curry(check_out)(hip));
-		v->msg(p);
+		return v;
     }
+
+	return UNDEFINED;
+}
+
+// we have to use + here to make sure that pike treats this as a constant expression
+#define M(source,target,context)	(!!(source) + !!(target) << 1 + !!(context) << 2)
+
+void msg(MMP.Packet p, void|object c) {
+    if (c) {
+		// CHECK FOR SANITY
+		werror("got: %O from %O\n", p, c);
+    }
+
+	object o;
+	switch (M(has_index(p->vars, "_source"), has_index(p->vars, "_target"), has_index(p->vars, "_context"))) {
+	case M(1,1,0): 
+		o = get_route(p->vars["_target"]);
+		break;
+	case M(0,0,1): 
+	//case 4:
+		//o = get_channel(p->vars["_target"]);
+		//break;
+	default:
+		werror("Routing for %O not implemented.\n", p->vars & ({ "_source", "_target", "_context" }));
+	}
+
+	if (o) call_out(o->msg, 0, p);
+	else werror("Failure to deliver: %O\n", p);
 }
 
 void close(MMP.Circuit c) {
@@ -213,9 +226,6 @@ void bind(void|string ip, void|int port) {
 		if (p->query_address() != sprintf("%s %d", ip, port)) 
 			add_vhost(replace(p->query_address(), " ", ":"));
     }
-}
-
-MMP.Circuit get_route(MMP.Uniform target) {
 }
 
 void create(mapping settings) {
