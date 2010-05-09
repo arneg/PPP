@@ -18,7 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  * Some helpful utility functions.
  * @namespace
  */
-UTIL = new Object();
+UTIL = {};
 /**
  * Flexible RegExp-based replace function. Calls a callback for every match and replaced it by the returned string.
  * @param {Object} reg RegExp Object to be used.
@@ -40,7 +40,7 @@ UTIL.replace = function(reg, s, cb) {
 	var extra;
 
 	if (arguments.length > 3) {
-		extra = new Array();
+		extra = [];
 		for (var i = 3; i < arguments.length; i++) extra[i-3] = arguments[i];
 	}
 
@@ -59,11 +59,11 @@ UTIL.replace = function(reg, s, cb) {
 UTIL.split_replace = function(reg, s, cb) {
 	var res;
 	var last = 0;
-	var ret = new Array();
+	var ret = [];
 	var extra;
 
 	if (arguments.length > 3) {
-		extra = new Array();
+		extra = [];
 		for (var i = 3; i < arguments.length; i++) extra[i-3] = arguments[i];
 	}
 
@@ -194,19 +194,18 @@ UTIL.make_method_keep_this = function(obj, fun) {
 	});
 };
 UTIL.make_method = function(obj, fun) {
-    	if (arguments.length > 2) {
+	if (arguments.length > 2) {
 	    var list = Array.prototype.slice.call(arguments, 2);
 	    return (function () { 
 		    return fun.apply(obj, list.concat(Array.prototype.slice.call(arguments)));
 	    });
 	}
-    	return (function () { 
+	return (function () { 
 		return fun.apply(obj, Array.prototype.slice.call(arguments));
 	});
 };
 UTIL.getDateOffset = function(date1, date2) {
-    if (!date2) date2 = new Date();
-    return (date2.getTime() - date1.getTime());
+	return (date2||new Date)-date1;
 }
 UTIL.Audio = function (params) {
 	if (UTIL.App.has_vorbis && !!params.ogg) {
@@ -219,7 +218,7 @@ UTIL.Audio = function (params) {
 
 	if (this.url) {
 	    this.play = function() {
-		this.audio = new Audio();
+		this.audio = new Audio;
 		this.audio.preload = !!params.autobuffer;
 		this.audio.autoplay = !!params.autoplay;
 		this.audio.loop = !!params.loop;
@@ -312,7 +311,7 @@ UTIL.merge_objects = function() {
     return o;
 };
 UTIL.get_random_key = function (length) {
-	var a = new Array();
+	var a = [];
 	// put some logic here to tune length of id and amount of items
 	for (var i = 0; i < length; i++) {
 		a.push(65 + Math.floor(Math.random() * 24));
@@ -327,7 +326,7 @@ UTIL.get_unique_key = function (length, set) {
 };
 UTIL.EventSource = Base.extend({
 	constructor : function() {
-		this.events = new HigherDMapping();
+		this.events = new HigherDMapping;
 	},
 	registerEvent : function(name, fun) {
 		return this.events.set(name, fun);	
