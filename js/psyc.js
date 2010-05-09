@@ -165,8 +165,8 @@ psyc.Base = mmp.Base.extend({
 		var m = this.message_signature.encode(new psyc.Message(method, data, vars));
 
 		if (callback) {
-			this.send(target, m, new mmp.Vars({ _tag : this.get_tag(callback) }));
-		} else this.send(target, m);
+			return this.send(target, m, new mmp.Vars({ _tag : this.get_tag(callback) }));
+		} else return this.send(target, m);
 	},
 	/**
 	 * Send a packet. This should be of type psyc.Message.
@@ -181,7 +181,7 @@ psyc.Base = mmp.Base.extend({
 			else vars = new mmp.Vars({ _tag : tag });
 		} 
 
-		this.base(target, m, vars);
+		return this.base(target, m, vars);
 	},
 	_ : function(p, m) {
 		var method = m.method;
