@@ -240,7 +240,9 @@ void create(mapping settings) {
 			string host;
 			int port;
 
-			sscanf(t, "%[^:]:%d", host, port);
+			if (1 == sscanf(t, "%[^:]:%d", host, port)) {
+				port = .DEFAULT_PORT;
+			}
 			if (host && !bind_local) bind_local = host;
 			bind(host, port);
 		} else error("Cannot bind to this: %O\n", t);
