@@ -10,8 +10,9 @@ object gen_vars(mapping params) {
 
 	t += sprintf("string type = %O;", type);
 	foreach (types; string m;) {
-		min_len = min(sizeof(MMP.abbreviations(m)), min_len);
-		max_len = max(sizeof(MMP.abbreviations(m)), max_len);
+		int len = sizeof(m/"_");
+		min_len = min(len, min_len);
+		max_len = max(len, max_len);
 		t += "object type"+m+";";
 	}
 	if (def) t += "object def;";
