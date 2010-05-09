@@ -32,7 +32,7 @@ MMP.Uniform get_temporary() {
 
 string _sprintf(int type) {
     if (type == 'O') {
-	return sprintf("MMP.Server(%O)", bind_local||vhosts);
+		return sprintf("MMP.Server(%O)", bind_local||vhosts);
     }
 
     error("wrong format.");
@@ -44,30 +44,30 @@ void circuit_to(string host, int port, function(MMP.Circuit:void) cb) {
     MMP.Circuit t;
 
     if (t = circuit_cache[hip]) {
-	call_out(cb, 0, t);
-	return;
+		call_out(cb, 0, t);
+		return;
     } else if (has_index(vhosts, hip)) {
-	call_out(cb, 0, 0);
-	return;
+		call_out(cb, 0, 0);
+		return;
     }
 
     Stdio.File f = Stdio.File();
     if (bind_local) f->open_socket(UNDEFINED, bind_local);
 
     void connected(int success) {
-	if (!success) werror("Could not connect to host %s\n", hip);
-	else {
-	    MMP.Circuit c;
+		if (!success) werror("Could not connect to host %s\n", hip);
+		else {
+			MMP.Circuit c;
 
-	    if (has_index(circuit_cache, hip)) {
-		c = circuit_cache[hip];
-		f->close();
-	    } else {
-		circuit_cache[hip] = c = MMP.Circuit(f, msg, this, 0);
-	    }
+			if (has_index(circuit_cache, hip)) {
+				c = circuit_cache[hip];
+				f->close();
+			} else {
+				circuit_cache[hip] = c = MMP.Circuit(f, msg, this, 0);
+			}
 
-	    cb(c);
-	}
+			cb(c);
+		}
     };
     
     f->async_connect(host, port, connected);
@@ -277,6 +277,8 @@ void create(mapping settings) {
 	if (settings->get_new) {
 		this_program::get_new = settings->get_new;
 	}
+
+	if (!domain) error("Failed to create server that does not handle any vhosts.\n");
 }
 
 void add_vhost(string hip, void|object server) {
@@ -288,6 +290,7 @@ void add_vhost(string hip, void|object server) {
 		if (port == .DEFAULT_PORT) domain = host;
 		else domain = hip;
     }
+
     vhosts[hip] = server || this;
 }
 
