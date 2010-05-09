@@ -27,7 +27,7 @@ int msg(MMP.Packet p, function callback) {
 	if (!has_index(i[id], source)) {
 		int cb(MMP.Packet p, PSYC.Message m, function cb) {
 			mixed a = i[id][source];
-			if (!arrayp(a)) error("no packets waiting for authentication!");
+			if (!arrayp(a)) error("no packets waiting for authentication!\nhave: %O\n", a);
 			if (m->method == "_notice_authentication") {
 				werror("%O authenticated as %O\n", source, id);
 				i[id][source] = 1;
@@ -40,9 +40,9 @@ int msg(MMP.Packet p, function callback) {
 
 			return PSYC.STOP;
 		};
-		o->sendmsg(id, "_request_authentication", 0, ([ "_supplicant" : source ]), cb);
 		werror("%O: waiting for authentication of %O by %O\n", o->uniform, source, id);
 		i[id][source] = ({ callback });
+		o->sendmsg(id, "_request_authentication", 0, ([ "_supplicant" : source ]), cb);
 		return PSYC.WAIT;
 	} else if (arrayp(i[id][source])) {
 		// waiting, so we append ours
