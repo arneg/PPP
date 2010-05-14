@@ -126,6 +126,11 @@ object get_route(MMP.Uniform target) {
 	return UNDEFINED;
 }
 
+int(0..1) is_local(MMP.Uniform u) {
+    object o = get_route(u);
+    return o && !Program.inherits(object_program(o), MMP.VirtualCircuit);
+}
+
 // we have to use + here to make sure that pike treats this as a constant expression
 #define M(source,target,context)	(!!(source) + !!(target) << 1 + !!(context) << 2)
 
