@@ -35,25 +35,19 @@ string unl;
 //!	    MMP.Uniform("http://ppp.psyc.eu/foo")->channel; // is UNDEFINED
 string channel;
 
-//! The address of the entity a given channel resides on. Is @expr{UNDEFINED@} if the Uniform
+//! The address (string) of the entity a given channel resides on. Is @expr{UNDEFINED@} if the Uniform
 //! is not a channel.
 //! @example
-//!	    MMP.Uniform("http://ppp.psyc.eu/foo#babar")->super; // is MMP.Uniform("http://ppp.psyc.eu/foo")
-this_program super;
+//!	    MMP.Uniform("http://ppp.psyc.eu/foo#babar")->super; // is "http://ppp.psyc.eu/foo"
+string super;
 
-//! The Uniform of the root entity.
+//! The Uniform (string) of the root entity.
 //! @example
-//!	    MMP.Uniform("http://ppp.psyc.eu/foo#babar")->root; // is MMP.Uniform("http://ppp.psyc.eu/")
+//!	    MMP.Uniform("http://ppp.psyc.eu/foo#babar")->root; // is "http://ppp.psyc.eu/"
 //! @note
 //!	    The root Uniform is not automatically set. In case you are using 
 //!	    @[PSYC.Server] this is taken care of.
-this_program root;
-
-//! The object associated with this Uniform. As @expr{root@} this variable is not set by default but
-//! may be used to store such information. In contrast to @expr{root@} it must not be exprected to
-//! contain the object when using @[PSYC.Server].
-array handler = ({ 0 });
-//array handler = set_weak_flag(({ 0 }), Pike.WEAK_VALUES);
+string root;
 
 string slashes;
 string query;
@@ -70,89 +64,48 @@ int parsed, islocal = UNDEFINED, reconnectable = 1;
 //! @param o
 //!	    The object to be associated with @expr{u@}. Will be stored in
 //!	    the variable @expr{handler@}.
-void create(string unl, object|void o) {
-this_program::unl = unl;
-if (o) {
-	handler[0] = o;
-}
+void create(string unl) {
+    this_program::unl = unl;
 }
 
-int is_local() {
-if (zero_type(islocal)) {
-	// -> to trigger parsing
-	if (this->super) { 
-	islocal = this->super->is_local();
-	} 
-
-	if (!zero_type(islocal)) return islocal;
-
-	if (this->root && this != root) {
-	islocal = root->is_local();
-	}
-
-	return islocal;
-}
-
-return islocal;
-}
 
 mixed cast(string type) {
-if (type == "string") return unl;
-}
-
-string to_json() {
-return "'" + unl + "'";
+    if (type == "string") return unl;
 }
 
 string _sprintf(int type) {
-if (type == 's') {
+    if (type == 's' || type == 'O') {
 	return sprintf("MMP.Uniform(%s)", unl);
-} else if (type = 'O') {
-	return sprintf("MMP.Uniform(%s, %s)", unl, is_local() ? "local" : "remote");
-}
+    }
 
-return UNDEFINED;
-}
-
-mixed `->=(string key, mixed value) {
-if (key == "handler") {
-	return handler[0] = value;
-}
-
-return ::`->=(key, value);
+    return UNDEFINED;
 }
 
 mixed `->(string dings) {
-if (dings == "handler") {
-	return handler[0];
-}
+    if (!parsed) switch (dings) {
+    case "scheme":
+    case "transport":
+    case "host":
+    case "user":
+    case "resource":
+    case "slashes":
+    case "query":
+    case "body":
+    case "userAtHost":
+    case "pass":
+    case "hostPort":
+    case "circuit":
+    case "root":
+    case "super":
+    case "port":
+    case "channel":
+    case "islocal":
+    case "obj":
+    case "reconnectable":
+	    parse();
+    }
 
-if (!parsed) {
-	switch (dings) {
-	case "scheme":
-	case "transport":
-	case "host":
-	case "user":
-	case "resource":
-	case "slashes":
-	case "query":
-	case "body":
-	case "userAtHost":
-	case "pass":
-	case "hostPort":
-	case "circuit":
-	case "root":
-	case "super":
-	case "port":
-	case "channel":
-	case "islocal":
-	case "obj":
-	case "reconnectable":
-		parse();
-	}
-}
-
-return ::`->(dings);
+    return ::`->(dings);
 }
 
 void parse() {
@@ -177,11 +130,6 @@ void parse() {
 	body = t;
 	sscanf(t, "%s/%s", t, resource);
 
-	if (!resource || 2 != sscanf(resource, "%s#%s", obj, channel)) {
-		obj = resource;
-		channel = UNDEFINED;
-		super = UNDEFINED;
-	}
 
 	userAtHost = t;
 	if (sscanf(t, "%s@%s", s, t)) {
@@ -190,7 +138,7 @@ void parse() {
 	}
 	hostPort = t;
 	//if (complete) circuit = scheme+":"+hostPort;
-	//root = scheme+":"+slashes+hostPort;
+	root = scheme+":"+slashes+hostPort;
 	if (sscanf(t, "%s:%s", t, s)) {
 		if (sizeof(s) && s[0] == '-') {
 			s = s[1..];
@@ -199,8 +147,15 @@ void parse() {
 		if (!sscanf(s, "%d%s", port, transport))
 			transport = s;
 	}
-
 	host = t;
+
+	if (!resource || 2 != sscanf(resource, "%s#%s", obj, channel)) {
+		obj = resource;
+		channel = UNDEFINED;
+		super = UNDEFINED;
+	} else {
+	    super = root+"/"+obj;
+	}
 
 	parsed = 1;
 }
