@@ -19,7 +19,9 @@ class Channel() {
     }
 
     void msg(MMP.Packet p) {
-	indices(routes)->msg(p);
+	foreach (routes;; object route) {
+	    call_out(route->msg, 0, p);
+	}
     }
 }
 
