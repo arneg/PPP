@@ -29,16 +29,22 @@ int _request_context_enter(MMP.Packet p, PSYC.Message m) {
     // check if coming from our root
     this->sendreplymsg(p, "_notice_context_enter");
     // TODO: send _notice_context_enter in context
+
+    return PSYC.STOP;
 }
 
 int _notice_context_leave(MMP.Packet p, PSYC.Message m) {
     // TODO: remove from all channels, or this should be explicit
     get_channel()->remove_member(m->vars->_supplicant);
+
+    return PSYC.STOP;
 }
 
 // user stopped existing. wipe from rooms
 int _failure_delivery_permanent(MMP.Packet p, PSYC.Message m) {
     get_channel()->remove_member(m->vars->_target);
+
+    return PSYC.STOP;
 }
 
 object get_channel(void|string|MMP.Uniform chan) {
