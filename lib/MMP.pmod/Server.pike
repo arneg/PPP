@@ -12,6 +12,20 @@ mapping(string:MMP.Circuit) circuit_cache = set_weak_flag(([ ]), Pike.WEAK_VALUE
 mapping(string:MMP.VirtualCircuit) vcircuit_cache = ([]);
 mapping(string:object) vhosts = ([ ]);
 
+mapping(MMP.Uniform:object) channels = ([]);
+
+void register_channel(MMP.Uniform u, object o) {
+    channels[u] = o;
+}
+
+void unregister_channel(MMP.Uniform u) {
+    m_delete(channels, u);
+}
+
+object get_channel(MMP.Uniform u) {
+    return channels[u];
+}
+
 MMP.Uniform to_uniform(void|int type, void|string name) {
 	if (type && name) {
 		name = Standards.IDNA.to_ascii(name);
@@ -146,9 +160,8 @@ void msg(MMP.Packet p, void|object c) {
 		o = get_route(p->vars["_target"]);
 		break;
 	case M(0,0,1): 
-	//case 4:
-		//o = get_channel(p->vars["_target"]);
-		//break;
+		o = get_channel(p->vars["_context"]);
+		break;
 	default:
 		werror("Routing for %O not implemented.\n", p->vars & ({ "_source", "_target", "_context" }));
 	}
