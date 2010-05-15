@@ -114,27 +114,29 @@ psyc.Base = mmp.Base.extend({
 	},
 	msg : function(p) {
 		if (!this.base(p)) return; // drop old packets
+		var m;
 
+		if (p.V("_tag_reply")) {
+			var tag = p.v("_tag_reply");
+			if (this.tags.hasOwnProperty(tag)) {
+				var fun = this.tags[tag];
+				delete this.tags[tag];
+				if (fun) {
+					none = 0;
+					if (this.message_signature.can_decode(p.data)) m = this.message_signature.decode(p.data);
+					if (psyc.STOP == fun.call(this, p, m)) return psyc.STOP;
+				}
+			}
+		}
 
-		if (this.message_signature.can_decode(p.data)) { // this is a psyc mc or something
-		    var m = this.message_signature.decode(p.data);
-			p.data = m;
+		if (m || this.message_signature.can_decode(p.data)) { // this is a psyc mc or something
+		    if (!m) m = this.message_signature.decode(p.data);
+		    p.data = m;
 
 
 		    var method = m.method;
 		    var none = 1;
 
-			if (p.V("_tag_reply")) {
-				var tag = p.v("_tag_reply");
-				if (this.tags.hasOwnProperty(tag)) {
-					var fun = this.tags[tag];
-					delete this.tags[tag];
-					if (fun) {
-						none = 0;
-						if (psyc.STOP == fun.call(this, p, m)) return psyc.STOP;
-					}
-				}
-			}
 
 		    for (var t = method; t; t = mmp.abbrev(t)) {
 			    if (UTIL.functionp(this[t])) {
