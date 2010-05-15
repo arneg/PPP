@@ -1,7 +1,8 @@
 mapping(program:mapping(mixed:object)) m = ([]);
 
 void create() {
-    set_weak_flag(m, Pike.WEAK);
+    //set_weak_flag(m, Pike.WEAK_VALUES);
+    //werror("created new typecache: \n%s\n", describe_backtrace(backtrace()));
 }
 
 mixed `[](mixed index) {
