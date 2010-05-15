@@ -87,25 +87,44 @@ int msg2(MMP.Packet p) {
 				to_call += ({ f });
 			}
 		}
-	}
+		if (sizeof(to_call)) return Traverse(to_call, ({ p, message_signature->decode(p->data) }))->start();
+	} else if (sizeof(to_call)) return Traverse(to_call, ({ p, 0 }))->start();
 
-	if (sizeof(to_call)) return Traverse(to_call, ({ p, message_signature->decode(p->data) }))->start();
 }
 
 int msg(MMP.Packet p, void|function cb) {
+#ifdef DEBUG_MSG
+    werror("%O->msg(%s, %O)\n", uniform, p->data->type, p->vars);
+#endif
 	if (cb) return Traverse(({ ::msg, ident->msg, msg2 }), ({ p }), cb)->start();
 	else return Traverse(({ ::msg, ident->msg, msg2 }), ({ p }))->start();
 }
 
-void sendmsg(MMP.Uniform target, string method, void|string data, void|mapping m, void|function callback) {
-	mapping vars = callback ? ([ "_tag" : get_tag(callback) ]) : 0;
+void send(MMP.Uniform target, PSYC.Message|Serialization.Atom m, void|mapping vars, void|function callback) {
+    if (callback) {
+	vars = (vars||([]))+([ "_tag" : get_tag(callback) ]);
+    }
+    if (object_program(m) == PSYC.Message) {
+	m = message_signature->encode(m);
+    }
+    ::send(target, m, vars);
+}
 
-	send(target, message_signature->encode(PSYC.Message(method, data, m)), vars);
+void sendmsg(MMP.Uniform target, string method, void|string data, void|mapping m, void|function callback) {
+
+	send(target, message_signature->encode(PSYC.Message(method, data, m)), 0, callback);
+}
+
+void sendreply(MMP.Packet p, PSYC.Message|Serialization.Atom m, void|mapping vars) {
+    if (object_program(m) == PSYC.Message) {
+	m = message_signature->encode(m);
+    }
+    ::sendreply(p, m, vars);
 }
 
 void sendreplymsg(MMP.Packet p, string method, void|string data, void|mapping m, void|function callback) {
 	mapping vars = callback ? ([ "_tag" : get_tag(callback) ]) : 0;
-	sendreply(p, message_signature->encode(PSYC.Message(method, data, m)), vars);
+	::sendreply(p, message_signature->encode(PSYC.Message(method, data, m)), vars);
 }
 
 int _request_retrieval(MMP.Packet p, PSYC.Message m, function callback) {
