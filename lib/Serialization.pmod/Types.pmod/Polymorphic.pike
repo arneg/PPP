@@ -11,9 +11,7 @@ void register_type(string|program ptype, string atype, object type) {
 	ptypes[ptype] += ({ type });
     }
 
-    array t = atypes[atype];
-
-    if (t) {
+    if (has_index(atypes, atype)) {
 	atypes[atype] += ({ type });
     } else {
 	atypes[atype] = ({ type });
