@@ -239,7 +239,7 @@ serialization.Integer = serialization.Base.extend({
 		this.type = "_integer";
 	},
 	can_encode : function(o) {
-		return intp(o);
+		return UTIL.intp(o);
 	},
 	decode : function(atom) {
 		return parseInt(atom.data);
@@ -253,7 +253,7 @@ serialization.Float = serialization.Base.extend({
 		this.type = "_float";
 	},
 	can_encode : function(o) {
-		return floatp(o);
+		return UTIL.floatp(o);
 	},
 	decode : function(atom) {
 		return parseFloat(atom.data);
@@ -268,7 +268,7 @@ serialization.Method = serialization.Base.extend({
 		this.type = "_method";
 	},
 	can_encode : function(o) {
-		return stringp(o);
+		return UTIL.stringp(o);
 	},
 	decode : function(atom) {
 		return atom.data;
