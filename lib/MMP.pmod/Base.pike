@@ -44,6 +44,8 @@ void sendmsg(MMP.Uniform target, string method, void|string data, void|mapping v
 // TODO: these mmp objects are not really capable of doing the _request_retrieval, so we should probably have a
 // callback for that. or something. lets assume we have a sendmsg
 int msg(MMP.Packet p, function callback) {
+	if (has_index(p->vars, "_context")) return PSYC.GOON;
+
 	int id = p["_id"];
 	int ack = p["_ack"];
 
