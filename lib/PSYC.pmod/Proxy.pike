@@ -54,8 +54,11 @@ int msg(MMP.Packet p) {
 	//if (::msg(p) == PSYC.STOP) return PSYC.STOP;
 	
 	//werror("%s >>>>>>> \t%s %O\n", (string)uniform, p->data->type, p->vars);
-
 	string|MMP.Utils.Cloak atom;
+
+	if (p->data->type == "_mmp") {
+	    p = mmp_signature->decode(p->data);
+	}
 
 	mixed err = catch {
 		if (has_index(p->vars, "_context")) {
