@@ -308,6 +308,8 @@ mmp.Base = UTIL.EventSource.extend({
 	},
 	msg : function(p) {
 		// This part is essentially copied and turned into the corresponding js
+		if (p.V("_context")) return true;
+
 		var id = p.v("_id");
 		var ack = p.v("_ack");
 
