@@ -2,40 +2,60 @@ mapping(MMP.Uniform:object) channels = ([]);
 
 class Channel(object server, MMP.Uniform uniform) {
     mapping(MMP.Uniform:int) members = ([]);
+
+    MMP.Utils.QuotaMap history = MMP.Utils.QuotaMap(20);
+
     int id = 0;
 
-    void castmsg(string method, void|string data, void|mapping vars, void|mapping relay) {
+    function on_enter, on_leave;
+
+    void groupcast(Serialization.Atom a, void|mapping relay) {
 	mapping mv = (relay||([])) + ([
 	    "_context" : uniform,
-	    "_id" : id++,
+	    "_id" : id,
 	]);
-	server->msg(MMP.Packet(PSYC.Message(method, data, vars), mv);
+	MMP.Packet p = MMP.Packet(a, mv);
+	history[id++] = p;
+	server->msg(p);
     }
 
     void add_member(MMP.Uniform u) {
+	if (on_enter && !has_index(members, u)) on_enter(u);
 	members[u] = 1;
     }
 
     void remove_member(MMP.Uniform u) {
+	if (on_leave && has_index(members, u)) on_leave(u);
 	m_delete(members, u);
+    }
+
+    int(0..1) has_member(MMP.Uniform u) {
+	return has_index(members, u);
     }
 }
 
-int _request_context_enter(MMP.Packet p, PSYC.Message m) {
+int _request_context_enter(MMP.Packet p, PSYC.Message m, function|void cb) {
     MMP.Uniform member = m->vars->_supplicant;
     object chan = get_channel();
 
     chan->add_member(member);
     // check if coming from our root
-    this->sendreplymsg(p, "_notice_context_enter");
+    this->sendreplymsg(p, "_notice_context_enter", 0, ([ "_context_id" : chan->id, "_members" : indices(chan->members), "_history_max" : chan->history->max ]));
     // TODO: send _notice_context_enter in context
 
     return PSYC.STOP;
 }
 
+int _request_context_retrieval(MMP.Packet p, PSYC.Message m, function|void cb) {
+    array(MMP.Packet) a = filter(map(m->vars->_ids, get_channel()->history->`[]), Function.curry(`!=)(0));
+    this->sendreply(p, this->List(this->Packet(this->Atom()))->encode(a));
+}
+
 int _notice_context_leave(MMP.Packet p, PSYC.Message m) {
     // TODO: remove from all channels, or this should be explicit
     get_channel()->remove_member(m->vars->_supplicant);
+
+    this->sendreplymsg(p, "_notice_context_enter");
 
     return PSYC.STOP;
 }
