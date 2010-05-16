@@ -6,6 +6,8 @@ class Channel() {
 
     MMP.Utils.QuotaMap history = MMP.Utils.QuotaMap(20);
 
+    object hmac = Crypto.HMAC(Crypto.SHA1())(random_string(20));
+
     void add_route(MMP.Uniform target, object o) {
 	if (!has_index(routes, o)) {
 	    routes[o] = ([ target : 1 ]);
@@ -14,12 +16,34 @@ class Channel() {
 	}
     }
 
+    string get_token(int id) {
+	return hmac(sprintf("%d", id));
+    }
+
+    function(int:int(0..1)) check_token(string token, int id) {
+	int (0..1) _cb_true(int desired_id) {
+	    return id <= desired_id;
+	};
+
+#if 0
+	int (0..1) _cb_false(int desired_id) {
+	    return 0;
+	};
+#endif
+
+	return hmac(sprintf("%d", id)) == token ? _cb_true : 0;
+    }
+
     void remove_route(MMP.Uniform target, object o) {
 	if (has_index(routes, o)) {
 	    m_delete(routes[o], target);
 
 	    if (!sizeof(routes[o])) m_delete(routes, o);
 	}
+    }
+
+    int(0..1) has_member(object o, MMP.Uniform target) {
+	return has_index(routes, o) && has_index(routes[o], target);
     }
 
     void msg(MMP.Packet p) {
@@ -53,7 +77,11 @@ object get_channel(MMP.Uniform u) {
 int _request_context_enter(MMP.Packet p, PSYC.Message m) {
     void cb(MMP.Packet rp, PSYC.Message rm) {
 	if (rm->method == "_notice_context_enter") {
-	    sendreply(p, rm);
+	    int id = rm->vars->_context_id;
+	    int max = rm->vars->_history_max;
+	    object chan = get_channel(m->vars->_channel);
+	    string token = chan->get_token(predef::max(0, id-max));
+	    sendreply(p, PSYC.Message(rm->method, rm->data, rm->vars + ([ "_token" : token, "_id" : predef::max(0, id-max) ])));
 	    get_channel(m->vars->_channel)->add_route(m->vars->_supplicant, this->server->get_route(m->vars->_supplicant));
 	} else {
 	    sendreply(p, rm);
@@ -96,10 +124,16 @@ int _request_context_retrieval(MMP.Packet p, PSYC.Message m) {
     object chan = get_channel(m->vars->_channel);
     array(MMP.Packet) a = ({});
     array(int) b = ({ });
+    function ct = chan->check_token(m->vars->_token, m->vars->_id);
 
 //    a = filter(map(m->vars->_ids, chan->history->`[]));
 
-    foreach (m->vars->_ids;; int id) {
+    if (!chan->has_member(this->server->get_route(p->source()), p->source())) { // TODO:: may route change?
+	return PSYC.STOP;
+    }
+
+    if (ct) foreach (m->vars->_ids;; int id) {
+	if (!ct(id)) continue;
 	if (has_index(chan->history, id)) {
 	    a += ({ chan->history[id] });
 	} else {
