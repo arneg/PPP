@@ -16,11 +16,20 @@ mixed `[](mixed key) {
 	return n ? DATA(n) : n;
 }
 
+void set_max(int n) {
+    while (size > n) {
+	m_delete(this, KEY(head));
+    }
+
+    max = n;
+}
+
 void remove(array n) {
 	if (n != tail) PREV(NEXT(n)) = PREV(n);
 	else tail = PREV(n);
 	if (n != head) NEXT(PREV(n)) = NEXT(n);
 	else head = NEXT(n);
+	size--;
 }
 
 mixed `[]=(mixed key, mixed val) {
@@ -54,13 +63,8 @@ mixed `[]=(mixed key, mixed val) {
 
 
 		if (size > max) {
-			mixed oldkey = KEY(head);
-			head = NEXT(head);
-			PREV(head) = 0;
-			size--;
-			m_delete(m, oldkey);
+			m_delete(m, KEY(head));
 		}
-
 	}
 
 	DATA(tail) = val;
@@ -86,6 +90,18 @@ int(0..1) _has_index(mixed key) {
 
 int _sizeof() {
 	return size;
+}
+
+array(mixed) _indices() {
+    return indices(m);
+}
+
+array(mixed) _values() {
+    array(mixed) ret = allocate(sizeof(m));
+    foreach (m; int i; array a) {
+	ret[i] = DATA(a);
+    }
+    return ret;
 }
 
 string _sprintf(int type) {
