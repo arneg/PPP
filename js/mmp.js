@@ -162,6 +162,11 @@ mmp.abbrev = function(method) {
 		return method.substr(0, i);
 	}
 }
+mmp.is_abbrev = function(method, family) {
+	if (method == family) return true;
+	if (method.length < family.length) return false;
+	return method.substr(0, family.length) == family;
+}
 mmp.abbreviations = function(method) {
 	var ret = new Array();
 	do { ret.push(method); } while( (method = mmp.abbrev(method)) );
@@ -331,10 +336,10 @@ mmp.Base = UTIL.EventSource.extend({
 		    // we will request retrieval only once
 		    // maybe use missing = indices(state.missing) here?
 		    for (var i = state.remote_id + 1, j = 0; i < id; i++, j++) {
-				state.missing[i] = true;
+				state.missing.set(i, true);
 		    }
 
-		    meteor.debug("missing: %o\n", state.missing);
+		    meteor.debug("missing: %o\n", state.missing.indices());
 		    this.sendmsg(p.v("_source"), "_request_retrieval", 0, { "_ids" : state.missing.indices() });
 		    state.remote_id = id;
 		} else if (id <= state.remote_id) { // retrieval
