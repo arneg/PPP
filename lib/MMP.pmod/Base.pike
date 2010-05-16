@@ -107,10 +107,10 @@ void send(MMP.Uniform target, Serialization.Atom m, void|mapping vars) {
 }
 
 void sendreply(MMP.Packet p, Serialization.Atom m, void|mapping vars) {
-	MMP.Uniform source = p->source();
 	p = p->reply(m);
+	MMP.Uniform target = p->vars->_target;
 
-	object state = get_state(source);
+	object state = get_state(target);
 	int id = state->get_id();
 
 	p->vars += ([ 
