@@ -1,3 +1,4 @@
+inherit .Base;
 mapping(MMP.Uniform:object) channels = ([]);
 
 class Channel(object server, MMP.Uniform uniform) {
@@ -39,8 +40,8 @@ int _request_context_enter(MMP.Packet p, PSYC.Message m, function|void cb) {
     object chan = get_channel();
 
     chan->add_member(member);
+    sendreplymsg(p, "_notice_context_enter", 0, ([ "_context_id" : chan->id - 1, "_members" : indices(chan->members), "_history_max" : chan->history->max ]));
     // check if coming from our root
-    this->sendreplymsg(p, "_notice_context_enter", 0, ([ "_context_id" : chan->id, "_members" : indices(chan->members), "_history_max" : chan->history->max ]));
     // TODO: send _notice_context_enter in context
 
     return PSYC.STOP;
@@ -48,14 +49,14 @@ int _request_context_enter(MMP.Packet p, PSYC.Message m, function|void cb) {
 
 int _request_context_retrieval(MMP.Packet p, PSYC.Message m, function|void cb) {
     array(MMP.Packet) a = filter(map(m->vars->_ids, get_channel()->history->`[]), Function.curry(`!=)(0));
-    this->sendreply(p, this->List(this->Packet(this->Atom()))->encode(a));
+    sendreply(p, this->List(this->Packet(this->Atom()))->encode(a));
 }
 
 int _notice_context_leave(MMP.Packet p, PSYC.Message m) {
     // TODO: remove from all channels, or this should be explicit
     get_channel()->remove_member(m->vars->_supplicant);
 
-    this->sendreplymsg(p, "_notice_context_enter");
+    sendreplymsg(p, "_notice_context_enter");
 
     return PSYC.STOP;
 }

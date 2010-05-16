@@ -1,4 +1,6 @@
 // vim:syntax=lpc
+inherit .Base;
+
 class Channel() {
     mapping(object:mapping(MMP.Uniform:int)) routes = ([]);
 
@@ -21,7 +23,9 @@ class Channel() {
     }
 
     void msg(MMP.Packet p) {
+	werror("mcast(%s, %O)\n", p->data->type, p);
 	history[p->vars->_id] = p;
+
 	foreach (routes; object route; ) {
 	    call_out(route->msg, 0, p);
 	}
@@ -29,6 +33,11 @@ class Channel() {
 }
 
 mapping(MMP.Uniform:object) channels = ([]);
+object retrieval_sig;
+
+void create(object server, MMP.Uniform uniform) {
+    retrieval_sig = this->List(this->Packet(this->Atom()));
+}
 
 object get_channel(MMP.Uniform u) {
     object chan = channels[u];
@@ -44,18 +53,18 @@ object get_channel(MMP.Uniform u) {
 int _request_context_enter(MMP.Packet p, PSYC.Message m) {
     void cb(MMP.Packet rp, PSYC.Message rm) {
 	if (rm->method == "_notice_context_enter") {
-	    this->sendreply(p, rm);
+	    sendreply(p, rm);
 	    get_channel(m->vars->_channel)->add_route(m->vars->_supplicant, this->server->get_route(m->vars->_supplicant));
 	} else {
-	    this->sendreply(p, rm);
+	    sendreply(p, rm);
 	}
     };
 	
     if (this->server->is_local(m->vars->_channel)) {
-	this->sendmsg(m->vars->_channel, "_request_context_enter", 0, ([ "_supplicant" : m->vars->_supplicant ]), cb);
+	sendmsg(m->vars->_channel, "_request_context_enter", 0, ([ "_supplicant" : m->vars->_supplicant ]), cb);
     } else {
 	MMP.Uniform target = this->server->get_uniform(m->vars->_channel->root);
-	this->send(target, m, 0, cb);
+	send(target, m, 0, cb);
     }
 
     return PSYC.STOP;
@@ -64,19 +73,19 @@ int _request_context_enter(MMP.Packet p, PSYC.Message m) {
 int _notice_context_leave(MMP.Packet p, PSYC.Message m) {
     void cb(MMP.Packet rp, PSYC.Message rm) {
 	if (rm->method == "_notice_context_leave") {
-	    this->sendreply(p, rm);
+	    sendreply(p, rm);
 	} else {
-	    this->sendreply(p, rm);
+	    sendreply(p, rm);
 	}
     };
 
     get_channel(m->vars->_channel)->remove_route(m->vars->_supplicant, this->server->get_route(m->vars->_supplicant));
 	
     if (this->server->is_local(m->vars->_channel)) {
-	this->send(m->vars->_channel, m, 0, cb);
+	send(m->vars->_channel, m, 0, cb);
     } else {
 	MMP.Uniform target = this->server->get_uniform(m->vars->_channel->root);
-	this->send(target, m, cb);
+	send(target, m, 0, cb);
     }
 
     return PSYC.STOP;
@@ -88,8 +97,6 @@ int _request_context_retrieval(MMP.Packet p, PSYC.Message m) {
     array(MMP.Packet) a = ({});
     array(int) b = ({ });
 
-    werror("CONTEXT retransmission of %O\n", m->vars->_ids);
-
 //    a = filter(map(m->vars->_ids, chan->history->`[]));
 
     foreach (m->vars->_ids;; int id) {
@@ -100,10 +107,18 @@ int _request_context_retrieval(MMP.Packet p, PSYC.Message m) {
 	}
     }
 
-    if (sizeof(a)) this->sendreply(p, this->List(this->Packet(this->Atom()))->encode(a));
+    if (sizeof(b)) {
+	void cb(MMP.Packet rp, PSYC.Message rm) {
 
-    werror("CONTEXT retransmissing:\n%O\n", a);
-    werror("CONTEXT history:\n%O\n", chan->history->m);
+	};
+
+	if (this->server->is_local(m->vars->_channel)) {
+	    sendmsg(m->vars->_channel, "_request_context_retrieval", 0, ([ "_ids" : b ]), cb);
+	} else {
+	    MMP.Uniform target = this->server->get_uniform(m->vars->_channel->root);
+	    send(target, m, 0, cb);
+	}
+    } else if (sizeof(a)) sendreply(p, retrieval_sig->encode(a));
 
     return PSYC.STOP;
 }

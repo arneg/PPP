@@ -1,10 +1,8 @@
-object o;
+inherit .Base;
 
-void create(object o) {
-	this_program::o = o;
-}
+int(0..1) authenticate(MMP.Uniform u);
 
-mapping(MMP.Uniform:mapping(MMP.Uniform:int|array(function))) i = ([]);
+mapping(MMP.Uniform:mapping(MMP.Uniform:int|array(function))) identifications = ([]);
 
 int msg(MMP.Packet p, function callback) {
 	if (!has_index(p->vars, "_source_identification")) return PSYC.GOON;
@@ -12,45 +10,46 @@ int msg(MMP.Packet p, function callback) {
 	MMP.Uniform source = p->vars->_source;
 	MMP.Uniform id = p->vars->_source_identification;
 
-	if (id == o->uniform) {
-		if (o->authenticate(source)) {
+	if (id == this->uniform) {
+		if (authenticate(source)) {
 			return PSYC.GOON;
 		} else {
 			return PSYC.STOP;
 		}
 	}
 
-	if (!has_index(i, id)) {
-		i[id] = ([]);
+	if (!has_index(identifications, id)) {
+		identifications[id] = ([]);
 	}
 
-	if (!has_index(i[id], source)) {
+	if (!has_index(identifications[id], source)) {
 		int cb(MMP.Packet p, PSYC.Message m, function cb) {
-			mixed a = i[id][source];
+			mixed a = identifications[id][source];
 			if (!arrayp(a)) error("no packets waiting for authentication!\nhave: %O\n", a);
 			if (m->method == "_notice_authentication") {
 				werror("%O authenticated as %O\n", source, id);
-				i[id][source] = 1;
+				identifications[id][source] = 1;
 				a(PSYC.GOON);
 			} else {
 				werror("%O did not auth as %O\n", source, id);
-				i[id][source] = 0;
+				identifications[id][source] = 0;
 				a(PSYC.STOP);
 			}
 
 			return PSYC.STOP;
 		};
-		werror("%O: waiting for authentication of %O by %O\n", o->uniform, source, id);
-		i[id][source] = ({ callback });
-		o->sendmsg(id, "_request_authentication", 0, ([ "_supplicant" : source ]), cb);
+		werror("%O: waiting for authentication of %O by %O\n", this->uniform, source, id);
+		identifications[id][source] = ({ callback });
+		sendmsg(id, "_request_authentication", 0, ([ "_supplicant" : source ]), cb);
 		return PSYC.WAIT;
-	} else if (arrayp(i[id][source])) {
+	} else if (arrayp(identifications[id][source])) {
 		// waiting, so we append ours
-		i[id][source] += ({ callback });
+		identifications[id][source] += ({ callback });
 		return PSYC.WAIT;
 	}
 
-	if (i[id][source]) return PSYC.GOON;
+	if (identifications[id][source]) return PSYC.GOON;
+
 	else {
 		werror("%O is falsely identifying for %O\n", source, id);
 		return PSYC.STOP;
