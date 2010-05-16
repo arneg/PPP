@@ -108,8 +108,19 @@ int _request_context_retrieval(MMP.Packet p, PSYC.Message m) {
     }
 
     if (sizeof(b)) {
-	void cb(MMP.Packet rp, PSYC.Message rm) {
+	int cb(MMP.Packet rp, PSYC.Message rm) {
+	    array(MMP.Packet) na = retrieval_sig->decode(rp->data);
+	    foreach (na;;MMP.Packet p) {
+		chan->history[p->vars->_id] = p;
+	    }
 
+	    if (sizeof(a)) {
+		sendreply(p, retrieval_sig->encode(na+a));
+	    } else {
+		sendreply(p, rp->data);
+	    }
+
+	    return PSYC.STOP;
 	};
 
 	if (this->server->is_local(m->vars->_channel)) {
