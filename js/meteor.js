@@ -325,12 +325,9 @@ meteor.Connection.prototype = {
 				if (this.buffer.length) window.setTimeout(UTIL.make_method(this, this.write), 20);
 			} else  { // this basically means, that the server does not know the id
 			    	this.error("It seems like the id timed out or something went wrong: "+ xhr.status);
-				if (xhr.status != 404) {
-				    delete this.outdoing;
-				    meteor.dismantle(xhr);
-				    this.outgoing_onerror();
-				    return;
-				}
+				delete this.outdoing;
+				meteor.dismantle(xhr);
+				return;
 			}
 			delete this.outdoing;
 			meteor.dismantle(xhr);
