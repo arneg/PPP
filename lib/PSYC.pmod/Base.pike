@@ -143,7 +143,7 @@ int _request_retrieval(MMP.Packet p, PSYC.Message m, function callback) {
 		else server->msg(packet);
     }
 
-    return PSYC.GOON;
+    return PSYC.STOP;
 }
 
 int _message_public(MMP.Packet p, PSYC.Message m, function callback) {
