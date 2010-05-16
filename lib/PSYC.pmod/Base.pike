@@ -1,9 +1,9 @@
 inherit MMP.Base : B;
 inherit Serialization.Signature;
 inherit PSYC.PsycTypes;
+inherit MMP.Plugins.Identification : IDENT;
 
 mapping(string:function) tags = ([]);
-object ident;
 
 string get_tag(function f) {
 	string tag;
@@ -19,7 +19,7 @@ object message_signature;
 void create(object server, MMP.Uniform uniform) {
     B::create(server, uniform);
     //S::create(server->type_cache);
-	ident = MMP.Plugins.Identification(this);
+    IDENT::create(server, uniform);
     message_signature = Message(); // whatever
 }
 
@@ -44,7 +44,10 @@ class Traverse(array(function|int) to_call, array args, void|function callback) 
 		int res;
 
 		if (intp(to_call[pos])) res = to_call[pos];
-		else res = to_call[pos](@args, result);
+		else {
+		    werror("Calling %O\n", to_call[pos]);
+		    res = to_call[pos](@args, result);
+		}
 
 		if (res != PSYC.WAIT) return result(res);
 
@@ -96,8 +99,8 @@ int msg(MMP.Packet p, void|function cb) {
 #ifdef DEBUG_MSG
     werror("%O->msg(%s, %O)\n", uniform, p->data->type, p->vars);
 #endif
-	if (cb) return Traverse(({ ::msg, ident->msg, msg2 }), ({ p }), cb)->start();
-	else return Traverse(({ ::msg, ident->msg, msg2 }), ({ p }))->start();
+	if (cb) return Traverse(({ B::msg, IDENT::msg, msg2 }), ({ p }), cb)->start();
+	else return Traverse(({ B::msg, IDENT::msg, msg2 }), ({ p }))->start();
 }
 
 void send(MMP.Uniform target, PSYC.Message|Serialization.Atom m, void|mapping vars, void|function callback) {
