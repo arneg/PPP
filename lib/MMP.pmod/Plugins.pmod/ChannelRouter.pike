@@ -145,7 +145,7 @@ int _request_context_retrieval(MMP.Packet p, PSYC.Message m) {
 	return PSYC.STOP;
     }
 
-    if (ct) foreach (m->vars->_ids;; int id) {
+    if (ct) foreach (sort(m->vars->_ids);; int id) {
 	if (!ct(id)) continue;
 	if (has_index(chan->history, id)) {
 	    a += ({ chan->history[id] });
