@@ -192,7 +192,7 @@ int _failure_delivery_permanent(MMP.Packet p, PSYC.Message m) {
 		get_channel(m->vars->_channel)->remove_route(m->vars->_supplicant, this->server->get_route(m->vars->_supplicant));
 
 		if (this->server->is_local(m->vars->_channel)) {
-			sendmsg(m->vars->_channel, "_notice_context_leave", 0 m->vars);
+			sendmsg(m->vars->_channel, "_notice_context_leave", 0, m->vars);
 		} else {
 			MMP.Uniform target = this->server->get_uniform(m->vars->_channel->root);
 			sendmsg(target, "_notice_context_leave", 0, m->vars);
