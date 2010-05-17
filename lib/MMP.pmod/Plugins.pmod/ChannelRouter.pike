@@ -1,6 +1,5 @@
 // vim:syntax=lpc
 inherit .Base;
-
 class Channel() {
     mapping(object:mapping(MMP.Uniform:int)) routes = ([]);
 
@@ -63,6 +62,10 @@ void create(object server, MMP.Uniform uniform) {
     retrieval_sig = this->List(this->Packet(this->Atom()));
 }
 
+int(0..1) check_source(MMP.Uniform supplicant, MMP.Packet p) {
+	return supplicant == p->source() || supplicant == p->vars->_source || server->get_uniform(supplicant->root) == p->source();
+}
+
 object get_channel(MMP.Uniform u) {
     object chan = channels[u];
 
@@ -87,6 +90,11 @@ int _request_context_enter(MMP.Packet p, PSYC.Message m) {
 	    sendreply(p, rm);
 	}
     };
+
+    if (!check_source(m->vars->_supplicant, p)) {
+	    werror("unauthorized _request_context_enter (%O, %O)\n", m->vars, p->vars);
+	    return PSYC.STOP;
+    }
 	
     if (this->server->is_local(m->vars->_channel)) {
 	sendmsg(m->vars->_channel, "_request_context_enter", 0, ([ "_supplicant" : m->vars->_supplicant ]), cb);
@@ -106,6 +114,11 @@ int _notice_context_leave(MMP.Packet p, PSYC.Message m) {
 	    sendreply(p, rm);
 	}
     };
+
+    if (!check_source(m->vars->_supplicant, p)) {
+	    werror("unauthorized _notice_context_leave (%O, %O)\n", m->vars, p->vars);
+	    return PSYC.STOP;
+    }
 
     get_channel(m->vars->_channel)->remove_route(m->vars->_supplicant, this->server->get_route(m->vars->_supplicant));
 	
@@ -165,6 +178,29 @@ int _request_context_retrieval(MMP.Packet p, PSYC.Message m) {
 	}
     } else if (sizeof(a)) sendreply(p, retrieval_sig->encode(a));
 
+    return PSYC.STOP;
+}
+
+int _failure_delivery_permanent(MMP.Packet p, PSYC.Message m) {
+
+	if (m->vars->_context && m->vars->_supplicant) {
+		if (!check_source(m->vars->_supplicant, p)) {
+			werror("unauthorized _failure_delivery (%O, %O)\n", m->vars, p->vars);
+			return PSYC.STOP;
+		}
+
+		get_channel(m->vars->_channel)->remove_route(m->vars->_supplicant, this->server->get_route(m->vars->_supplicant));
+
+		if (this->server->is_local(m->vars->_channel)) {
+			sendmsg(m->vars->_channel, "_notice_context_leave", m->vars);
+		} else {
+			MMP.Uniform target = this->server->get_uniform(m->vars->_channel->root);
+			sendmsg(target, "_notice_context_leave", m->vars);
+		}
+
+	}
+
+	
     return PSYC.STOP;
 }
 
