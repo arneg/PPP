@@ -63,7 +63,7 @@ void create(object server, MMP.Uniform uniform) {
 }
 
 int(0..1) check_source(MMP.Uniform supplicant, MMP.Packet p) {
-	return supplicant == p->source() || supplicant == p->vars->_source || server->get_uniform(supplicant->root) == p->source();
+	return supplicant == p->source() || supplicant == p->vars->_source || this->server->get_uniform(supplicant->root) == p->source();
 }
 
 object get_channel(MMP.Uniform u) {
