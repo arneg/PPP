@@ -33,6 +33,7 @@ UTIL.arrayp = function(a) { return (typeof(a) == "object" && a instanceof Array)
 UTIL.stringp = function(s) { return typeof(s) == "string"; };
 UTIL.functionp = function(f) { return (typeof(f) == "function" || f instanceof Function); };
 UTIL.objectp = function(o) { return typeof(o) == "object"; }
+UTIL.domp = UTIL.objectp;
 UTIL.replace = function(reg, s, cb) {
 	var res;
 	var last = 0;
@@ -182,15 +183,23 @@ UTIL.make_url = function(url, vars) {
 
 	return url + "?" + list.join("&");
 };
+
+UTIL.curry = function(f) {
+    if (!f) return undefined;
+    var list = Array.prototype.slice.call(arguments, 1);
+    return function() {
+	return f.apply(this, list.concat(Array.prototype.slice.call(arguments)));
+    };
+};
 UTIL.make_method_keep_this = function(obj, fun) {
     	if (arguments.length > 2) {
 	    var list = Array.prototype.slice.call(arguments, 2);
 	    return (function() {
-		    return fun.apply(obj, [ this ].concat(list).concat(Array.prototype.concat.call(arguments)));
+		    return fun.apply(obj, [ this ].concat(list).concat(Array.prototype.slice.call(arguments)));
 	    });
 	}
 	return (function() {
-		return fun.apply(obj, [ this ].concat(Array.prototype.concat.call(arguments)));
+		return fun.apply(obj, [ this ].concat(Array.prototype.slice.call(arguments)));
 	});
 };
 UTIL.make_method = function(obj, fun) {
@@ -324,9 +333,41 @@ UTIL.get_unique_key = function (length, set) {
 	while (set.hasOwnProperty((id = UTIL.get_random_key(length)))) { }
 	return id;
 };
+UTIL.create = function(type, params, content) {
+    var node = document.createElement(type);
+    for (var name in params) if (params.hasOwnProperty(name)) {
+	node.setAttribute(name, params[name]);
+    }
+
+    if (UTIL.stringp(content)) {
+	node.appendChild(document.createTextNode(content));
+    } else if (UTIL.domp(content)) {
+	node.appendChild(content);
+    }
+
+    return node;
+};
+UTIL.js_callbacks = {};
+UTIL.load_js = function(url, callback) {
+    var head = document.getElementsByTagName("head")[0];
+    head.appendChild(UTIL.create("script", {
+	type : "text/javascript",
+	src : url
+    }));
+
+    if (callback) {
+	var key = UTIL.get_unique_key(5, UTIL.js_callbacks);
+	UTIL.js_callbacks[key] = callback;
+	head.appendChild(UTIL.create("script", {
+	    type : "text/javascript"
+	}, "UTIL.js_callbacks['"+key+"'](); delete UTIL.js_callbacks['"+key+"'];"));
+    }
+};
 UTIL.EventSource = Base.extend({
 	constructor : function() {
 		this.events = new HigherDMapping;
+		this.wire = this.registerEvent;
+		this.unwire = this.unregisterEvent;
 	},
 	registerEvent : function(name, fun) {
 		return this.events.set(name, fun);	
