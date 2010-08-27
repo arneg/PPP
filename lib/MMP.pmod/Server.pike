@@ -240,8 +240,8 @@ void bind(void|string ip, void|int port) {
     } else {
 		p->set_id(p);
 		// add the initial one first to keep hostnames
-		add_vhost(sprintf("%s:%d", ip, port));
-		if (p->query_address() != sprintf("%s %d", ip, port)) 
+		add_vhost(sprintf("%s:%d", ip||"0.0.0.0", port));
+		if (p->query_address() != sprintf("%s %d", ip||"0.0.0.0", port)) 
 			add_vhost(replace(p->query_address(), " ", ":"));
     }
 }
