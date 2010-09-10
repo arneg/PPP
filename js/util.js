@@ -208,12 +208,13 @@ UTIL.make_method = function(obj, fun) {
 // this whole beast looks as weird as it is
 // and its basically just for IE fuck
 UTIL.make_external = function(a, obj, fun) {
+	if (!UTIL.App.is_ie) return UTIL.make_method.apply(this, Array.prototype.slice.call(arguments, 1));
 	if (arguments.length > 3) {
 	    var list = a.slice();
 	    for (var j = 3; j < arguments.length; j++) largs.push(arguments[j]);
 	    return (function () { 
 		    for (var i = 0; i < arguments.length; i++) largs.push(arguments[i]);
-		    return fun.apply(obj, list.concat(win.Array.prototype.slice.call(arguments)));
+		    return fun.apply(obj, list.concat(Array.prototype.slice.call(arguments)));
 	    });
 	
 	}
@@ -366,7 +367,8 @@ UTIL.EventSource = Base.extend({
 		for (var i = 0; i < list.length; i++) {
 		    try {
 			list[i].apply(this, arg);
-		    } catch(e) { }
+		    } catch(e) { 
+		    }
 		}
 	}
 });
