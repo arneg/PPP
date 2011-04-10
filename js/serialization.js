@@ -366,7 +366,8 @@ serialization.Mapping = serialization.Base.extend({
 });
 serialization.Object = serialization.Mapping.extend({
 	constructor : function(vtype) { 
-		this.base(new serialization.String(), vtype);
+		this.base(new serialization.Or(new serialization.Integer(), new serialization.String()),
+			  vtype);
 		this.type = "_mapping";
 	},
 	toString : function() {
@@ -499,7 +500,7 @@ serialization.Tuple = serialization.Base.extend({
 		var p = new serialization.AtomParser();
 		var l = p.parse(atom.data);
 
-		console.log("list: %o. atom: %o (%s)\n", l, atom, atom.data);
+		//console.log("list: %o. atom: %o (%s)\n", l, atom, atom.data);
 
 		if (l.length != this.types.length) throw(this+": '"+atom+"' contains "+l.length+" (need "+this.types.length+")");
 		
@@ -599,7 +600,7 @@ serialization.Packet = serialization.Tuple.extend({
 });
 serialization.Or = serialization.Base.extend({
 	constructor : function() {
-		this.types = arguments;
+		this.types = Array.prototype.slice.apply(arguments);
 	},
 	toString : function() {
 		var l = this.types.concat();
@@ -658,5 +659,25 @@ serialization.Array = serialization.Base.extend({
 			str += this.etype.encode(o[i]).render();
 		}
 		return new serialization.Atom("_list", str);
+	}
+});
+serialization.SimpleSet = serialization.Array.extend({
+	constructor : function() {
+	    this.base(new serialization.Or(
+					   new serialization.Integer(),
+					   new serialization.String()))
+	},
+	can_encode : function(o) {
+	    return UTIL.objectp(o);
+	},
+	encode : function(o) {
+	    return this.base(UTIL.keys(o)); 
+	},
+	decode : function(atom) {
+	    var l = this.base(atom);
+	    var o = {};
+	    for (var i = 0; i < l.length; i++)
+		o[l[i]] = 1;
+	    return o;
 	}
 });
