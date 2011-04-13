@@ -564,7 +564,11 @@ serialization.Struct = serialization.Tuple.extend({
 		var l = [];
 		for (var i = 0; i < this.names.length; i ++) {
 		    // maybe call if functionp()
-		    l.push(o[this.names[i]]);
+		    if (o.hasOwnProperty(this.names[i])) {
+			l.push(o[this.names[i]]);
+		    } else if (UTIL.functionp(o[this.names[i]])) {
+			l.push(o[this.names[i]]());
+		    } else throw("Data is missing entry "+this.names[i]);
 		}
 		return this.base(l);
 	}
