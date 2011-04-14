@@ -89,7 +89,6 @@ serialization.AtomParser = Base.extend({
 	//		if (re[0].search(/(_\w+)+/) != 0) {
 	//		    throw("bad atom\n");
 	//		}
-				console.log("no ' ' in %O\n", this.buffer);
 				return 0;
 			} else if (pos < 2) {
 				throw("bad atom.");
@@ -227,6 +226,20 @@ serialization.Date = serialization.Base.extend({
 	},
 	encode : function(o) {
 		return new serialization.Atom("_time", o.toInt().toString());
+	}
+});
+serialization.Undef = serialization.Base.extend({
+	constructor : function() { 
+		this.type = "_undefined";
+	},
+	can_encode : function(o) {
+		return o == undefined;
+	},
+	decode : function(atom) {
+		return undefined
+	},
+	encode : function(o) {
+		return new serialization.Atom("_undefined", "");
 	}
 });
 serialization.String = serialization.Base.extend({
@@ -534,7 +547,7 @@ serialization.Tuple = serialization.Base.extend({
 	}
 });
 serialization.Struct = serialization.Tuple.extend({
-	constructor : function(m) {
+	constructor : function(m, type) {
 		this.names = UTIL.keys(m).sort();
 		//console.log(this.names);
 		var types = [];
@@ -543,7 +556,7 @@ serialization.Struct = serialization.Tuple.extend({
 		    types.push(m[this.names[i]]);
 		}
 		this.base.apply(this, types);
-		this.type = "_struct"; // should be overloaded anyway!!
+		this.type = type || "_struct"; // should be overloaded anyway!!
 	},
 	decode : function(atom) {
 		var l = this.base(atom);
