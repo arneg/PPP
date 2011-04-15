@@ -45,6 +45,106 @@ meteor.debug = function() {
 		}
 	}
 };
+meteor.Multiplexer = function(session) {
+    this.session = session;
+    this.channels = {};
+    session.callback = UTIL.make_method(this, this.mplexcb);
+};
+meteor.Multiplexer.prototype = {
+    get_new_channel : function(name) {
+			  if (this.channels[name]) {
+			      error("Channel " + name + " already exists.");
+			  }
+
+			  return this.channels[name] = new meteor.Channel(name, this.session);
+		      },
+    get_channel : function(name) {
+		      return this.channels[name] || this.get_new_channel(name);
+		  },
+    close_channel : function(name) {
+			if (this.has_channel(name)) {
+			    delete this.channels[name];
+			}
+		    },
+    has_channel : function(name) {
+		      return !!this.channels[name];
+		  },
+    mplexcb : function(atom) {
+		  meteor.debug("mplexcb here.");
+		  this.buffer += atom;
+		  if (!this.initialized) {
+		      if (this.buffer.length >= "_multiplex".length) {
+			  if (this.buffer.substr(0, "_multiplex".length) == "_multiplex") {
+			      this.buffer = this.buffer.substr("_multiplex".length + 1);
+			      this.initialized = 1;
+			  } else {
+			      error("Not a multiplexed connection at server side?");
+			  }
+		      }
+		  } else {
+		      if (this.buffer.substr(0, "_channel ".length) == "_channel ") {
+			  var pos, name, len, data;
+			  var oldbuf = this.buffer;
+
+			  this.buffer = this.buffer.substr("_channel ".length + 1);
+			  pos = this.buffer.indexOf(" ");
+			  if (pos == -1) {
+			      this.buffer = oldbuf;
+			      return;
+			  }
+			  name = this.buffer.substr(0, pos - 1);
+			  this.buffer = this.buffer.substr(pos + 1);
+			  pos = this.buffer.indexOf(" ");
+			  if (pos == -1) {
+			      this.buffer = oldbuf;
+			      return;
+			  }
+			  len = this.buffer.substr(0, pos-1);
+			  this.buffer = this.buffer.substr(pos + 1);
+			  if (this.buffer.len < len) {
+			      this.buffer = oldbuf;
+			      return;
+			  }
+			  data = this.buffer.substr(0, len);
+			  this.buffer = this.buffer.substr(len + 1);
+
+			  if (this.has_channel(name)) {
+			      this.get_channel(name)._deliver(data);
+			  }
+		      }
+		  }
+	      },
+};
+meteor.Channel = function(name, session) {
+    this.name = name;
+    this.session = session;
+    this.initialized = 0;
+    this.buffer = "";
+    this.cb = 0;
+};
+meteor.Channel.prototype = {
+    send : function(atom) {
+	       this.session.send("_channel " + name + " " + atom.length + " " + atom);
+	   },
+    set_cb : function(cb) {
+		 this.cb = cb;
+	     },
+    get_cb : function(cb) {
+		 return this.cb;
+	     },
+    set_onerr : function(onerr) {
+		    this.onerr = onerr;
+		},
+    get_onerr : function() {
+		    return this.onerr;
+		},
+    close : function() {
+		// TODO:: do something!
+	    },
+    _deliver : function(data) {
+		  if (this.cb) this.cb(data);
+	      },
+};
 /**
  * Meteor connection class. This is usually used with Atom serialization on top. Use psyc.Client if unsure.
  * @param {String} url URL of the Meteor connection endpoint.

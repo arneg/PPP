@@ -345,6 +345,33 @@ UTIL.get_unique_key = function (length, set) {
 	while (set.hasOwnProperty((id = UTIL.get_random_key(length)))) { }
 	return id;
 };
+UTIL.EventAggregator = Base.extend({
+	constructor : function(cb) {
+		this.counter = 0;
+		this.is_started = 0;
+		this.result = {};
+		this.cb = cb;
+	},
+	get_cb : function(name) {
+		++this.counter;
+		return UTIL.MakeMethod(this,
+			function() {
+			    if (this.results[name]) throw("You can't use this cb twice.");
+			    this.results[name] = args;
+			    if (!--this.counter) {
+				if (this.is_started) {
+				    cb(this.result);
+				}
+			    }
+			});
+	},
+	start : function() {
+		this.is_started = 1;
+		if (!this.counter) {
+		    this.cb(this.result);
+		}
+	},
+});
 UTIL.EventSource = Base.extend({
 	constructor : function() {
 		this.events = new HigherDMapping;
