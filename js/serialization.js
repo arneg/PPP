@@ -89,7 +89,6 @@ serialization.AtomParser = Base.extend({
 	//		if (re[0].search(/(_\w+)+/) != 0) {
 	//		    throw("bad atom\n");
 	//		}
-				console.log("no ' ' in %O\n", this.buffer);
 				return 0;
 			} else if (pos < 2) {
 				throw("bad atom.");
