@@ -26,6 +26,13 @@ UTIL = {};
  * @param {Function} cb Callback to be called for every match. Parameters to the callback will be the result returned by the call to RegExp.exec and possible extra arguments that were passed to replace.
  * @returns The resulting string.
  */
+UTIL.keys = function(o) {
+    var a = [];
+    for (var i in o) if (o.hasOwnProperty(i)) {
+	a.push(i);
+    }
+    return a;
+};
 UTIL.intp = function(i) { return (typeof(i) == "number" && i%1 == 0); };
 UTIL.floatp = function(i) { return (typeof(i) == "number" && i%1 != 0.0); };
 UTIL.numberp = function(i) { return typeof(i) == "number"; };
