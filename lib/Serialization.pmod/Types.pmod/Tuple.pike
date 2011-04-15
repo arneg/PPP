@@ -46,7 +46,7 @@ int (0..1) low_can_encode(mixed a) {
 
 string _sprintf(int c) {
     if (c == 'O') {
-		return sprintf("Struct(%O)", types);
+		return sprintf("Tuple(%O)", types);
     }
 
     return 0;
