@@ -106,7 +106,7 @@ meteor.Channel = function(name, session) {
 };
 meteor.Channel.prototype = {
     send : function(atom) {
-	this.session.send("_channel " + name + " " + atom.length + " " + atom);
+	this.session.send("_channel "+ (atom.length+this.name.length+1) + " " + this.name + " " + atom);
     },
     set_cb : function(cb) {
 	this.cb = cb;
