@@ -228,18 +228,18 @@ serialization.Date = serialization.Base.extend({
 		return new serialization.Atom("_time", o.toInt().toString());
 	}
 });
-serialization.Undef = serialization.Base.extend({
+serialization.False = serialization.Base.extend({
 	constructor : function() { 
-		this.type = "_undefined";
+		this.type = "_false";
 	},
 	can_encode : function(o) {
-		return o == undefined;
+		return o == false;
 	},
 	decode : function(atom) {
-		return undefined
+		return false;
 	},
 	encode : function(o) {
-		return new serialization.Atom("_undefined", "");
+		return new serialization.Atom("_false", "");
 	}
 });
 serialization.String = serialization.Base.extend({
@@ -548,8 +548,9 @@ serialization.Tuple = serialization.Base.extend({
 });
 serialization.Struct = serialization.Tuple.extend({
 	constructor : function(m, type) {
-		this.names = UTIL.keys(m).sort();
-		//console.log(this.names);
+		this.names = UTIL.keys(m);
+		this.names = this.names.sort();
+		console.log(this.names);
 		var types = [];
 		for (var i = 0; i < this.names.length; i++) {
 		    //console.log("pushing type %o\n", m[this.names[i]]);

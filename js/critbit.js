@@ -51,7 +51,7 @@ CritBit.count_prefix = function(key1, key2, start) {
 
     throw("Strange types mismatch.");
 };
-CritBit.get_bit(key, size) {
+CritBit.get_bit = function(key, size) {
     if (UTIL.stringp(key)) {
 	if (size.chars >= key.length || size.bits > 31) {
 	    throw("index out of bounds.");
@@ -64,7 +64,7 @@ CritBit.get_bit(key, size) {
 
 	return !!(key & (1 << size.bits));
     }
-}
+};
 CritBit.sizeof = function(key) {
     if (UTIL.stringp(key)) {
 	return new CritBit.Size(key.length, 0);
