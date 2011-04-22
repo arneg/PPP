@@ -5,6 +5,10 @@ int(0..1) can_decode(Serialization.Atom atom) {
     return type == atom->type;
 }
 
+void create(string type) {
+    this_program::type = type;
+}
+
 string _sprintf(int t) {
     if (t == 'O') {
 		return sprintf("Serialization.Type(%s)", type||sprintf("%O", this_program));

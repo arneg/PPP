@@ -1,4 +1,4 @@
-inherit .Base;
+inherit .ListBased;
 
 function|program constructor;
 array(string) names;
@@ -12,28 +12,25 @@ void create(string type, mapping types, void|function|program constructor) {
     this_program::constructor = constructor;
 }
 
-void raw_to_medium(Serialization.Atom atom) {
-    atom->set_pdata(Serialization.parse_atoms(atom->data));
-}
+Serialization.Atom encode(mixed o) {
+    array a = allocate(sizeof(names));
 
-void medium_to_raw(Serialization.Atom atom) {
-    String.Buffer buf = String.Buffer();
-
-    foreach (atom->pdata;;Serialization.Atom a) {
-	buf = a->render(buf);
+    foreach (names; int i; string name) {
+	a[i] = types[name]->encode(o[name])->render();
     }
 
-    atom->data = (string)buf;
+    return Serialization.Atom(type, a*"");
 }
 
-void medium_to_done(Serialization.Atom atom) {
+mixed low_decode(object ATOM, array(Serialization.Atom) a) {
     mapping|object o = constructor ? constructor() : ([]); 
 
-    foreach (atom->pdata; int i; Serialization.Atom a) {
+    foreach (a; int i; Serialization.Atom a) {
+	if (a->type == "_false") continue;
 	o[names[i]] = types[names[i]]->decode(a);
     }
 
-    atom->set_typed_data(this, o);
+    return o;
 }
 
 int (0..1) low_can_encode(mixed a) {
