@@ -413,6 +413,8 @@ UTIL.App.is_ie = !!document.all && !UTIL.is_opera;
 UTIL.App.is_firefox = /a/[-1]=='a';
 UTIL.App.is_safari = /a/.__proto__=='//';
 UTIL.App.is_chrome = /source/.test((/a/.toString+''));
+UTIL.App.is_ipad = !!(navigator.userAgent.match(/iPad/));
+UTIL.App.is_iphone = !!(navigator.userAgent.match(/iPhone/));
 try {
     UTIL.App.has_local_database = !!window.openDatabase;
 } catch (e) {
