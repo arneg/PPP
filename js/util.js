@@ -413,6 +413,16 @@ UTIL.App.is_ie = !!document.all && !UTIL.is_opera;
 UTIL.App.is_firefox = /a/[-1]=='a';
 UTIL.App.is_safari = /a/.__proto__=='//';
 UTIL.App.is_chrome = /source/.test((/a/.toString+''));
+try {
+    UTIL.App.has_local_database = !!window.openDatabase;
+} catch (e) {
+    UTIL.App.has_local_database = false;
+}
+try {
+    UTIL.App.has_local_storage = !!window.localStorage;
+} catch (e) {
+    UTIL.App.has_local_storage = false;
+}
 try { 
     UTIL.App.audio = document.createElement('audio');
     UTIL.App.has_audio = !!UTIL.App.audio && !!UTIL.App.audio.canPlayType && !!UTIL.App.audio.play;
