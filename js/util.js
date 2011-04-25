@@ -26,6 +26,17 @@ UTIL = {};
  * @param {Function} cb Callback to be called for every match. Parameters to the callback will be the result returned by the call to RegExp.exec and possible extra arguments that were passed to replace.
  * @returns The resulting string.
  */
+UTIL.call_later = function(fun) {
+    if (arguments.length > 1 && arguments[1]) {
+	fun = UTIL.make_method(arguments[1], fun);
+    }
+    if (arguments.length > 2) { 
+	var a = Array.prototype.slice.call(arguments, 2);
+	window.setTimeout(function() {
+	    fun.apply(a);
+	}, 0);
+    } else window.setTimeout(fun, 0);
+};
 UTIL.keys = function(o) {
     var a = [];
     for (var i in o) if (o.hasOwnProperty(i)) {
