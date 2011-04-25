@@ -1,0 +1,17 @@
+We should make some kind of survey and put together all different kinds of serialization
+methods we are using right now. We might in addition add some kind of special PSYC compact
+method to the Packet type to allow for compactification of vars keys, but since we make
+an explicit difference between types and names (see also old discussion) this would be a
+special case.
+
+Types (PFISMA):
+---------------
+
+    _packet	p
+    _float	f
+    _integer	i
+    _string	s
+    _mapping	m
+    _array	a
+
+    _date	d
