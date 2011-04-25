@@ -71,21 +71,21 @@ meteor.Multiplexer.prototype = {
 	return !!this.channels[name];
     },
     mplexcb : function(atom) {
-	meteor.debug("mplexcb here.");
+	//meteor.debug("mplexcb here.");
 	var a = this.pro_atom.parse(atom);
 
 	for (var i = 0; i < a.length; i++) {
+	  if (a[i].type == "_keepalive") continue;
 	  if (!this.initialized) {
 	      if (a[i].type == "_multiplex") {
 		  this.initialized = 1;
-	      } else if (a[i].type == "_keepalive") {
-		  continue;
 	      } else meteor.debug("%o is not protoplex\n", atom);
 	  } else {
 	      var pos = a[i].data.indexOf(" ");
 		
 	      if (pos == -1) {
 		  meteor.debug("malformed channel data: %o", a[i])
+		  continue;
 	      }
 
 	      var name = a[i].data.substr(0, pos);
