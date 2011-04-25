@@ -458,3 +458,15 @@ try {
     UTIL.App.has_theora = false;
 }
 delete UTIL.App.video;
+if (window.console && window.console.log) {
+    if (window.console.firebug || UTIL.App.is_chrome || UTIL.App.is_opera) {
+	// TODO: might this throw?
+	UTIL.log = window.console.log;
+    } else { //this is IE
+	UTIL.log = function(err) {
+	    try {
+		window.console.log(UTIL.strinpg(err) ? err : (err.toString ? err.toString() : "UNKNOWN"));
+	    } catch (e) {}
+	};
+    }
+} else UTIL.log = function() {}
