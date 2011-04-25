@@ -33,7 +33,7 @@ UTIL.call_later = function(fun) {
     if (arguments.length > 2) { 
 	var a = Array.prototype.slice.call(arguments, 2);
 	window.setTimeout(function() {
-	    fun.apply(a);
+	    fun.apply(window, a);
 	}, 0);
     } else window.setTimeout(fun, 0);
 };
