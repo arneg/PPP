@@ -102,11 +102,11 @@ psyc.Base = mmp.Base.extend({
 		var wrapper = new meteor.CallbackWrapper(params, this.callbacks);
 
 		if (this.callbacks.hasIndex(params.method)) {
-			//meteor.debug("adding callbacks for %o for %o", params.method, params);
+			//UTIL.log("adding callbacks for %o for %o", params.method, params);
 			var list = this.callbacks.get(params.method);
 			list.push(wrapper);
 		} else {
-			//meteor.debug("adding callbacks for %o", params);
+			//UTIL.log("adding callbacks for %o", params);
 			this.callbacks.set(params.method, new Array( wrapper ) );
 		}
 
@@ -146,17 +146,17 @@ psyc.Base = mmp.Base.extend({
 							return psyc.STOP;
 						}
 				    } catch (error) {
-						if (meteor.debug) meteor.debug("error when calling "+t+" in "+this+": %o", error);
+						UTIL.log("error when calling "+t+" in "+this+": %o", error);
 				    }
 			    }
 		    }
 
-		    if (none && meteor.debug) {
-			    meteor.debug("No handler for "+method+" in "+this);	
+		    if (none && UTIL.log) {
+			    UTIL.log("No handler for "+method+" in "+this);	
 		    }
 
 		    return psyc.GOON;
-		} else if (meteor.debug) meteor.debug("Bad method "+p);
+		} else UTIL.log("Bad method "+p);
 	},
 	get_tag : function(fun) {
 		var tag = UTIL.get_unique_key(5, this.tags);
@@ -195,13 +195,13 @@ psyc.Base = mmp.Base.extend({
 			var stop = 0;
 
 			for (var j = 0; j < list.length; j++) {
-				//meteor.debug("calling from register_method %s", t);
+				//UTIL.log("calling from register_method %s", t);
 				try {
 					if (psyc.STOP == list[j].msg(p, m)) {
 						stop = 1;
 					}
 				} catch (error) {
-					if (meteor.debug) meteor.debug(error);
+					UTIL.log(error);
 				}
 			}
 

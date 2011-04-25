@@ -321,14 +321,14 @@ mmp.Base = UTIL.EventSource.extend({
 		var state = this.getState(p.v("_source"));
 
 		if (0 == id && state.remote_id != -1) {
-		    //meteor.debug("%o received initial packet from %O\n", this.uniform, p.v("_source"));
+		    //UTIL.log("%o received initial packet from %O\n", this.uniform, p.v("_source"));
 		    this.deleteState(p.v("_source"));
 		    state = this.getState(p.v("_source"));
 		    // TODO we should check what happened to _ack. maybe we dont have to throw
 		    // away all of it
 		}
 
-		//meteor.debug("%o received %d (ack: %d, remote: %d, seq: %d)\n", this.uniform, id, ack, state.remote_id, state.last_in_sequence);
+		//UTIL.log("%o received %d (ack: %d, remote: %d, seq: %d)\n", this.uniform, id, ack, state.remote_id, state.last_in_sequence);
 
 		if (id == state.remote_id + 1) {
 		    if (state.last_in_sequence == state.remote_id) state.last_in_sequence = id;
@@ -339,11 +339,11 @@ mmp.Base = UTIL.EventSource.extend({
 				state.missing.set(i, true);
 		    }
 
-		    meteor.debug("missing: %o\n", state.missing.indices());
+		    UTIL.log("missing: %o\n", state.missing.indices());
 		    this.sendmsg(p.v("_source"), "_request_retrieval", 0, { "_ids" : state.missing.indices() });
 		    state.remote_id = id;
 		} else if (id <= state.remote_id) { // retrieval
-		    meteor.debug("got retransmission of %d (still missing: %s)\n", id, state.missing.indices().join(", "));
+		    UTIL.log("got retransmission of %d (still missing: %s)\n", id, state.missing.indices().join(", "));
 		    if (state.missing.hasIndex(id)) {
 			delete state.missing[id];
 			if (!sizeof(state.missing)) state.last_in_sequence = state.remote_id;
