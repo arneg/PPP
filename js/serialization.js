@@ -186,8 +186,12 @@ serialization.Polymorphic = serialization.Base.extend({
 	},
 	encode : function(o) {
 		var t = typeof(o);
-		if (t == "object") t = o.constructor;
 		var types = this.ptype_to_type.get(t);
+
+		if ((!types || types.length == 0) && t == "object") 
+		    t = o.constructor;
+		    types = this.ptype_to_type.get(t);
+		 }
 
 		if (types) for (var i = 0; i < types.length; i ++) {
 			if (types[i].can_encode(o)) {
