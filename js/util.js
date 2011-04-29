@@ -54,8 +54,8 @@ UTIL.array_or = function(a, b) {
 	if (!b.hasOwnProperty(a[i])) ret.push(a[i]);
     return ret;
 };
-UTIL.create = function(class, args) {
-    return new (class.extend({
+UTIL.create = function(myclass, args) {
+    return new (myclass.extend({
 	constructor : function(a) {
 	    this.base.apply(this, a);
 	}
