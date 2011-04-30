@@ -387,7 +387,7 @@ serialization.Object = serialization.Mapping.extend({
 		return "Object()";
 	},
 	can_encode : function(o) {
-		return objectp(o);
+		return UTIL.objectp(o);
 	},
 	decode : function(atom) {
 		var p = new serialization.AtomParser();

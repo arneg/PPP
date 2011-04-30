@@ -124,7 +124,11 @@ meteor.Channel.prototype = {
 	// TODO:: do something!
     },
     _deliver : function(data) {
-	if (this.cb) this.cb(data);
+	this.buffer += data;
+	if (this.cb) {
+	    this.cb(this.buffer);
+	    this.buffer = "";
+	}
     },
 };
 /**
