@@ -506,7 +506,7 @@ if (window.console && window.console.log) {
     } else { //this is IE
 	UTIL.log = function(err) {
 	    try {
-		window.console.log(UTIL.strinpg(err) ? err : (err.toString ? err.toString() : "UNKNOWN"));
+		window.console.log(UTIL.stringp(err) ? err : (err.toString ? err.toString() : "UNKNOWN"));
 	    } catch (e) {}
 	};
 	UTIL.trace = function() {};
