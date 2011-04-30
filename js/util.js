@@ -463,7 +463,7 @@ UTIL.App.is_ie = !!document.all && !UTIL.is_opera;
 // The following are copied from http://www.thespanner.co.uk/2009/01/29/detecting-browsers-javascript-hacks/
 UTIL.App.is_firefox = /a/[-1]=='a';
 UTIL.App.is_safari = /a/.__proto__=='//';
-UTIL.App.is_chrome = /source/.test((/a/.toString+''));
+UTIL.App.is_chrome = !!window.chrome;
 UTIL.App.is_ipad = !!(navigator.userAgent.match(/iPad/));
 UTIL.App.is_iphone = !!(navigator.userAgent.match(/iPhone/));
 try {
@@ -501,8 +501,12 @@ delete UTIL.App.video;
 if (window.console && window.console.log) {
     if (window.console.firebug || UTIL.App.is_chrome || UTIL.App.is_opera) {
 	// TODO: might this throw?
-	UTIL.log = window.console.log;
-	UTIL.trace = window.console.trace;
+	UTIL.log = function() {
+	    window.console.log.apply(window.console, arguments);
+	};
+	UTIL.trace = function() {
+	    window.console.trace();
+	};
     } else { //this is IE
 	UTIL.log = function(err) {
 	    try {
