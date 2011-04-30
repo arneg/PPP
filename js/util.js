@@ -26,6 +26,57 @@ UTIL = {};
  * @param {Function} cb Callback to be called for every match. Parameters to the callback will be the result returned by the call to RegExp.exec and possible extra arguments that were passed to replace.
  * @returns The resulting string.
  */
+UTIL.array_to_set = function(a) {
+    var set = {};
+    for (var i = 0; i < a.length; i++) set[a[i]] = 1;
+};
+UTIL.array_and = function(a, b) {
+    var ret = [];
+    if (a.length > b.length) {
+	var s = a;
+	a = b;
+	b = s;
+    }
+    b = UTIL.array_to_set(b);
+    for (var i = 0; i < a.length; i++)
+	if (b.hasOwnProperty(a[i])) ret.push(a[i]);
+    return ret;
+};
+UTIL.array_or = function(a, b) {
+    if (a.length > b.length) {
+	var s = a;
+	a = b;
+	b = s;
+    }
+    var ret = b;
+    b = UTIL.array_to_set(b);
+    for (var i = 0; i < a.length; i++)
+	if (!b.hasOwnProperty(a[i])) ret.push(a[i]);
+    return ret;
+};
+UTIL.create = function(class, args) {
+    return new (class.extend({
+	constructor : function(a) {
+	    this.base.apply(this, a);
+	}
+    }))(args);
+};
+UTIL.call_later = function(fun) {
+    if (arguments.length > 1 && arguments[1]) {
+	fun = UTIL.make_method(arguments[1], fun);
+    }
+    if (arguments.length > 2) { 
+	var a = Array.prototype.slice.call(arguments, 2);
+	window.setTimeout(function() {
+	    fun.apply(window, a);
+	}, 0);
+    } else window.setTimeout(fun, 0);
+};
+UTIL.gauge = function(fun) {
+    var t = (new Date()).getTime();
+    fun();
+    return ((new Date()).getTime() - t)/1000;
+};
 UTIL.keys = function(o) {
     var a = [];
     for (var i in o) if (o.hasOwnProperty(i)) {
@@ -447,3 +498,17 @@ try {
     UTIL.App.has_theora = false;
 }
 delete UTIL.App.video;
+if (window.console && window.console.log) {
+    if (window.console.firebug || UTIL.App.is_chrome || UTIL.App.is_opera) {
+	// TODO: might this throw?
+	UTIL.log = window.console.log;
+	UTIL.trace = window.console.trace;
+    } else { //this is IE
+	UTIL.log = function(err) {
+	    try {
+		window.console.log(UTIL.strinpg(err) ? err : (err.toString ? err.toString() : "UNKNOWN"));
+	    } catch (e) {}
+	};
+	UTIL.trace = function() {};
+    }
+} else UTIL.trace = UTIL.log = function() {};

@@ -186,8 +186,12 @@ serialization.Polymorphic = serialization.Base.extend({
 	},
 	encode : function(o) {
 		var t = typeof(o);
-		if (t == "object") t = o.constructor;
 		var types = this.ptype_to_type.get(t);
+
+		if ((!types || types.length == 0) && t == "object") 
+		    t = o.constructor;
+		    types = this.ptype_to_type.get(t);
+		 }
 
 		if (types) for (var i = 0; i < types.length; i ++) {
 			if (types[i].can_encode(o)) {
@@ -195,7 +199,7 @@ serialization.Polymorphic = serialization.Base.extend({
 			}
 		}
 
-		meteor.debug("No type found for %o in %o.\n", t, this.ptype_to_type);
+		UTIL.log("No type found for %o in %o.\n", t, this.ptype_to_type);
 		throw("Cannot encode ("+t+","+o.toString()+")");
 	},
 	register_type : function(atype, ptype, o) {
@@ -505,8 +509,8 @@ serialization.Vars = serialization.Base.extend({
 serialization.Tuple = serialization.Base.extend({
 	constructor : function() {
 		this.types = Array.prototype.slice.call(arguments);
-		//if (meteor.debug) meteor.debug("arguments "+arguments);
-		//if (meteor.debug) meteor.debug("types "+this.types);
+		//UTIL.log("arguments "+arguments);
+		//UTIL.log("types "+this.types);
 		this.type = "_tuple";
 	},
 	decode : function(atom) {
