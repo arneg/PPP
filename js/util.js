@@ -72,6 +72,11 @@ UTIL.call_later = function(fun) {
 	}, 0);
     } else window.setTimeout(fun, 0);
 };
+UTIL.gauge = function(fun) {
+    var t = (new Date()).getTime();
+    fun();
+    return ((new Date()).getTime() - t)/1000;
+};
 UTIL.keys = function(o) {
     var a = [];
     for (var i in o) if (o.hasOwnProperty(i)) {
