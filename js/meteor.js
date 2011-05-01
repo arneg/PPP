@@ -36,15 +36,6 @@ meteor.dismantle = function(xhr) {
 	    xhr.abort(); 
 	} catch (e) {};
 };
-UTIL.log = function() {
-	if (window.console && window.console.log) {
-		if (window.console.firebug || UTIL.App.is_chrome) {
-			window.console.log.apply(window, arguments);
-		} else { //this is IE
-			window.console.log(arguments[0]);
-		}
-	}
-};
 meteor.Multiplexer = function(session) {
     this.session = session;
     this.channels = {};
