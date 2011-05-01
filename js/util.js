@@ -54,8 +54,8 @@ UTIL.array_or = function(a, b) {
 	if (!b.hasOwnProperty(a[i])) ret.push(a[i]);
     return ret;
 };
-UTIL.create = function(class, args) {
-    return new (class.extend({
+UTIL.create = function(c, args) {
+    return new (c.extend({
 	constructor : function(a) {
 	    this.base.apply(this, a);
 	}
@@ -88,9 +88,14 @@ UTIL.intp = function(i) { return (typeof(i) == "number" && i%1 == 0); };
 UTIL.floatp = function(i) { return (typeof(i) == "number" && i%1 != 0.0); };
 UTIL.numberp = function(i) { return typeof(i) == "number"; };
 UTIL.arrayp = function(a) { return (typeof(a) == "object" && a instanceof Array); };
-UTIL.stringp = function(s) { return typeof(s) == "string"; };
+UTIL.stringp = function(s) { return (typeof(s) == "string"); };
 UTIL.functionp = function(f) { return (typeof(f) == "function" || f instanceof Function); };
 UTIL.objectp = function(o) { return typeof(o) == "object"; }
+UTIL.copy = function(o) {
+    if (UTIL.arrayp(o)) return o.concat();
+    if (UTIL.functionp(o) || UTIL.objectp(o)) UTIL.error("Cannot copy functions or objects.");
+    return o;
+};
 UTIL.replace = function(reg, s, cb) {
 	var res;
 	var last = 0;
