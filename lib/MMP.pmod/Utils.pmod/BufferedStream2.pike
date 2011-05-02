@@ -49,7 +49,6 @@ int write(string fmt, mixed ... extra) {
 
     written = f->write(fmt);
     buf = fmt[written..];
-    if (!sizeof(buf)) buf = 0;
 
     return sizeof(fmt);
 }
@@ -79,9 +78,12 @@ mixed _close(mixed id) {
 
 mixed _write(mixed id) {
     if (buf) {
-	int written = f->write(buf);
-	buf = buf[written..];
-	if (!sizeof(buf)) buf = 0;
+	if (sizeof(buf)) {
+	    int written = f->write(buf);
+	    buf = buf[written..];
+	} else {
+	    buf = 0;
+	}
     }
     if (!buf && close_on_finish) {
 	f->set_nonblocking(); // remove callbacks ==> kill cyclics
