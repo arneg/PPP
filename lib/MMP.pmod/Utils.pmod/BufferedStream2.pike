@@ -1,7 +1,7 @@
 object f;
 mixed id;
 function close_callback, read_callback;
-string buf;
+string buf = "";
 int(0..1) close_on_finish;
 function query_address, close, is_open, errno;
 
