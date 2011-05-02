@@ -161,7 +161,7 @@ meteor.Connection.prototype = {
 		this.connect_new_incoming();
 	},
 	new_incoming_state_change : function(xhr) {
-		//UTIL.log("new_incoming state is " + xhr.readyState);
+		UTIL.log("new_incoming state is " + xhr.readyState);
 
 		if (xhr.readyState >= 2) {
 		    	window.clearTimeout(this.new_incoming_timeout);
@@ -170,7 +170,9 @@ meteor.Connection.prototype = {
 		// we should check here for buffer length. maybe set a max
 		// amount to shut down the main one ungracefully
 		if (xhr.readyState >= 3) {
+			// TODO: why is this timeout here?
 			window.setTimeout(UTIL.make_method(this, this.connect_incoming, xhr), 100);
+			xhr.onreadystatechange = function() {};
 		}
 	},
 	connect_new_incoming : function() {
@@ -286,7 +288,7 @@ meteor.Connection.prototype = {
 				xhr = this.new_incoming;
 			} else throw("you need to call new_incoming() first. no this.new_incoming.");
 		}
-		
+
 		if (this.incoming) {
 		    	if (this.incoming.readyState != 4) {
 			    // we lost some data here. we will still connect the new one because we dont expect it
