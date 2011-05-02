@@ -513,12 +513,10 @@ delete UTIL.App.video;
 if (window.console && window.console.log) {
     if (window.console.firebug || UTIL.App.is_chrome || UTIL.App.is_opera) {
 	// TODO: might this throw?
-	UTIL.log = function() {
-	    window.console.log.apply(window.console, arguments);
-	};
-	UTIL.trace = function() {
-	    window.console.trace();
-	};
+	UTIL.log = UTIL.make_method(window.console, window.console.log);
+	UTIL.trace = UTIL.make_method(window.console, window.console.trace);
+	UTIL.profile = UTIL.make_method(window.console, window.console.profile);
+	UTIL.profileEnd = UTIL.make_method(window.console, window.console.profileEnd);
     } else { //this is IE
 	UTIL.log = function(err) {
 	    try {
@@ -527,7 +525,8 @@ if (window.console && window.console.log) {
 	};
 	UTIL.trace = function() {};
     }
-} else UTIL.trace = UTIL.log = function() {};
+} else
+    UTIL.profile = UTIL.profileEnd = UTIL.trace = UTIL.log = function() {};
 UTIL.error = function(msg) {
     UTIL.log.apply(this, Array.prototype.slice.call(arguments));
     UTIL.trace();
