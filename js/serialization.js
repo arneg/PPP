@@ -87,11 +87,11 @@ serialization.AtomParser = Base.extend({
 			if (pos == -1) {
 			// check here for bogus data
 	//		if (re[0].search(/(_\w+)+/) != 0) {
-	//		    throw("bad atom\n");
+	//		    UTIL.error("bad atom\n");
 	//		}
 				return 0;
 			} else if (pos < 2) {
-				throw("bad atom.");
+				UTIL.error("bad atom.");
 			}
 
 			this.type = this.buffer.substr(0, pos);
@@ -104,12 +104,12 @@ serialization.AtomParser = Base.extend({
 			if (pos == -1) {
 				return 0;
 			} else if (pos == 0) {
-				throw("bad atom.");
+				UTIL.error("bad atom.");
 			}
 
 			this.length = parseInt(this.buffer.substr(0, pos));
 			if (this.length < 0 || this.length.toString() != this.buffer.substr(0, pos)) {
-				throw("bad length in atom.\n");
+				UTIL.error("bad length in atom.\n");
 			}
 			this.buffer = this.buffer.slice(pos+1);
 		}
@@ -182,7 +182,7 @@ serialization.Polymorphic = serialization.Base.extend({
 			}
 		}
 
-		throw("Cannot decode "+atom.toString());
+		UTIL.error("Cannot decode "+atom.toString());
 	},
 	encode : function(o) {
 		var t = typeof(o);
@@ -200,7 +200,7 @@ serialization.Polymorphic = serialization.Base.extend({
 		}
 
 		UTIL.log("No type found for %o in %o.\n", t, this.ptype_to_type);
-		throw("Cannot encode ("+t+","+o.toString()+")");
+		UTIL.error("Cannot encode ("+t+","+o.toString()+")");
 	},
 	register_type : function(atype, ptype, o) {
 		var t;
@@ -237,7 +237,7 @@ serialization.False = serialization.Base.extend({
 		this.type = "_false";
 	},
 	can_encode : function(o) {
-		return o == false;
+		return !o;
 	},
 	decode : function(atom) {
 		return false;
@@ -357,7 +357,7 @@ serialization.Mapping = serialization.Base.extend({
 		var l = p.parse(atom.data);
 		var m = this.constr ? new this.constr() : new Mapping();
 
-		if (l.length & 1) throw("Malformed mapping.\n");
+		if (l.length & 1) UTIL.error("Malformed mapping.\n");
 		
 		for (var i = 0;i < l.length; i+=2) {
 			var key = this.mtype.decode(l[i]);
@@ -372,7 +372,7 @@ serialization.Mapping = serialization.Base.extend({
 
 		o.forEach(function (key, val) {
 			if (!this.mtype.can_encode(key) || !this.vtype.can_encode(val)) {
-				throw("Type cannot encode "+key+"("+this.mtype.can_encode(key)+") : "+val+"("+this.vtype.can_encode(val)+")");
+				UTIL.error("Type cannot encode "+key+"("+this.mtype.can_encode(key)+") : "+val+"("+this.vtype.can_encode(val)+")");
 			}
 
 			str += this.mtype.encode(key).render();	
@@ -398,7 +398,7 @@ serialization.Object = serialization.Mapping.extend({
 		var l = p.parse(atom.data);
 		var m = {};
 
-		if (l.length & 1) throw("Malformed mapping.\n");
+		if (l.length & 1) UTIL.error("Malformed mapping.\n");
 		
 		for (var i = 0;i < l.length; i+=2) {
 			var key = this.mtype.decode(l[i]);
@@ -414,7 +414,8 @@ serialization.Object = serialization.Mapping.extend({
 		for (var key in o) if (o.hasOwnProperty(key)) {
 			var val = o[key];
 			if (!this.mtype.can_encode(key) || !this.vtype.can_encode(val)) {
-				throw("Type cannot encode "+key+"("+this.mtype.can_encode(key)+") : "+val+"("+this.vtype.can_encode(val)+")");
+			    //UTIL.log("o: %o", o);
+				UTIL.error("Type"+key+" cannot encode "+key+"("+this.mtype.can_encode(key)+") : "+val+"("+this.vtype.can_encode(val)+")");
 			}
 
 			str += this.mtype.encode(key).render();	
@@ -451,12 +452,12 @@ serialization.OneTypedVars = serialization.Base.extend({
 		var type = this.vtype;
 		var vars = new mmp.Vars();
 
-		if (l.length & 1) throw(atom+" has odd number of entries.");
+		if (l.length & 1) UTIL.error(atom+" has odd number of entries.");
 
 		for (var i = 0; i < l.length; i+=2) {
 			if (l[i].type === "_method") {
 				vars.set(l[i].data, type.decode(l[i+1]));
-			} else throw("Bad key type in _vars: " + l[i].type);
+			} else UTIL.error("Bad key type in _vars: " + l[i].type);
 		}
 
 		return vars;
@@ -478,9 +479,9 @@ serialization.Vars = serialization.Base.extend({
 		var name;
 
 		o.forEach(function(key, value) {
-			if (!mmp.methodp(key)) throw("The _vars type only allows method keys (got "+key+")");
+			if (!mmp.methodp(key)) UTIL.error("The _vars type only allows method keys (got "+key+")");
 			var t = this.types.get(key);
-			if (!t) throw("Cannot encode entry "+key);
+			if (!t) UTIL.error("Cannot encode entry "+key);
 			l.push(key+" "+t.encode(value).render());
 		}, this);
 
@@ -495,10 +496,10 @@ serialization.Vars = serialization.Base.extend({
 		    var key = p.parse_method();
 		    var atom = p._parse();
 
-		    if (!key || !atom) throw("Malformed _vars Atom: "+p.buffer);
-		    if (!mmp.methodp(key)) throw("Malformed method in _vars: "+key);
+		    if (!key || !atom) UTIL.error("Malformed _vars Atom: "+p.buffer);
+		    if (!mmp.methodp(key)) UTIL.error("Malformed method in _vars: "+key);
 		    var t = this.types.get(key);
-		    if (!t) throw("Cannot decode entry "+key);
+		    if (!t) UTIL.error("Cannot decode entry "+key);
 
 		    vars.set(key, t.decode(atom));
 		}
@@ -519,14 +520,14 @@ serialization.Tuple = serialization.Base.extend({
 
 		//console.log("list: %o. atom: %o (%s)\n", l, atom, atom.data);
 
-		if (l.length != this.types.length) throw(this+": '"+atom+"' contains "+l.length+" (need "+this.types.length+")");
+		if (l.length != this.types.length) UTIL.error(this+": '"+atom+"' contains "+l.length+" (need "+this.types.length+")");
 		
 		for (var i = 0; i < l.length; i++) {
 			if (this.types[i].can_decode(l[i])) {
 				l[i] = this.types[i].decode(l[i]);
 			} else {
 				//console.log("%o cannot decode %o\n", this.types[i], l[i]);
-				throw(this+": cannot decode "+atom+" at position "+i);
+				UTIL.error(this+": cannot decode "+atom+" at position "+i);
 			}
 		}
 
@@ -541,9 +542,10 @@ serialization.Tuple = serialization.Base.extend({
 	encode : function(l) {
 		var d = "";
 
-		if (l.length != this.types.length) throw("Cannot encode atom "+atom.toString());
+		if (l.length != this.types.length) UTIL.error("Cannot encode atom "+atom.toString());
 
 		for (var i = 0; i < l.length; i++) {
+		    //UTIL.log("%o", i);
 			d += this.types[i].encode(l[i]).render();
 		}
 
@@ -586,7 +588,7 @@ serialization.Struct = serialization.Tuple.extend({
 			l.push(o[this.names[i]]);
 		    } else if (UTIL.functionp(o[this.names[i]])) {
 			l.push(o[this.names[i]]());
-		    } else throw("Data is missing entry "+this.names[i]);
+		    } else UTIL.error("Data is missing entry "+this.names[i]);
 		}
 		return this.base(l);
 	}
@@ -649,7 +651,7 @@ serialization.Or = serialization.Base.extend({
 			}
 		}
 
-		throw("No type in "+this+" to decode "+atom);
+		UTIL.error("No type in "+this+" to decode "+atom);
 	},
 	encode : function(o) {
 		for (var i = 0; i < this.types.length; i++) {
@@ -658,7 +660,9 @@ serialization.Or = serialization.Base.extend({
 			}
 		}
 
-		throw("No type in "+this+" to encode "+o);
+		//UTIL.log("Or(%o)", this.types);
+		UTIL.trace();
+		UTIL.error("No type in "+this+" to encode "+o);
 	}
 });
 serialization.Array = serialization.Base.extend({

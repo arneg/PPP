@@ -77,6 +77,13 @@ UTIL.gauge = function(fun) {
     fun();
     return ((new Date()).getTime() - t)/1000;
 };
+
+UTIL.agauge = function(obj, fun, cb) {
+    var t = (new Date()).getTime();
+    fun.call(obj, function() {
+	cb.apply(obj, [((new Date()).getTime() - t) / 1000].concat(Array.prototype.slice.call(arguments)));
+    });
+};
 UTIL.keys = function(o) {
     var a = [];
     for (var i in o) if (o.hasOwnProperty(i)) {
@@ -328,7 +335,7 @@ UTIL.Audio = function (params) {
 		};
 	    }
 	} else {
-	    if (!params.wav) throw("You are trying to use UTIL.Audio without html5 and a wav file. This will not work.");
+	    if (!params.wav) UTIL.error("You are trying to use UTIL.Audio without html5 and a wav file. This will not work.");
 
 	    if (UTIL.App.is_opera || navigator.appVersion.indexOf("Mac") != -1) {
 		this.div = document.createElement("div");
@@ -380,7 +387,7 @@ UTIL.Audio = function (params) {
 		    this.play = function () { this.embed.Play(); }
 		} else if (this.embed.DoPlay) {
 		    this.play = function () { this.embed.DoPlay(); }
-		} else throw("embed does not have a play method. Something is wrong.");
+		} else UTIL.error("embed does not have a play method. Something is wrong.");
 
 		this.stop = function () { this.embed.Stop(); }
 	    }
@@ -419,7 +426,7 @@ UTIL.EventAggregator = Base.extend({
 		++this.counter;
 		return UTIL.MakeMethod(this,
 			function() {
-			    if (this.results[name]) throw("You can't use this cb twice.");
+			    if (this.results[name]) UTIL.error("You can't use this cb twice.");
 			    this.results[name] = args;
 			    if (!--this.counter) {
 				if (this.is_started) {
@@ -521,3 +528,9 @@ if (window.console && window.console.log) {
 	UTIL.trace = function() {};
     }
 } else UTIL.trace = UTIL.log = function() {};
+UTIL.error = function(msg) {
+    UTIL.log.apply(this, Array.prototype.slice.call(arguments));
+    UTIL.trace();
+    // we might want to do some kind of sprintf here.
+    throw(msg);
+};
