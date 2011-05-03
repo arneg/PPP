@@ -61,6 +61,21 @@ UTIL.create = function(myclass, args) {
 	}
     }))(args);
 };
+UTIL.once = function(fun) {
+    var called = false;
+    var cp = Array.prototype.slice.call(arguments);
+    return function() {
+	if (called) {
+	    if (cp.length >= 2) {
+		UTIL.error("Callback called twice! (%o)", cp[1]);
+	    } else {
+		UTIL.error("Callback called twice!");
+	    }
+	}
+	called = true;
+	return fun.apply(this, Array.prototype.slice.call(arguments));
+    };
+};
 UTIL.call_later = function(fun) {
     if (arguments.length > 1 && arguments[1]) {
 	fun = UTIL.make_method(arguments[1], fun);
@@ -80,6 +95,7 @@ UTIL.gauge = function(fun) {
 
 UTIL.agauge = function(obj, fun, cb) {
     var t = (new Date()).getTime();
+    cb = UTIL.once(cb);
     fun.call(obj, function() {
 	cb.apply(obj, [((new Date()).getTime() - t) / 1000].concat(Array.prototype.slice.call(arguments)));
     });
@@ -99,8 +115,19 @@ UTIL.stringp = function(s) { return (typeof(s) == "string"); };
 UTIL.functionp = function(f) { return (typeof(f) == "function" || f instanceof Function); };
 UTIL.objectp = function(o) { return typeof(o) == "object"; }
 UTIL.copy = function(o) {
-    if (UTIL.arrayp(o)) return o.concat();
-    if (UTIL.functionp(o) || UTIL.objectp(o)) UTIL.error("Cannot copy functions or objects.");
+    if (UTIL.arrayp(o)) {
+	o = o.concat();
+	for (var i = 0; i < o.length; i ++) o[i] = UTIL.copy(o[i]);
+	return o;
+    }
+    if (UTIL.functionp(o)) UTIL.error("Cannot copy functions or objects.");
+    if (UTIL.objectp(o)) {
+	var n = {};
+	for (var i in o) if (o.hasOwnProperty(i)) {
+	    n = UTIL.copy(o[i]);
+	}
+	return n;
+    }
     return o;
 };
 UTIL.replace = function(reg, s, cb) {

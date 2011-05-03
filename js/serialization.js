@@ -539,6 +539,9 @@ serialization.Tuple = serialization.Base.extend({
 
 		return "Tuple("+l.join(", ")+")";
 	},
+	can_encode : function(l) {
+		return UTIL.arrayp(l) && l.length == this.types.length;
+	},
 	encode : function(l) {
 		var d = "";
 
@@ -579,6 +582,9 @@ serialization.Struct = serialization.Tuple.extend({
 		for (var i = 0; i < l.length; i++) l[i] = l[i].toString();
 
 		return "Struct("+l.join(", ")+")";
+	},
+	can_encode : function(o) {
+		return UTIL.objectp(o);
 	},
 	encode : function(o) {
 		var l = [];
