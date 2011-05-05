@@ -194,6 +194,7 @@ meteor.Connection.prototype = {
 		var xhr = new XMLHttpRequest();
 		this.new_incoming = xhr;
 
+		this.vars.random = UTIL.get_random_key(6);
 		// this is a bloody hack!
 		if (UTIL.App.is_ie) {
 		    xhr.open("POST", UTIL.make_url(this.url, this.vars)+"&autoclose=1", true);
@@ -346,6 +347,7 @@ meteor.Connection.prototype = {
 		this.reconnect = 1;
 
 		xhr.onreadystatechange = UTIL.make_method(this, this.init_state_change, xhr);
+		this.vars.random = UTIL.get_random_key(6);
 		xhr.open("GET", UTIL.make_url(this.url, this.vars), true);
 		xhr.send("");
 	},
@@ -427,6 +429,7 @@ meteor.Connection.prototype = {
 		}
 		*/
 
+		this.vars.random = UTIL.get_random_key(6);
 		xhr.open("POST", UTIL.make_url(this.url, this.vars), this.async);
 		// we do this charset hackery because we have internal utf8 and plain ascii
 		// for the rest of atom. this is supposed to be a binary transport
