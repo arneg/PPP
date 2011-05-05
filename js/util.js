@@ -124,7 +124,7 @@ UTIL.copy = function(o) {
     if (UTIL.objectp(o)) {
 	var n = {};
 	for (var i in o) if (o.hasOwnProperty(i)) {
-	    n = UTIL.copy(o[i]);
+	    n[i] = UTIL.copy(o[i]);
 	}
 	return n;
     }
@@ -528,6 +528,9 @@ try {
     UTIL.App.has_wav = false;
 }
 delete UTIL.App.audio;
+if (navigator.hasOwnProperty("onLine")) {
+    UTIL.App.is_online = function() { return navigator.onLine; }
+} else UTIL.App.is_online = function() { return true; }
 try {
     UTIL.App.video = document.createElement('video');
     UTIL.App.has_video = !!UTIL.App.video && !!UTIL.App.video.canPlayType && !!UTIL.App.video.play;
