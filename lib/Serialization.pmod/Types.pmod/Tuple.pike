@@ -7,7 +7,7 @@ void create(string type, function|program constructor, object ... types) {
     ::create(type);
 
     this_program::types = types;
-	this_program::constructor = constructor;
+    this_program::constructor = constructor;
 }
 
 void raw_to_medium(Serialization.Atom atom) {
@@ -34,7 +34,7 @@ void medium_to_done(Serialization.Atom atom) {
 	atom->set_typed_data(this, constructor(@t));
 }
 
-int (0..1) low_can_encode(mixed a) {
+int (0..1) can_encode(mixed a) {
 	if (programp(constructor)) {
 		return Program.inherits(object_program(a), constructor);
 	} else {

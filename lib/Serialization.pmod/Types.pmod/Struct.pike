@@ -33,7 +33,7 @@ mixed low_decode(object ATOM, array(Serialization.Atom) a) {
     return o;
 }
 
-int (0..1) low_can_encode(mixed a) {
+int (0..1) can_encode(mixed a) {
     if (programp(constructor)) {
 	return Program.inherits(object_program(a), constructor);
     } else if (!constructor && mappingp(a)) {
