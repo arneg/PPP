@@ -114,7 +114,7 @@ serialization.AtomParser = Base.extend({
 			this.buffer = this.buffer.slice(pos+1);
 		}
 
-		//console.log("%d vs %d\n", this.length, this.buffer.length);
+		//UTIL.log("%d vs %d\n", this.length, this.buffer.length);
 		if (this.length > this.buffer.length) {
 			// add a sanity check. we do not want superlarge data strings, i guess
 			return 0;
@@ -330,7 +330,7 @@ serialization.Mapping = serialization.Base.extend({
 		return o instanceof Mapping;
 	},
 	can_decode : function(atom) {
-		//console.log("%o %o\n", this, atom);
+		//UTIL.log("%o %o\n", this, atom);
 		if (!this.base(atom)) return false;
 
 		var p = new serialization.AtomParser();
@@ -341,11 +341,11 @@ serialization.Mapping = serialization.Base.extend({
 
 		for (var i = 0;i < l.length; i+=2) {
 			if (!this.mtype.can_decode(l[i])) {
-			    console.log("%o cannot decode %o\n", this.mtype, l[i]);
+			    UTIL.log("%o cannot decode %o\n", this.mtype, l[i]);
 			    return false;
 			}
 			if (!this.vtype.can_decode(l[i+1])) {
-			    console.log("%o cannot decode %o\n", this.mtype, l[i]);
+			    UTIL.log("%o cannot decode %o\n", this.mtype, l[i]);
 			    return false;
 			}
 		}
@@ -518,7 +518,7 @@ serialization.Tuple = serialization.Base.extend({
 		var p = new serialization.AtomParser();
 		var l = p.parse(atom.data);
 
-		//console.log("list: %o. atom: %o (%s)\n", l, atom, atom.data);
+		//UTIL.log("list: %o. atom: %o (%s)\n", l, atom, atom.data);
 
 		if (l.length != this.types.length) UTIL.error(this+": '"+atom+"' contains "+l.length+" (need "+this.types.length+")");
 		
@@ -526,7 +526,7 @@ serialization.Tuple = serialization.Base.extend({
 			if (this.types[i].can_decode(l[i])) {
 				l[i] = this.types[i].decode(l[i]);
 			} else {
-				//console.log("%o cannot decode %o\n", this.types[i], l[i]);
+				//UTIL.log("%o cannot decode %o\n", this.types[i], l[i]);
 				UTIL.error(this+": cannot decode "+atom+" at position "+i);
 			}
 		}
@@ -556,13 +556,14 @@ serialization.Tuple = serialization.Base.extend({
 	}
 });
 serialization.Struct = serialization.Tuple.extend({
-	constructor : function(m, type) {
+	constructor : function(type, m, constr) {
 		this.names = UTIL.keys(m);
 		this.names = this.names.sort();
-		console.log(this.names);
+		this.constr = constr;
+		//UTIL.log(this.names);
 		var types = [];
 		for (var i = 0; i < this.names.length; i++) {
-		    //console.log("pushing type %o\n", m[this.names[i]]);
+		    //UTIL.log("pushing type %o\n", m[this.names[i]]);
 		    types.push(m[this.names[i]]);
 		}
 		this.base.apply(this, types);
@@ -570,7 +571,7 @@ serialization.Struct = serialization.Tuple.extend({
 	},
 	decode : function(atom) {
 		var l = this.base(atom);
-		var ret = {};
+		var ret = this.constr ? (new this.constr()) : {};
 
 		for (var i = 0; i < this.names.length; i++)
 		    ret[this.names[i]] = l[i];
@@ -584,7 +585,7 @@ serialization.Struct = serialization.Tuple.extend({
 		return "Struct("+l.join(", ")+")";
 	},
 	can_encode : function(o) {
-		return UTIL.objectp(o);
+		return UTIL.objectp(o) && (!this.constr || o instanceof this.constr);
 	},
 	encode : function(o) {
 		var l = [];
