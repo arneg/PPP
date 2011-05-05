@@ -541,7 +541,7 @@ try {
 }
 delete UTIL.App.video;
 if (window.console && window.console.log) {
-    if (window.console.firebug || UTIL.App.is_chrome || UTIL.App.is_opera) {
+    if (window.console.firebug || UTIL.App.is_chrome || UTIL.App.is_opera || UTIL.App.is_safari) {
 	// TODO: might this throw?
 	UTIL.log = UTIL.make_method(window.console, window.console.log);
 	UTIL.trace = UTIL.make_method(window.console, window.console.trace);
