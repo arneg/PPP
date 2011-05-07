@@ -16,7 +16,7 @@ Serialization.Atom encode(int i) {
 }
 
 int(0..1) can_encode(mixed a) {
-    return intp(a);
+    return intp(a) && !zero_type(a);
 }
 
 Serialization.StringBuilder render(int i, Serialization.StringBuilder buf) {
