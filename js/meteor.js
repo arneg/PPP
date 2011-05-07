@@ -191,7 +191,7 @@ meteor.Connection.prototype = {
 
 		//UTIL.log("Connecting new incoming.\n");
 
-		var xhr = new XMLHttpRequest();
+		var xhr = eval("new XMLHttpRequest();");
 		this.new_incoming = xhr;
 
 		this.vars.random = UTIL.get_random_key(6);
@@ -343,7 +343,7 @@ meteor.Connection.prototype = {
 	 * Initialize the connection. This needs to be called before any data can be sent or received.
 	 */
 	init : function() { // fetch the client_id and go
-		var xhr = new XMLHttpRequest();
+		var xhr = eval("new XMLHttpRequest();");
 		this.reconnect = 1;
 
 		xhr.onreadystatechange = UTIL.make_method(this, this.init_state_change, xhr);
@@ -417,7 +417,7 @@ meteor.Connection.prototype = {
 	write : function() {
 		if (this.buffer.length == 0) return;
 
-		var xhr = new XMLHttpRequest();
+		var xhr = eval("new XMLHttpRequest();");
 		this.outgoing = xhr; // we keep it to be able to clean up
 
 		/*
