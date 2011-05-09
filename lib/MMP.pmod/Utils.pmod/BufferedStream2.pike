@@ -86,7 +86,7 @@ mixed _write(mixed id) {
 	}
     }
     if (!buf && close_on_finish) {
-	f->set_nonblocking(); // remove callbacks ==> kill cyclics
+	if (is_open()) f->set_nonblocking(); // remove callbacks ==> kill cyclics
 	close();
     }
 
