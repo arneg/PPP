@@ -45,10 +45,10 @@ int write(string fmt, mixed ... extra) {
     if (buf) {
 	buf += fmt;
 	return sizeof(fmt);
+    } else if (is_open()) {
+	written = f->write(fmt);
+	buf = fmt[written..];
     }
-
-    written = f->write(fmt);
-    buf = fmt[written..];
 
     return sizeof(fmt);
 }
