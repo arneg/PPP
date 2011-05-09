@@ -126,7 +126,7 @@ meteor.Channel.prototype = {
  * Meteor connection class. This is usually used with Atom serialization on top. Use psyc.Client if unsure.
  * @param {String} url URL of the Meteor connection endpoint.
  * @param {Function} callback Function to be called when data has been received.
- * @param {Function} error Function to be called when a fatal error occures.
+ * @param {Function} error Function to be called when a fatal error occurs.
  * @constructor
  * @example
  * var connection;
