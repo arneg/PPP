@@ -285,11 +285,16 @@ meteor.Connection.prototype = {
 			}
 
 			if (xhr.readyState == 3) return;
+
+			meteor.dismantle(xhr);
+
 			if (this.operatimer) {
 				clearTimeout(this.operatimer);
 				delete this.operatimer;
 			}
-			if (this.reconnect) this.connect_new_incoming();
+			if (this.reconnect) 
+			    window.setTimeout(UTIL.make_method(this, this.connect_new_incoming),
+					      xhr.status < 99 ? 10000 : 3000);
 		}
 	},
 	incoming_on_error : function() {
