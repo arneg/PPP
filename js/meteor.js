@@ -270,6 +270,12 @@ meteor.Connection.prototype = {
 				if (xhr.readyState == 3 && this.pos < meteor.BUFFER_MAX)
 				    return;
 			} else {
+				if (xhr.status == 500) {
+				    delete this.vars["id"];
+				    this.init();
+				    return;
+				}
+
 				// this throws an exception in firefox. brain
 				if (xhr.status) {
 				    this.error("HTTP "+xhr.status);
