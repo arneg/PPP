@@ -284,6 +284,7 @@ meteor.Connection.prototype = {
 
 			}
 
+			if (xhr.readyState == 3) return;
 			if (this.operatimer) {
 				clearTimeout(this.operatimer);
 				delete this.operatimer;
