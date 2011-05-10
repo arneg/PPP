@@ -271,8 +271,8 @@ meteor.Connection.prototype = {
 				    return;
 			} else {
 				// this throws an exception in firefox. brain
-				if (s) {
-				    this.error("HTTP "+s);
+				if (xhr.status) {
+				    this.error("HTTP "+xhr.status);
 				    return;
 				}
 
