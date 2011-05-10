@@ -267,17 +267,22 @@ meteor.Connection.prototype = {
 
 				//UTIL.log("position %d (max %d)", this.pos, meteor.BUFFER_MAX);
 
-				if (xhr.readyState == 4 || this.pos >= meteor.BUFFER_MAX) {
-					if (this.operatimer) {
-						clearTimeout(this.operatimer);
-						delete this.operatimer;
-					}
-					if (this.reconnect) this.connect_new_incoming();
-				}
+				if (xhr.readyState == 3 && this.pos < meteor.BUFFER_MAX)
+				    return;
 			} else {
-			// this throws an exception in firefox. brain
-				this.error("HTTP "+s);
+				// this throws an exception in firefox. brain
+				if (s) {
+				    this.error("HTTP "+s);
+				    return;
+				}
+
 			}
+
+			if (this.operatimer) {
+				clearTimeout(this.operatimer);
+				delete this.operatimer;
+			}
+			if (this.reconnect) this.connect_new_incoming();
 		}
 	},
 	incoming_on_error : function() {
