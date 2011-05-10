@@ -29,6 +29,7 @@ meteor = new Object();
  * Limit for the incoming buffer. When the incoming XMLHttpRequest object buffer grows larger than this, the connection is reinitiated.
  */
 meteor.BUFFER_MAX = 1 << 16; // limit for incoming buffer, exceeding this buffer triggers a reconnect
+meteor.KEEPALIVE_TIMEOUT = 40000;
 meteor.dismantle = function(xhr) {
 	xhr.onreadystatechange = new window.Function;
 	xhr.onerror = new window.Function;
@@ -214,7 +215,7 @@ meteor.Connection.prototype = {
 			delete this.new_incoming_timeout;
 			this.connect_new_incoming();
 		});
-		this.new_incoming_timeout = window.setTimeout(cb, 5000);
+		this.new_incoming_timeout = window.setTimeout(cb, meteor.KEEPALIVE_TIMEOUT);
 		xhr.send("");
 	},
 	set_nonblocking : function() {
