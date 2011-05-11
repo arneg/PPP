@@ -350,6 +350,9 @@ meteor.Connection.prototype = {
 				meteor.dismantle(xhr);
 
 				this.connect_new_incoming();
+			} else if (xhr.status < 99) {
+				meteor.dismantle(xhr);
+				window.setTimeout(UTIL.make_method(this, this.init), 10000);
 			} else if (xhr.status == 404) {
 				this.error(xhr.responseText);
 			} else {
