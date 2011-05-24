@@ -76,9 +76,80 @@ CritBit.Node = function(key, value) {
     this.key = key;
     this.len = CritBit.sizeof(key);
     this.value = value;
+    this.has_value = (arguments.length >= 2);
     this.size = 1;
     this.C = [ null, null ];
     this.P = null;
+};
+CritBit.Node.prototype = {
+    depth : function() {
+	var a, b, len = 1;
+
+	if (this.C[0]) a = this.C[0].depth();
+	if (this.C[1]) a = this.C[1].depth();
+	return 1 + ((a > b) ? a : b);
+    },
+    first : function() {
+	var node = this.root;
+
+	if (!this.has_value && this.C[0]) return this.C[0].first();
+
+	return this;
+    },
+    last : function() {
+
+	if (this.C[1]) return this.C[1].last();
+	if (this.C[0]) return this.C[0].last();
+
+	return this;
+    },
+    nth : function(n) {
+	var ln;
+	if (n > this.size-1) return null;
+	if (n <= 0 && this.has_value) return this;
+	if (this.has_value) n --;
+	if (this.C[0]) {
+	    ln = this.C[0].size;
+	    if (n < ln) {
+		return this.C[0].nth(n);
+	    }
+	    n -= ln;
+	}
+	return this.C[1].nth(n-ln);
+    },
+    up : function(sv) {
+
+	if (sv && this.value) return this;
+	
+	if (this.parent) return this.parent.up(true);
+	return null;
+    },
+    forward : function() {
+	if (this.C[0]) return this.C[0].first();
+	if (this.C[1]) return this.C[0].first();
+	else if (this.parent) {
+	    var n = this;
+	    while (n.parent) {
+		var bit = (n.parent.C[1] == n);
+		if (!bit && n.parent.C[1])
+		    return n.parent.C[1].first();
+		n = n.parent;
+	    }
+	}
+	return null;
+    },
+    insert : function(node) {
+	if (!node.has_value) return 0;
+
+	if (node.key == this.key) {
+	    this.value = node.value;
+	    var r = this.has_value;
+	    this.has_value = true;
+	    return r ? 0 : 1;
+	}
+
+
+    },
 };
 CritBit.Tree = Base.extend({
     constructor : function() {
@@ -103,11 +174,26 @@ CritBit.Tree = Base.extend({
 
 	return null;
     },
+    last : function() {
+	if (this.root) return this.root.last().value;
+	return null;
+    },
+    first : function() {
+	if (this.root) return this.root.first().value;
+	return null;
+    },
+    nth : function(n) {
+	if (this.root) {
+	    var node = this.root.nth(n);
+	    return node ? node.value : null;
+	}
+	return null;
+    },
     find_next : function(key) {
     },
     find_previous : function(key) {
     },
-    insert : function(key) {
+    insert : function(key, value) {
     },
     get_subtree : function(key) {
     },
