@@ -136,15 +136,23 @@ CritBit.Node.prototype = {
 	return null;
     },
     forward : function() {
-	if (this.C[0]) return this.C[0].first();
-	if (this.C[1]) return this.C[0].first();
-	else if (this.parent) {
+	if (this.C[0]) {
+	    UTIL.log("traversing down left");
+	    return this.C[0].first();
+	}
+	if (this.C[1]) {
+	    UTIL.log("traversing down left");
+	    return this.C[0].first();
+	}
+	if (this.P) {
+	    UTIL.log("have to go up again.");
 	    var n = this;
-	    while (n.parent) {
-		var bit = (n.parent.C[1] == n);
-		if (!bit && n.parent.C[1])
-		    return n.parent.C[1].first();
-		n = n.parent;
+	    while (n.P) {
+		var bit = (n.P.C[1] == n);
+		UTIL.log();
+		if (!bit && n.P.C[1])
+		    return n.P.C[1].first();
+		n = n.P;
 	    }
 	}
 	return null;
@@ -156,8 +164,11 @@ CritBit.Node.prototype = {
 	UTIL.log("prefix(%o, %o) == %o", node.key, this.key, len);
 	if (len.eq(this.len)) {
 	    // overwriting
-	    if (node.key == this.key) {
+	    if (len.eq(node.len)) {
 		this.value = node.value;
+		// we overwrite the key, otherwise it might end up
+		// being a substring
+		this.key = node.key;
 		var r = this.has_value;
 		this.has_value = true;
 		if (!r)
@@ -200,18 +211,22 @@ CritBit.Tree = Base.extend({
 	this.root = null;
     },
     index : function(key) {
+	var node = this.low_index(key);
+	if (node) return node.value;
+	return null;
+    },
+    low_index : function(key) {
 	var node = this.root;
 	var len = CritBit.sizeof(key);
 
 	while (node) {
-	    UTIL.log("at %o", node);
 	    if (node.len.lt(len)) {
 		var bit = CritBit.get_bit(key, node.len);
 
 		node = node.C[bit];
 		continue;
 	    } else if (node.key == key) {
-		return node.value;
+		return node;
 	    }
 
 	    break;
@@ -234,10 +249,20 @@ CritBit.Tree = Base.extend({
 	}
 	return null;
     },
-    find_next : function(key) {
+    next : function(key) {
+	if (this.root) {
+	    var node = this.low_index(key);
+	    if (node) {
+		node = node.forward();
+		return !!node ? node.key : null;
+	    }
 
+	    node = this.root.next(key);
+	    return !!node ? node.key : null;
+	}
+	return null;
     },
-    find_previous : function(key) {
+    previous : function(key) {
     },
     insert : function(key, value) {
 	if (!this.root) {
@@ -253,5 +278,15 @@ CritBit.Tree = Base.extend({
     },
     length : function() {
 	return this.root ? this.root.size : 0;
+    },
+    foreach : function(fun) {
+	var node = this.root;
+
+	if (node.has_value && 
+	    fun(node.key, node.value)) return;
+
+	while (node = node.forward()) {
+	    if (fun(node.key, node.value)) return;
+	}
     }
 });
