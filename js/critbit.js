@@ -132,7 +132,7 @@ CritBit.Node.prototype = {
 
 	if (sv && this.value) return this;
 	
-	if (this.parent) return this.parent.up(true);
+	if (this.P) return this.P.up(true);
 	return null;
     },
     forward : function() {
