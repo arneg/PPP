@@ -265,12 +265,7 @@ CritBit.Tree = Base.extend({
     previous : function(key) {
     },
     insert : function(key, value) {
-	if (!this.root) {
-	    this.root = new CritBit.Node(key, value);
-	    return;
-	}
-
-	this.root = this.root.insert(new CritBit.Node(key, value));
+	this.root = this.root ? this.root.insert(new CritBit.Node(key, value)) : new CritBit.Node(key, value);
     },
     get_subtree : function(key) {
     },
