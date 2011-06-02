@@ -496,7 +496,21 @@ UTIL.EventSource = Base.extend({
 		}
 	}
 });
-UTIL.App = {};
+UTIL.App = {
+    getUTCOffset : function(d1) {
+	if (!d1) d1 = new Date();
+	return (new Date(d1.toGMTString()) - new Date(d1.toGMTString().substr(0,25)))/1000;
+    }
+};
+UTIL.App.UTCOffset = UTIL.App.getUTCOffset();
+// This is true if the users timezone has daylight saving at a given date. If the date argument is omitted,
+// it returns whether or not the users current timezone does daylight saving at all.
+UTIL.App.has_dst = function(d1) {
+    if (!d1) d1 = new Date();
+    return UTIL.App.getUTCOffset(new Date(d1.getFullYear(), 0, 1))
+       !== UTIL.App.getUTCOffset(arguments.length ? d1 : new Date(d1.getFullYear(), 6, 1));
+};
+UTIL.App.DST = UTIL.App.has_dst(new Date());
 UTIL.App.is_opera = !!window.opera;
 UTIL.App.is_ie = !!document.all && !UTIL.is_opera;
 // The following are copied from http://www.thespanner.co.uk/2009/01/29/detecting-browsers-javascript-hacks/
