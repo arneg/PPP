@@ -19,13 +19,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  * @namespace
  */
 UTIL = {};
-/**
- * Flexible RegExp-based replace function. Calls a callback for every match and replaced it by the returned string.
- * @param {Object} reg RegExp Object to be used.
- * @param {String} s String to perform the replace on.
- * @param {Function} cb Callback to be called for every match. Parameters to the callback will be the result returned by the call to RegExp.exec and possible extra arguments that were passed to replace.
- * @returns The resulting string.
- */
 UTIL.array_to_set = function(a) {
     var set = {};
     for (var i = 0; i < a.length; i++) set[a[i]] = 1;
@@ -130,6 +123,13 @@ UTIL.copy = function(o) {
     }
     return o;
 };
+/**
+ * Flexible RegExp-based replace function. Calls a callback for every match and replaced it by the returned string.
+ * @param {Object} reg RegExp Object to be used.
+ * @param {String} s String to perform the replace on.
+ * @param {Function} cb Callback to be called for every match. Parameters to the callback will be the result returned by the call to RegExp.exec and possible extra arguments that were passed to replace.
+ * @returns The resulting string.
+ */
 UTIL.replace = function(reg, s, cb) {
 	var res;
 	var last = 0;
@@ -137,13 +137,12 @@ UTIL.replace = function(reg, s, cb) {
 	var extra;
 
 	if (arguments.length > 3) {
-		extra = [];
-		for (var i = 3; i < arguments.length; i++) extra[i-3] = arguments[i];
+		extra = Array.prototype.slice.call(arguments, 3);
 	}
 
 	while (null != (res = reg.exec(s))) {
 		ret += s.substr(last, reg.lastIndex - res[0].length - last); 
-		ret += (extra ? cb.apply(null, [res].concat(extra)) : cb(res));
+		ret += (extra ? cb.apply(null, [res].concat(extra)) : cb(res)) || res[0];
 		last = reg.lastIndex;
 	}
 
@@ -554,6 +553,66 @@ try {
     UTIL.App.has_theora = false;
 }
 delete UTIL.App.video;
+UTIL.nchars = function(c, n) {
+    if (n < 0) UTIL.error("bad argument");
+    var t = String.fromCharCode(c);
+    var ret = "";
+    while (n) {
+	if (n & 1) ret += t;
+	t += t;
+	n >>>= 1;
+    }
+    return ret;
+};
+UTIL.sprintf_var = function(type, v, p, filler) {
+    var ret;
+    if (!filler) filler = 32;
+    switch (type) {
+    case 98 /* b */:
+	if (UTIL.intp(v)) ret = v.toString(2);
+	if (UTIL.stringp(v)) {
+	    ret = "";
+	    for (var i = 0; i < v.length; i++) {
+		var b = v.charCodeAt(i).toString(2);
+		if (b.length < 16) b = UTIL.nchars(48, 16 - b.length) + b;
+		ret += b;
+	    }
+	}
+	break;
+    case 99 /* c */:
+	if (UTIL.intp(v) && v >= 0 && v < 1<<16) ret = String.fromCharCode(v);
+	break;
+    case 100 /* d */:
+	if (UTIL.intp(v)) ret = v.toString(10);
+	break;
+    case 111 /* o */:
+	// this needs to learn how to print arrays nicely
+	return v.toString();
+    case 115 /* s */:
+	if (UTIL.stringp(v)) ret = v;
+	break;
+    }
+    if (!ret)
+	UTIL.error("Bad type %s for %c", typeof(v), type);
+    if (p && ret.length < p) {
+	ret = UTIL.nchars(filler, p - ret.length) + ret;
+    }
+    return ret;
+};
+UTIL.sprintf = function(fmt) {
+    var i = 0;
+    var args = Array.prototype.slice.call(arguments, 1);
+
+    return UTIL.replace(/%(\d+)?(\*)?([bcdos%])/g, fmt, function(a) {
+	if (a[3] == "%") return "%";
+	if (i >= args.length) return;
+	var c = [a[3].charCodeAt(0), args[i]];
+	if (a[1]) c.push(a[1]*1, a[1].charCodeAt(0) === 48 ? 48 : 32);
+	var s = UTIL.sprintf_var.apply(window, c);
+	if (!a[2]) i++;
+	return s;
+    });
+};
 if (window.console && window.console.log) {
     if (window.console.firebug || UTIL.App.is_chrome || UTIL.App.is_opera || UTIL.App.is_safari) {
 	// TODO: might this throw?
@@ -572,8 +631,9 @@ if (window.console && window.console.log) {
 } else
     UTIL.profile = UTIL.profileEnd = UTIL.trace = UTIL.log = function() {};
 UTIL.error = function(msg) {
-    UTIL.log.apply(this, Array.prototype.slice.call(arguments));
+    var a = Array.prototype.slice.call(arguments);
+    UTIL.log.apply(this, a);
     UTIL.trace();
     // we might want to do some kind of sprintf here.
-    throw(msg);
+    throw(window, UTIL.sprintf.apply(a));
 };
