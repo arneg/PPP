@@ -585,9 +585,16 @@ UTIL.sprintf_var = function(type, v, p, filler) {
     case 100 /* d */:
 	if (UTIL.intp(v)) ret = v.toString(10);
 	break;
+    case 101 /* e */:
+	if (UTIL.numberp(v)) ret = v.toExponential();
+	break;
+    case 102 /* f */:
+	if (UTIL.numberp(v)) ret = p ? v.toFixed(p) : v.toString();
+	break;
     case 111 /* o */:
 	// this needs to learn how to print arrays nicely
-	return v.toString();
+	ret = v.toString();
+	break;
     case 115 /* s */:
 	if (UTIL.stringp(v)) ret = v;
 	break;
@@ -603,7 +610,7 @@ UTIL.sprintf = function(fmt) {
     var i = 0;
     var args = Array.prototype.slice.call(arguments, 1);
 
-    return UTIL.replace(/%(\d+)?(\*)?([bcdos%])/g, fmt, function(a) {
+    return UTIL.replace(/%(\d+)?(\*)?([bcdefgos%])/g, fmt, function(a) {
 	if (a[3] == "%") return "%";
 	if (i >= args.length) return;
 	var c = [a[3].charCodeAt(0), args[i]];
