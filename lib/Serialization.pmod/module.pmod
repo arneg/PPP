@@ -1,4 +1,4 @@
-object default_type_cache = Serialization.TypeCache();
+object default_type_cache = .TypeCache();
 
 //! Checks if a is a subtype of b.
 int(0..1) is_subtype_of(string a, string b) {
@@ -46,24 +46,24 @@ string|void render_atom(.Atom a, void|String.Buffer buf) {
 array(.Atom) parse_atoms(string s) {
     array(.Atom) ret = ({});
 
-	int bytes;
-	string type;
-	string ts;
+    int bytes;
+    string type;
+    string ts;
 
     while (sizeof(s) && 3 == sscanf(s, "%[_a-zA-Z] %d %s", type, bytes, ts)) {
-		if (sizeof(s) < bytes) error("Cannot parse this.");
+	if (sizeof(s) < bytes) error("Cannot parse this.");
 
-		.Atom t = .Atom(type, ts[0..bytes-1]);
-		t->done = s[0..bytes-1 + sizeof(s) - sizeof(ts)];
-		s = ts;
+	.Atom t = .Atom(type, ts[0..bytes-1]);
+	t->done = s[0..bytes-1 + sizeof(s) - sizeof(ts)];
+	s = ts;
 
-		if (sizeof(s) > bytes) s = s[bytes..];
-		else s = "";
+	if (sizeof(s) > bytes) s = s[bytes..];
+	else s = "";
 
-		ret += ({ t });
+	ret += ({ t });
     }
 
-	if (sizeof(s) > bytes) error("Something left.\n");
+    if (sizeof(s) > bytes) error("Something left.\n");
 
     return ret;
 }
