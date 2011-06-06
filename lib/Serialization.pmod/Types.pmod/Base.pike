@@ -25,3 +25,7 @@ Serialization.Atom encode(mixed a) {
 
     return atom;
 }
+
+Serialization.StringBuilder render(mixed t, Serialization.StringBuilder buf) {
+    return encode(t)->render(buf);
+}

@@ -9,7 +9,7 @@ void create(object ktype, void|object vtype) {
 int(0..1) can_decode(Serialization.Atom a) {
 	if (has_index(a->typed_data, this)) return 1;
 
-	return a->type == "_mapping";
+	return a->type == type;
 }
 
 mapping decode(Serialization.Atom a) {
@@ -31,7 +31,7 @@ mapping decode(Serialization.Atom a) {
 }
 
 Serialization.Atom encode(mapping m) {
-	Serialization.Atom atom = Serialization.Atom("_mapping", 0);
+	Serialization.Atom atom = Serialization.Atom(type, 0);
 	atom->set_typed_data(this, m);
 	return atom;
 }
