@@ -3,7 +3,7 @@ inherit .Base;
 array(object) types;
 function|program constructor;
 
-void create(string type, function|program constructor, object ... types) {
+void create(string type, int|function|program constructor, object ... types) {
     ::create(type);
 
     this_program::types = types;
@@ -31,10 +31,11 @@ void medium_to_done(Serialization.Atom atom) {
 		t[i] = types[i]->decode(a);
 	}
 
-	atom->set_typed_data(this, constructor(@t));
+	atom->set_typed_data(this, (constructor||aggregate)(@t));
 }
 
 int (0..1) can_encode(mixed a) {
+	if (!constructor) return arrayp(a);
 	if (programp(constructor)) {
 		return Program.inherits(object_program(a), constructor);
 	} else {

@@ -98,9 +98,9 @@ Serialization.StringBuilder render(mixed t, Serialization.StringBuilder buf) {
     mixed key = objectp(t) ? object_program(t) : basetype(t);
 
     if (has_index(ptypes, key)) {
-	    foreach (ptypes[key];; object type) {
-		    if (type->can_encode(t)) return type->render(t, buf);
-	    }
+	foreach (ptypes[key];; object type) {
+	    if (type->can_encode(t)) return type->render(t, buf);
+	}
     }
     error("Cannot render %O\n", t);
 }
