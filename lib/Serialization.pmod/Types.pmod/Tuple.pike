@@ -10,28 +10,53 @@ void create(string type, int|function|program constructor, object ... types) {
     this_program::constructor = constructor;
 }
 
-void raw_to_medium(Serialization.Atom atom) {
-    atom->set_pdata(Serialization.parse_atoms(atom->data));
+object|array decode(Serialization.Atom atom) {
+    mixed o = atom->get_types_data(this);
+
+    if (o) return o;
+
+    array(Serialization.Atom) list = Serialization.parse_atoms(atom->data);
+    if (sizeof(list) != sizeof(types))
+	error("Tuple has wrong length.");
+    o = allocate(sizeof(types));
+    foreach (list; int i; Serialization.Atom a) {
+	o[i] = types[i]->decode(a);
+    }
+    atom->set_typed_data(this, o);
+    return o;
 }
 
-void medium_to_raw(Serialization.Atom atom) {
-    String.Buffer buf = String.Buffer();
+Serialization.StringBuilder render(object|array list, Serialization.StringBuilder buf) {
+    int|array node = buf->add();
+    int length = buf->length();
 
-    foreach (atom->pdata;;Serialization.Atom a) {
-		buf = a->render(buf);	
+    if (sizeof(list) != sizeof(types))
+	error("Tuple has wrong length.");
+
+    list = (array)list;
+
+    foreach (list; int i; mixed o) {
+	types[i]->render(o, buf);
     }
 
-    atom->data = (string)buf;
+    buf->set_node(node, sprintf("%s %d ", type, buf->length() - length));
+    return buf;
 }
 
-void medium_to_done(Serialization.Atom atom) {
-	array(object) t = allocate(sizeof(atom->pdata));
+string render_payload(Serialization.Atom atom) {
+    array|object list = atom->get_typed_data(this);
+    if (!list) error("Using broken atom: %O\n", atom);
+    list = (array)list;
+    if (sizeof(list) != sizeof(types))
+	error("Tuple has wrong length.");
+    Serialization.StringBuilder buf = Serialization.StringBuilder();
 
-	foreach (atom->pdata; int i; Serialization.Atom a) {
-		t[i] = types[i]->decode(a);
-	}
 
-	atom->set_typed_data(this, (constructor||aggregate)(@t));
+    foreach (list; int i; mixed element) {
+	types[i]->render(element, buf);
+    }
+
+    return buf->get();
 }
 
 int (0..1) can_encode(mixed a) {
@@ -44,6 +69,7 @@ int (0..1) can_encode(mixed a) {
 		return 1;
 	}
 }
+
 
 string _sprintf(int c) {
     if (c == 'O') {
