@@ -82,7 +82,18 @@ object generate_struct(object o, string type, void|function helper, void|mapping
 	    }
 	}
 
-	werror("symbol: %s %s\n", get_type(o, symbol), symbol);
+	//werror("%O\n", o->_types);
+
+	if (mappingp(o->_types) && o->_types[symbol]) {
+	    int|string|object t = o->_types[symbol];
+	    if (t == -1) continue;
+	    if (stringp(t))
+		t = generate_default_type(t, overwrites);
+	    m[symbol] = t;
+	    continue;
+	}
+
+	//werror("symbol(%O): %s %s\n", object_program(o), get_type(o, symbol), symbol);
 	m[symbol] = generate_default_type(get_type(o, symbol), overwrites);
     }
 
