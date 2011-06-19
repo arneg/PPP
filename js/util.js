@@ -93,10 +93,18 @@ UTIL.agauge = function(obj, fun, cb) {
 	cb.apply(obj, [((new Date()).getTime() - t) / 1000].concat(Array.prototype.slice.call(arguments)));
     });
 };
+// these can be optimized!
 UTIL.keys = function(o) {
     var a = [];
     for (var i in o) if (o.hasOwnProperty(i)) {
 	a.push(i);
+    }
+    return a;
+};
+UTIL.values = function(o) {
+    var a = [];
+    for (var i in o) if (o.hasOwnProperty(i)) {
+	a.push(o[i]);
     }
     return a;
 };
