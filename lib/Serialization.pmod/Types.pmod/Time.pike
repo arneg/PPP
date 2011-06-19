@@ -1,6 +1,9 @@
 inherit Serialization.Types.Int;
 
-void create() {
+program|function p;
+
+void create(program|function|void p) {
+    this_program::p = p || Calendar.Second;
 	type = "_time";
 }
 
@@ -9,7 +12,7 @@ Serialization.Atom encode(mixed o) {
 }
 
 Calendar.TimeRange decode(Serialization.Atom atom) {
-	return Calendar.Second("unix", ::decode(atom));
+	return p("unix", ::decode(atom));
 }
 
 int(0..1) can_encode(mixed o) {
