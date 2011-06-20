@@ -529,7 +529,7 @@ serialization.Tuple = serialization.Base.extend({
 				l[i] = this.types[i].decode(l[i]);
 			} else {
 				//UTIL.log("%o cannot decode %o\n", this.types[i], l[i]);
-				UTIL.error(this+": cannot decode "+atom+" at position "+i);
+				UTIL.error("%o: cannot decode %o at position %d", this, atom, i);
 			}
 		}
 
@@ -713,7 +713,7 @@ serialization.Array = serialization.Base.extend({
 		for (var i = 0; i < o.length; i++) {
 			str += this.etype.encode(o[i]).render();
 		}
-		return new serialization.Atom("_list", str);
+		return new serialization.Atom(this.type, str);
 	}
 });
 serialization.SimpleSet = serialization.Array.extend({
