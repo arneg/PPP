@@ -650,5 +650,5 @@ UTIL.error = function(msg) {
     UTIL.log.apply(this, a);
     UTIL.trace();
     // we might want to do some kind of sprintf here.
-    throw(window, UTIL.sprintf.apply(a));
+    throw(UTIL.sprintf.apply(window, a));
 };
