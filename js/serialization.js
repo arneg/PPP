@@ -600,6 +600,19 @@ serialization.Struct = serialization.Tuple.extend({
 		return this.base(l);
 	}
 });
+serialization.generate_structs = function(m) {
+    var p = new serialization.Polymorphic();
+
+    for (var atype in m) if (m.hasOwnProperty(atype)) {
+	var t = m[atype];
+	if (t.prototype._types)
+	    p.register_type(atype, t,
+			    new serialization.Struct(atype, t.prototype._types,
+						     t));
+    }
+
+    return p;
+}
 serialization.Packet = serialization.Tuple.extend({
 	constructor : function(dtype) {
 		this.type = "_mmp";
