@@ -121,8 +121,8 @@ UTIL.copy = function(o) {
 	for (var i = 0; i < o.length; i ++) o[i] = UTIL.copy(o[i]);
 	return o;
     }
-    if (UTIL.functionp(o)) UTIL.error("Cannot copy functions or objects.");
-    if (UTIL.objectp(o)) {
+    // function are immutable, so copying is ok
+    if (UTIL.objectp(o) && o.constructor == Object) {
 	var n = {};
 	for (var i in o) if (o.hasOwnProperty(i)) {
 	    n[i] = UTIL.copy(o[i]);
