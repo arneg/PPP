@@ -609,10 +609,16 @@ serialization.generate_structs = function(m) {
 
     for (var atype in m) if (m.hasOwnProperty(atype)) {
 	var t = m[atype];
-	if (t.prototype._types)
-	    p.register_type(atype, t,
-			    new serialization.Struct(atype, t.prototype._types,
-						     t));
+	var types;
+	if (t.prototype._types) {
+	    types = UTIL.copy(t.prototype._types);
+	    for (var n in types) if (types.hasOwnProperty(n)) {
+		if (UTIL.functionp(types[n]))
+		    types[n] = types[n](p);
+	    }
+	} else types = {};
+	p.register_type(atype, t,
+			new serialization.Struct(atype, types, t));
     }
 
     return p;
