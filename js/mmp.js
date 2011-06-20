@@ -111,7 +111,7 @@ mmp.Uniform.prototype = {
 mmp.Date = function(timestamp) {
 	this.date = new Date();
 	if (timestamp) {
-	    this.date.setTime(timestamp * 1000);
+	    this.date.setTime(timestamp);
 	}
 	this.render = function(type) {
 		var fill = function(n, length) {
@@ -145,6 +145,9 @@ mmp.Date = function(timestamp) {
 	};
 	this.toInt = function() {
 	    	return Math.round(this.date.getTime() / 1000);
+	};
+	this.getTime = function() {
+		return this.date.getTime();
 	};
 };
 /**

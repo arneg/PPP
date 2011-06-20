@@ -219,17 +219,18 @@ serialization.Polymorphic = serialization.Base.extend({
 	}
 });
 serialization.Date = serialization.Base.extend({
-	constructor: function() { 
+	constructor: function(prog) { 
+		this.prog = prog||Date;
 		this.type = "_time";
 	},
 	can_encode : function(o) {
-		return o instanceof mmp.Date;
+		return o instanceof this.prog;
 	},
 	decode : function(atom) {
-		return new mmp.Date(parseInt(atom.data));
+		return new this.prog(1000*parseInt(atom.data));
 	},
 	encode : function(o) {
-		return new serialization.Atom("_time", o.toInt().toString());
+		return new serialization.Atom("_time", Math.round(o.getTime()/1000));
 	}
 });
 serialization.False = serialization.Base.extend({
@@ -508,11 +509,12 @@ serialization.Vars = serialization.Base.extend({
 	}
 });
 serialization.Tuple = serialization.Base.extend({
-	constructor : function() {
-		this.types = Array.prototype.slice.call(arguments);
+	constructor : function(type, p) {
+		this.types = Array.prototype.slice.call(arguments, 2);
 		//UTIL.log("arguments "+arguments);
 		//UTIL.log("types "+this.types);
-		this.type = "_tuple";
+		this.type = type||"_tuple";
+		this.p = p;
 	},
 	decode : function(atom) {
 		var p = new serialization.AtomParser();
@@ -531,7 +533,7 @@ serialization.Tuple = serialization.Base.extend({
 			}
 		}
 
-		return l;
+		return this.p ? UTIL.create(p, l) : l;
 	},
 	toString : function() {
 		var l = this.types.concat();
@@ -540,7 +542,10 @@ serialization.Tuple = serialization.Base.extend({
 		return "Tuple("+l.join(", ")+")";
 	},
 	can_encode : function(l) {
-		return UTIL.arrayp(l) && l.length == this.types.length;
+		if (this.p)
+		    return l instanceof this.p;
+		else
+		    return UTIL.arrayp(l) && l.length == this.types.length;
 	},
 	encode : function(l) {
 		var d = "";
@@ -566,8 +571,7 @@ serialization.Struct = serialization.Tuple.extend({
 		    //UTIL.log("pushing type %o\n", m[this.names[i]]);
 		    types.push(m[this.names[i]]);
 		}
-		this.base.apply(this, types);
-		this.type = type || "_struct"; // should be overloaded anyway!!
+		this.base.apply(this, [type||"_struct", false ].concat(types));
 	},
 	decode : function(atom) {
 		var l = this.base(atom);
@@ -615,11 +619,10 @@ serialization.generate_structs = function(m) {
 }
 serialization.Packet = serialization.Tuple.extend({
 	constructor : function(dtype) {
-		this.type = "_mmp";
 		var uniform = new serialization.Uniform();
 		var integer = new serialization.Integer();
-		this.base(dtype, new serialization.Vars({ 
-			_timestamp : new serialization.Date(),
+		this.base("_mmp", false, dtype, new serialization.Vars({ 
+			_timestamp : new serialization.Date(mmp.Date),
 			_source : uniform, 
 			_target : uniform, 
 			_context : uniform, 
