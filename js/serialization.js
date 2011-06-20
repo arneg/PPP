@@ -533,7 +533,7 @@ serialization.Tuple = serialization.Base.extend({
 			}
 		}
 
-		return this.p ? UTIL.create(p, l) : l;
+		return this.p ? UTIL.create(this.p, l) : l;
 	},
 	toString : function() {
 		var l = this.types.concat();
