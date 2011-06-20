@@ -200,7 +200,7 @@ serialization.Polymorphic = serialization.Base.extend({
 		}
 
 		UTIL.log("No type found for %o in %o.\n", t, this.ptype_to_type);
-		UTIL.error("Cannot encode ("+t+","+o.toString()+")");
+		UTIL.error("Cannot encode (%o, %o)", t, o);
 	},
 	register_type : function(atype, ptype, o) {
 		var t;
