@@ -129,20 +129,17 @@ meteor.Channel.prototype = {
     },
     _deliver : function(data) {
 	if (this.first) {
-	    var l = this.first.parse(data);
+	    this.first.feed(data);
+	    var l = this.first._parse();
 
-	    if (l.length) {
+	    if (l) {
 		this.buffer = this.first.buffer;
-		this.first = undefined;
+		delete this.first;
 
-		if (l[0].data != "ok") {
+		if (l.data != "ok") {
 		    this.close("Server denied connection request: "
-			       + l[0].data + ".");
+			       + l.data + ".");
 		    return;
-		}
-
-		for (var i = 1; i < l.length; i++) {
-		    this.buffer = l[i].render() + this.buffer;
 		}
 	    }
 
