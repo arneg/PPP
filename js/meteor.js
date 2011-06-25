@@ -41,6 +41,7 @@ meteor.Multiplexer = function(session) {
     this.session = session;
     this.channels = {};
     this.pro_atom = new serialization.AtomParser();
+    this.initialized = 0;
     session.callback = UTIL.make_method(this, this.mplexcb);
 };
 meteor.Multiplexer.prototype = {
@@ -49,7 +50,7 @@ meteor.Multiplexer.prototype = {
 	    throw("Channel " + name + " already exists.");
 	}
 
-	return this.channels[name] = new meteor.Channel(name, this.session);
+	return this.channels[name] = new meteor.Channel(name, this.session, this);
     },
     get_channel : function(name) {
 	return this.channels[name] || this.get_new_channel(name);
@@ -89,33 +90,65 @@ meteor.Multiplexer.prototype = {
 	}
     },
 };
-meteor.Channel = function(name, session) {
+meteor.Channel = function(name, session, multiplexer) {
     this.name = name;
     this.session = session;
-    this.initialized = 0;
+    this.multiplexer = multiplexer;
+    this.first = new serialization.AtomParser();
     this.buffer = "";
     this.cb = 0;
+    this.closed = false;
+    //this.session.send("_channel "+ this.name.length + " " + this.name);
+    //this.send(""); // handshake / channel open request
+    //UTIL.call_later(this.send, this, "");
+    UTIL.call_later(this.session.send, this.session, "_channel " + this.name.length + " " + this.name);
 };
 meteor.Channel.prototype = {
     send : function(atom) {
 	this.session.send("_channel "+ (atom.length+this.name.length+1) + " " + this.name + " " + atom);
     },
     set_cb : function(cb) {
+	if (this.closed) throw("Cannot set_cb() in closed channel(" + this.name + ").");
 	this.cb = cb;
     },
     get_cb : function(cb) {
 	return this.cb;
     },
     set_onerr : function(onerr) {
+	if (this.closed) throw("Cannot set_onerr() in closed channel(" + this.name + ").");
 	this.onerr = onerr;
     },
     get_onerr : function() {
 	return this.onerr;
     },
-    close : function() {
-	// TODO:: do something!
+    close : function(err) {
+	this.closed = true;
+	if (this.onerr) this.onerr(err);
+	this.multiplexer.close_channel(this.name);
+	this.onerr = this.cb = undefined;
     },
     _deliver : function(data) {
+	if (this.first) {
+	    var l = this.first.parse(data);
+
+	    if (l.length) {
+		this.buffer = this.first.buffer;
+		this.first = undefined;
+
+		if (l[0].data != "ok") {
+		    this.close("Server denied connection request: "
+			       + l[0].data + ".");
+		    return;
+		}
+
+		for (var i = 1; i < l.length; i++) {
+		    this.buffer = l[i].render() + this.buffer;
+		}
+	    }
+
+	    return;
+	}
+
 	this.buffer += data;
 	if (this.cb) {
 	    this.cb(this.buffer);
