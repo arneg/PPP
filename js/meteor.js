@@ -126,6 +126,7 @@ meteor.Channel.prototype = {
 	if (this.onerr) this.onerr(err);
 	this.multiplexer.close_channel(this.name);
 	this.onerr = this.cb = undefined;
+	UTIL.log("Channel connection request refused: %o.", err);
     },
     _deliver : function(data) {
 	if (this.first) {
