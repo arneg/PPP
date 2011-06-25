@@ -96,7 +96,7 @@ meteor.Channel = function(name, session, multiplexer) {
     this.multiplexer = multiplexer;
     this.first = new serialization.AtomParser();
     this.buffer = "";
-    this.cb = 0;
+    this.callback = 0;
     this.closed = false;
     //this.session.send("_channel "+ this.name.length + " " + this.name);
     //this.send(""); // handshake / channel open request
@@ -109,10 +109,10 @@ meteor.Channel.prototype = {
     },
     set_cb : function(cb) {
 	if (this.closed) throw("Cannot set_cb() in closed channel(" + this.name + ").");
-	this.cb = cb;
+	this.callback = cb;
     },
     get_cb : function(cb) {
-	return this.cb;
+	return this.callback;
     },
     set_onerr : function(onerr) {
 	if (this.closed) throw("Cannot set_onerr() in closed channel(" + this.name + ").");
@@ -148,8 +148,8 @@ meteor.Channel.prototype = {
 	}
 
 	this.buffer += data;
-	if (this.cb) {
-	    this.cb(this.buffer);
+	if (this.callback) {
+	    this.callback(this.buffer);
 	    this.buffer = "";
 	}
     },
