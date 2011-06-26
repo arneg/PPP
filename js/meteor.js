@@ -101,7 +101,8 @@ meteor.Channel = function(name, session, multiplexer) {
     //this.session.send("_channel "+ this.name.length + " " + this.name);
     //this.send(""); // handshake / channel open request
     //UTIL.call_later(this.send, this, "");
-    UTIL.call_later(this.session.send, this.session, "_channel " + this.name.length + " " + this.name);
+    //UTIL.call_later(this.session.send, this.session, "_channel " + this.name.length + " " + this.name);
+    this.session.send("_channel " + this.name.length + " " + this.name);
 };
 meteor.Channel.prototype = {
     send : function(atom) {
