@@ -61,12 +61,12 @@ string render_payload(Serialization.Atom atom) {
 
 int (0..1) can_encode(mixed a) {
 	if (!constructor) return arrayp(a);
-	if (programp(constructor)) {
-		return Program.inherits(object_program(a), constructor);
+	if (objectp(a) && programp(constructor)) {
+	    return Program.inherits(object_program(a), constructor);
 	} else {
-		// TODO: check return type here
-		werror("%O: hit edge case. might not be able to decode %O\n", this, a);
-		return 1;
+	    // TODO: check return type here
+	    werror("%O: hit edge case. might not be able to decode %O\n", this, a);
+	    return 0;
 	}
 }
 
