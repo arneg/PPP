@@ -84,17 +84,21 @@ object generate_struct(object o, string type, void|function helper, void|mapping
 
 	//werror("%O\n", o->_types);
 
-	if (mappingp(o->_types) && o->_types[symbol]) {
-	    int|string|object t = o->_types[symbol];
-	    if (t == -1) continue;
-	    if (stringp(t))
-		t = generate_default_type(t, overwrites);
-	    m[symbol] = t;
-	    continue;
-	}
-
 	//werror("symbol(%O): %s %s\n", object_program(o), get_type(o, symbol), symbol);
-	m[symbol] = generate_default_type(get_type(o, symbol), overwrites);
+	mixed err = catch { 
+	    if (mappingp(o->_types) && o->_types[symbol]) {
+		int|string|object t = o->_types[symbol];
+		if (t == -1) continue;
+		if (stringp(t))
+		    t = generate_default_type(t, overwrites);
+		m[symbol] = t;
+	    } else 
+		m[symbol] = generate_default_type(get_type(o, symbol), overwrites);
+	};
+	if (err) {
+	    werror("Failed to generate type for %s in %O\n", symbol, o);
+	    throw(err);
+	}
     }
 
     return .Types.Struct(type, m, object_program(o));
@@ -103,7 +107,13 @@ object generate_struct(object o, string type, void|function helper, void|mapping
 object generate_structs(mapping m, void|function helper, void|mapping overwrites) {
     object p = Serialization.Types.Polymorphic();
     foreach (m; string type; object o) {
-	p->register_type(object_program(o), type, generate_struct(o, type, helper, overwrites));
+	mixed err = catch {
+	    p->register_type(object_program(o), type, generate_struct(o, type, helper, overwrites));
+	};
+	if (err) {
+	    werror("Failed to compile property in object %O (atom type: %s).\n", o, type);
+	    throw(err);
+	}
     }
     return p;
 }
