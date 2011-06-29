@@ -230,7 +230,7 @@ serialization.Date = serialization.Base.extend({
 		return new this.prog(1000*parseInt(atom.data));
 	},
 	encode : function(o) {
-		return new serialization.Atom("_time", Math.round(o.getTime()/1000));
+		return new serialization.Atom("_time", Math.round(o.getTime()/1000).toString());
 	}
 });
 serialization.False = serialization.Base.extend({
