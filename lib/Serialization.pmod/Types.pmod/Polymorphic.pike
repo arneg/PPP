@@ -20,17 +20,17 @@ void register_type(string|program ptype, string atype, object type) {
 
 void unregister_type(string|program ptype, string atype, object type) {
     if (has_index(ptypes, ptype)) {
-		ptypes[ptype] -= ({ type });
+	ptypes[ptype] -= ({ type });
 
-		if (!sizeof(ptypes[ptype])) m_delete(ptypes, ptype);
+	if (!sizeof(ptypes[ptype])) m_delete(ptypes, ptype);
     }
 
-	array t;
-	if (t = atypes[atype]) {
-		t -= ({ type });
+    array t;
+    if (t = atypes[atype]) {
+	t -= ({ type });
 
-		if (!sizeof(t)) m_delete(atypes, atype);
-		else atypes[atype] = t;
+	if (!sizeof(t)) m_delete(atypes, atype);
+	else atypes[atype] = t;
     }
 }
 
@@ -38,7 +38,7 @@ int(0..1) can_decode(Serialization.Atom a) {
     array t;
 
     if (t = atypes[a->type]) foreach (t;; object type) {
-		if (type->can_decode(a)) return 1;
+	if (type->can_decode(a)) return 1;
     }
 
     return 0;
@@ -48,18 +48,14 @@ mixed decode(Serialization.Atom a) {
     array t;
 
     if (t = atypes[a->type]) foreach (t;; object type) {
-		mixed err = catch {
-			if (type->can_decode(a)) {
-				return type->decode(a); 
-			} else {
-				werror("%O cannot decode %s\n", type, a->render());
-			}
-		};
-
-		werror(describe_error(err));
-    } else {
-		error("No potential type for %s\n", a->type);
+	if (type->can_decode(a)) {
+	    return type->decode(a);
+	} else {
+	    werror("%O cannot decode %s\n", type, a->render());
 	}
+    } else {
+	error("No potential type for %s\n", a->type);
+    }
 
     error("Cannot decode %O\n", a);
 }
@@ -70,7 +66,7 @@ int(0..1) can_encode(mixed v) {
     array t;
 
     if (t = ptypes[key]) foreach (t;; object type) {
-	    if (type->can_encode(v)) return 1;	
+	    if (type->can_encode(v)) return 1;
     }
 
     return 0;
@@ -82,11 +78,11 @@ Serialization.Atom encode(mixed v) {
     array t;
 
     if (t = ptypes[key]) {
-	    foreach (t;; object type) {
-		if (type->can_encode(v)) return type->encode(v);
-	    }
+	foreach (t;; object type) {
+	    if (type->can_encode(v)) return type->encode(v);
+	}
     }
-    
+
     error("Cannot encode %O\n", v);
 }
 
