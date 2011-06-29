@@ -45,3 +45,7 @@ string _sprintf(int c) {
 
     return 0;
 }
+
+void render(mixed o, String.Buffer buf) {
+    encode(o)->render(buf);
+}
