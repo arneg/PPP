@@ -11,7 +11,7 @@ void create(string type, int|function|program constructor, object ... types) {
 }
 
 object|array decode(Serialization.Atom atom) {
-    mixed o = atom->get_types_data(this);
+    mixed o = atom->get_typed_data(this);
 
     if (o) return o;
 
@@ -22,6 +22,7 @@ object|array decode(Serialization.Atom atom) {
     foreach (list; int i; Serialization.Atom a) {
 	o[i] = types[i]->decode(a);
     }
+    if (constructor) o = constructor(@o);
     atom->set_typed_data(this, o);
     return o;
 }
