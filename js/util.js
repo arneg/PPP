@@ -19,9 +19,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  * @namespace
  */
 UTIL = {};
+UTIL.array_unique = function(a) {
+    var ret = [];
+
+    OUT: for (var i = 0; i < a.length; i++) {
+	var j;
+	for (j = i-1; j >= 0; j--) if (a[j] === a[i]) continue OUT;
+	ret.push(a[i]);
+    }
+    return ret;
+};
 UTIL.array_to_set = function(a) {
     var set = {};
     for (var i = 0; i < a.length; i++) set[a[i]] = 1;
+    return set;
 };
 UTIL.array_and = function(a, b) {
     var ret = [];
@@ -36,6 +47,11 @@ UTIL.array_and = function(a, b) {
     return ret;
 };
 UTIL.array_or = function(a, b) {
+    /*
+     * this one only works for int/string arrays
+     * and we need it for arrays aswell now.
+     */
+    /*
     if (a.length > b.length) {
 	var s = a;
 	a = b;
@@ -46,6 +62,8 @@ UTIL.array_or = function(a, b) {
     for (var i = 0; i < a.length; i++)
 	if (!b.hasOwnProperty(a[i])) ret.push(a[i]);
     return ret;
+    */
+    return UTIL.array_unique(a.concat(b));
 };
 UTIL.create = function(myclass, args) {
     return new (myclass.extend({
@@ -53,6 +71,20 @@ UTIL.create = function(myclass, args) {
 	    this.base.apply(this, a);
 	}
     }))(args);
+};
+UTIL.profiled = function(fun) {
+    UTIL.profile();
+    return function() {
+	UTIL.profileEnd();
+	fun.apply(window, Array.prototype.slice.call(arguments));
+    };
+};
+UTIL.timed = function(fun) {
+    var t = new Date().getTime();
+    return function() {
+	UTIL.log("took %f ms", new Date().getTime() - t);
+	fun.apply(window, Array.prototype.slice.call(arguments));
+    };
 };
 UTIL.once = function(fun) {
     var called = false;
@@ -627,6 +659,11 @@ UTIL.sprintf = function(fmt) {
 	if (!a[2]) i++;
 	return s;
     });
+};
+UTIL.describe_error = function(e) {
+    if (e instanceof Error)
+	return UTIL.sprintf("%s(%s) at %s:%d", e.name, e.message, e.fileName||"-", e.lineNumber||-1);
+    else return UTIL.sprintf("%o", e);
 };
 if (window.console && window.console.log) {
     if (window.console.firebug || UTIL.App.is_chrome || UTIL.App.is_opera || UTIL.App.is_safari) {
