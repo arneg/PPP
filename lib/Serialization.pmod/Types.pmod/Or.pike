@@ -19,13 +19,13 @@ int(0..1) can_encode(mixed o) {
 }
 
 int decode(Serialization.Atom a) {
-    mixed error;
+    mixed e;
     foreach (types;;object type)
 	if (type->can_decode(a)) {
 	    mixed err = catch { return type->decode(a); };
-	    if (err) error = err;
+	    if (err) e = err;
 	}
-    error("Cannot decode %O (%O)\n", a, error);
+    error("Cannot decode %O (%O)\n", a, e);
 }
 
 Serialization.Atom encode(mixed o) {
