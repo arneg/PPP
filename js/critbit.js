@@ -142,7 +142,7 @@ CritBit.Node.prototype = {
 	}
 	if (this.C[1]) {
 	    UTIL.log("traversing down left");
-	    return this.C[0].first();
+	    return this.C[1].first();
 	}
 	if (this.P) {
 	    UTIL.log("have to go up again.");
