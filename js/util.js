@@ -135,6 +135,7 @@ UTIL.agauge = function(obj, fun, cb) {
 };
 // these can be optimized!
 UTIL.keys = function(o) {
+    if (Object.keys) return Object.keys(o);
     var a = [];
     for (var i in o) if (o.hasOwnProperty(i)) {
 	a.push(i);
