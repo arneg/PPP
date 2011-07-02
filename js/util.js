@@ -772,3 +772,39 @@ UTIL.error = function(msg) {
     // we might want to do some kind of sprintf here.
     throw(UTIL.sprintf.apply(window, a));
 };
+/**
+ * @class
+ * General Hash class.
+ */
+UTIL.Hash = Base.extend(
+    /** @lends UTIL.Hash */
+    {
+    array_digest : function() {
+	if (!this.final)
+	    this.final = this.digest();
+	var a = new Array(32);
+	for (var i = 0; i < 8; i++) {
+	    a[i*4] = (this.final[i] >>> 24);
+	    a[i*4+1] = (this.final[i] >> 16) & 0xff;
+	    a[i*4+2] = (this.final[i] >> 8) & 0xff;
+	    a[i*4+3] = (this.final[i]) & 0xff;
+	}
+	return a;
+    },
+    string_digest : function() {
+	return String.fromCharCode.apply(window, this.array_digest());
+    },
+    hex_digest : function() {
+	if (!this.final)
+	    this.final = this.digest();
+
+	/* Get the internal hash as a hex string */
+	var hex_digits = "0123456789abcdef";
+	var output = new String();
+	for(var i=0; i<8; i++) {
+	    for(var j=28; j>=0; j-=4)
+	    	output += hex_digits.charAt((this.final[i] >>> j) & 0x0f);
+	}
+	return output;
+    }
+});
