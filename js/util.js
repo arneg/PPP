@@ -614,11 +614,17 @@ UTIL.nchars = function(c, n) {
 };
 UTIL.sprintf_var = function(type, v, p, filler) {
     var ret;
-    if (!filler) filler = 32;
     switch (type) {
     case 98 /* b */:
-	if (UTIL.intp(v)) ret = v.toString(2);
-	if (UTIL.stringp(v)) {
+	if (UTIL.intp(v)) {
+	    if (v & (1 << 31)) {
+		v ^= (1 << 31);
+		ret = v.toString(2);
+		ret = "1" + UTIL.nchars(48, 32 - v.length - 1) + ret;
+	    } else {
+		ret = v.toString(2);
+	    }
+	} else if (UTIL.stringp(v)) {
 	    ret = "";
 	    for (var i = 0; i < v.length; i++) {
 		var b = v.charCodeAt(i).toString(2);
@@ -647,6 +653,7 @@ UTIL.sprintf_var = function(type, v, p, filler) {
 	if (UTIL.stringp(v)) ret = v;
 	break;
     }
+    if (!filler) filler = 32;
     if (!ret)
 	UTIL.error("Bad type %s for %c", typeof(v), type);
     if (p && ret.length < p) {
