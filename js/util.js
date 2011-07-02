@@ -101,6 +101,14 @@ UTIL.once = function(fun) {
 	return fun.apply(this, Array.prototype.slice.call(arguments));
     };
 };
+UTIL.safe = function(fun) {
+    return function() {
+	try { return fun.apply(window, Array.prototype.slice.call(arguments)); }
+	catch(e) {
+	    UTIL.log("safe call failed: %o", e);
+	};
+    };
+};
 UTIL.call_later = function(fun) {
     if (arguments.length > 1 && arguments[1]) {
 	fun = UTIL.make_method(arguments[1], fun);
