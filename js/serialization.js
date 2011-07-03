@@ -304,6 +304,7 @@ serialization.Method = serialization.Base.extend({
 		return new serialization.Atom("_method", o);
 	}
 });
+serialization.Bytes = serialization.Method;
 serialization.Uniform = serialization.Base.extend({
 	constructor : function() { 
 		this.type = "_uniform";

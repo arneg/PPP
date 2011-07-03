@@ -1,5 +1,6 @@
 /*
-Copyright (C) 2008-2009  Arne Goedeke
+Copyright (C) 2008-2011  Arne Goedeke
+Copyright (C) 2008-2011  Tobias Josefowitz
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -19,6 +20,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  * @namespace
  */
 UTIL = {};
+/**
+ * Returns a with all duplicate entries removed.
+ */
 UTIL.array_unique = function(a) {
     var ret = [];
 
@@ -34,6 +38,9 @@ UTIL.array_to_set = function(a) {
     for (var i = 0; i < a.length; i++) set[a[i]] = 1;
     return set;
 };
+/**
+ * Returns all elements that are both in a and b. Think intersection of sets.
+ */
 UTIL.array_and = function(a, b) {
     var ret = [];
     if (a.length > b.length) {
@@ -46,6 +53,9 @@ UTIL.array_and = function(a, b) {
 	if (b.hasOwnProperty(a[i])) ret.push(a[i]);
     return ret;
 };
+/**
+ * Merges a and b and removes all duplicates. Think union of sets.
+ */
 UTIL.array_or = function(a, b) {
     /*
      * this one only works for int/string arrays
@@ -65,6 +75,9 @@ UTIL.array_or = function(a, b) {
     */
     return UTIL.array_unique(a.concat(b));
 };
+/**
+ * Creates and object of class myclass with the given array of arguments.
+ */
 UTIL.create = function(myclass, args) {
     return new (myclass.extend({
 	constructor : function(a) {
@@ -72,6 +85,9 @@ UTIL.create = function(myclass, args) {
 	}
     }))(args);
 };
+/**
+ * Wraps fun in a function running profiling.
+ */
 UTIL.profiled = function(fun) {
     UTIL.profile();
     return function() {
@@ -79,6 +95,9 @@ UTIL.profiled = function(fun) {
 	fun.apply(window, Array.prototype.slice.call(arguments));
     };
 };
+/**
+ * Times each execution of fun and prints some debugging to the console.
+ */
 UTIL.timed = function(fun) {
     var t = new Date().getTime();
     return function() {
@@ -86,6 +105,10 @@ UTIL.timed = function(fun) {
 	fun.apply(window, Array.prototype.slice.call(arguments));
     };
 };
+/**
+ * Returns a function which creates an error when it is executed more than
+ * once during its lifetime.
+ */
 UTIL.once = function(fun) {
     var called = false;
     var cp = Array.prototype.slice.call(arguments);
@@ -101,23 +124,36 @@ UTIL.once = function(fun) {
 	return fun.apply(this, Array.prototype.slice.call(arguments));
     };
 };
+/**
+ * Wraps a catch around fun.
+ */
+UTIL.safe = function(fun) {
+    return function() {
+	try { return fun.apply(window, Array.prototype.slice.call(arguments)); }
+	catch(e) {
+	    UTIL.log("safe call failed: %o", e);
+	};
+    };
+};
 UTIL.call_later = function(fun) {
     if (arguments.length > 1 && arguments[1]) {
 	fun = UTIL.make_method(arguments[1], fun);
     }
-    if (arguments.length > 2) { 
+    if (arguments.length > 2) {
 	var a = Array.prototype.slice.call(arguments, 2);
 	window.setTimeout(function() {
 	    fun.apply(window, a);
 	}, 0);
     } else window.setTimeout(fun, 0);
 };
+/**
+ * Times the execution of fun.
+ */
 UTIL.gauge = function(fun) {
     var t = (new Date()).getTime();
     fun();
     return ((new Date()).getTime() - t)/1000;
 };
-
 UTIL.agauge = function(obj, fun, cb) {
     var t = (new Date()).getTime();
     cb = UTIL.once(cb);
@@ -125,14 +161,20 @@ UTIL.agauge = function(obj, fun, cb) {
 	cb.apply(obj, [((new Date()).getTime() - t) / 1000].concat(Array.prototype.slice.call(arguments)));
     });
 };
-// these can be optimized!
+/**
+ * Same as Objects.keys(o).
+ */
 UTIL.keys = function(o) {
+    if (Object.keys) return Object.keys(o);
     var a = [];
     for (var i in o) if (o.hasOwnProperty(i)) {
 	a.push(i);
     }
     return a;
 };
+/**
+ * Returns all values of enumerable properties of o.
+ */
 UTIL.values = function(o) {
     var a = [];
     for (var i in o) if (o.hasOwnProperty(i)) {
@@ -147,6 +189,9 @@ UTIL.arrayp = function(a) { return (typeof(a) == "object" && a instanceof Array)
 UTIL.stringp = function(s) { return (typeof(s) == "string"); };
 UTIL.functionp = function(f) { return (typeof(f) == "function" || f instanceof Function); };
 UTIL.objectp = function(o) { return typeof(o) == "object"; }
+/**
+ * Lazy, recursive copying of values.
+ */
 UTIL.copy = function(o) {
     if (UTIL.arrayp(o)) {
 	o = o.concat();
@@ -181,7 +226,7 @@ UTIL.replace = function(reg, s, cb) {
 	}
 
 	while (null != (res = reg.exec(s))) {
-		ret += s.substr(last, reg.lastIndex - res[0].length - last); 
+		ret += s.substr(last, reg.lastIndex - res[0].length - last);
 		ret += (extra ? cb.apply(null, [res].concat(extra)) : cb(res)) || res[0];
 		last = reg.lastIndex;
 	}
@@ -225,7 +270,7 @@ UTIL.has_suffix = function(s, n) {
 };
 UTIL.search_array = function(a, n) {
 	for (var i = 0; i < a.length; i++) {
-		if (n == a[i]) return i;
+	    if (n == a[i]) return i;
 	}
 
 	return -1;
@@ -236,13 +281,13 @@ UTIL.replaceClass = function(o, cl1, cl2) {
 	var j = UTIL.search_array(classes, cl2);
 
 	if (i == -1 && j == -1) {
-		if (cl2) classes.push(cl2);
+	    if (cl2) classes.push(cl2);
 	} else if (i == -1) {
-		return;
+	    return;
 	} else if (j == -1 && cl2) {
-		classes[i] = cl2;
+	    classes[i] = cl2;
 	} else {
-		classes.splice(i, 1);
+	    classes.splice(i, 1);
 	}
 	o.className = classes.join(" ");
 };
@@ -251,8 +296,8 @@ UTIL.addClass = function(o, cl) {
 	var i = UTIL.search_array(classes, cl);
 
 	if (i == -1) {
-		classes.push(cl);
-		o.className = classes.join(" ");
+	    classes.push(cl);
+	    o.className = classes.join(" ");
 	}
 };
 UTIL.hasClass = function(o, cl) {
@@ -329,32 +374,38 @@ UTIL.make_method_keep_this = function(obj, fun) {
 		return fun.apply(obj, [ this ].concat(Array.prototype.concat.call(arguments)));
 	});
 };
+/**
+ * Wraps around fun, so that it always gets executed in the context of obj.
+ */
 UTIL.make_method = function(obj, fun) {
 	if (arguments.length > 2) {
 	    var list = Array.prototype.slice.call(arguments, 2);
-	    return (function () { 
+	    return (function () {
 		    return fun.apply(obj, list.concat(Array.prototype.slice.call(arguments)));
 	    });
-	
+
 	}
-	return (function () { 
+	return (function () {
 		return fun.apply(obj, Array.prototype.slice.call(arguments));
 	});
 };
 // this whole beast looks as weird as it is
-// and its basically just for IE fuck
+// and its basically just for IE fuck and not optimized
+/**
+ * Wraps around an external fun, so that it can be executed in a different window.
+ */
 UTIL.make_external = function(a, obj, fun) {
 	if (!UTIL.App.is_ie) return UTIL.make_method.apply(this, Array.prototype.slice.call(arguments, 1));
 	if (arguments.length > 3) {
 	    var list = a.slice();
 	    for (var j = 3; j < arguments.length; j++) largs.push(arguments[j]);
-	    return (function () { 
+	    return (function () {
 		    for (var i = 0; i < arguments.length; i++) largs.push(arguments[i]);
 		    return fun.apply(obj, list.concat(Array.prototype.slice.call(arguments)));
 	    });
-	
+
 	}
-	return (function () { 
+	return (function () {
 		var largs = a;
 		largs = largs.splice();
 		for (var i = 0; i < arguments.length; i++) largs.push(arguments[i]);
@@ -364,14 +415,17 @@ UTIL.make_external = function(a, obj, fun) {
 UTIL.getDateOffset = function(date1, date2) {
 	return (date2||new Date)-date1;
 }
+/**
+ * Cross browser HTML5 audio player.
+ */
 UTIL.Audio = function (params) {
 	if (UTIL.App.has_vorbis && !!params.ogg) {
-		this.url = params.ogg;	
+		this.url = params.ogg;
 	} else if (UTIL.App.has_mp3 && !!params.mp3) {
-		this.url = params.mp3;	
+		this.url = params.mp3;
 	} else if (UTIL.App.has_wav && !!params.wav) {
 		this.url = params.wav;
-	} 
+	}
 
 	if (this.url) {
 	    this.play = function() {
@@ -389,7 +443,7 @@ UTIL.Audio = function (params) {
 		    }
 		}
 		this.audio.play();
-		
+
 	    };
 	    this.stop = function() {
 		this.audio.pause();
@@ -428,11 +482,11 @@ UTIL.Audio = function (params) {
 		    bgsound.id = "sound";
 		    document.body.appendChild(bgsound);
 		}
-		this.play = function () { 
-		    document.all.sound.src = this.url; 
+		this.play = function () {
+		    document.all.sound.src = this.url;
 		}
-		this.stop = function () { 
-		    document.all.sound.src = null; 
+		this.stop = function () {
+		    document.all.sound.src = null;
 		}
 	    } else {
 		this.div = document.createElement("div");
@@ -459,6 +513,9 @@ UTIL.Audio = function (params) {
 	    }
 	}
 };
+/**
+ * Merged objets.
+ */
 UTIL.merge_objects = function() {
     var o = {};
     var i;
@@ -467,6 +524,9 @@ UTIL.merge_objects = function() {
     for (var i = 0; i < arguments.length; i++) for (key in arguments[i]) if (arguments[i].hasOwnProperty(key)) o[key] = arguments[i][key];
     return o;
 };
+/**
+ * Create random key of length consisting of chars in [A..Z].
+ */
 UTIL.get_random_key = function (length) {
 	var a = [];
 	// put some logic here to tune length of id and amount of items
@@ -476,6 +536,9 @@ UTIL.get_random_key = function (length) {
 
 	return String.fromCharCode.apply(window, a);
 };
+/**
+ * Get random key which is not in object set.
+ */
 UTIL.get_unique_key = function (length, set) {
 	var id;
 	while (set.hasOwnProperty((id = UTIL.get_random_key(length)))) { }
@@ -513,7 +576,7 @@ UTIL.EventSource = Base.extend({
 		this.events = new HigherDMapping;
 	},
 	registerEvent : function(name, fun) {
-		return this.events.set(name, fun);	
+		return this.events.set(name, fun);
 	},
 	unregisterEvent : function(id) {
 		return this.events.remove(id);
@@ -526,15 +589,19 @@ UTIL.EventSource = Base.extend({
 		} else {
 		    arg = [];
 		}
-		
+
 		for (var i = 0; i < list.length; i++) {
 		    try {
 			list[i].apply(this, arg);
-		    } catch(e) { 
+		    } catch(e) {
 		    }
 		}
 	}
 });
+/**
+ * Browser detection.
+ * @namespace
+ */
 UTIL.App = {
     getUTCOffset : function(d1) {
 	if (!d1) d1 = new Date();
@@ -568,7 +635,7 @@ try {
 } catch (e) {
     UTIL.App.has_local_storage = false;
 }
-try { 
+try {
     UTIL.App.audio = document.createElement('audio');
     UTIL.App.has_audio = !!UTIL.App.audio && !!UTIL.App.audio.canPlayType && !!UTIL.App.audio.play;
     UTIL.App.has_vorbis = UTIL.App.has_audio && UTIL.App.audio.canPlayType("audio/ogg") != "" && UTIL.App.audio.canPlayType("audio/ogg") != "no";
@@ -593,6 +660,9 @@ try {
     UTIL.App.has_theora = false;
 }
 delete UTIL.App.video;
+/**
+ * Creates a string of length n consisting of char c.
+ */
 UTIL.nchars = function(c, n) {
     if (n < 0) UTIL.error("bad argument");
     var t = String.fromCharCode(c);
@@ -606,11 +676,17 @@ UTIL.nchars = function(c, n) {
 };
 UTIL.sprintf_var = function(type, v, p, filler) {
     var ret;
-    if (!filler) filler = 32;
     switch (type) {
     case 98 /* b */:
-	if (UTIL.intp(v)) ret = v.toString(2);
-	if (UTIL.stringp(v)) {
+	if (UTIL.intp(v)) {
+	    if (v & (1 << 31)) {
+		v ^= (1 << 31);
+		ret = v.toString(2);
+		ret = "1" + UTIL.nchars(48, 32 - v.length - 1) + ret;
+	    } else {
+		ret = v.toString(2);
+	    }
+	} else if (UTIL.stringp(v)) {
 	    ret = "";
 	    for (var i = 0; i < v.length; i++) {
 		var b = v.charCodeAt(i).toString(2);
@@ -639,6 +715,7 @@ UTIL.sprintf_var = function(type, v, p, filler) {
 	if (UTIL.stringp(v)) ret = v;
 	break;
     }
+    if (!filler) filler = 32;
     if (!ret)
 	UTIL.error("Bad type %s for %c", typeof(v), type);
     if (p && ret.length < p) {
@@ -646,6 +723,9 @@ UTIL.sprintf_var = function(type, v, p, filler) {
     }
     return ret;
 };
+/**
+ * sprintf implementation.
+ */
 UTIL.sprintf = function(fmt) {
     var i = 0;
     var args = Array.prototype.slice.call(arguments, 1);
@@ -660,6 +740,9 @@ UTIL.sprintf = function(fmt) {
 	return s;
     });
 };
+/**
+ * Error printing helper.
+ */
 UTIL.describe_error = function(e) {
     if (e instanceof Error)
 	return UTIL.sprintf("%s(%s) at %s:%d", e.name, e.message, e.fileName||"-", e.lineNumber||-1);
@@ -687,5 +770,41 @@ UTIL.error = function(msg) {
     UTIL.log.apply(this, a);
     UTIL.trace();
     // we might want to do some kind of sprintf here.
-    throw(UTIL.sprintf.apply(window, a));
+    throw(window, UTIL.sprintf.apply(window, a));
 };
+/**
+ * @class
+ * General Hash class.
+ */
+UTIL.Hash = Base.extend(
+    /** @lends UTIL.Hash */
+    {
+    array_digest : function() {
+	if (!this.final)
+	    this.final = this.digest();
+	var a = new Array(32);
+	for (var i = 0; i < 8; i++) {
+	    a[i*4] = (this.final[i] >>> 24);
+	    a[i*4+1] = (this.final[i] >> 16) & 0xff;
+	    a[i*4+2] = (this.final[i] >> 8) & 0xff;
+	    a[i*4+3] = (this.final[i]) & 0xff;
+	}
+	return a;
+    },
+    string_digest : function() {
+	return String.fromCharCode.apply(window, this.array_digest());
+    },
+    hex_digest : function() {
+	if (!this.final)
+	    this.final = this.digest();
+
+	/* Get the internal hash as a hex string */
+	var hex_digits = "0123456789abcdef";
+	var output = new String();
+	for(var i=0; i<8; i++) {
+	    for(var j=28; j>=0; j-=4)
+	    	output += hex_digits.charAt((this.final[i] >>> j) & 0x0f);
+	}
+	return output;
+    }
+});

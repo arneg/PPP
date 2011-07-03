@@ -56,9 +56,30 @@ class Resolver(mapping symbols) {
 }
 
 string get_type(object o, string fname) {
-    program p = compile_string(sprintf("string get_type(___prog o) { return sprintf(\"%%O\", typeof(o->%s)); }", fname), "-",
-			       Resolver(([ "___prog" : object_program(o), "`->" : (has_index(o, "`->") ? `[] : `->) ])));
-    return p()->get_type(o);
+    array tree = Program.inherit_tree(object_program(o));
+
+    string low_get_type(program prog) {
+	program p = compile_string(sprintf("string get_type(___prog o) { return sprintf(\"%%O\", typeof(o->%s)); }", fname), "-",
+			       Resolver(([ "___prog" : prog, "`->" : (has_index(o, "`->") ? `[] : `->) ])));
+	return p()->get_type(o);
+    };
+
+    string rec_get_type(program|array prog) {
+	string t;
+
+	if (arrayp(prog)) {
+	    foreach (prog;; program|array p) {
+		t = rec_get_type(p);
+		if (t != "mixed") return t;
+	    }
+	} else {
+	    t = low_get_type(prog);
+	}
+	if (t != "mixed") return t;
+	return 0;
+    };
+
+    return rec_get_type(tree) || "mixed";
 }
 
 object generate_struct(object o, string type, void|function helper, void|mapping overwrites) {
