@@ -98,11 +98,11 @@ CritBit.Node.prototype = {
 	} else return this.C[(!bit) ? 0 : 1];
     },
     depth : function() {
-	var a = 0, b = 0, len = 1;
+	var a = 0, b = 0;
 
 	if (this.C[0]) a = this.C[0].depth();
-	if (this.C[1]) a = this.C[1].depth();
-	return 1 + ((a > b) ? a : b);
+	if (this.C[1]) b = this.C[1].depth();
+	return 1 + Math.max(a, b);
     },
     first : function() {
 	UTIL.log("first");
