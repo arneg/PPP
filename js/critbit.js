@@ -105,19 +105,17 @@ CritBit.Node.prototype = {
 	return 1 + Math.max(a, b);
     },
     first : function() {
-	UTIL.log("first");
-	var node = this.root;
 
 	if (!this.has_value && this.C[0]) return this.C[0].first();
 
+	UTIL.log("first");
 	return this;
     },
     last : function() {
-	UTIL.log("last");
-
 	if (this.C[1]) return this.C[1].last();
 	if (this.C[0]) return this.C[0].last();
 
+	UTIL.log("last");
 	return this;
     },
     nth : function(n) {
@@ -359,17 +357,17 @@ CritBit.Tree = Base.extend({
 	return null;
     },
     last : function() {
-	if (this.root) return this.root.last().value;
+	if (this.root) return this.root.last().key;
 	return null;
     },
     first : function() {
-	if (this.root) return this.root.first().value;
+	if (this.root) return this.root.first().key;
 	return null;
     },
     nth : function(n) {
 	if (this.root) {
 	    var node = this.root.nth(n);
-	    return node ? node.value : null;
+	    return node ? node.key : null;
 	}
 	return null;
     },
