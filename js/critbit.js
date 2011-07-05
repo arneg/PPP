@@ -51,9 +51,13 @@ CritBit.count_prefix = function(key1, key2, start) {
 	    if (key1 == key2) return 32;
 	    return new CritBit.Size(0, 31 - CritBit.clz(key1 ^ key2));
 	}
+    } else if (UTIL.objectp(key1) && key1.count_prefix) {
+	return key1.count_prefix(key2);
+    } else if (UTIL.objectp(key2) && key2.count_prefix) {
+	return key2.count_prefix(key1);
     }
 
-    throw("Strange types mismatch.");
+    UTIL.error("Cannot count common prefix of %o and %o.", key1, key2);
 };
 CritBit.get_bit = function(key, size) {
     if (!(size instanceof CritBit.Size)) UTIL.error("wrong size.");
@@ -68,6 +72,8 @@ CritBit.get_bit = function(key, size) {
 	}
 
 	return !!(key & (1 << (31-size.bits))) ? 1 : 0;
+    } else if (UTIL.objectp(key) && key.get_bit) {
+	return key.get_bit(size);
     }
 };
 CritBit.sizeof = function(key) {
@@ -75,7 +81,9 @@ CritBit.sizeof = function(key) {
 	return new CritBit.Size(key.length, 0);
     } else if (UTIL.intp(key)) {
 	return new CritBit.Size(0, 32);
-    }
+    } else if (UTIL.objectp(key) && key.sizeof()) {
+	return key.sizeof();
+    } UTIL.error("don't know the size of %o", key);
 };
 CritBit.Node = function(key, value) {
     this.key = key;
