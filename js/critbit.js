@@ -245,6 +245,34 @@ CritBit.Node.prototype = {
 	return this.up_left();
     },
     find_prev_match : function(key, start) {
+	if (!start) start = new CritBit.Size(0,0);
+	var len = CritBit.count_prefix(key, this.key);
+	len = len.min(this.len).min(CritBit.sizeof(key));
+	//UTIL.log("prefix(%o, %o) == %o", key, this.key, len);
+	UTIL.log("%o->find_prev_match(%o, %o, %o)", this, key, CritBit.sizeof(key), start);
+	if (len.lt(start)) return null;
+	if (len.eq(CritBit.sizeof(key)))
+	    return this.backward();
+
+	var bit = CritBit.get_bit(key, len);
+	UTIL.log("bit: %d", bit);
+	
+	if (len.eq(this.len)) {
+
+	    //UTIL.log("bit: %d, %o", bit, this.C);
+	    if (this.C[bit]) {
+		var n = this.C[bit].find_prev_match(key, len);
+		if (n) return n;
+	    }
+	    if (bit && this.C[0]) {
+		UTIL.log("%o foo", this);
+		return this.C[0].last();
+	    }
+	    return this.backward();
+	} else if (!bit)
+	    return this.last();
+
+	return this.backward();
     },
     insert : function(node) {
 	if (!node.has_value) return this;
@@ -365,17 +393,13 @@ CritBit.Tree = Base.extend({
 	if (!this.root) return null
 	var node = this.low_index(key);
 	if (node) return node.backward();
-	node = this.root.find_prev_match(key);
-	if (node && !node.has_value) node.backward();
-	return node;
+	return this.root.find_prev_match(key);
     },
     le : function(key) {
 	if (!this.root) return null
 	var node = this.low_index(key);
 	if (node) return node;
-	node = this.root.find_prev_match(key);
-	if (node && !node.has_value) node.backward();
-	return node;
+	return this.root.find_prev_match(key);
     },
     previous : function(key) {
 	var node = this.lt(key);
@@ -393,24 +417,22 @@ CritBit.Tree = Base.extend({
     },
     foreach : function(fun, start, stop) {
 	var node;
+
+	if (!this.root) return;
 	if (arguments.length > 1) {
 	    node = this.ge(start);
 	    if (arguments.length > 2) {
 		stop = this.le(stop);
 	    } 
-	} else node = this.root;
-
-	if (!node) return;
-
+	} else node = this.root.first();
 	UTIL.log("start: "+ node);
 	UTIL.log("stop: "+ stop);
 
-	if (node.has_value && (fun(node.key, node.value) || node == stop)) 
-	    return;
+	if (!node) return;
 
-	while (node = node.forward()) {
+	do {
 	    if (fun(node.key, node.value) || node == stop) return;
-	}
+	} while (node = node.forward());
     },
     find_best_match : function(key) {
 	if (!this.root) return null;
