@@ -560,3 +560,79 @@ meteor.CallbackWrapper.prototype = {
 		this.mapping = 0;
 	}
 };
+
+meteor.Auth = Base.extend({
+    _types : {
+	hmac : new serialization.String(),
+	token : new serialization.String(),
+	expiry : new serialization.Integer()
+    }
+});
+
+meteor.Success = Base.extend({
+    toString : function() {
+	return "meteor.Success()";
+    }
+});
+
+meteor.Fail = Base.extend({
+    _types : {
+	reason : new serialization.String()
+    },
+    toString : function() {
+	return "meteor.Fail(" + (this.reason || "") + ")";
+    }
+});
+
+meteor.Locked = Base.extend({
+    constructor : function(channel, authProvider, cb) {
+	this.channel = channel;
+	this.authProvider = authProvider;
+	this.cb = cb;
+	this.channel.cb = UTIL.make_method(this, this._incoming);
+	this.AuthInfo = serialization.generate_structs({
+	    _auth : meteor.Auth
+	});
+	this.FailInfo = serialization.generate_structs({
+	    _success : meteor.Success,
+	    _fail : meteor.Fail
+	});
+    },
+    incoming : function(atom) {
+	var result;
+
+	console.log("Locked::incoming(%o)", Array.prototype.slice.call(arguments));
+
+	result = this.FailInfo.decode(atom);
+	console.log("                     --> %o", result);
+
+	if (o instanceof meteor.Success) {
+	    this.channel.cb = undefined;
+	    UTIL.call_later(this.cb, null, this.channel);
+	    return;
+	}
+
+	this.authProvider(this);
+    },
+    test : function() {
+	var auth = new meteor.Auth();
+
+	auth.hmac = "The HMAC";
+	auth.token = "The token";
+	auth.expiry = 14;
+	this.channel.send(this.AuthInfo.encode(auth).render());
+    },
+    auth : function(token, secret, expiry) {
+	var hmac = new HMAC(UTIL.SHA256.Hash).get(secret).hmac([token, expiry].join(","));
+
+	this.auth_hmac(token, hmac, expiry);
+    },
+    auth_hmac : function(token, hmac, expiry) {
+	var data = new meteor.Auth();
+
+	data.hmac = hmac;
+	data.token = token;
+	data.expiry = expiry;
+	this.channel.send(this.AuthInfo.encode(auth));
+    }
+});
