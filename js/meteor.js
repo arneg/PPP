@@ -589,7 +589,8 @@ meteor.Locked = Base.extend({
 	this.channel = channel;
 	this.authProvider = authProvider;
 	this.cb = cb;
-	this.channel.cb = UTIL.make_method(this, this._incoming);
+	this.parser = new serialization.AtomParser();
+	this.channel.callback = UTIL.make_method(this, this._incoming);
 	this.AuthInfo = serialization.generate_structs({
 	    _auth : meteor.Auth
 	});
@@ -598,21 +599,32 @@ meteor.Locked = Base.extend({
 	    _fail : meteor.Fail
 	});
     },
-    incoming : function(atom) {
-	var result;
+    _incoming : function(atom) {
+	var result, succ, l;
 
 	console.log("Locked::incoming(%o)", Array.prototype.slice.call(arguments));
 
-	result = this.FailInfo.decode(atom);
-	console.log("                     --> %o", result);
+	l = this.parser.parse(atom);
 
-	if (o instanceof meteor.Success) {
-	    this.channel.cb = undefined;
-	    UTIL.call_later(this.cb, null, this.channel);
-	    return;
+	for (var i = 0; i < l.length; i++) {
+	    console.log("           --> %o", l[i]);
+	    result = this.FailInfo.decode(l[i]);
+	    console.log("                     --> %o", result);
+
+	    if (result instanceof meteor.Success) {
+		succ = 1;
+	    }
 	}
 
-	this.authProvider(this);
+	if (l.length) {
+	    if (succ) {
+		this.channel.callback = undefined;
+		UTIL.call_later(this.cb, null, this.channel);
+		return;
+	    }
+
+	    this.authProvider(this);
+	}
     },
     test : function() {
 	var auth = new meteor.Auth();
@@ -633,6 +645,6 @@ meteor.Locked = Base.extend({
 	data.hmac = hmac;
 	data.token = token;
 	data.expiry = expiry;
-	this.channel.send(this.AuthInfo.encode(auth));
+	this.channel.send(this.AuthInfo.encode(data).render());
     }
 });
