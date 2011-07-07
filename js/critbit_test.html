@@ -4,15 +4,22 @@
 	<script type="text/javascript" src="util.js"></script>
 	<script type="text/javascript" src="critbit.js"></script>
 	<script type="text/javascript">
-	    var t = new CritBit.Tree();
-	    var a = [ "a", "aa", "aaa", "aba", "bab", "bba" ].sort();
-	    for (var i = 0; i < a.length-1; i++) {
-		t.insert(a[i], i);
-		t.root.check();
-		UTIL.log("keys: %o", t.keys());
-	    }
+	    var t;
+	    if (false) {
+		t = new CritBit.Tree();
+		var a = [ "a", "aa", "aaa", "aba", "bab", "bba" ].sort();
+		for (var i = 0; i < a.length-1; i++) {
+		    t.insert(a[i], i);
+		    t.root.check();
+		    UTIL.log("keys: %o", t.keys());
+		}
 
-	    UTIL.log("index(foobar) : %o", t.index("foobar"));
+		UTIL.log("index(foobar) : %o", t.index("foobar"));
+	    } else {
+		t = new CritBit.MultiRangeSet(new CritBit.Tree());
+		t.insert(new CritBit.Range(1,3));
+		UTIL.log("overlaps: %o", t.overlaps(new CritBit.Range(2,4)));
+	    }
 
 	</script>
     </head>

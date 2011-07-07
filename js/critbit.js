@@ -51,9 +51,13 @@ CritBit.count_prefix = function(key1, key2, start) {
 	    if (key1 == key2) return 32;
 	    return new CritBit.Size(0, 31 - CritBit.clz(key1 ^ key2));
 	}
+    } else if (UTIL.objectp(key1) && key1.count_prefix) {
+	return key1.count_prefix(key2);
+    } else if (UTIL.objectp(key2) && key2.count_prefix) {
+	return key2.count_prefix(key1);
     }
 
-    throw("Strange types mismatch.");
+    UTIL.error("Cannot count common prefix of %o and %o.", key1, key2);
 };
 CritBit.get_bit = function(key, size) {
     if (!(size instanceof CritBit.Size)) UTIL.error("wrong size.");
@@ -68,6 +72,8 @@ CritBit.get_bit = function(key, size) {
 	}
 
 	return !!(key & (1 << (31-size.bits))) ? 1 : 0;
+    } else if (UTIL.objectp(key) && key.get_bit) {
+	return key.get_bit(size);
     }
 };
 CritBit.sizeof = function(key) {
@@ -75,7 +81,9 @@ CritBit.sizeof = function(key) {
 	return new CritBit.Size(key.length, 0);
     } else if (UTIL.intp(key)) {
 	return new CritBit.Size(0, 32);
-    }
+    } else if (UTIL.objectp(key) && key.sizeof()) {
+	return key.sizeof();
+    } UTIL.error("don't know the size of %o", key);
 };
 CritBit.Node = function(key, value) {
     this.key = key;
@@ -98,26 +106,24 @@ CritBit.Node.prototype = {
 	} else return this.C[(!bit) ? 0 : 1];
     },
     depth : function() {
-	var a = 0, b = 0, len = 1;
+	var a = 0, b = 0;
 
 	if (this.C[0]) a = this.C[0].depth();
-	if (this.C[1]) a = this.C[1].depth();
-	return 1 + ((a > b) ? a : b);
+	if (this.C[1]) b = this.C[1].depth();
+	return 1 + Math.max(a, b);
     },
     first : function() {
-	UTIL.log("first");
-	var node = this.root;
 
 	if (!this.has_value && this.C[0]) return this.C[0].first();
 
+	UTIL.log("first");
 	return this;
     },
     last : function() {
-	UTIL.log("last");
-
 	if (this.C[1]) return this.C[1].last();
 	if (this.C[0]) return this.C[0].last();
 
+	UTIL.log("last");
 	return this;
     },
     nth : function(n) {
@@ -359,17 +365,17 @@ CritBit.Tree = Base.extend({
 	return null;
     },
     last : function() {
-	if (this.root) return this.root.last().value;
+	if (this.root) return this.root.last().key;
 	return null;
     },
     first : function() {
-	if (this.root) return this.root.first().value;
+	if (this.root) return this.root.first().key;
 	return null;
     },
     nth : function(n) {
 	if (this.root) {
 	    var node = this.root.nth(n);
-	    return node ? node.value : null;
+	    return node ? node.key : null;
 	}
 	return null;
     },
@@ -415,16 +421,17 @@ CritBit.Tree = Base.extend({
     length : function() {
 	return this.root ? this.root.size : 0;
     },
-    foreach : function(fun, start, stop) {
+    foreach : function(fun, backward, start, stop) {
 	var node;
 
 	if (!this.root) return;
-	if (arguments.length > 1) {
-	    node = this.ge(start);
-	    if (arguments.length > 2) {
-		stop = this.le(stop);
+	if (arguments.length > 2) {
+	    node = backward ? this.le(start) : this.ge(start);
+	    if (arguments.length > 3) {
+		stop = backward ? this.ge(stop) : this.le(stop);
 	    } 
-	} else node = this.root.first();
+	}
+	if (!node) node = backward ? this.root.last() : this.root.first();
 	UTIL.log("start: "+ node);
 	UTIL.log("stop: "+ stop);
 
@@ -432,7 +439,7 @@ CritBit.Tree = Base.extend({
 
 	do {
 	    if (fun(node.key, node.value) || node == stop) return;
-	} while (node = node.forward());
+	} while (node = (backward ? node.backward : node.forward)());
     },
     find_best_match : function(key) {
 	if (!this.root) return null;
@@ -442,7 +449,7 @@ CritBit.Tree = Base.extend({
 	if (!this.root) return [];
 	var ret = new Array(this.root.size);
 	var i = 0;
-	var node = this.root.first()
+	var node = this.root.first();
 	do {
 	    ret[i++] = node.key;
 	} while(node = node.forward());
@@ -456,6 +463,44 @@ CritBit.Tree = Base.extend({
 	do {
 	    ret[i++] = node.value;
 	} while(node = node.forward());
+	return ret;
+    }
+});
+CritBit.Range = Base.extend({
+    constructor : function(a,b) {
+	this.a = a;
+	this.b = b;
+    },
+    overlaps : function(range) {
+	return (Math.max(range.a, this.a) <= Math.min(range.b, this.b));
+    },
+    length : function() {
+	return this.b-this.a;
+    }
+});
+CritBit.MultiRangeSet = Base.extend({
+    constructor : function(tree, max_len) {
+	this.tree = tree;
+	this.max_len = (arguments.length < 2) ? 0 : max_len;
+    },
+    insert : function(range) {
+	var v;
+	this.max_len = Math.max(this.max_len, range.length());
+
+	if (v = this.tree.low_index(range.a)) {
+	    v.value.push(range);
+	} else {
+	    this.tree.insert(range.a, [ range ]);
+	}
+    },
+    overlaps : function(range) {
+	var ret = [];	
+
+	this.tree.foreach(function(start, i) {
+	    if (range.a - i[0].a > this.max_len) return true;
+	    for (var j = 0; j < i.length; j++)
+		if (range.overlaps(i[j])) ret.push(i[j]);
+	}, true, range.b);
 	return ret;
     }
 });
