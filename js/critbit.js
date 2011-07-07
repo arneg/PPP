@@ -421,16 +421,17 @@ CritBit.Tree = Base.extend({
     length : function() {
 	return this.root ? this.root.size : 0;
     },
-    foreach : function(fun, start, stop) {
+    foreach : function(fun, backward, start, stop) {
 	var node;
 
 	if (!this.root) return;
-	if (arguments.length > 1) {
-	    node = this.ge(start);
-	    if (arguments.length > 2) {
-		stop = this.le(stop);
+	if (arguments.length > 2) {
+	    node = backward ? this.le(start) : this.ge(start);
+	    if (arguments.length > 3) {
+		stop = backward ? this.ge(stop) : this.le(stop);
 	    } 
-	} else node = this.root.first();
+	}
+	if (!node) node = backward ? this.root.last() : this.root.first();
 	UTIL.log("start: "+ node);
 	UTIL.log("stop: "+ stop);
 
@@ -438,7 +439,7 @@ CritBit.Tree = Base.extend({
 
 	do {
 	    if (fun(node.key, node.value) || node == stop) return;
-	} while (node = node.forward());
+	} while (node = (backward ? node.backward : node.forward)());
     },
     find_best_match : function(key) {
 	if (!this.root) return null;
@@ -448,7 +449,7 @@ CritBit.Tree = Base.extend({
 	if (!this.root) return [];
 	var ret = new Array(this.root.size);
 	var i = 0;
-	var node = this.root.first()
+	var node = this.root.first();
 	do {
 	    ret[i++] = node.key;
 	} while(node = node.forward());
@@ -462,6 +463,44 @@ CritBit.Tree = Base.extend({
 	do {
 	    ret[i++] = node.value;
 	} while(node = node.forward());
+	return ret;
+    }
+});
+CritBit.Range = Base.extend({
+    constructor : function(a,b) {
+	this.a = a;
+	this.b = b;
+    },
+    overlaps : function(range) {
+	return (Math.max(range.a, this.a) <= Math.min(range.b, this.b));
+    },
+    length : function() {
+	return this.b-this.a;
+    }
+});
+CritBit.MultiRangeSet = Base.extend({
+    constructor : function(tree, max_len) {
+	this.tree = tree;
+	this.max_len = (arguments.length < 2) ? 0 : max_len;
+    },
+    insert : function(range) {
+	var v;
+	this.max_len = Math.max(this.max_len, range.length());
+
+	if (v = this.tree.low_index(range.a)) {
+	    v.value.push(range);
+	} else {
+	    this.tree.insert(range.a, [ range ]);
+	}
+    },
+    overlaps : function(range) {
+	var ret = [];	
+
+	this.tree.foreach(function(start, i) {
+	    if (range.a - i[0].a > this.max_len) return true;
+	    for (var j = 0; j < i.length; j++)
+		if (range.overlaps(i[j])) ret.push(i[j]);
+	}, true, range.b);
 	return ret;
     }
 });
