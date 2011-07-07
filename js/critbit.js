@@ -160,11 +160,14 @@ CritBit.Node.prototype = {
 	return this.up_left();
     },
     backward : function() {
+	//UTIL.trace();
+	UTIL.log("%o . backward()", this);
 	if (this.P) {
-	    //UTIL.log("have to go up again.");
+	    UTIL.log("have to go up again.");
 	    var n = this;
 	    while (n.P) {
 		var bit = (n.P.C[1] == n);
+		UTIL.log("coming from bit %d\n", bit);
 		if (bit && n.P.C[0])
 		    return n.P.C[0].last();
 		n = n.P;
@@ -256,7 +259,10 @@ CritBit.Node.prototype = {
 	len = len.min(this.len).min(CritBit.sizeof(key));
 	//UTIL.log("prefix(%o, %o) == %o", key, this.key, len);
 	UTIL.log("%o->find_prev_match(%o, %o, %o)", this, key, CritBit.sizeof(key), start);
-	if (len.lt(start)) return null;
+	if (len.lt(start)) {
+	    UTIL.log("%o < %o", len, start);
+	    return null;
+	}
 	if (len.eq(CritBit.sizeof(key)))
 	    return this.backward();
 
@@ -265,7 +271,7 @@ CritBit.Node.prototype = {
 	
 	if (len.eq(this.len)) {
 
-	    //UTIL.log("bit: %d, %o", bit, this.C);
+	    UTIL.log("bit: %d, %o", bit, this.C);
 	    if (this.C[bit]) {
 		var n = this.C[bit].find_prev_match(key, len);
 		if (n) return n;
@@ -275,7 +281,7 @@ CritBit.Node.prototype = {
 		return this.C[0].last();
 	    }
 	    return this.backward();
-	} else if (!bit)
+	} else if (bit)
 	    return this.last();
 
 	return this.backward();
@@ -421,17 +427,17 @@ CritBit.Tree = Base.extend({
     length : function() {
 	return this.root ? this.root.size : 0;
     },
-    foreach : function(fun, backward, start, stop) {
+    foreach : function(fun, start, stop) {
 	var node;
 
 	if (!this.root) return;
 	if (arguments.length > 2) {
-	    node = backward ? this.le(start) : this.ge(start);
+	    node = this.ge(start);
 	    if (arguments.length > 3) {
-		stop = backward ? this.ge(stop) : this.le(stop);
+		stop = this.le(stop);
 	    } 
 	}
-	if (!node) node = backward ? this.root.last() : this.root.first();
+	if (!node) node = this.root.first();
 	UTIL.log("start: "+ node);
 	UTIL.log("stop: "+ stop);
 
@@ -439,7 +445,27 @@ CritBit.Tree = Base.extend({
 
 	do {
 	    if (fun(node.key, node.value) || node == stop) return;
-	} while (node = (backward ? node.backward : node.forward)());
+	} while (node = node.forward());
+    },
+    backeach : function(fun, start, stop) {
+	var node;
+
+	if (!this.root) return;
+	if (arguments.length > 2) {
+	    node = this.le(start);
+	    if (arguments.length > 3) {
+		stop = this.ge(stop);
+	    } 
+	}
+	if (!node) node = this.root.last();
+	UTIL.log("start: "+ node);
+	UTIL.log("stop: "+ stop);
+
+	if (!node) return;
+
+	do {
+	    if (fun(node.key, node.value) || node == stop) return;
+	} while (node = node.backward());
     },
     find_best_match : function(key) {
 	if (!this.root) return null;
@@ -496,11 +522,15 @@ CritBit.MultiRangeSet = Base.extend({
     overlaps : function(range) {
 	var ret = [];	
 
-	this.tree.foreach(function(start, i) {
-	    if (range.a - i[0].a > this.max_len) return true;
+	this.tree.backeach(function(start, i) {
+	    if (range.a - i[0].a > this.max_len) {
+		UTIL.log("stopping early.");
+		return true;
+	    }
+	    UTIL.log("%o", i);
 	    for (var j = 0; j < i.length; j++)
 		if (range.overlaps(i[j])) ret.push(i[j]);
-	}, true, range.b);
+	}, range.b);
 	return ret;
     }
 });
