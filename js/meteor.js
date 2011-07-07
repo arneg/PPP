@@ -40,6 +40,7 @@ meteor.dismantle = function(xhr) {
 meteor.Multiplexer = function(session) {
     this.session = session;
     this.channels = {};
+    this.requests = {};
     this.pro_atom = new serialization.AtomParser();
     this.initialized = 0;
     session.callback = UTIL.make_method(this, this.mplexcb);
@@ -66,6 +67,12 @@ meteor.Multiplexer.prototype = {
     },
     has_channel : function(name) {
 	return !!this.channels[name];
+    },
+    request_channel : function(name, cb) {
+	if (this.has_channel(name)) throw("Channel " + name + " already exists.");
+	if (this.requests.hasOwnProperty(name)) throw("Channel " + name + " was already requested.");
+
+	this.requests[name] = [ cb, this.get_new_channel(name) ];
     },
     mplexcb : function(atom) {
 	//UTIL.log("mplexcb here.");
@@ -95,7 +102,30 @@ meteor.Multiplexer.prototype = {
 
 	      if (res instanceof meteor.ChannelFail) {
 		  var chan = this.get_channel(res.name);
+
 		  chan.close("Server denied connection request on channel " + res.name + ": " + res.reason);
+
+		  if (this.requests.hasOwnProperty(res.name)) {
+		      var cb = this.requests[res.name][0];
+		      delete this.requests[name];
+
+		      try {
+			  cb(res.reason, chan);
+		      } catch (err) {
+			  UTIL.log("Channel(" + res.name + ") accept cb did error on Fail: " + err);
+		      }
+		  }
+	      } else if (res instanceof meteor.ChannelSuccess) {
+		  if (this.requests.hasOwnProperty(res.name)) {
+		      var cb = this.requests[res.name][0];
+		      var chan = this.requests[res.name][1];
+		      delete this.requests[res.name];
+		      try {
+			  cb(0, chan);
+		      } catch (err) {
+			  UTIL.log("Channel(" + res.name + " accept cb did error: " + err);
+		      }
+		  }
 	      }
 	  }
 	}
