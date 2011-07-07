@@ -43,6 +43,10 @@ meteor.Multiplexer = function(session) {
     this.pro_atom = new serialization.AtomParser();
     this.initialized = 0;
     session.callback = UTIL.make_method(this, this.mplexcb);
+    this.SuccParser = serialization.generate_structs({
+	_channel_success : meteor.ChannelSuccess,
+	_channel_fail : meteor.ChannelFail
+    });
 };
 meteor.Multiplexer.prototype = {
     get_new_channel : function(name) {
@@ -73,7 +77,7 @@ meteor.Multiplexer.prototype = {
 	      if (a[i].type == "_multiplex") {
 		  this.initialized = 1;
 	      } else UTIL.log("%o is not protoplex\n", atom);
-	  } else {
+	  } else if (a[i].type == "_channel") {
 	      var pos = a[i].data.indexOf(" ");
 		
 	      if (pos == -1) {
@@ -86,26 +90,67 @@ meteor.Multiplexer.prototype = {
 	      if (this.has_channel(name)) {
 		  this.get_channel(name)._deliver(a[i].data.substr(pos+1));
 	      } else UTIL.log("noone cares for channel %o", name||666);
+	  } else {
+	      var res = this.SuccParser.decode(a[i]);
+
+	      if (res instanceof meteor.ChannelFail) {
+		  var chan = this.get_channel(res.name);
+		  chan.close("Server denied connection request on channel " + res.name + ": " + res.reason);
+	      }
 	  }
 	}
-    },
+    }
 };
+
+meteor.ChannelSuccess = Base.extend({
+    _types : {
+	name : new serialization.String()
+    },
+    toString : function() {
+	return "meteor.ChannelSuccess(" + this.name + ")";
+    }
+});
+meteor.ChannelFail = Base.extend({
+    _types : {
+	name : new serialization.String(),
+	reason : new serialization.String()
+    },
+    toString : function() {
+	return "meteor.ChannelFail(" + this.name + ", " + this.reason + ")";
+    }
+});
+meteor.ChannelReq = Base.extend({
+    constructor : function(name) {
+	this.name = name;
+    },
+    _types : {
+	name : new serialization.String()
+    }
+})
+
 meteor.Channel = function(name, session, multiplexer) {
     this.name = name;
     this.session = session;
     this.multiplexer = multiplexer;
-    this.first = new serialization.AtomParser();
     this.buffer = "";
     this.callback = 0;
+    this.errcb = 0;
     this.closed = false;
+
+    this.ReqParser = serialization.generate_structs({
+	_channel_request : meteor.ChannelReq,
+    });
+
     //this.session.send("_channel "+ this.name.length + " " + this.name);
     //this.send(""); // handshake / channel open request
     //UTIL.call_later(this.send, this, "");
     //UTIL.call_later(this.session.send, this.session, "_channel " + this.name.length + " " + this.name);
-    this.session.send("_channel " + this.name.length + " " + this.name);
+    //this.session.send("_channel " + this.name.length + " " + this.name);
+    this.session.send(this.ReqParser.encode(new meteor.ChannelReq(this.name)).render());
 };
 meteor.Channel.prototype = {
     send : function(atom) {
+	if (this.closed) throw("Cannot send() in closed channel(" + this.name + ").");
 	this.session.send("_channel "+ (atom.length+this.name.length+1) + " " + this.name + " " + atom);
     },
     set_cb : function(cb) {
@@ -124,30 +169,12 @@ meteor.Channel.prototype = {
     },
     close : function(err) {
 	this.closed = true;
-	if (this.onerr) this.onerr(err);
+	if (this.errcb) this.errcb(err);
 	this.multiplexer.close_channel(this.name);
-	this.onerr = this.cb = undefined;
+	this.errcb = this.cb = undefined;
 	UTIL.log("Channel connection request refused: %o.", err);
     },
     _deliver : function(data) {
-	if (this.first) {
-	    this.first.feed(data);
-	    var l = this.first._parse();
-
-	    if (l) {
-		this.buffer = this.first.buffer;
-		delete this.first;
-
-		if (l.data != "ok") {
-		    this.close("Server denied connection request: "
-			       + l.data + ".");
-		    return;
-		}
-	    }
-
-	    return;
-	}
-
 	this.buffer += data;
 	if (this.callback) {
 	    this.callback(this.buffer);
@@ -568,13 +595,11 @@ meteor.Auth = Base.extend({
 	expiry : new serialization.Integer()
     }
 });
-
 meteor.Success = Base.extend({
     toString : function() {
 	return "meteor.Success()";
     }
 });
-
 meteor.Fail = Base.extend({
     _types : {
 	reason : new serialization.String()
