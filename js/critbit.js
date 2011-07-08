@@ -500,10 +500,60 @@ CritBit.Range = Base.extend({
     overlaps : function(range) {
 	return (Math.max(range.a, this.a) <= Math.min(range.b, this.b));
     },
+    touches : function(range) {
+	// this seems a bit odd, but we only have closed intervals right now
+	return this.overlaps(range);
+    },
+    contains : function(i) {
+	if (i instanceof CritBit.Range)
+	    return this.a <= i.a && this.b >= i.b;
+	return this.a <= i && this.b >= i;
+    },
     length : function() {
 	return this.b-this.a;
     }
 });
+CritBit.RangeSet = Base.extend({
+    constructor : function(tree) {
+	this.tree = tree;
+    },
+    index : function(key) {
+	if (key instanceof CritBit.Range)
+	    return this.contains(key);
+
+	var next = this.tree.ge(key);
+	if (!next) return undefined;
+	return next.value.contains(key);
+    },
+    insert : function(range) {
+	this.merge(range);
+    },
+    ranges : function() {
+	return this.tree.values();
+    },
+    merge : function(range) {
+	var a = [];
+	this.tree.foreach(function (s, i) {
+	    if (!i.touches(range)) return true;
+	    a.push(i);
+	}, range.a);
+	for (var i = 0; i < a.length; i++)
+	    this.tree.remove(a[i].b);
+	var n = new CritBit.Range(Math.min(a[0].a, range.a),
+				  Math.max(a[a.length-1].b, range.b));
+	this.tree.insert(n.b, n);
+    },
+    overlaps : function(range) {
+	var n = this.tree.ge(range.a);
+	if (n) return n.value.overlaps(range);
+	return false;
+    },
+    contains : function(range) {
+	var n = this.tree.ge(range.a);
+	if (n) return n.value.contains(range);
+	return false;
+    }
+}
 CritBit.MultiRangeSet = Base.extend({
     constructor : function(tree, max_len) {
 	this.tree = tree;
@@ -532,5 +582,18 @@ CritBit.MultiRangeSet = Base.extend({
 		if (range.overlaps(i[j])) ret.push(i[j]);
 	}, range.b);
 	return ret;
+    },
+    ranges : function() {
+	var ret = [];
+	var a = this.tree.values();
+	for (var i = 0; i < a.length; i ++)
+	    ret.concat(a[i]);
+	return ret;
+    },
+    foreach : function(fun) {
+	var a = this.ranges();
+	for (var i = 0; i < a.length; i ++) {
+	    if (fun(a[i])) return;
+	}
     }
 });
