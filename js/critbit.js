@@ -423,6 +423,24 @@ CritBit.Tree = Base.extend({
     get_subtree : function(key) {
     },
     remove : function(key) {
+	var n = this.low_index(key);
+
+	if (n) {
+	    n.value = undefined;
+	    n.has_value = false;
+	    while (n) {
+		n.size--;
+		if (!n.C[0] && !n.C[1]) {
+		    if (!n.P) {
+			this.root = null;
+			return;
+		    }
+		    var bit = (n.P.C[1] === n ? 1 : 0);
+		    n.P.C[bit] = null;
+		}
+		n = n.P;
+	    }
+	}
     },
     length : function() {
 	return this.root ? this.root.size : 0;
@@ -533,15 +551,20 @@ CritBit.RangeSet = Base.extend({
     },
     merge : function(range) {
 	var a = [];
+	UTIL.log("merging %o", range);
 	this.tree.foreach(function (s, i) {
+	    UTIL.log("%o touches %o == %o", i, range, i.touches(range));
 	    if (!i.touches(range)) return true;
 	    a.push(i);
 	}, range.a);
-	for (var i = 0; i < a.length; i++)
-	    this.tree.remove(a[i].b);
-	var n = new CritBit.Range(Math.min(a[0].a, range.a),
-				  Math.max(a[a.length-1].b, range.b));
-	this.tree.insert(n.b, n);
+
+	if (a.length) {
+	    for (var i = 0; i < a.length; i++)
+		this.tree.remove(a[i].b);
+	    range = new CritBit.Range(Math.min(a[0].a, range.a),
+				      Math.max(a[a.length-1].b, range.b));
+	}
+	this.tree.insert(range.b, range);
     },
     overlaps : function(range) {
 	var n = this.tree.ge(range.a);
@@ -553,7 +576,7 @@ CritBit.RangeSet = Base.extend({
 	if (n) return n.value.contains(range);
 	return false;
     }
-}
+});
 CritBit.MultiRangeSet = Base.extend({
     constructor : function(tree, max_len) {
 	this.tree = tree;
