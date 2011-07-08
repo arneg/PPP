@@ -569,6 +569,12 @@ meteor.Connection.prototype = {
 		//UTIL.log("writing "+this.buffer.length+" bytes\n");
 		this.old_buffer = this.buffer;
 		this.buffer = "";
+	},
+	set_cb : function(cb) {
+	     this.callback = cb;
+	},
+	get_cb : function() {
+	    return this.callback;
 	}
 };
 // the params handed by the user could be prototyped with a
