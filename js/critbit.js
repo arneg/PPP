@@ -516,7 +516,8 @@ CritBit.Range = Base.extend({
 	this.b = b;
     },
     overlaps : function(range) {
-	return (Math.max(range.a, this.a) <= Math.min(range.b, this.b));
+	return range.a <= this.b && range.b >= range.a;
+//	return (Math.max(range.a, this.a) <= Math.min(range.b, this.b));
     },
     touches : function(range) {
 	// this seems a bit odd, but we only have closed intervals right now
