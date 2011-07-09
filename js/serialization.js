@@ -156,67 +156,66 @@ serialization.Any = Base.extend({
 	encode : function(o) { return o; }
 });
 serialization.Polymorphic = serialization.Base.extend({
-	constructor: function() {
-		this.atype_to_type = new Mapping(); // this could use inheritance
-		this.ptype_to_type = new Mapping();
-	},
-	can_decode : function(atom) {
-			return this.atype_to_type.hasIndex(atom.type);	
-	},
-	toString : function() {
-		return "Polymorphic()";
-	},
-	can_encode : function(o) {
-		var t = typeof(o);
-		if (t == "object") {
-			return this.ptype_to_type.hasIndex(o.constructor);
-		}
-		return this.ptype_to_type.hasIndex(t);
-	},
-	decode : function(atom) {
-		var types = this.atype_to_type.get(atom.type);
-		for (var i = 0; i < types.length; i++) {
-
-			if (types[i].can_decode(atom)) {
-				return types[i].decode(atom);
-			}
-		}
-
-		UTIL.error("Cannot decode "+atom.toString());
-	},
-	encode : function(o) {
-		var t = typeof(o);
-		var types = this.ptype_to_type.get(t);
-
-		if ((!types || types.length == 0) && t == "object") {
-		    t = o.constructor;
-		    types = this.ptype_to_type.get(t);
-		}
-
-		if (types) for (var i = 0; i < types.length; i ++) {
-			if (types[i].can_encode(o)) {
-				return types[i].encode(o);
-			}
-		}
-
-		UTIL.log("No type found for %o in %o.\n", t, this.ptype_to_type);
-		UTIL.error("Cannot encode (%o, %o)", t, o);
-	},
-	register_type : function(atype, ptype, o) {
-		var t;
-
-		if (t = this.atype_to_type.get(atype)) {
-			t.push(o);
-		} else {
-			this.atype_to_type.set(atype, new Array(o));
-		}
-
-		if (t = this.ptype_to_type.get(ptype)) {
-			t.push(o);
-		} else {
-			this.ptype_to_type.set(ptype, new Array(o));
-		}
+    constructor: function() {
+	this.atype_to_type = new Mapping(); // this could use inheritance
+	this.ptype_to_type = new Mapping();
+    },
+    can_decode : function(atom) {
+	return this.atype_to_type.hasIndex(atom.type);	
+    },
+    toString : function() {
+	return "Polymorphic()";
+    },
+    can_encode : function(o) {
+	var t = typeof(o);
+	if (t == "object") {
+	    return this.ptype_to_type.hasIndex(o.constructor);
 	}
+	return this.ptype_to_type.hasIndex(t);
+    },
+    decode : function(atom) {
+	var types = this.atype_to_type.get(atom.type);
+	for (var i = 0; i < types.length; i++) {
+	    if (types[i].can_decode(atom)) {
+		return types[i].decode(atom);
+	    }
+	}
+
+	UTIL.error("Cannot decode "+atom.toString());
+    },
+    encode : function(o) {
+	var types;
+	if (UTIL.objectp(o)) {
+	    types = this.ptype_to_type.get(o.constructor);
+	}
+	if (!types || types.length == 0) {
+	    types = this.ptype_to_type.get(typeof(o));
+	}
+
+	if (types) for (var i = 0; i < types.length; i ++) {
+	    if (types[i].can_encode(o)) {
+		return types[i].encode(o);
+	    }
+	}
+
+	UTIL.log("No type found for %o in %o.\n", t, this.ptype_to_type);
+	UTIL.error("Cannot encode (%o, %o)", t, o);
+    },
+    register_type : function(atype, ptype, o) {
+	var t;
+
+	if (t = this.atype_to_type.get(atype)) {
+	    t.push(o);
+	} else {
+	    this.atype_to_type.set(atype, new Array(o));
+	}
+
+	if (t = this.ptype_to_type.get(ptype)) {
+	    t.push(o);
+	} else {
+	    this.ptype_to_type.set(ptype, new Array(o));
+	}
+    }
 });
 serialization.Date = serialization.Base.extend({
 	constructor: function(prog) { 
