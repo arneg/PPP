@@ -32,23 +32,23 @@ if (window.Base) {
 		tests.push(x);
 	    }
 
-	    this.__done = function() {
+	    this.__done = function(fatal) {
 		delete this.success;
 		delete this.error;
 		delete this.__done;
 
-		UTIL.call_later(cb, window, this.__succs, this.__errors, tests.length);
-		/*
-		UTIL.log("%s finished, %d successful, %d error(s), %d total, %d in testsuite.",
+		if (cb)
+		    UTIL.call_later(cb, window, this.__succs, this.__errors, tests.length, fatal);
+		else
+		    UTIL.log("%s finished, %d successful, %d error(s), %d total, %d in testsuite.",
 			 this.toString(), this.__succs, this.__errors, this.__succs + this.__errors, tests.length);
-		*/
 	    }
 
 	    UTIL.call_later(this.step, this, tests, 0);
 	},
 	step : function(tests, num) {
 	    if (num >= tests.length) {
-		return this.__done();
+		return this.__done(false);
 	    }
 
 	    this.success = function() {
@@ -63,7 +63,7 @@ if (window.Base) {
 	    this.fatal = function(err) {
 		++this.__errors;
 		UTIL.log("fatal error in test %o: %o.", tests[num], err);
-		this.__done();
+		this.__done(true);
 	    };
 	    this[tests[num]]();
 	},
