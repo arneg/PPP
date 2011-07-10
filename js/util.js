@@ -23,10 +23,12 @@ UTIL = {};
 if (window.Base) {
     UTIL.Test = Base.extend({
 	__errors : 0,
-	run : function() {
-	    var tests = [cb];
+	__succs : 0, // This sucks!
+	run : function(cb) {
+	    var tests = [];
+
 	    for (var x in this) {
-		if (!UTIL.abbrev(x, "test_")) continue;
+		if (!UTIL.has_prefix(x, "test_")) continue;
 		tests.push(x);
 	    }
 
@@ -35,34 +37,46 @@ if (window.Base) {
 		delete this.error;
 		delete this.__done;
 
-		UTIL.call_later(cb, window, this.__errors, tests.length);
-		UTIL.log("Testsuite %o finished, %d errors, %d tests.",
-			 this.__errors, tests.length);
+		UTIL.call_later(cb, window, this.__succs, this.__errors, tests.length);
+		/*
+		UTIL.log("%s finished, %d successful, %d error(s), %d total, %d in testsuite.",
+			 this.toString(), this.__succs, this.__errors, this.__succs + this.__errors, tests.length);
+		*/
 	    }
 
 	    UTIL.call_later(this.step, this, tests, 0);
-	    //this.step(tests, 0);
 	},
 	step : function(tests, num) {
 	    if (num >= tests.length) {
-		this.__done();
+		return this.__done();
 	    }
 
 	    this.success = function() {
-		//UTIL.call_later(this.step, this, tests, num + 1);
+		++this.__succs;
 		this.step(tests, num + 1);
 	    };
 	    this.error = function(err) {
 		++this.__errors;
-		UTIL.log("error in test %o: %o", tests[num], err);
+		UTIL.log("error in test %o: %o.", tests[num], err);
 		this.step(tests, num + 1);
 	    };
 	    this.fatal = function(err) {
 		++this.__errors;
-		UTIL.log("fatal error in test %o: %o", tests[num], err);
+		UTIL.log("fatal error in test %o: %o.", tests[num], err);
 		this.__done();
 	    };
 	    this[tests[num]]();
+	},
+	toString : function() {
+	    var l = [];
+
+	    for (var x in this) {
+		if (UTIL.has_prefix(x, "test_")) {
+		    l.push(x.substr(5));
+		}
+	    }
+
+	    return "UTIL.Test(" + l.join(", ") + ")";
 	}
     });
 }
