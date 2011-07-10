@@ -575,6 +575,12 @@ meteor.Connection.prototype = {
 	},
 	get_cb : function() {
 	    return this.callback;
+	},
+	set_onerr : function(error) {
+	    this.error = error;
+	},
+	get_onerr : function() {
+	    return this.error;
 	}
 };
 // the params handed by the user could be prototyped with a
