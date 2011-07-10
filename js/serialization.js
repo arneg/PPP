@@ -550,7 +550,7 @@ serialization.Tuple = serialization.Base.extend({
 	encode : function(l) {
 		var d = "";
 
-		if (l.length != this.types.length) UTIL.error("Cannot encode atom "+atom.toString());
+		if (l.length != this.types.length) UTIL.error("Cannot encode %o (wrong length) %o", l, this.types);
 
 		for (var i = 0; i < l.length; i++) {
 		    //UTIL.log("%o", i);
