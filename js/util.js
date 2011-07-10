@@ -20,6 +20,52 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  * @namespace
  */
 UTIL = {};
+if (window.Base) {
+    UTIL.Test = Base.extend({
+	__errors : 0,
+	run : function() {
+	    var tests = [cb];
+	    for (var x in this) {
+		if (!UTIL.abbrev(x, "test_")) continue;
+		tests.push(x);
+	    }
+
+	    this.__done = function() {
+		delete this.success;
+		delete this.error;
+		delete this.__done;
+
+		UTIL.call_later(cb, window, this.__errors, tests.length);
+		UTIL.log("Testsuite %o finished, %d errors, %d tests.",
+			 this.__errors, tests.length);
+	    }
+
+	    UTIL.call_later(this.step, this, tests, 0);
+	    //this.step(tests, 0);
+	},
+	step : function(tests, num) {
+	    if (num >= tests.length) {
+		this.__done();
+	    }
+
+	    this.success = function() {
+		//UTIL.call_later(this.step, this, tests, num + 1);
+		this.step(tests, num + 1);
+	    };
+	    this.error = function(err) {
+		++this.__errors;
+		UTIL.log("error in test %o: %o", tests[num], err);
+		this.step(tests, num + 1);
+	    };
+	    this.fatal = function(err) {
+		++this.__errors;
+		UTIL.log("fatal error in test %o: %o", tests[num], err);
+		this.__done();
+	    };
+	    this[tests[num]]();
+	}
+    });
+}
 /**
  * Returns a with all duplicate entries removed.
  */
