@@ -8,6 +8,7 @@ var Base = function() {
 	// dummy
 };
 
+Base.c = 0;
 Base.extend = function(_instance, _static) { // subclass
 	var extend = Base.prototype.extend;
 	
@@ -36,12 +37,15 @@ Base.extend = function(_instance, _static) { // subclass
 	};
 	
 	// build the class interface
+	klass.c = Base.c++;
 	klass.ancestor = this;
 	klass.extend = this.extend;
 	klass.forEach = this.forEach;
 	klass.implement = this.implement;
 	klass.prototype = proto;
-	klass.toString = this.toString;
+	klass.toString = function() {
+	    return this.ancestor.toString()+"/*"+klass.c+"*/";
+	};
 	klass.valueOf = function(type) {
 		//return (type == "object") ? klass : constructor; //-dean
 		return (type == "object") ? klass : constructor.valueOf();
