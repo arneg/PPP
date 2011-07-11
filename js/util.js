@@ -57,7 +57,8 @@ if (window.Base) {
 	    };
 	    this.error = function(err) {
 		++this.__errors;
-		UTIL.log("error in test %o: %o.", tests[num], err);
+		UTIL.log.apply(window, [ "error in test %o: "+err,
+			       tests[num] ].concat(Array.prototype.slice.call(arguments, 1)));
 		this.step(tests, num + 1);
 	    };
 	    this.fatal = function(err) {
@@ -65,7 +66,11 @@ if (window.Base) {
 		UTIL.log("fatal error in test %o: %o.", tests[num], err);
 		this.__done(true);
 	    };
-	    this[tests[num]]();
+	    try {
+		this[tests[num]]();
+	    } catch(e) {
+		this.fatal(e);
+	    }
 	},
 	toString : function() {
 	    var l = [];
