@@ -568,9 +568,15 @@ CritBit.Tree = Base.extend({
     }
 });
 CritBit.Range = Base.extend({
-    constructor : function(a,b) {
+    constructor : function(a, b, value) {
 	this.a = a;
 	this.b = b;
+	if (arguments.length > 1) {
+	    if (a >= b && !(a <= b))
+		UTIL.error("Bad range. Ends before it starts.\n");
+	    if (arguments.length > 2)
+		this.value = value;
+	}
     },
     overlaps : function(range) {
 	return range.a <= this.b && range.b >= range.a;
@@ -587,11 +593,29 @@ CritBit.Range = Base.extend({
     },
     length : function() {
 	return this.b-this.a;
+    },
+    toString : function() {
+	if (this.hasOwnProperty("value"))
+	    return UTIL.sprintf("[%o..%o]<%o>", this.a, this.b, this.value);
+	else
+	    return UTIL.sprintf("[%o..%o]", this.a, this.b);
     }
 });
+CritBit.min = function(a, b) {
+    if (a instanceof Date) {
+	return a.getTime() > b.getTime() ? b : a;
+    }
+    return Math.min(a, b);
+};
+CritBit.max = function(a, b) {
+    if (a instanceof Date) {
+	return a.getTime() < b.getTime() ? b : a;
+    }
+    return Math.max(a, b);
+};
 CritBit.RangeSet = Base.extend({
     constructor : function(tree) {
-	this.tree = tree;
+	this.tree = tree || new CritBit.Tree();
     },
     index : function(key) {
 	if (key instanceof CritBit.Range)
@@ -619,8 +643,8 @@ CritBit.RangeSet = Base.extend({
 	if (a.length) {
 	    for (var i = 0; i < a.length; i++)
 		this.tree.remove(a[i].b);
-	    range = new CritBit.Range(Math.min(a[0].a, range.a),
-				      Math.max(a[a.length-1].b, range.b));
+	    range = new CritBit.Range(CritBit.min(a[0].a, range.a),
+				      CritBit.max(a[a.length-1].b, range.b));
 	}
 	this.tree.insert(range.b, range);
     },
@@ -633,11 +657,14 @@ CritBit.RangeSet = Base.extend({
 	var n = this.tree.ge(range.a);
 	if (n) return n.value.contains(range);
 	return false;
+    },
+    length : function() {
+	return this.tree.length();
     }
 });
 CritBit.MultiRangeSet = Base.extend({
     constructor : function(tree, max_len) {
-	this.tree = tree;
+	this.tree = tree || new CritBit.Tree();
 	this.max_len = (arguments.length < 2) ? 0 : max_len;
     },
     insert : function(range) {
@@ -678,3 +705,58 @@ CritBit.MultiRangeSet = Base.extend({
 	}
     }
 });
+if (window.serialization) {
+serialization.Range = serialization.Tuple.extend({
+    constructor : function(type, vtype) {
+	var m = [
+	    "_range", CritBit.Range,
+	    type, type
+	];
+	if (vtype) {
+	    this.has_value = true;
+	    m.push(vtype);
+	}
+	this.base.apply(this, m);
+    },
+    encode : function(range) {
+	if (this.has_value)
+	    return this.base([ range.a, range.b, range.value ]);
+	else
+	    return this.base([ range.a, range.b]);
+    },
+    toString : function() {
+	return UTIL.sprintf("serialization.Range()");
+    }
+});
+serialization.RangeSet = serialization.Array.extend({
+    constructor : function(type) {
+	this.base(type);
+	this.type = "_rangeset";
+    },
+    decode : function(atom) {
+	var a = this.base(atom);
+	var t = new CritBit.RangeSet();
+	for (var i = 0; i < a.length; i++)
+	    t.insert(a[i]);
+	return t;
+    },
+    encode : function(t) {
+	return this.base(t.ranges());
+    },
+    can_encode : function(t) {
+	return o instanceof CritBit.RangeSet || this.base(t);
+    }
+});
+serialization.MultiRangeSet = serialization.RangeSet.extend({
+    decode : function(atom) {
+	var a = this.base(atom);
+	var t = new CritBit.MultiRangeSet();
+	for (var i = 0; i < a.length; i++)
+	    t.insert(a[i]);
+	return t;
+    },
+    can_encode : function(t) {
+	return o instanceof CritBit.MultiRangeSet || this.base(t);
+    }
+});
+}
