@@ -71,6 +71,12 @@ CritBit.Size = Base.extend({
     lt : function(b) {
 	return this.chars < b.chars || (this.chars == b.chars && this.bits < b.bits);
     },
+    ge : function(b) {
+	return b.le(this);
+    },
+    gt : function(b) {
+	return b.lt(this);
+    },
     le : function(b) {
 	return this.eq(b) || this.lt(b);
     },
@@ -84,8 +90,13 @@ CritBit.Size = Base.extend({
 	return "S("+this.chars+":"+this.bits+")";
     }
 });
+// this is really zeroes after the trailing one. or position
+// of the leading one bit from the least significant bit
 CritBit.clz = function(x) {
-    return Math.floor(Math.log(x)/Math.LN2);
+    if (x < 0)
+	x = 2*(x >>> 1);
+    else if (x == 0) return 0;
+    return Math.floor(Math.log(x)/Math.LN2)+1;
 };
 CritBit.count_prefix = function(key1, key2, start) {
     if (!start) start = new CritBit.Size(0,0);
@@ -99,14 +110,14 @@ CritBit.count_prefix = function(key1, key2, start) {
 	    }
 	    for (var i = start.chars; i < key1.length; i++) {
 		if (key1.charCodeAt(i) != key2.charCodeAt(i)) {
-		    return new CritBit.Size(i, 15 - CritBit.clz(key1.charCodeAt(i) ^ key2.charCodeAt(i)));
+		    return new CritBit.Size(i, 16 - CritBit.clz(key1.charCodeAt(i) ^ key2.charCodeAt(i)));
 		}
 	    }
 
 	    return CritBit.sizeof(key1);
 	} else if (UTIL.intp(key1)) {
 	    if (key1 == key2) return new CritBit.Size(1,0);
-	    return new CritBit.Size(0, 31 - CritBit.clz(key1 ^ key2));
+	    return new CritBit.Size(0, 32 - CritBit.clz(key1 ^ key2));
 	} else if (key1 instanceof Date) {
 	    // remember to increase precision here until 2027
 	    key1 = Math.floor(key1.getTime()/1000);
@@ -280,7 +291,7 @@ CritBit.Node.prototype = {
     },
     find_best_match : function(key, start) {
 	if (!start) start = new CritBit.Size(0,0);
-	var len = CritBit.count_prefix(key, this.key);
+	var len = CritBit.count_prefix(key, this.key, start);
 	len = len.min(this.len).min(CritBit.sizeof(key));
 	//UTIL.log("prefix(%o, %o) == %o", key, this.key, len);
 	if (len.le(start)) return null;
@@ -303,7 +314,7 @@ CritBit.Node.prototype = {
     //
     find_next_match : function(key, start) {
 	if (!start) start = new CritBit.Size(0,0);
-	var len = CritBit.count_prefix(key, this.key);
+	var len = CritBit.count_prefix(key, this.key, start);
 	len = len.min(this.len).min(CritBit.sizeof(key));
 	//UTIL.log("prefix(%o, %o) == %o", key, this.key, len);
 	//UTIL.log("%o->find_next_match(%o, %o, %o)", this, key, CritBit.sizeof(key), start);
@@ -332,7 +343,7 @@ CritBit.Node.prototype = {
     },
     find_prev_match : function(key, start) {
 	if (!start) start = new CritBit.Size(0,0);
-	var len = CritBit.count_prefix(key, this.key);
+	var len = CritBit.count_prefix(key, this.key, start);
 	len = len.min(this.len).min(CritBit.sizeof(key));
 	//UTIL.log("prefix(%o, %o) == %o", key, this.key, len);
 	//UTIL.log("%o->find_prev_match(%o, %o, %o)", this, key, CritBit.sizeof(key), start);
@@ -363,12 +374,14 @@ CritBit.Node.prototype = {
 
 	return this.backward();
     },
-    insert : function(node) {
+    insert : function(node, start) {
 	if (!node.has_value) return this;
 
+	if (!start) start = new CritBit.Size(0,0);
 	var bit;
-	var len = CritBit.count_prefix(node.key, this.key);
+	var len = CritBit.count_prefix(node.key, this.key, start);
 	len = len.min(this.len).min(node.len);
+	if (len.lt(start)) UTIL.error("something is really bad.");
 	//UTIL.log("prefix(%o, %o) == %o", node.key, this.key, len);
 	if (len.eq(this.len)) {
 	    // overwriting
@@ -387,7 +400,7 @@ CritBit.Node.prototype = {
 
 	    if (this.C[bit]) {
 		var oldsize = this.C[bit].size;
-		this.child(bit, this.C[bit].insert(node));
+		this.child(bit, this.C[bit].insert(node, len));
 		if (this.C[bit].size > oldsize) this.size++;
 		return this;
 	    } else {
