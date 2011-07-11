@@ -1,4 +1,61 @@
 var CritBit = {};
+CritBit.Test = {};
+CritBit.Test.Simple = UTIL.Test.extend({
+    constructor : function(keys) {
+	this.keys = keys;
+	this.tree = new CritBit.Tree();
+    },
+    test_0_insert : function() {
+	for (var i = 0; i < this.keys; i++)
+	    this.tree.insert(this.keys[i], i);
+	this.success();
+    },
+    test_1_lookup : function() {
+	var t;
+	for (var i = 0; i < this.keys; i++)
+	    if ((t = this.tree.index(this.keys[i])) != i)
+	    return this.error("lookup failed: %o gave %o. should be %o",
+			      this.keys[i], t, i);
+	this.success();
+    }
+});
+CritBit.Test.RangeSet = UTIL.Test.extend({
+    constructor : function(keys) {
+	this.keys = keys.sort(function(a, b) {
+	    if (a <= b && a >= b) return 0;
+	    else if (a >= b) return 1;
+	    else return -1;
+	});
+	this.n = keys.length >> 1;
+    },
+    test_0_merge : function() {
+	var s = new CritBit.RangeSet();
+	for (var i = 0; i < this.n; i++) {
+	    s.insert(new CritBit.Range(this.keys[this.n-1-i],
+				       this.keys[this.n+i]));
+	    if (s.length() != 1)
+		return this.error("%o suddenly has more than one range (has %d).\n", 
+				  s, s.length());
+	}
+	this.success();
+    },
+    test_1_merge : function() {
+	var s = new CritBit.RangeSet();
+	for (var i = 1; i+1 < this.keys.length-1; i+=2) {
+	    s.insert(new CritBit.Range(this.keys[i],
+				       this.keys[i+1]));
+	    if (s.length() != (i+1)/2)
+		return this.error("%o suddenly has wrong amount of ranges (%d vs %d).\n",
+				  s, i, s.ranges().length);
+	}
+	s.insert(new CritBit.Range(this.keys[0], this.keys[this.keys.length-1]));
+
+	if (s.length() != 1)
+	    return this.error("%o suddenly has wrong amount of ranges.\n", s);
+	this.success();
+    }
+});
+
 CritBit.Size = Base.extend({
     constructor : function(chars, bits) {
 	this.chars = chars;
