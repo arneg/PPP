@@ -75,14 +75,10 @@ CritBit.Size = Base.extend({
 	return this.eq(b) || this.lt(b);
     },
     min : function(b) {
-	if (b.chars < this.chars || (b.chars == this.chars && b.bits == this.bits)) {
-	    return b;
-	} else return this;
+	return b.lt(this) ? b : this;
     },
     max : function(b) {
-	if (b.chars < this.chars || (b.chars == this.chars && b.bits == this.bits)) {
-	    return this;
-	} else return b;
+	return b.lt(this) ? this : b;
     },
     toString : function() {
 	return "S("+this.chars+":"+this.bits+")";
