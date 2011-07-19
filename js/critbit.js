@@ -6,7 +6,7 @@ CritBit.Test.Simple = UTIL.Test.extend({
 	this.tree = new CritBit.Tree();
     },
     test_0_insert : function() {
-	for (var i = 0; i < this.keys; i++) {
+	for (var i = 0; i < this.keys.length; i++) {
 	    this.tree.insert(this.keys[i], i);
 	    this.tree.check();
 	    if (this.tree.index(this.keys[i]) != i)
