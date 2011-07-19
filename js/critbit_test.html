@@ -4,19 +4,31 @@
 	<script type="text/javascript" src="util.js"></script>
 	<script type="text/javascript" src="critbit.js"></script>
 	<script type="text/javascript">
-	    function dates(n) {
+	    function numbers(n) {
 		var a = new Array(n);
 		for (var i = 0; i < n; i++) {
-		    a[i] = new Date();
-		    a[i].setTime(1000 * Math.floor(Math.abs(Math.sin(i * 7 + 1))
+		    a[i] = (Math.floor(Math.abs(Math.sin(i * 7 + 1))
 						   * Math.pow(2,32)));
+		}
+		return a.sort();
+	    }
+	    function dates(n) {
+		var a = numbers(n);
+		for (var i = 0; i < n; i++) {
+		    var t = new Date();
+		    t.setTime(1000 * a[i]);
+		    a[i] = t;
 		}
 		return a;
 	    }
-	    new CritBit.Test.Simple([ "a", "aa", "aaa", "aba", "bab", "bba" ]).run();
-	    new CritBit.Test.Simple(UTIL.keys(window).concat(UTIL.keys(UTIL))).run();
-	    new CritBit.Test.Simple(dates(1000)).run();
-	    new CritBit.Test.RangeSet(dates(1000)).run();
+	    function test(keys) {
+		new CritBit.Test.Simple(keys).run();
+		new CritBit.Test.RangeSet(keys).run();
+	    }
+	    new CritBit.Test.Simple([ "a", "aa", "aaa", "aba", "bab", "bba" ].sort()).run();
+	    new CritBit.Test.Simple(UTIL.keys(window).concat(UTIL.keys(UTIL)).sort()).run();
+	    test(numbers(1000));
+	    test(dates(1000));
 	</script>
     </head>
 
