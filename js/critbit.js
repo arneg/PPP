@@ -2,28 +2,41 @@ var CritBit = {};
 CritBit.Test = {};
 CritBit.Test.Simple = UTIL.Test.extend({
     constructor : function(keys) {
-	this.keys = keys;
+	this.keys = keys.concat();
 	this.tree = new CritBit.Tree();
     },
     test_0_insert : function() {
 	for (var i = 0; i < this.keys; i++) {
 	    this.tree.insert(this.keys[i], i);
 	    this.tree.check();
+	    if (this.tree.index(this.keys[i]) != i)
+		return this.error("foo");
 	}
+	if (this.tree.length() != this.keys.length)
+	    return this.fatal(UTIL.sprintf("wrong size (%d vs %d).", this.tree.length(),
+		       this.keys.length));
 	this.success();
     },
     test_1_lookup : function() {
 	var t;
-	for (var i = 0; i < this.keys; i++)
+	for (var i = 0; i < this.keys.length; i++)
 	    if ((t = this.tree.index(this.keys[i])) != i)
-	    return this.error("lookup failed: %o gave %o. should be %o",
-			      this.keys[i], t, i);
+		return this.error("lookup failed: %o gave %o. should be %o",
+				  this.keys[i], t, i);
+	this.success();
+    },
+    test_2_next : function() {
+	var t;
+	for (var i = 0; i < this.keys.length-1; i++)
+	    if ((t = this.tree.next(this.keys[i])) != this.keys[i+1])
+		return this.error("next failed. next(%o) gives %o. should be: %o", this.keys[i], t, this.keys[i+1]);
 	this.success();
     }
 });
 CritBit.Test.RangeSet = UTIL.Test.extend({
     constructor : function(keys) {
-	this.keys = keys.sort(function(a, b) {
+	this.keys = keys.concat();
+	this.keys.sort(function(a, b) {
 	    if (a <= b && a >= b) return 0;
 	    else if (a >= b) return 1;
 	    else return -1;
@@ -33,9 +46,12 @@ CritBit.Test.RangeSet = UTIL.Test.extend({
     test_0_merge : function() {
 	var s = new CritBit.RangeSet();
 	for (var i = 0; i < this.n; i++) {
-	    s.insert(new CritBit.Range(this.keys[this.n-1-i],
-				       this.keys[this.n+i]));
+	    var r = new CritBit.Range(this.keys[this.n-1-i],
+				      this.keys[this.n+i]);
+	    s.insert(r);
 	    s.tree.check();
+	    if (!s.contains(r))
+		return this.error("Does not contain %o after inserting it.", r);
 	    if (s.length() != 1)
 		return this.error("%o suddenly has more than one range (has %d).\n",
 				  s, s.length());
@@ -44,6 +60,10 @@ CritBit.Test.RangeSet = UTIL.Test.extend({
     },
     test_1_merge : function() {
 	var s = new CritBit.RangeSet();
+	for (var i = 1; i < this.keys.length; i++) {
+	    if (this.keys[i] <= this.keys[i-1])
+		UTIL.error("%o is badly sorted at pos %d", this.keys, i);
+	}
 	for (var i = 1; i+1 < this.keys.length-1; i+=2) {
 	    s.insert(new CritBit.Range(this.keys[i],
 				       this.keys[i+1]));
@@ -486,8 +506,10 @@ CritBit.Tree = Base.extend({
 	return this.root.find_next_match(key);
     },
     gt : function(key) {
+	UTIL.log("low_index: %o", key);
 	if (!this.root) return null;
 	var node = this.low_index(key);
+	UTIL.log("low_index: %o", node);
 	if (node) return node.forward();
 	return this.root.find_next_match(key);
     },
@@ -610,7 +632,7 @@ CritBit.Range = Base.extend({
 	this.b = b;
 	if (arguments.length > 1) {
 	    if (a >= b && !(a <= b))
-		UTIL.error("Bad range. Ends before it starts.\n");
+		UTIL.error("Bad range. Ends before it starts [%o..%o].\n", a, b);
 	    if (arguments.length > 2)
 		this.value = value;
 	}
@@ -692,6 +714,7 @@ CritBit.RangeSet = Base.extend({
     },
     contains : function(range) {
 	var n = this.tree.ge(range.a);
+	UTIL.log("%o . contains(%o)", n, range);
 	if (n) return n.value.contains(range);
 	return false;
     },
