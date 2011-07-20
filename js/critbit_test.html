@@ -1,5 +1,16 @@
 <html>
     <head>
+	<style type="text/css">
+	    td {
+		font-size: 7px;
+		font-family: sans-serif;
+		text-align: center;
+		padding: 0;
+		margin: 0;
+		color: darkgray;
+		border: 1px black solid;
+	    }
+	</style>
 	<script type="text/javascript" src="Base.js"></script>
 	<script type="text/javascript" src="util.js"></script>
 	<script type="text/javascript" src="critbit.js"></script>
@@ -10,7 +21,7 @@
 		    a[i] = (Math.floor(Math.abs(Math.sin(i * 7 + 1))
 						   * Math.pow(2,32)));
 		}
-		return a.sort();
+		return UTIL.sort(a);
 	    }
 	    function dates(n) {
 		var a = numbers(n);
@@ -22,6 +33,7 @@
 		return a;
 	    }
 	    function test(keys) {
+		UTIL.log("testing %d elements", keys.length);
 		new CritBit.Test.Simple(keys).run();
 		new CritBit.Test.RangeSet(keys).run();
 	    }
@@ -30,14 +42,16 @@
 	    test(numbers(1000));
 	    test(dates(1000));
 	    function showTree(tree) {
-		var a = new Array(4);
+		var a = new Array(tree.depth());
 		for (var i = 0; i < a.length; i++) {
 		    a[i]  = document.createElement("tr");
 		}
 
 		tins(tree, tree.root, 0, a);
 		var table = document.createElement("table");
-		table.setAttribute("style", "table-layout: fixed;");
+		//table.setAttribute("style", "table-layout: fixed;");
+		table.setAttribute("border", 0);
+		table.setAttribute("style", "padding: 0px; margin: 0px;");
 		for (var i = 0; i < a.length; i++) {
 		    table.appendChild(a[i]);
 		}
@@ -48,9 +62,22 @@
 		if (i >= a.length) return;
 
 		var td = document.createElement("td");
-		td.setAttribute("colspan", Math.pow(a.length, 2) / (i+1));
-		td.setAttribute("style", "border: 1px solid black; text-align: center;");
-		td.appendChild(document.createTextNode(node ? node.key : "X"));
+		td.setAttribute("colspan", Math.pow(2, a.length  - i - 1));
+		if (node && node.has_value)
+		    td.setAttribute("style", "color: black");
+		else if (!node)
+		    td.setAttribute("style", "border: 0");
+		if (node && node.has_value) {
+		    var s;
+		    if (node.key == window.bad) s = "red";
+		    else if (node.key == window.next) s = "blue";
+		    else if (node.key == window.real_next) s = "green";
+
+		    if (s) td.setAttribute("style", "color: "+s);
+		}
+
+		if (node) td.appendChild(document.createTextNode(
+			UTIL.sprintf("%e", node.key)));
 		a[i].appendChild(td);
 
 		var C0, C1;
