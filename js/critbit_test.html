@@ -29,6 +29,38 @@
 	    new CritBit.Test.Simple(UTIL.keys(window).concat(UTIL.keys(UTIL)).sort()).run();
 	    test(numbers(1000));
 	    test(dates(1000));
+	    function showTree(tree) {
+		var a = new Array(4);
+		for (var i = 0; i < a.length; i++) {
+		    a[i]  = document.createElement("tr");
+		}
+
+		tins(tree, tree.root, 0, a);
+		var table = document.createElement("table");
+		table.setAttribute("style", "table-layout: fixed;");
+		for (var i = 0; i < a.length; i++) {
+		    table.appendChild(a[i]);
+		}
+		console.log("appending to body");
+		document.body.appendChild(table);
+	    }
+	    function tins(tree, node, i, a) {
+		if (i >= a.length) return;
+
+		var td = document.createElement("td");
+		td.setAttribute("colspan", Math.pow(a.length, 2) / (i+1));
+		td.setAttribute("style", "border: 1px solid black; text-align: center;");
+		td.appendChild(document.createTextNode(node ? node.key : "X"));
+		a[i].appendChild(td);
+
+		var C0, C1;
+		if (node && node.C) {
+		    C0 = node.C[0];
+		    C1 = node.C[1];
+		}
+		tins(tree, C0, i + 1, a);
+		tins(tree, C1, i + 1, a);
+	    }
 	</script>
     </head>
 
