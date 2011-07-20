@@ -336,14 +336,24 @@ CritBit.Node.prototype = {
 	if (!start) start = new CritBit.Size(0,0);
 	var len = CritBit.count_prefix(key, this.key, start);
 	len = len.min(this.len).min(CritBit.sizeof(key));
-	//UTIL.log("prefix(%o, %o) == %o", key, this.key, len);
-	//UTIL.log("%o->find_next_match(%o, %o, %o)", this, key, CritBit.sizeof(key), start);
+	/*
+	UTIL.log("prefix(%o, %o) == %o", key, this.key, len);
+	if (UTIL.intp(key))
+	    UTIL.log(UTIL.sprintf("key:  %032b", key));
+	if (UTIL.intp(this.key))
+	    UTIL.log(UTIL.sprintf("node: %032b", this.key));
+	UTIL.log("%o->find_next_match(%o, %o, %o)", this, key, CritBit.sizeof(key), start);
+	*/
 	if (len.lt(start)) return null;
 	if (len.eq(CritBit.sizeof(key)))
 	    return (len.eq(this.len)) ? this.forward() : this.first();
 
 	var bit = CritBit.get_bit(key, len);
 	//UTIL.log("bit: %d", bit);
+	
+	if (bit == 0) {
+	    return this.first();
+	}
 
 	if (len.eq(this.len)) {
 
@@ -511,10 +521,10 @@ CritBit.Tree = Base.extend({
 	return this.root.find_next_match(key);
     },
     gt : function(key) {
-	UTIL.log("low_index: %o", key);
+	//UTIL.log("low_index: %o", key);
 	if (!this.root) return null;
 	var node = this.low_index(key);
-	UTIL.log("low_index: %o", node);
+	//UTIL.log("low_index: %o", node);
 	if (node) return node.forward();
 	return this.root.find_next_match(key);
     },
@@ -719,7 +729,7 @@ CritBit.RangeSet = Base.extend({
     },
     contains : function(range) {
 	var n = this.tree.ge(range.a);
-	UTIL.log("%o . contains(%o)", n, range);
+	//UTIL.log("%o . contains(%o)", n, range);
 	if (n) return n.value.contains(range);
 	return false;
     },
