@@ -442,6 +442,7 @@ CritBit.Node.prototype = {
 	    var n = new CritBit.Node(node.key);
 	    n.len = len;
 	    n.size = this.size + node.size;
+	    n.P = this.P;
 	    n.child(bit, this);
 	    n.child(!bit, node);
 	    /*
