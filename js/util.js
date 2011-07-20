@@ -108,6 +108,17 @@ UTIL.array_to_set = function(a) {
     for (var i = 0; i < a.length; i++) set[a[i]] = 1;
     return set;
 };
+UTIL.sort = function(a) {
+    return a.sort(function(one, two) {
+	if (one == two) return 0;
+	if (UTIL.numberp(one) && UTIL.numberp(two)) return one - two;
+	if (typeof(one) != typeof(two)) {
+	    one = typeof(one);
+	    two = typeof(two);
+	}
+	return (one > two) ? 1 : -1;
+    });
+};
 /**
  * Returns all elements that are both in a and b. Think intersection of sets.
  */
