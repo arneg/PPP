@@ -485,6 +485,10 @@ CritBit.Tree = Base.extend({
 
 	return null;
     },
+    depth : function() {
+	if (this.root) return this.root.depth();
+	return 0;
+    },
     last : function() {
 	if (this.root) return this.root.last().key;
 	return null;
