@@ -51,18 +51,23 @@ if (window.Base) {
 		return this.__done(false);
 	    }
 
+	    UTIL.silence(20);
+
 	    this.success = function() {
 		++this.__succs;
+		UTIL.forget();
 		this.step(tests, num + 1);
 	    };
 	    this.error = function(err) {
 		++this.__errors;
+		UTIL.scream();
 		UTIL.log.apply(window, [ "error in test %o: "+err,
 			       tests[num] ].concat(Array.prototype.slice.call(arguments, 1)));
 		this.step(tests, num + 1);
 	    };
 	    this.fatal = function(err) {
 		++this.__errors;
+		UTIL.scream();
 		UTIL.log("fatal error in test %o: %o.", tests[num], err);
 		this.__done(true);
 	    };
@@ -837,6 +842,33 @@ UTIL.error = function(msg) {
     // we might want to do some kind of sprintf here.
     throw(window, UTIL.sprintf.apply(window, a));
 };
+UTIL.silence = function(n) {
+    if (UTIL.scream) return;
+    if (!arguments.length) {
+	n = 20;
+    } else n = Math.max(n, 0);
+    var log = UTIL.log;
+    var queue = [];
+    UTIL.log = function() {
+	queue.push(Array.prototype.slice.apply(arguments));
+	if (queue.length > n) {
+	    queue = queue.slice(n - queue.length);
+	}
+    }
+    UTIL.forget = function() {
+	UTIL.log = log;
+	delete UTIL.scream;
+    }
+    UTIL.scream = function() {
+	log("======= replaying %d lines of debug =======", queue.length);
+	for (var i = 0; i < queue.length; i++) {
+	    log.apply(this, queue[i]);
+	}
+	if (queue.length)
+	    log("=================== end ==================");
+	UTIL.forget();
+    }
+}
 /**
  * @class
  * General Hash class.
@@ -847,8 +879,8 @@ UTIL.Hash = Base.extend(
     array_digest : function() {
 	if (!this.final)
 	    this.final = this.digest();
-	var a = new Array(32);
-	for (var i = 0; i < 8; i++) {
+	var a = new Array(this.final.length*4);
+	for (var i = 0; i < this.final.length; i++) {
 	    a[i*4] = (this.final[i] >>> 24);
 	    a[i*4+1] = (this.final[i] >> 16) & 0xff;
 	    a[i*4+2] = (this.final[i] >> 8) & 0xff;
@@ -866,8 +898,8 @@ UTIL.Hash = Base.extend(
 	/* Get the internal hash as a hex string */
 	var hex_digits = "0123456789abcdef";
 	var output = new String();
-	for(var i=0; i<8; i++) {
-	    for(var j=28; j>=0; j-=4)
+	for(var i = 0; i < this.final.length; i++) {
+	    for(var j = 28; j >= 0; j -= 4)
 	    	output += hex_digits.charAt((this.final[i] >>> j) & 0x0f);
 	}
 	return output;
