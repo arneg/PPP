@@ -56,14 +56,14 @@ if (window.Base) {
 	    this.success = function() {
 		++this.__succs;
 		UTIL.forget();
-		this.step(tests, num + 1);
+		UTIL.call_later(this.step, this, tests, num + 1);
 	    };
 	    this.error = function(err) {
 		++this.__errors;
 		UTIL.scream();
 		UTIL.log.apply(window, [ "error in test %o: "+err,
 			       tests[num] ].concat(Array.prototype.slice.call(arguments, 1)));
-		this.step(tests, num + 1);
+		UTIL.call_later(this.step, this, tests, num + 1);
 	    };
 	    this.fatal = function(err) {
 		++this.__errors;
@@ -72,7 +72,9 @@ if (window.Base) {
 		this.__done(true);
 	    };
 	    try {
-		this[tests[num]]();
+		var fun = this[tests[num]];
+		console.log("%s took: %f s", tests[num], UTIL.gauge.call(this, fun));
+		//UTIL.profiled.call(this, fun)();
 	    } catch(e) {
 		this.fatal(e);
 	    }
@@ -171,10 +173,10 @@ UTIL.create = function(myclass, args) {
  */
 UTIL.profiled = function(fun) {
     UTIL.profile();
-    return function() {
+    return UTIL.make_method(this, function() {
+	fun.apply(this, Array.prototype.slice.call(arguments));
 	UTIL.profileEnd();
-	fun.apply(window, Array.prototype.slice.call(arguments));
-    };
+    });
 };
 /**
  * Times each execution of fun and prints some debugging to the console.
@@ -183,7 +185,7 @@ UTIL.timed = function(fun) {
     var t = new Date().getTime();
     return function() {
 	UTIL.log("took %f ms", new Date().getTime() - t);
-	fun.apply(window, Array.prototype.slice.call(arguments));
+	fun.apply(this, Array.prototype.slice.call(arguments));
     };
 };
 /**
@@ -232,7 +234,7 @@ UTIL.call_later = function(fun) {
  */
 UTIL.gauge = function(fun) {
     var t = (new Date()).getTime();
-    fun();
+    fun.call(this);
     return ((new Date()).getTime() - t)/1000;
 };
 UTIL.agauge = function(obj, fun, cb) {
