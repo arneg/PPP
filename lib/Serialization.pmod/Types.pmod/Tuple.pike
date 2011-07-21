@@ -7,6 +7,7 @@ void create(string type, int|function|program constructor, object ... types) {
     ::create(type);
 
     this_program::types = types;
+    if (arrayp(constructor)) 
     this_program::constructor = constructor;
 }
 
@@ -66,8 +67,9 @@ int (0..1) can_encode(mixed a) {
 	    return Program.inherits(object_program(a), constructor);
 	} else {
 	    // TODO: check return type here
+	    // this is a function as constructor. so it will eat everything
 	    werror("%O: hit edge case. might not be able to decode %O\n", this, a);
-	    return 0;
+	    return 1;
 	}
 }
 

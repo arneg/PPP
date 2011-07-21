@@ -288,10 +288,9 @@ serialization.Float = serialization.Base.extend({
 		return new serialization.Atom("_float", o.toString());
 	}
 });
-serialization.Method = serialization.Base.extend({
-	constructor : function(base) { 
-		this.base = base;
-		this.type = "_method";
+serialization.Binary = serialization.Base.extend({
+	constructor : function() { 
+		this.type = "_binary";
 	},
 	can_encode : function(o) {
 		return UTIL.stringp(o);
@@ -300,10 +299,15 @@ serialization.Method = serialization.Base.extend({
 		return atom.data;
 	},
 	encode : function(o) {
-		return new serialization.Atom("_method", o);
+		return new serialization.Atom(this.type, o);
 	}
 });
-serialization.Bytes = serialization.Method;
+serialization.Method = serialization.Binary.extend({
+	constructor : function(base) {
+	    this.base = base;
+	    this.type = "_method";
+	}
+});
 serialization.Uniform = serialization.Base.extend({
 	constructor : function() { 
 		this.type = "_uniform";
@@ -553,7 +557,7 @@ serialization.Tuple = serialization.Base.extend({
 		if (l.length != this.types.length) UTIL.error("Cannot encode %o (wrong length) %o", l, this.types);
 
 		for (var i = 0; i < l.length; i++) {
-		    //UTIL.log("%o", i);
+			//UTIL.log("encode(%o)", i);
 			d += this.types[i].encode(l[i]).render();
 		}
 
