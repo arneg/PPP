@@ -673,6 +673,9 @@ CritBit.Range = Base.extend({
 	    return UTIL.sprintf("[%o..%o]<%o>", this.a, this.b, this.value);
 	else
 	    return UTIL.sprintf("[%o..%o]", this.a, this.b);
+    },
+    eq : function(o) {
+	return o.value == this.value && o.a == this.a && o.b == this.b;
     }
 });
 CritBit.min = function(a, b) {
@@ -746,8 +749,10 @@ CritBit.MultiRangeSet = Base.extend({
 	var v;
 	this.max_len = Math.max(this.max_len, range.length());
 
-	if (v = this.tree.low_index(range.a)) {
-	    v.value.push(range);
+	if (v = this.tree.index(range.a)) {
+	    for (var i = 0; i < v.length; i++)
+		if (v[i].eq(range)) return;
+	    v.push(range);
 	} else {
 	    this.tree.insert(range.a, [ range ]);
 	}
