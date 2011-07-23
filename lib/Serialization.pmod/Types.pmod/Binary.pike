@@ -23,7 +23,7 @@ Serialization.StringBuilder render(string method, Serialization.StringBuilder bu
 
 string _sprintf(int type) {
     if (type == 'O') {
-	return sprintf("Serialization.Binary(%s)", base);
+	return sprintf("Serialization.Binary(%s)", this_program::type);
     }
 
     return 0;
