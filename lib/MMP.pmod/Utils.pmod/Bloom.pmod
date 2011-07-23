@@ -1,9 +1,9 @@
 int amount_hashes(float p) {
-    return ceil(- Math.log2(p));
+    return (int)ceil(- Math.log2(p));
 }
 
 int table_mag(int n, float p) {
-    return (int)floor(Math.log2(n * amount_hashes(p)));
+    return (int)floor(Math.log2((float)n * amount_hashes(p)));
 }
 
 int hash_length(int n, float p) {
@@ -77,7 +77,7 @@ class SHA256 {
     }
 
     BitVector hash(string s) {
-	return BitVector(Crypto.SHA256.Hash()(s));
+	return BitVector(Crypto.SHA256()->hash(s));
     }
 }
 
@@ -120,6 +120,25 @@ class Filter {
 	}
     }
 
+    function prepare(mixed key) {
+	BitVector h = hash->hash(key);
+
+	mixed _(object filter) {
+	    return filter->hash_index(h);
+	};
+
+	return _;
+    }
+
+    int(0..1) hash_index(BitVector h) {
+	for (int i = 0; i < n_hashes; i++) {
+	    if (!table[h->get_int(i*mag, mag)]) {
+		return UNDEFINED;
+	    }
+	}
+	return 1;
+    }
+
     // this is upper bound for probability. it cannot be worse
     float prob() {
 	if (removed >= size) return 1.0;
@@ -129,13 +148,7 @@ class Filter {
     }
 
     mixed `[](mixed key) {
-	BitVector h = hash->hash(key);
-	for (int i = 0; i < n_hashes; i++) {
-	    if (!table[h->get_int(i*mag, mag)]) {
-		return UNDEFINED;
-	    }
-	}
-	return 1;
+	return hash_index(hash->hash(key));
     }
 
     mixed `[]=(mixed key, mixed v) {
@@ -151,7 +164,7 @@ class Filter {
 	return 1;
     }
 
-    string cast(string type) {
+    mixed cast(string type) {
 	if (type == "array") {
 	    return ({ n, p, removed, table });
 	}
@@ -175,6 +188,6 @@ class tBloomFilter {
     inherit Serialization.Types.Tuple;
 
     void create(program hash) {
-	::create("_bloomfilter", Function.curry(BloomFilter)(hash), Serialization.Types.Integer(), Serialization.Types.Integer(), Serialization.Types.Float(), tBitVector());
+	::create("_bloomfilter", Function.curry(Filter)(hash), Serialization.Types.Int(), Serialization.Types.Int(), Serialization.Types.Float(), tBitVector());
     }
 }
