@@ -35,7 +35,7 @@ Serialization.Atom encode(mixed o) {
 	    mixed err = catch { return type->encode(o); };
 	    if (err) error = err;
 	}
-    error("Cannot encode %O (%O)\n", o, error);
+    predef::error("Cannot encode %O (%O)\n", o, error);
 }
 
 string _sprintf(int c) {

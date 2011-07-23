@@ -7,8 +7,8 @@ void create(string type, int|function|program constructor, object ... types) {
     ::create(type);
 
     this_program::types = types;
-    if (arrayp(constructor)) 
-    this_program::constructor = constructor;
+    if (callablep(constructor))
+	this_program::constructor = constructor;
 }
 
 object|array decode(Serialization.Atom atom) {
