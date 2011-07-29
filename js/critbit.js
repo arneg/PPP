@@ -824,7 +824,7 @@ serialization.RangeSet = serialization.Array.extend({
 	return this.base(t.ranges());
     },
     can_encode : function(t) {
-	return o instanceof CritBit.RangeSet || this.base(t);
+	return t instanceof CritBit.RangeSet || this.base(t);
     }
 });
 serialization.MultiRangeSet = serialization.RangeSet.extend({
