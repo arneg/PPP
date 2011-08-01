@@ -584,6 +584,7 @@ serialization.Struct = serialization.Tuple.extend({
 		for (var i = 0; i < this.names.length; i++)
 		    ret[this.names[i]] = l[i];
 
+		if (UTIL.functionp(ret.atom_init)) ret.atom_init();
 		return ret;
 	},
 	toString : function() {

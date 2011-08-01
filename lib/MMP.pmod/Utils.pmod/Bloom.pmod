@@ -95,11 +95,8 @@ class Filter {
 	return size - removed;
     }
 
-    void create(object hash, int n, int removed, float p, void|BitVector v) {
-	this_program::hash = hash;
-	this_program::n = n;
-	this_program::p = p;
-	this_program::removed = removed;
+    void atom_init(void|BitVector v) {
+
 	if (v) {
 	    if (v->length & (v->length - 1)) {
 		mag = v->length >> 3;
@@ -117,6 +114,18 @@ class Filter {
 
 	    if (n_hashes == 0)
 		error("Hash has less bits than table size.");
+	}
+    }
+
+    void create(object hash, int n, int removed, float p, void|BitVector v) {
+	this_program::hash = hash;
+
+	if (floatp(p)) {
+	    this_program::n = n;
+	    this_program::p = p;
+	    this_program::removed = removed;
+
+	    atom_init(v);
 	}
     }
 
@@ -185,9 +194,13 @@ class tBitVector {
 }
 
 class tBloomFilter {
-    inherit Serialization.Types.Tuple;
+    inherit Serialization.Types.Struct;
 
     void create(program hash) {
-	::create("_bloomfilter", Function.curry(Filter)(hash), Serialization.Types.Int(), Serialization.Types.Int(), Serialization.Types.Float(), tBitVector());
+	::create("_bloom", ([
+		"n" : Serialization.Types.Int(),
+		"p" : Serialization.Types.Float(),
+		"removed" : Serialization.Types.Int(),
+		"table" : tBitVector() ]), Function.curry(Filter)(hash()));
     }
 }

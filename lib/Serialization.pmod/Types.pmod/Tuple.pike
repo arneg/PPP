@@ -76,7 +76,7 @@ int (0..1) can_encode(mixed a) {
 
 string _sprintf(int c) {
     if (c == 'O') {
-		return sprintf("Tuple(%O)", types);
+		return sprintf("Tuple(%O, %O)", type, types);
     }
 
     return 0;

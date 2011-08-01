@@ -22,13 +22,16 @@ Serialization.Atom encode(mixed o) {
     return Serialization.Atom(type, a*"");
 }
 
-mixed low_decode(object ATOM, array(Serialization.Atom) a) {
+mixed low_decode(object atom, array(Serialization.Atom) a) {
     mapping|object o = constructor ? constructor() : ([]); 
 
     foreach (a; int i; Serialization.Atom a) {
 	if (a->type == "_false") continue;
-	o[names[i]] = types[names[i]]->decode(a);
+	//o[names[i]] = types[names[i]]->decode(a);
+	`->=(o, names[i], types[names[i]]->decode(a));
     }
+
+    if (callablep(o->atom_init)) o->atom_init();
 
     return o;
 }
