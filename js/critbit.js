@@ -31,7 +31,22 @@ CritBit.Test.Simple = UTIL.Test.extend({
 	    if ((t = this.tree.next(this.keys[i])) != this.keys[i+1])
 		return this.error("next failed. next(%o) gives %o. should be: %o", this.keys[i], t, this.keys[i+1]);
 	this.success();
-    }
+    },
+    test_3_next : function() {
+	this.tree = new CritBit.Tree();
+	for (var i = 1; i < this.keys.length; i+=2) {
+	    this.tree.insert(this.keys[i], i);
+	}
+
+	for (var i = 0; i < this.keys.length-1; i+=2) {
+	    var t;
+	    if ((t = this.tree.next(this.keys[i])) != this.keys[i+1]) {
+		return this.error("next failed: %o gave %o. should be %o", this.keys[i], t, this.keys[i+1]);
+	    }
+	}
+
+	this.success();
+    },
 });
 CritBit.Test.RangeSet = UTIL.Test.extend({
     constructor : function(keys) {
@@ -349,12 +364,8 @@ CritBit.Node.prototype = {
 	    return (len.eq(this.len)) ? this.forward() : this.first();
 
 	var bit = CritBit.get_bit(key, len);
-	//UTIL.log("bit: %d", bit);
+	//UTIL.log("bit: %d, this.len: %o", bit, this.len.bits);
 	
-	if (bit == 0) {
-	    return this.first();
-	}
-
 	if (len.eq(this.len)) {
 
 	    //UTIL.log("bit: %d, %o", bit, this.C);
@@ -367,6 +378,10 @@ CritBit.Node.prototype = {
 		return this.C[1].first();
 	    }
 	    return this.up_left();
+	}
+
+	if (bit == 0) {
+	    return this.first();
 	}
 
 	return this.up_left();
