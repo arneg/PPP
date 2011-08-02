@@ -1,3 +1,5 @@
+#define JSHIFT(x, y)	(((x)&0xffffffff)>>(y))
+//#define JSHIFT(x, y)	((x < 0) ? ((((x)^Int.NATIVE_MIN) >> (y)) | (Int.NATIVE_MAX^(Int.NATIVE_MAX>>1)>>(y-1))) : ((x)>>(y)))
 int amount_hashes(float p) {
     return (int)ceil(- Math.log2(p));
 }
@@ -81,8 +83,44 @@ class SHA256 {
     }
 }
 
+class IntHash {
+    int hash32shift(int i) {
+	i = ~i + (i << 15); // i = (i << 15) - i - 1;
+	i = i ^ JSHIFT(i, 12);
+	i = i + (i << 2);
+	i = i ^ JSHIFT(i, 4);
+	i = i * 2057; // i = (i + (i << 3)) + (i << 11);
+	i = i ^ JSHIFT(i, 16);
+	return i & 0xffffffff;
+    }
+
+    int hashmap(int i) {
+	i ^= JSHIFT(i, 20) ^ JSHIFT(i, 12);
+	i ^= JSHIFT(i, 7) ^ JSHIFT(i, 4);
+	return i & 0xffffffff;
+    }
+
+    int jenkins(int i) {
+	i = (i+0x7ed55d16) + (i<<12);
+	i = (i^0xc761c23c) ^ JSHIFT(i, 19);
+	i = (i+0x165667b1) + (i<<5);
+	i = (i+0xd3a2646c) ^ (i<<9);
+	i = (i+0xfd7046c5) + (i<<3);
+	i = (i^0xb55a4f09) ^ JSHIFT(i, 16);
+	return i & 0xffffffff;
+    }
+
+    int block_bytes() {
+	return 12;
+    }
+
+    BitVector hash(int i) {
+	return BitVector(({ hashmap(i), hash32shift(i), jenkins(i) }));
+    }
+}
 class Filter {
     BitVector table;
+    int(0..1) inited = 0;
     int n;
     float p;
     protected int mag;
@@ -96,6 +134,7 @@ class Filter {
     }
 
     void atom_init(void|BitVector v) {
+	inited = 1;
 
 	if (v) {
 	    if (v->length & (v->length - 1)) {
@@ -121,6 +160,7 @@ class Filter {
 	this_program::hash = hash;
 
 	if (floatp(p)) {
+	    werror("HELLO WITH FLOAT %O.\n", p);
 	    this_program::n = n;
 	    this_program::p = p;
 	    this_program::removed = removed;
@@ -161,16 +201,21 @@ class Filter {
     }
 
     mixed `[]=(mixed key, mixed v) {
-	if (!v) {
-	    if (this[key]) removed ++;
-	    return UNDEFINED;
+	if (inited) {
+	    if (!v) {
+		if (this[key]) removed ++;
+		return UNDEFINED;
+	    }
+	    size++;
+	    BitVector h = hash->hash(key);
+	    for (int i = 0; i < n_hashes; i++) {
+		table[h->get_int(i*mag, mag)] = 1;
+	    }
+	    return 1;
+	} else {
+	    werror("Critical set: %O=%O\n", key, v);
+	    return ::`[]=(key, v);
 	}
-	size++;
-	BitVector h = hash->hash(key);
-	for (int i = 0; i < n_hashes; i++) {
-	    table[h->get_int(i*mag, mag)] = 1;
-	}
-	return 1;
     }
 
     mixed cast(string type) {
