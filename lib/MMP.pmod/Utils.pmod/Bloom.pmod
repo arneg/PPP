@@ -5,7 +5,8 @@ int amount_hashes(float p) {
 }
 
 int table_mag(int n, float p) {
-    return (int)floor(Math.log2((float)n * amount_hashes(p)));
+    int r = (int)floor(Math.log2(((float)n * amount_hashes(p))/log(2.0)))+1;
+    return r;
 }
 
 int hash_length(int n, float p) {
@@ -18,31 +19,31 @@ class BitVector {
 
 
     int _sizeof() {
-	return length * 8;
+	return length;
     }
 
     void create(string|int|array(int) vector) {
 	if (stringp(vector)) {
-	    length = sizeof(vector);
+	    length = sizeof(vector) * 8;
 	    if (String.width(vector) != 8)
 		error("vector needs to be in binary");
-	    sscanf(vector, "%" + sizeof(vector) + "c", v);
+	    sscanf(vector, "%-" + sizeof(vector) + "c", v);
 	} else if (intp(vector)) {
 	    length = vector;
 	    v = 0;
 	} else if (arrayp(vector)) {
 	    v = 0;
-	    foreach (vector;; int f) {
+	    foreach (reverse(vector);; int f) {
 		v <<= 32;
 		v |= f & 0xffffffff;
 	    }
-	    length = sizeof(vector) * 4;
+	    length = sizeof(vector) * 4 * 8;
 	}
     }
 
     int `[](int n, int|void m) {
-	if (!zero_type(m)) {
-	    int mask = (1 << (m-n)) - 1;
+	if (!undefinedp(m)) {
+	    int mask = (1 << (m-n+1)) - 1;
 	    return ((v>>n)&mask);
 	}
 	return (v & (1 << n)) ? 1 : 0;
@@ -57,19 +58,19 @@ class BitVector {
 	if (type == "array") {
 	    return ({ (string)this, sizeof(this) });
 	} else if (type == "string") 
-	    return sprintf("%" + length + "c", v);
+	    return sprintf("%-" + length + "c", v);
 	error("cannot cast %O to %s.\n", this, type);
     }
 
     void fix_size() {
-	length = (int)ceil(v->size() / 8.0);
+	length = v->size();
     }
 
     int get_int(int n, int len) {
 	if (n + len < length) {
 	    return this[n..n+len-1];
 	}
-	error("Not in there!");
+	error("%d..%d is outside of 0..%d\n", n, n+len, length - 1);
     }
 }
 
@@ -137,8 +138,9 @@ class Filter {
 	inited = 1;
 
 	if (v && v != -1) {
-	    if (v->length & (v->length - 1)) {
-		mag = v->length >> 3;
+	    int len = sizeof(v);
+	    if (len & (len- 1)) {
+		mag = len >> 3;
 	    }
 	    table = v;
 	} else {
@@ -149,7 +151,7 @@ class Filter {
 	n_hashes = amount_hashes(p);
 
 	if (n_hashes * mag > hash->block_bytes() * 8) {
-	    n_hashes = (int)floor(hash->block_bytes() * 8 / mag); 
+	    n_hashes = (int)floor((float)hash->block_bytes() * 8 / mag); 
 
 	    if (n_hashes == 0)
 		error("Hash has less bits than table size.");
