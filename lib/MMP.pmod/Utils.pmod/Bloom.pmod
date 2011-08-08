@@ -133,10 +133,10 @@ class Filter {
 	return size - removed;
     }
 
-    void atom_init(void|BitVector v) {
+    void atom_init(void|int|BitVector v) {
 	inited = 1;
 
-	if (v) {
+	if (v && v != -1) {
 	    if (v->length & (v->length - 1)) {
 		mag = v->length >> 3;
 	    }
@@ -144,7 +144,7 @@ class Filter {
 	} else {
 	    mag = table_mag(n, p);
 	    int length = 1 << mag;
-	    table = BitVector(length);
+	    if (v == -1) table = BitVector(length);
 	}
 	n_hashes = amount_hashes(p);
 
@@ -165,7 +165,7 @@ class Filter {
 	    this_program::p = p;
 	    this_program::removed = removed;
 
-	    atom_init(v);
+	    atom_init(v || -1);
 	}
     }
 
