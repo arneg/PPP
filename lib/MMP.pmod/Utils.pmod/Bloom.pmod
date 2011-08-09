@@ -240,7 +240,7 @@ class tBitVector {
     }
 }
 
-class tBloomFilter {
+class tFilter {
     inherit Serialization.Types.Struct;
 
     void create(program hash) {
