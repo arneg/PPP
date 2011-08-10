@@ -918,3 +918,16 @@ UTIL.Hash = Base.extend(
 	return output;
     }
 });
+UTIL.image_type = function(data) {
+    if (UTIL.has_prefix(data, "\xff\xd8"))
+	return "image/jpeg";
+    if (UTIL.has_prefix(data, "\u0089\u0050\u004e\u0047\u000d\u000a\u001a\u000a"))
+	return "image/png";
+    if (UTIL.has_prefix(data, "GIF")) return "image/gif";
+    return undefined;
+};
+UTIL.image_to_dataurl = function(data) {
+    var type = UTIL.image_type(data);
+    if (!type) UTIL.error("unknown image type.");
+    return "data:"+type+";base64,"+UTIL.Base64.encode(data);
+};

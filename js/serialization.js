@@ -308,6 +308,24 @@ serialization.Method = serialization.Binary.extend({
 	    this.type = "_method";
 	}
 });
+serialization.Image = serialization.Binary.extend({
+	constructor : function() {
+	    this.type = "_image";
+	},
+	can_encode : function(o) {
+	    return o instanceof Image && UTIL.has_prefix(o.src, "data:image/");
+	},
+	encode : function(o) {
+	    var pos = o.src.indexOf(",");
+	    if (pos == -1) UTIL.error("broken dataurl.\n");
+	    return this.base(UTIL.Base64.decode(o.src.substr(pos+1)));
+	},
+	decode : function(o) {
+	    var data = this.base(o);
+	    var img = new Image();
+	    img.src = UTIL.image_to_dataurl(data);
+	}
+});
 serialization.Uniform = serialization.Base.extend({
 	constructor : function() { 
 		this.type = "_uniform";
