@@ -628,31 +628,47 @@ UTIL.get_unique_key = function (length, set) {
 	return id;
 };
 UTIL.EventAggregator = Base.extend({
-	constructor : function(cb) {
+	constructor : function() {
 		this.counter = 0;
 		this.is_started = 0;
 		this.result = {};
-		this.cb = cb;
+		this.q = Array.prototype.slice.call(arguments);
 	},
 	get_cb : function(name) {
 		++this.counter;
-		return UTIL.MakeMethod(this,
+		return UTIL.make_method(this,
 			function() {
-			    if (this.results[name]) UTIL.error("You can't use this cb twice.");
-			    this.results[name] = args;
-			    if (!--this.counter) {
-				if (this.is_started) {
-				    cb(this.result);
-				}
+			    if (name) {
+				if (this.results[name]) UTIL.error("You can't use this cb twice.");
+				this.results[name] = args;
 			    }
+			    if (!--this.counter) this._ready();
 			});
 	},
 	start : function() {
+		if (this.is_started) return;
 		this.is_started = 1;
 		if (!this.counter) {
-		    this.cb(this.result);
+		    this._ready();
 		}
 	},
+	ready : function(f) {
+	    if (this.q) this.q.push(f);
+	    else f(this.result);
+	},
+	_ready : function() {
+	    if (this.is_started) {
+		var q = this.q;
+		delete this.q;
+		for (var i = 0; i < q.length; i++)
+		    try {
+			q[i](this.result);
+		    } catch (e) {
+			UTIL.log("UTIL.EventAggregator: Function %o sucks because it gave error %o.",
+				 q[i], e);
+		    }
+	    }
+	}
 });
 UTIL.EventSource = Base.extend({
 	constructor : function() {
@@ -930,4 +946,12 @@ UTIL.image_to_dataurl = function(data) {
     var type = UTIL.image_type(data);
     if (!type) UTIL.error("unknown image type.");
     return "data:"+type+";base64,"+UTIL.Base64.encode(data);
+};
+UTIL.curry = function(f) {
+    return function() {
+	var l = Array.prototype.slice.call(arguments);
+	return function() {
+	    return f.apply(this, l.concat(Array.prototype.slice.call(arguments)));
+	};
+    };
 };
