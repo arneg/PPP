@@ -324,6 +324,7 @@ serialization.Image = serialization.Binary.extend({
 	    var data = this.base(o);
 	    var img = new Image();
 	    img.src = UTIL.image_to_dataurl(data);
+	    return img;
 	}
 });
 serialization.Uniform = serialization.Base.extend({
