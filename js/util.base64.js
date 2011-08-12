@@ -1,24 +1,38 @@
 UTIL.Base64 = {
-    deco64 : (function() {
-		    var x = {};
-		    var char64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-		    var i;
+    char64 : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
+    encode : function(s) {
+	var len = Math.floor(s.length/3);
+	var r = s.length % 3;
+	var ret = new Array(len + (!!r ? 1 : 0));
+	var c1, c2, c3;
+	var m = UTIL.Base64.char64;
 
-		    for (i = 0; i < 64; ++i) {
-			x[char64.charCodeAt(i)] = i + 1;
-		    }
+	for (var i = 0; i < len; i++) {
+	    c1 = s.charCodeAt(i*3);
+	    c2 = s.charCodeAt(i*3+1);
+	    c3 = s.charCodeAt(i*3+2);
 
-		    x["=".charCodeAt(0)] = 1;
+	    ret[i] = String.fromCharCode(m.charCodeAt(c1>>2),
+					 m.charCodeAt((c1&3)<<4 | c2>>4),
+					 m.charCodeAt((c2&15)<<2 | c3 >> 6),
+					 m.charCodeAt(c3&63));
+	}
 
-		    return x;
-	       })(),
+	if (r == 2) {
+	    ret[ret.length-1] = "==";
+	} else if (r == 1) {
+	    ret[ret.length-1] = "=";
+	}
 
+	return ret.join("");
+    },
     deco : function(i) {
 	i = UTIL.Base64.deco64[i];
 	if (!i) throw("holy cow!\n");
 	return i - 1;
     },
-
+    // TODO: this should maybe collect the integers and do one
+    // call to String.fromCharCode at the end.
     decode : function(b) {
 	var res = [];
 	var i = 0;
@@ -83,3 +97,15 @@ UTIL.Base64 = {
 	return res;
     }
 };
+UTIL.Base64.deco64 = (function() {
+	var x = {};
+	var i;
+
+	for (i = 0; i < 64; ++i) {
+	    x[UTIL.Base64.char64.charCodeAt(i)] = i + 1;
+	}
+
+	x["=".charCodeAt(0)] = 1;
+
+	return x;
+   })();
