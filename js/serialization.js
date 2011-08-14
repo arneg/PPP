@@ -324,6 +324,7 @@ serialization.Image = serialization.Binary.extend({
 	    var data = this.base(o);
 	    var img = new Image();
 	    img.src = UTIL.image_to_dataurl(data);
+	    return img;
 	}
 });
 serialization.Uniform = serialization.Base.extend({
@@ -432,19 +433,19 @@ serialization.Object = serialization.Mapping.extend({
 		return m;
 	},
 	encode : function(o) {
-		var str = "";
+		var ret = UTIL.keys(o);
 
-		for (var key in o) if (o.hasOwnProperty(key)) {
+		for (var i = 0; i < ret.length; i++) {
+			var key = ret[i];
 			var val = o[key];
 			if (!this.mtype.can_encode(key) || !this.vtype.can_encode(val)) {
-			    //UTIL.log("o: %o", o);
 				UTIL.error("Type"+key+" cannot encode "+key+"("+this.mtype.can_encode(key)+") : "+val+"("+this.vtype.can_encode(val)+")");
 			}
 
-			str += this.mtype.encode(key).render();	
-			str += this.vtype.encode(val).render();	
+			ret[i] = this.mtype.encode(key).render()
+			       + this.vtype.encode(val).render();	
 		}
-		return new serialization.Atom(this.type, str);
+		return new serialization.Atom(this.type, ret.join(""));
 	}
 });
 serialization.OneTypedVars = serialization.Base.extend({

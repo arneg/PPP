@@ -253,7 +253,8 @@ meteor.Connection.prototype = {
 	new_incoming_state_change : function(xhr) {
 		UTIL.log("new_incoming state is " + xhr.readyState);
 
-		if (xhr.readyState >= 2) {
+		if (xhr.readyState >= 2 && this.new_incoming_timeout) {
+			UTIL.log("clearing new_incoming_timeout");
 		    	window.clearTimeout(this.new_incoming_timeout);
 			delete this.new_incoming_timeout;
 		}
@@ -372,8 +373,6 @@ meteor.Connection.prototype = {
 				}
 
 			}
-
-			if (xhr.readyState == 3) return;
 
 			meteor.dismantle(xhr);
 
