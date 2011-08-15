@@ -57,6 +57,7 @@ serialization.AtomParser = Base.extend({
 	constructor : function() {
 		this.buffer = "";
 		this.offset = 0;
+		this.re = /(\w+) (\d+) /g;
 		this.reset();
 	},
 	reset : function() {
@@ -82,6 +83,39 @@ serialization.AtomParser = Base.extend({
 		}
 		return ret;
 	},
+	/*
+	 // this is an alternative to the other _parse using RegExp.
+	 // It performs as well as the one using indexOf.
+	_parse : function() {
+		var re = this.re, a;
+
+		if (!this.type) {
+		    var pos = re.lastIndex;
+		    var r = re.exec(this.buffer);
+		    if (!r) {
+			// TODO we somehow need to detect bad content here
+			re.lastIndex = pos;
+			return null;
+		    }
+		    this.type = r[1];
+		    this.length = parseInt(r[2]);
+		}
+
+		if (this.buffer.length >= this.length + re.lastIndex) {
+		    a = new serialization.Atom(this.type,
+			this.buffer.substr(re.lastIndex, this.length));
+		    re.lastIndex += this.length;
+		    this.reset();
+
+		    if (re.lastIndex == this.buffer.length) {
+			this.buffer = "";
+			re.lastIndex = 0;
+		    }
+		}
+
+		return a;
+	},
+	*/
 	_parse : function() {
 		var pos;
 		if (!this.type) {
