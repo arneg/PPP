@@ -23,25 +23,25 @@ serialization = {};
  * @property {String} type Atom type, e.g. _integer.
  * @property {String} data String representation of the value
  */
-serialization.Atom = Base.extend({
-	constructor : function(type, data) {
-	    this.type = type;
-	    this.data = data;
-	},
-	/**
-	 * @returns The serialized atom.
-	 */
-	render : function() {
-		return this.type + " " + new String(this.data.length) + " " + this.data;
-	},
-	length : function() {
-		return this.type.length + new String(this.data.length).length 
-			+ this.data.length + 2;
-	},
-	toString : function() {
-		return "Atom("+this.type+", "+this.data+")";
-	}
-});
+serialization.Atom = function(type, data) {
+    this.type = type;
+    this.data = data;
+};
+serialization.Atom.prototype = {
+    /**
+     * @returns The serialized atom.
+     */
+    render : function() {
+	return this.type + " " + new String(this.data.length) + " " + this.data;
+    },
+    length : function() {
+	return this.type.length + new String(this.data.length).length 
+		+ this.data.length + 2;
+    },
+    toString : function() {
+	return "Atom("+this.type+", "+this.data+")";
+    }
+};
 serialization.parse_atom = function(s) {
     var atom;
     var p = new serialization.AtomParser();
