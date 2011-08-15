@@ -56,6 +56,7 @@ serialization.parse_atom = function(s) {
 serialization.AtomParser = Base.extend({
 	constructor : function() {
 		this.buffer = "";
+		this.offset = 0;
 		this.reset();
 	},
 	reset : function() {
@@ -71,9 +72,10 @@ serialization.AtomParser = Base.extend({
 	 * @param {String} str Input string that to parse.
 	 */
 	parse : function(str) {
-		this.buffer += str;
+		if (UTIL.stringp(str))
+		    this.buffer += str;
 
-		var ret = new Array();
+		var ret = [];
 		var t = 0;
 		while (t = this._parse()) {
 			ret.push(t);
@@ -81,8 +83,9 @@ serialization.AtomParser = Base.extend({
 		return ret;
 	},
 	_parse : function() {
+		var pos;
 		if (!this.type) {
-			var pos = this.buffer.indexOf(" ");
+			pos = this.buffer.indexOf(" ", this.offset);
 
 			if (pos == -1) {
 			// check here for bogus data
@@ -94,50 +97,52 @@ serialization.AtomParser = Base.extend({
 				UTIL.error("bad atom.");
 			}
 
-			this.type = this.buffer.substr(0, pos);
-			this.buffer = this.buffer.slice(pos+1);
+			this.type = this.buffer.substring(this.offset, pos);
+			this.offset = pos+1;
 		}
 
 		if (this.length == -1) {
-			var pos = this.buffer.indexOf(" ");
+			pos = this.buffer.indexOf(" ", this.offset);
 
 			if (pos == -1) {
 				return 0;
-			} else if (pos == 0) {
+			} else if (pos == this.offset) {
 				UTIL.error("bad atom.");
 			}
 
-			this.length = parseInt(this.buffer.substr(0, pos));
-			if (this.length < 0 || this.length.toString() != this.buffer.substr(0, pos)) {
+			this.length = parseInt(this.buffer.substring(this.offset, pos));
+			if (this.length < 0 || this.length.toString() != this.buffer.substring(this.offset, pos)) {
 				UTIL.error("bad length in atom.\n");
 			}
-			this.buffer = this.buffer.slice(pos+1);
+			this.offset = pos+1;
 		}
 
 		//UTIL.log("%d vs %d\n", this.length, this.buffer.length);
-		if (this.length > this.buffer.length) {
+		if (this.length + this.offset > this.buffer.length) {
 			// add a sanity check. we do not want superlarge data strings, i guess
 			return 0;
 		}
 
 		var a;
 
-		if (this.length == this.buffer.length) {
-			a = new serialization.Atom(this.type, this.buffer);
+		if (this.length + this.offset == this.buffer.length) {
+			a = new serialization.Atom(this.type, this.buffer.substr(this.offset));
 			this.buffer = "";
+			this.offset = 0;
 		} else {
-			a = new serialization.Atom(this.type, this.buffer.substr(0,this.length));
-			this.buffer = this.buffer.slice(this.length);
+			a = new serialization.Atom(this.type, this.buffer.substr(this.offset,this.length));
+			this.offset += this.length;
 		}
 		this.reset();
 		
 		return a;
 	},
 	parse_method : function() {
-		var pos = this.buffer.indexOf(" ");
+		var pos = this.buffer.indexOf(" ", this.offset);
 		if (-1 == pos) return 0;
-		var method = this.buffer.substr(0, pos);
-		this.buffer = this.buffer.slice(pos+1);
+		var method = this.buffer.substring(this.offset, pos);
+		this.buffer = this.buffer.slice(this.offset+pos+1);
+		this.offset = 0;
 		return method;
 	}
 });
