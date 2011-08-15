@@ -186,6 +186,9 @@ serialization.Base = Base.extend({
 	},
 	toString : function() {
 		return "serialization.Base("+this.type+")";
+	},
+	render : function(o) {
+	    return this.encode(o).render();
 	}
 });
 serialization.Any = Base.extend({
@@ -297,6 +300,10 @@ serialization.String = serialization.Base.extend({
 	},
 	encode : function(o) {
 		return new serialization.Atom("_string", UTF8.encode(o));
+	},
+	render : function(s) {
+		s = UTF8.encode(s);
+		return "_string "+s.length+" "+s;
 	}
 });
 serialization.Integer = serialization.Base.extend({
@@ -311,6 +318,10 @@ serialization.Integer = serialization.Base.extend({
 	},
 	encode : function(o) {
 		return new serialization.Atom("_integer", o.toString());
+	},
+	render : function(o) {
+		var s = o.toString();
+		return "_integer "+s.length+" "+s;
 	}
 });
 serialization.Float = serialization.Base.extend({
@@ -438,15 +449,15 @@ serialization.Mapping = serialization.Base.extend({
 				UTIL.error("Type cannot encode "+key+"("+this.mtype.can_encode(key)+") : "+val+"("+this.vtype.can_encode(val)+")");
 			}
 
-			str += this.mtype.encode(key).render();	
-			str += this.vtype.encode(val).render();	
+			str += this.mtype.render(key);
+			str += this.vtype.render(val);
 		}, this);
 		return new serialization.Atom(this.type, str);
 	}
 });
 serialization.Object = serialization.Mapping.extend({
 	constructor : function(vtype) { 
-		this.base(new serialization.Or(new serialization.Integer(), new serialization.String()),
+		this.base(new serialization.String(),
 			  vtype);
 		this.type = "_mapping";
 	},
@@ -503,8 +514,8 @@ serialization.OneTypedVars = serialization.Base.extend({
 		var type = this.vtype;
 
 		o.forEach(function(name, value) {
-		    l.push("_method "+name.length+" "+name);
-		    l.push(type.encode(value).render());
+		    l.push("_method " + name.length + " " + name
+			   + type.render(value));
 		});
 
 		return new serialization.Atom("_vars", l.join(""));
@@ -616,7 +627,7 @@ serialization.Tuple = serialization.Base.extend({
 
 		for (var i = 0; i < l.length; i++) {
 			//UTIL.log("encode(%o)", i);
-			d += this.types[i].encode(l[i]).render();
+			d += this.types[i].render(l[i]);
 		}
 
 		return new serialization.Atom(this.type, d);
@@ -774,7 +785,7 @@ serialization.Array = serialization.Base.extend({
 	encode : function(o) {
 		var str = "";
 		for (var i = 0; i < o.length; i++) {
-			str += this.etype.encode(o[i]).render();
+			str += this.etype.render(o[i]);
 		}
 		return new serialization.Atom(this.type, str);
 	}
