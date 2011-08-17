@@ -55,6 +55,8 @@ if (window.Base) {
 	    UTIL.silence(20);
 
 	    this.success = function() {
+		this.stop_time = new Date();
+		console.log("%s took: %f s", tests[num], (this.stop_time-this.start_time)/1000);
 		++this.__succs;
 		UTIL.forget();
 		UTIL.call_later(this.step, this, tests, num + 1);
@@ -74,8 +76,8 @@ if (window.Base) {
 	    };
 	    try {
 		var fun = this[tests[num]];
-		console.log("%s took: %f s", tests[num], UTIL.gauge.call(this, fun));
-		//UTIL.profiled.call(this, fun)();
+		this.start_time = new Date();
+		fun.call(this);
 	    } catch(e) {
 		this.fatal(e);
 	    }
