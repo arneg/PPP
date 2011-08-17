@@ -1,0 +1,37 @@
+<html>
+    <head>
+	<style type="text/css">
+	    td {
+		font-size: 7px;
+		font-family: sans-serif;
+		text-align: center;
+		padding: 0;
+		margin: 0;
+		color: darkgray;
+		border: 1px black solid;
+	    }
+	</style>
+	<script type="text/javascript" src="Base.js"></script>
+	<script type="text/javascript" src="util.js"></script>
+	<!--<script type="text/javascript" src="utf8.js"></script>
+	<script type="text/javascript" src="utf8.test.js"></script>
+	<script type="text/javascript" src="serialization.js"></script>
+	<script type="text/javascript" src="serialization.test.js"></script>-->
+	<script type="text/javascript" src="util.base64.js"></script>
+	<script type="text/javascript" src="util.base64.test.js"></script>
+	<script type="text/javascript">
+
+	function test() {
+	    UTIL.run_tests(
+		//new serialization.SpeedTestObject(20000),
+		//new serialization.SpeedTestArray(20000),
+		new UTIL.Base64.Test(1*1024*1024)
+	    );
+	}
+	</script>
+    </head>
+
+    <body>
+	fooo
+    </body>
+</html>

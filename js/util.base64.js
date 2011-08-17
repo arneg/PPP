@@ -18,10 +18,14 @@ UTIL.Base64 = {
 					 m.charCodeAt(c3&63));
 	}
 
+	var c1 = s.charCodeAt(s.length - 2);
+
 	if (r == 2) {
-	    ret[ret.length-1] = "==";
+	    var c2 = s.charCodeAt(s.length - 1);
+
+	    ret[ret.length-1] = String.fromCharCode(m.charCodeAt(c1>>2), m.charCodeAt((c1&3<<4)| c2 >> 4), m.charCodeAt(c2&15)<<2) + "=";
 	} else if (r == 1) {
-	    ret[ret.length-1] = "=";
+	    ret[ret.length-1] = String.fromCharCode(m.charCodeAt(c1>>2), m.charCodeAt(c1&3<<4)) + "==";
 	}
 
 	return ret.join("");
