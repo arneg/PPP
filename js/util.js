@@ -92,6 +92,15 @@ if (window.Base) {
 	    return "UTIL.Test(" + l.join(", ") + ")";
 	}
     });
+    UTIL.run_tests = function() {
+	var l = Array.prototype.slice.apply(arguments);
+	var c = 0;
+	var cb = function() {
+	    if (c == l.length) return;
+	    l[c++].run(cb);
+	};
+	cb();
+    };
 }
 /**
  * Returns a with all duplicate entries removed.
