@@ -1,11 +1,9 @@
 #include "stringbuilder.h"
-
 UTIL.Base64 = {
     char64 : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
-    encode : function(s) {
+    encode : window.btoa ? function(s) { return window.btoa(s); } : function(s) {
 	var len = s.length;
 	var r = s.length % 3;
-//	var ret = new Array(len + (!!r ? 1 : 0));
 	var c1, c2, c3;
 	var m = UTIL.Base64.char64;
 	BUF_INIT();
@@ -19,12 +17,6 @@ UTIL.Base64 = {
 	    BUF_PUTCHAR(m.charCodeAt((c1&3)<<4 | c2>>4));
 	    BUF_PUTCHAR(m.charCodeAt((c2&15)<<2 | c3>>6));
 	    BUF_PUTCHAR(m.charCodeAt(c3&63));
-	    /*
-	    ret[i] = String.fromCharCode(m.charCodeAt(c1>>2),
-					 m.charCodeAt((c1&3)<<4 | c2>>4),
-					 m.charCodeAt((c2&15)<<2 | c3 >> 6),
-					 m.charCodeAt(c3&63));
-	    */
 	    BUF_CHECK();
 	}
 
@@ -37,27 +29,17 @@ UTIL.Base64 = {
 	    BUF_PUTCHAR(m.charCodeAt((c1&3<<4)| c2 >> 4));
 	    BUF_PUTCHAR(m.charCodeAt(c2&15)<<2);
 	    BUF_PUTCHAR(61);
-	    //ret[ret.length-1] = String.fromCharCode(m.charCodeAt(c1>>2), m.charCodeAt((c1&3<<4)| c2 >> 4), m.charCodeAt(c2&15)<<2) + "=";
 	} else if (r == 1) {
 	    BUF_PUTCHAR(m.charCodeAt(c1>>2));
 	    BUF_PUTCHAR(m.charCodeAt(c1&3<<4));
 	    BUF_PUTCHAR(61);
 	    BUF_PUTCHAR(61);
-	    //ret[ret.length-1] = String.fromCharCode(m.charCodeAt(c1>>2), m.charCodeAt(c1&3<<4)) + "==";
 	}
 
 	BUF_FINISH();
 	return BUF_GET();
-	//return ret.join("");
     },
-    deco : function(i) {
-	i = UTIL.Base64.deco64[i];
-	if (!i) throw("holy cow!\n");
-	return i - 1;
-    },
-    // TODO: this should maybe collect the integers and do one
-    // call to String.fromCharCode at the end.
-    decode : function(b) {
+    decode : window.atob ? function(s) { return window.atob(s); } : function(b) {
 	BUF_INIT();
 	b = b.replace(/\n|\r/g, "");
 	var len = b.length;
