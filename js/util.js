@@ -967,3 +967,28 @@ UTIL.curry = function(f) {
 	};
     };
 };
+UTIL.StringBuilder = function() {
+    var ret = [], C = new Array(256), i = 0;
+    this.putchar = function() {
+	for (var j = 0; j < arguments.length; j++)
+	    C[i++] = arguments[j];
+	if (i == C.length) {
+	    ret.push(String.fromCharCode.apply(String, C));
+	    i = 0;
+	}
+    };
+    this.add = function(s) {
+	if (i > 0) {
+	    ret.push(String.fromCharCode.apply(String, C.slice(0, i)));
+	    i = 0;
+	}
+	ret.push(s);
+    };
+    this.get = function() {
+	if (i > 0) {
+	    ret.push(String.fromCharCode.apply(String, C.slice(0, i)));
+	    i = 0;
+	}
+	return ret.join("");
+    };
+};
