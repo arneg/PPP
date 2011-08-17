@@ -31,6 +31,7 @@ if (window.Base) {
 		if (!UTIL.has_prefix(x, "test_")) continue;
 		tests.push(x);
 	    }
+	    tests = tests.sort();
 
 	    this.__done = function(fatal) {
 		delete this.success;
