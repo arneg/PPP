@@ -192,10 +192,11 @@ serialization.Base = Base.extend({
 	}
 });
 serialization.Any = Base.extend({
-	can_decode : function(atom) { return atom instanceof serialization.Atom; },
-	can_encode : function(o) { return atom instanceof serialization.Atom; },
-	decode : function(atom) { return atom; },
-	encode : function(o) { return o; }
+    can_decode : function(atom) { return atom instanceof serialization.Atom; },
+    can_encode : function(o) { return atom instanceof serialization.Atom; },
+    decode : function(atom) { return atom; },
+    encode : function(o) { return o; },
+    render : function(atom) { return atom.render(); }
 });
 serialization.Polymorphic = serialization.Base.extend({
     constructor: function() {
