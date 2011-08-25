@@ -473,6 +473,7 @@ UTIL.make_method_keep_this = function(obj, fun) {
  * Wraps around fun, so that it always gets executed in the context of obj.
  */
 UTIL.make_method = function(obj, fun) {
+    if (fun.bind) return fun.bind.apply(fun, [ obj ].concat(Array.prototype.slice.call(arguments, 2)));
 	if (arguments.length > 2) {
 	    var list = Array.prototype.slice.call(arguments, 2);
 	    return (function () {
