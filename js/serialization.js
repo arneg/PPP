@@ -398,11 +398,12 @@ serialization.Mapping = serialization.Base.extend({
 		this.vtype = vtype;
 		this.type = "_mapping";
 	},
+	constr : Mapping,
 	toString : function() {
 		return "Mapping()";
 	},
 	can_encode : function(o) {
-		return o instanceof Mapping;
+	    return o instanceof this.constr;
 	},
 	can_decode : function(atom) {
 		//UTIL.log("%o %o\n", this, atom);
@@ -430,7 +431,7 @@ serialization.Mapping = serialization.Base.extend({
 	decode : function(atom) {
 		var p = new serialization.AtomParser();
 		var l = p.parse(atom.data);
-		var m = this.constr ? new this.constr() : new Mapping();
+		var m = new this.constr();
 
 		if (l.length & 1) UTIL.error("Malformed mapping.\n");
 		
@@ -445,14 +446,14 @@ serialization.Mapping = serialization.Base.extend({
 	encode : function(o) {
 		var str = "";
 
-		o.forEach(function (key, val) {
+		o.forEach(UTIL.make_method(this, function (key, val) {
 			if (!this.mtype.can_encode(key) || !this.vtype.can_encode(val)) {
 				UTIL.error("Type cannot encode "+key+"("+this.mtype.can_encode(key)+") : "+val+"("+this.vtype.can_encode(val)+")");
 			}
 
 			str += this.mtype.render(key);
 			str += this.vtype.render(val);
-		}, this);
+		}));
 		return new serialization.Atom(this.type, str);
 	}
 });
@@ -673,7 +674,7 @@ serialization.Struct = serialization.Tuple.extend({
 		    if (o.hasOwnProperty(this.names[i])) {
 			l.push(o[this.names[i]]);
 		    } else if (UTIL.functionp(o[this.names[i]])) {
-			l.push(o[this.names[i]]());
+			l.push(UTIL.make_method(o, o[this.names[i]])());
 		    } else UTIL.error("Data is missing entry "+this.names[i]);
 		}
 		return this.base(l);
