@@ -566,6 +566,9 @@ CritBit.Tree = Base.extend({
     insert : function(key, value) {
 	this.root = this.root ? this.root.insert(new CritBit.Node(key, value)) : new CritBit.Node(key, value);
     },
+    set : function(key, value) {
+       this.insert(key, value);
+    },
     get_subtree : function(key) {
     },
     remove : function(key) {
@@ -610,6 +613,9 @@ CritBit.Tree = Base.extend({
 	do {
 	    if (fun(node.key, node.value) || node == stop) return;
 	} while (node = node.forward());
+    },
+    forEach : function(cb) {
+       this.foreach(cb);
     },
     backeach : function(fun, start, stop) {
 	var node;
@@ -841,6 +847,9 @@ serialization.RangeSet = serialization.Array.extend({
     can_encode : function(t) {
 	return t instanceof CritBit.RangeSet || this.base(t);
     }
+});
+serialization.CritBit = serialization.Mapping.extend({
+    constr : CritBit.Tree
 });
 serialization.MultiRangeSet = serialization.RangeSet.extend({
     decode : function(atom) {
