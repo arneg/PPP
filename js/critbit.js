@@ -713,7 +713,14 @@ CritBit.max = function(a, b) {
 };
 CritBit.RangeSet = Base.extend({
     constructor : function(tree) {
-	this.tree = tree || new CritBit.Tree();
+	this.tree = (tree instanceof CritBit.Tree) ? tree : new CritBit.Tree();
+
+	if (tree instanceof CritBit.MultiRangeSet) {
+	    var r = tree.ranges();
+	    for (var i = 0; i < r.length; i++) {
+		this.insert(r[i]);
+	    }
+	}
     },
     index : function(key) {
 	if (key instanceof CritBit.Range)
@@ -777,6 +784,21 @@ CritBit.MultiRangeSet = Base.extend({
 	} else {
 	    this.tree.insert(range.a, [ range ]);
 	}
+    },
+    remove : function(range) {
+	var v = this.tree.index(range.a);
+	var n = [];
+	if (!v) return false;
+	for (var i = 0; i < v.length; i++) {
+	    if (v[i].b != range.b) {
+		n.push(v[i]);
+	    }
+	}
+	if (n.length != v.length) {
+	    this.tree.insert(range.a, n);
+	    return range;
+	}
+	return false;
     },
     overlaps : function(range) {
 	var ret = [];
