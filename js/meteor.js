@@ -357,7 +357,7 @@ meteor.Connection.prototype = {
 
 				//UTIL.log("position %d (max %d)", this.pos, meteor.BUFFER_MAX);
 
-				if (xhr.readyState == 3 && this.pos < meteor.BUFFER_MAX)
+				if (xhr.readyState == 3)// && this.pos < meteor.BUFFER_MAX)
 				    return;
 			} else {
 				if (xhr.status == 500) {
