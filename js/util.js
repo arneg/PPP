@@ -184,11 +184,11 @@ UTIL.create = function(myclass, args) {
  * Wraps fun in a function running profiling.
  */
 UTIL.profiled = function(fun) {
-    UTIL.profile();
-    return UTIL.make_method(this, function() {
+    return function() {
+	UTIL.profile();
 	fun.apply(this, Array.prototype.slice.call(arguments));
 	UTIL.profileEnd();
-    });
+    };
 };
 /**
  * Times each execution of fun and prints some debugging to the console.
