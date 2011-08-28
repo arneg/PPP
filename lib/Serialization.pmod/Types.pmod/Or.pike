@@ -23,7 +23,10 @@ int decode(Serialization.Atom a) {
     foreach (types;;object type)
 	if (type->can_decode(a)) {
 	    mixed err = catch { return type->decode(a); };
-	    if (err) e = err;
+	    if (err) {
+		werror("decode throwed: %O\n", err);
+		e = err;
+	    }
 	}
     error("Cannot decode %O (%O)\n", a, e);
 }
@@ -33,7 +36,10 @@ Serialization.Atom encode(mixed o) {
     foreach (types;;object type)
 	if (type->can_encode(o)) {
 	    mixed err = catch { return type->encode(o); };
-	    if (err) error = err;
+	    if (err) {
+		werror("decode throwed: %O\n", err);
+		error = err;
+	    }
 	}
     predef::error("Cannot encode %O (%O)\n", o, error);
 }

@@ -68,7 +68,7 @@ int (0..1) can_encode(mixed a) {
 	} else {
 	    // TODO: check return type here
 	    // this is a function as constructor. so it will eat everything
-	    werror("%O: hit edge case. might not be able to decode %O\n", this, a);
+	    //werror("%O: hit edge case. might not be able to decode %O\n", this, a);
 	    return 1;
 	}
 }

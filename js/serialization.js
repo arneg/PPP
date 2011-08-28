@@ -625,6 +625,10 @@ serialization.Tuple = serialization.Base.extend({
 	encode : function(l) {
 		var d = "";
 
+		if (this.p && !UTIL.arrayp(l)) {
+		    l = l.toArray();
+		}
+
 		if (l.length != this.types.length) UTIL.error("Cannot encode %o (wrong length) %o", l, this.types);
 
 		for (var i = 0; i < l.length; i++) {
@@ -653,7 +657,9 @@ serialization.Struct = serialization.Tuple.extend({
 		var ret = this.constr ? (new this.constr()) : {};
 
 		for (var i = 0; i < this.names.length; i++)
-		    ret[this.names[i]] = l[i];
+		    if (l[i] !== false)
+			ret[this.names[i]] = l[i];
+		    else UTIL.log("ignoring %o %o in %o", l[i], this.names[i], atom);
 
 		if (UTIL.functionp(ret.atom_init)) ret.atom_init();
 		return ret;
@@ -675,7 +681,10 @@ serialization.Struct = serialization.Tuple.extend({
 			l.push(o[this.names[i]]);
 		    } else if (UTIL.functionp(o[this.names[i]])) {
 			l.push(UTIL.make_method(o, o[this.names[i]])());
-		    } else UTIL.error("Data is missing entry "+this.names[i]);
+		    } else {
+			UTIL.log("ignoring missing %o", this.names[i]);
+			l.push(false);
+		    }
 		}
 		return this.base(l);
 	}
@@ -746,6 +755,7 @@ serialization.Or = serialization.Base.extend({
 	can_decode : function(atom) {
 		for (var i = 0; i < this.types.length; i++) {
 			if (this.types[i].can_decode(atom)) return true;
+			UTIL.log("%o cannot decode %o", this.types[i], atom);
 		}
 		return false;
 	},
