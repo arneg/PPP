@@ -248,6 +248,6 @@ class tFilter {
 		"n" : Serialization.Types.Int(),
 		"p" : Serialization.Types.Float(),
 		"removed" : Serialization.Types.Int(),
-		"table" : tBitVector() ]), Function.curry(Filter)(hash()));
+		"table" : tBitVector() ]), Function.curry(Filter)(hash()), Filter);
     }
 }
