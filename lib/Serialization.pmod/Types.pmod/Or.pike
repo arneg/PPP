@@ -1,9 +1,7 @@
 array(object) types;
-function|program constructor;
 
 void create(object ... types) {
     this_program::types = types;
-    this_program::constructor = constructor;
 }
 
 int(0..1) can_decode(Serialization.Atom a) {
@@ -37,7 +35,7 @@ Serialization.Atom encode(mixed o) {
 	if (type->can_encode(o)) {
 	    mixed err = catch { return type->encode(o); };
 	    if (err) {
-		werror("decode throwed: %O\n", err);
+		werror("ddecode throwed: %O\n", err);
 		error = err;
 	    }
 	}
@@ -54,4 +52,13 @@ string _sprintf(int c) {
 
 void render(mixed o, String.Buffer buf) {
     encode(o)->render(buf);
+}
+
+object `|(object o ) {
+    if (Program.inherits(object_program(o), Serialization.Types.Or)) {
+	return Serialization.Types.Or(@this->types, @o->types);
+    } else if (Program.inherits(object_program(o), Serialization.Types.Base)) {
+	return Serialization.Types.Or(@this->types, o);
+    }
+    error("cannot or this %O", o);
 }

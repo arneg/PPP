@@ -33,7 +33,7 @@ mixed low_decode(object atom, array(Serialization.Atom) a) {
     if (sizeof(names) != sizeof(a)) error("Wrong length. Expected %d. Got %d.", sizeof(names), sizeof(a));
 
     foreach (a; int i; Serialization.Atom a) {
-	if (a->type == "_false") continue;
+	if (a->type == "_undefined") continue;
 	//o[names[i]] = types[names[i]]->decode(a);
 	`->=(o, names[i], types[names[i]]->decode(a));
     }

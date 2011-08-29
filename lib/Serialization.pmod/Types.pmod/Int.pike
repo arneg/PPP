@@ -1,8 +1,7 @@
-string base;
-string type = "_integer";
+inherit .Base;
 
-int(0..1) can_decode(Serialization.Atom a) {
-	return a->type == type;
+void create() {
+    ::create("_integer");
 }
 
 int decode(Serialization.Atom a) {

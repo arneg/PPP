@@ -29,3 +29,12 @@ Serialization.Atom encode(mixed a) {
 Serialization.StringBuilder render(mixed t, Serialization.StringBuilder buf) {
     return encode(t)->render(buf);
 }
+
+object `|(object o) {
+    if (Program.inherits(object_program(o), Serialization.Types.Or)) {
+	return Serialization.Types.Or(this, @o->types);
+    } else if (Program.inherits(object_program(o), Serialization.Types.Base)) {
+	return Serialization.Types.Or(this, o);
+    }
+    error("cannot or this %O", o);
+}

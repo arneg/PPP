@@ -141,3 +141,9 @@ KEY: foreach(m; string k; mixed val) {";
 
 	return o;
 }
+
+object Undefined;
+
+void create() {
+    Undefined = master()->resolv("Serialization.Types.Singleton")("_undefined", UNDEFINED);
+}

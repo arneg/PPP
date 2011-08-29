@@ -275,19 +275,23 @@ serialization.Date = serialization.Base.extend({
 		return new serialization.Atom("_time", Math.round(o.getTime()/1000).toString());
 	}
 });
-serialization.False = serialization.Base.extend({
-	constructor : function() { 
-		this.type = "_false";
-	},
-	can_encode : function(o) {
-		return !o;
-	},
-	decode : function(atom) {
-		return false;
-	},
-	encode : function(o) {
-		return new serialization.Atom("_false", "");
-	}
+serialization.Singleton = serialization.Base.extend({
+    constructor : function(type, value) {
+	this.type = type;
+	this.value = value;
+    },
+    can_encode : function(o) {
+	return o === this.value;
+    },
+    decode : function(atom) {
+	return this.value;
+    },
+    encode : function(o) {
+	return new serialization.Atom(this.type, "");
+    },
+    render : function(o) {
+	return this.type+" 0 ";
+    }
 });
 serialization.String = serialization.Base.extend({
 	constructor : function() { 
@@ -657,7 +661,7 @@ serialization.Struct = serialization.Tuple.extend({
 		var ret = this.constr ? (new this.constr()) : {};
 
 		for (var i = 0; i < this.names.length; i++)
-		    if (l[i] !== false)
+		    if (l[i] !== undefined)
 			ret[this.names[i]] = l[i];
 		    else UTIL.log("ignoring %o %o in %o", l[i], this.names[i], atom);
 
@@ -671,19 +675,22 @@ serialization.Struct = serialization.Tuple.extend({
 		return "Struct("+l.join(", ")+")";
 	},
 	can_encode : function(o) {
-		return UTIL.objectp(o) && (!this.constr || o instanceof this.constr);
+		var t = UTIL.objectp(o) && (!this.constr || o instanceof this.constr);
+		if (o instanceof SyncDB.Row && !t) {
+		    UTIL.error("%o claims it cannot encode row: %o (%o)", this, o);
+		}
+		return t;
 	},
 	encode : function(o) {
 		var l = [];
 		for (var i = 0; i < this.names.length; i ++) {
 		    // maybe call if functionp()
-		    if (o.hasOwnProperty(this.names[i])) {
-			l.push(o[this.names[i]]);
-		    } else if (UTIL.functionp(o[this.names[i]])) {
+		    if (UTIL.functionp(o[this.names[i]])) {
 			l.push(UTIL.make_method(o, o[this.names[i]])());
 		    } else {
-			UTIL.log("ignoring missing %o", this.names[i]);
-			l.push(false);
+			// if the field does not exist, we get undefined
+			// here
+			l.push(o[this.names[i]]);
 		    }
 		}
 		return this.base(l);
@@ -737,7 +744,10 @@ serialization.Packet = serialization.Tuple.extend({
 	}
 });
 serialization.Or = serialization.Base.extend({
-	constructor : function() {
+	constructor : function(t) {
+	    if (UTIL.arrayp(t))
+		this.types = t;
+	    else
 		this.types = Array.prototype.slice.apply(arguments);
 	},
 	toString : function() {
@@ -822,3 +832,8 @@ serialization.SimpleSet = serialization.Array.extend({
 	    return o;
 	}
 });
+serialization.Null = new serialization.Singleton("_null", null);
+serialization.Undefined = new serialization.Singleton("_undefined", undefined);
+serialization.False = new serialization.Singleton("_false", false);
+serialization.True = new serialization.Singleton("_true", true);
+serialization.Boolean = new serialization.Or(serialization.True, serialization.False);
