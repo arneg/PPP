@@ -2,13 +2,20 @@ inherit .Base;
 
 array(object) types;
 function|program constructor;
+program ctype;
 
-void create(string type, int|function|program constructor, object ... types) {
+void create(string type, int|function|program constructor, program|object ctype, object ... types) {
     ::create(type);
 
+    if (objectp(ctype)) {
+	types = ({ ctype }) + types;
+	ctype = 0;
+    }
     this_program::types = types;
-    if (callablep(constructor))
+    if (callablep(constructor)) {
 	this_program::constructor = constructor;
+	this_program::ctype = ctype || constructor;
+    }
 }
 
 object|array decode(Serialization.Atom atom) {
@@ -63,8 +70,8 @@ string render_payload(Serialization.Atom atom) {
 
 int (0..1) can_encode(mixed a) {
 	if (!constructor) return arrayp(a);
-	if (objectp(a) && programp(constructor)) {
-	    return Program.inherits(object_program(a), constructor);
+	if (objectp(a) && programp(ctype)) {
+	    return Program.inherits(object_program(a), ctype);
 	} else {
 	    // TODO: check return type here
 	    // this is a function as constructor. so it will eat everything

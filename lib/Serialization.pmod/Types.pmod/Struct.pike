@@ -1,15 +1,19 @@
 inherit .ListBased;
 
 function|program constructor;
+program ctype;
 array(string) names;
 mapping(string:object) types;
 
-void create(string type, mapping types, void|function|program constructor) { 
+void create(string type, mapping types, void|function|program constructor, program|void ctype) {
     ::create(type);
 
     this_program::types = types;
     names = sort(indices(types));
-    this_program::constructor = constructor;
+    if (constructor) {
+	this_program::constructor = constructor;
+	this_program::ctype = ctype || constructor;
+    }
 }
 
 Serialization.Atom encode(mixed o) {
@@ -37,8 +41,8 @@ mixed low_decode(object atom, array(Serialization.Atom) a) {
 }
 
 int (0..1) can_encode(mixed a) {
-    if (programp(constructor)) {
-	return Program.inherits(object_program(a), constructor);
+    if (programp(ctype)) {
+	return Program.inherits(object_program(a), ctype);
     } else if (!constructor && mappingp(a)) {
 	return 1;
     } else {
