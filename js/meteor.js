@@ -338,12 +338,11 @@ meteor.Connection.prototype = {
 						} else if (xhr.responseBody) {
 							str = xhr.responseBody.join("");
 						} else {
-							str = xhr.responseText.slice(this.pos);
-							var t = str.split("");
-							for (var i = 0; i < str.length; i++) {
-								t[i] = t[i].charCodeAt(0) & 0xff;
+							var t = new UTIL.StringBuilder();
+							for (var i = this.pos; i < xhr.responseText.length; i++) {
+							    t.putchar(xhr.responseText.charCodeAt(i) & 0xff);
 							}
-							str = String.fromCharCode.apply(window, t);
+							str = t.get();
 						}
 
 						//UTIL.log("calling callback: %o with %db of data", this.callback, str.length);
