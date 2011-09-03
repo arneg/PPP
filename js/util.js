@@ -645,6 +645,34 @@ UTIL.get_unique_key = function (length, set) {
 	while (set.hasOwnProperty((id = UTIL.get_random_key(length)))) { }
 	return id;
 };
+UTIL.Event = Base.extend({
+    constructor : function() {
+	this.q = [];
+    },
+    bind : function(cb) {
+	this.q.push(cb);
+    },
+    trigger : function() {
+	if (!this.q.length) return;
+	var a = Array.prototype.slice.call(arguments);
+
+	for (var i = 0; i < this.q.length; i++) {
+	    this.q[i].apply(this, a);	    
+	}
+    },
+    trigger_later : function() {
+	if (!this.q.length) return;
+	var a = Array.prototype.slice.call(arguments);
+
+	UTIL.call_later(function() {
+			    this.trigger.apply(this, a);
+			}, this);
+    },
+    unbind : function(cb) {
+	for (var i = 0; i < this.q.length; i++) 
+	    if (this.q[i] === cb) this.q.splice(i, 1);
+    }
+});
 UTIL.EventAggregator = Base.extend({
 	constructor : function() {
 		this.counter = 0;
@@ -652,23 +680,48 @@ UTIL.EventAggregator = Base.extend({
 		this.result = {};
 		this.q = Array.prototype.slice.call(arguments);
 	},
+	progress : function(cb) {
+	    if (!this.p) {
+		this.p = new UTIL.Event();
+	    }
+	    this.p.bind(cb);
+	},
 	get_cb : function(name) {
 		++this.counter;
 		return UTIL.make_method(this,
 			function() {
 			    if (name) {
-				if (this.results[name]) UTIL.error("You can't use this cb twice.");
-				this.results[name] = args;
+				if (this.result[name]) UTIL.error("You can't use this cb twice.");
+				this.result[name] = Array.prototype.slice.call(arguments);
 			    }
 			    if (!--this.counter) this._ready();
+			    else if (this.p) {
+				if (!this.step || (this.num_all % this.step) == 0)
+				    this.p.trigger(this.num_all - this.counter, this.num_all);
+			    }
 			});
+	},
+	wrap_cb : function(name, cb) {
+	    if (UTIL.functionp(name)) {
+		cb = name;
+		name = undefined;
+	    }
+	    var f = this.get_cb();
+	    return function() {
+		f();
+		cb.apply(this, Array.prototype.slice.call(arguments));
+	    };
 	},
 	start : function() {
 		if (this.is_started) return;
 		this.is_started = 1;
+		this.num_all = this.counter;
+		if (this.num_all > 100) {
+		    this.step = Math.floor(this.num_all / 100);
+		}
 		if (!this.counter) {
 		    this._ready();
-		}
+		} else if (this.p) this.p.trigger(0, this.num_all);
 	},
 	ready : function(f) {
 	    if (this.q) this.q.push(f);
@@ -676,6 +729,10 @@ UTIL.EventAggregator = Base.extend({
 	},
 	_ready : function() {
 	    if (this.is_started) {
+		if (this.p) {
+		    this.p.trigger(this.num_all, this.num_all);
+		    delete this.p;
+		}
 		var q = this.q;
 		delete this.q;
 		for (var i = 0; i < q.length; i++)
