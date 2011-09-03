@@ -218,7 +218,8 @@ serialization.Polymorphic = serialization.Base.extend({
     },
     decode : function(atom) {
 	var types = this.atype_to_type.get(atom.type);
-	for (var i = 0; i < types.length; i++) {
+
+	if (types) for (var i = 0; i < types.length; i++) {
 	    if (types[i].can_decode(atom)) {
 		return types[i].decode(atom);
 	    }
