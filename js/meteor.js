@@ -97,6 +97,10 @@ meteor.Multiplexer.prototype = {
 	      if (this.has_channel(name)) {
 		  this.get_channel(name)._deliver(a[i].data.substr(pos+1));
 	      } else UTIL.log("noone cares for channel %o", name||666);
+	  } else if (a[i].type === "_multiplex") {
+	      for (var name in this.channels) if (this.channels.hasOwnProperty(name)) {
+		  this.channels[name].handshake();
+	      }
 	  } else {
 	      var res = this.SuccParser.decode(a[i]);
 
@@ -176,9 +180,12 @@ meteor.Channel = function(name, session, multiplexer) {
     //UTIL.call_later(this.send, this, "");
     //UTIL.call_later(this.session.send, this.session, "_channel " + this.name.length + " " + this.name);
     //this.session.send("_channel " + this.name.length + " " + this.name);
-    this.session.send(this.ReqParser.encode(new meteor.ChannelReq(this.name)).render());
+    this.handshake();
 };
 meteor.Channel.prototype = {
+    handshake : function() {
+	this.session.send(this.ReqParser.encode(new meteor.ChannelReq(this.name)).render());
+    },
     send : function(atom) {
 	if (this.closed) throw("Cannot send() in closed channel(" + this.name + ").");
 	this.session.send("_channel "+ (atom.length+this.name.length+1) + " " + this.name + " " + atom);
