@@ -839,7 +839,7 @@ delete UTIL.App.video;
  */
 UTIL.nchars = function(c, n) {
     if (n < 0) UTIL.error("bad argument");
-    var t = String.fromCharCode(c);
+    var t = UTIL.stringp(c) ? c : String.fromCharCode(c);
     var ret = "";
     while (n) {
 	if (n & 1) ret += t;
