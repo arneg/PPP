@@ -777,7 +777,7 @@ serialization.Or = serialization.Base.extend({
 			}
 		}
 
-		UTIL.error("No type in "+this+" to decode "+atom);
+		UTIL.error("No type in %o to decode %o", this, atom);
 	},
 	encode : function(o) {
 		for (var i = 0; i < this.types.length; i++) {
@@ -786,9 +786,7 @@ serialization.Or = serialization.Base.extend({
 			}
 		}
 
-		//UTIL.log("Or(%o)", this.types);
-		UTIL.trace();
-		UTIL.error("No type in "+this+" to encode "+o);
+		UTIL.error("No type in %o to encode %o", this, o);
 	}
 });
 serialization.Array = serialization.Base.extend({
