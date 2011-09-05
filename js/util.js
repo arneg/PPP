@@ -323,7 +323,10 @@ UTIL.replace = function(reg, s, cb) {
 	while (null != (res = reg.exec(s))) {
 		ret += s.substr(last, reg.lastIndex - res[0].length - last);
 		ret += (extra ? cb.apply(null, [res].concat(extra)) : cb(res)) || res[0];
-		last = reg.lastIndex;
+		if (!reg.global) {
+		    last = res[0].length;
+		    break;
+		} else last = reg.lastIndex;
 	}
 
 	if (last < s.length) {
