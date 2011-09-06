@@ -914,10 +914,10 @@ CritBit.RangeSet = Base.extend({
 
 	return found;
     },
-    truncate : function(length) {
+    truncate : function(length, start) {
 	var tree = new CritBit.Tree();
 	var left = length;
-	this.tree.foreach(function(key, value) {
+	var loop = function(key, value) {
 	    var l = value.length();
 	    if (l < left) {
 		tree.insert(value.b, value);
@@ -929,7 +929,11 @@ CritBit.RangeSet = Base.extend({
 		left = 0;
 		return 1;
 	    }
-	});
+	};
+	if (arguments.length > 1) {
+	    this.tree.foreach(loop, start);
+	} else
+	    this.tree.foreach(loop);
 	return new CritBit.RangeSet(tree);
     },
     copy : function() {
