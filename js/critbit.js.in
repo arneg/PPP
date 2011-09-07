@@ -901,7 +901,46 @@ CritBit.RangeSet = Base.extend({
 	return new CritBit.RangeSet(tree);
     },
     intersect : function(rangeset) {
-	UTIL.error("BOH!! this method is still deprecated!!!");		
+	var tree = new CritBit.Tree();
+	var start, end, current;
+	var n1 = this.tree.root.first(), n2 = rangset.tree.root.first();
+
+	do {
+	    r1 = n1.value;
+
+//	    while (n2 && CritBit.gt(r1.a, n2.value.b)) n2 = n2.forward();
+	    r2 = n2.value;
+
+	    /*
+	    if (!r1.overlaps(r2)) {
+		n1 = n1.forward();
+		continue;
+	    }
+
+	    if (!current || !(current.touches(r1) && current.touches(r2))) {
+		if (current) tree.insert(current);
+		start = CritBit.max(r1.a, r2.a);
+	    }
+	    end = CritBit.min(r1.b, r2.b);
+	    current = new CritBit.Range(start, end);
+	    */
+
+	    // so: ?
+	    if (r1.overlaps(r2)) {
+		tree.insert(new CritBit.Range(
+				CritBit.max(r1.a, r2.a),
+				CritBit.min(r1.b, r2.b)));
+	    }
+
+	    if (CritBit.lt(r1.b, r2.b))
+		n2 = n2.forward();
+	    else
+		n1 = n1.forward();
+	} while (n1 && n2);
+
+	if (current) tree.insert(current);
+
+	return tree;
     },
     find_first : function(length) {
 	var found;
