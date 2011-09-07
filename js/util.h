@@ -1,0 +1,5 @@
+#define STRINGP(x)	(typeof(x) === "string" || (x) instanceof String)
+#define NUMBERP(x)	(typeof(x) === "number")
+#define INTP(x)		(NUMBERP(x) && ((x) % 1 == 0))
+#define FLOATP(x)	NUMBERP(X)
+#define OBJETP(x)	(typeof(x) === "object")
