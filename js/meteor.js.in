@@ -14,6 +14,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
+#include "stringbuilder.h"
 if( typeof XMLHttpRequest == "undefined" ) XMLHttpRequest = function() {
   try { return new ActiveXObject("Msxml2.XMLHTTP.6.0") } catch(e) {}
   try { return new ActiveXObject("Msxml2.XMLHTTP.3.0") } catch(e) {}
@@ -341,19 +342,22 @@ meteor.Connection.prototype = {
 
 					try {
 						if (UTIL.App.is_opera) {
-							str = xhr.responseText.slice(this.pos);
+							str = xhr.responseText.substr(this.pos);
 						} else if (xhr.responseBody) {
-							str = xhr.responseBody.join("");
+							str = xhr.responseBody.slice(this.pos).join("");
 						} else {
-							var t = new UTIL.StringBuilder();
-							for (var i = this.pos; i < xhr.responseText.length; i++) {
-							    t.putchar(xhr.responseText.charCodeAt(i) & 0xff);
+							BUF_INIT()
+							str = xhr.responseText.substr(this.pos);
+							for (var i = 0; i < str.length; i++) {
+							    BUF_PUTCHAR(str.charCodeAt(i) & 0xff);
 							}
-							str = t.get();
+							BUF_FINISH();
+							str = BUF_GET();
 						}
 
 						//UTIL.log("calling callback: %o with %db of data", this.callback, str.length);
-						this.callback(str);
+						UTIL.call_later(this.callback, this, str);
+						//this.callback(str);
 					} catch (error) {
 						UTIL.log("ERROR: "+error);
 					}
