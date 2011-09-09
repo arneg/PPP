@@ -347,9 +347,10 @@ meteor.Connection.prototype = {
 							str = xhr.responseBody.slice(this.pos).join("");
 						} else {
 							BUF_INIT()
-							str = xhr.responseText.substr(this.pos);
-							for (var i = 0; i < str.length; i++) {
+							str = xhr.responseText;
+							for (var i = this.pos; i < length; i++) {
 							    BUF_PUTCHAR(str.charCodeAt(i) & 0xff);
+							    BUF_CHECK();
 							}
 							BUF_FINISH();
 							str = BUF_GET();
