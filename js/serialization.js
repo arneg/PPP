@@ -15,6 +15,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 serialization = {};
+serialization.lambda = {
+};
 /**
  * Atom class.
  * @constructor
@@ -49,154 +51,299 @@ serialization.parse_atom = function(s) {
     atom = p._parse();
     return atom;
 };
+serialization.low_parse_atoms = function(s) {
+    var ret = [];
+    var i = 0;    
+    //var re = /(\w+) (\d+) /g;
+    var re = new RegExp("(\\w+) (\\d+) ", "g");
+    var r, length;
+
+    // BUG: this line is needed since firefox seems to be too good
+    // at optimizing
+    //re.lastIndex = 0;
+
+    while (i < s.length) {
+	r = re.exec(s);
+	if (!r) {
+	    window.s = s;
+	    UTIL.error("Bad atom!");
+	}
+	i = re.lastIndex;
+	length = parseInt(r[2]);
+
+	ret.push(r[1]);
+	ret.push(s.substr(i, length));
+
+	i += length;
+	re.lastIndex = i;
+    }
+
+    return ret;
+};
+serialization.parse_atoms = function(s) {
+    var ret = serialization.low_parse_atoms(s);
+    var r = new Array(ret.length/2);
+    for (var i = 0; i < ret.length; i+=2) {
+	r[i/2] = new serialization.Atom(ret[i], ret[i+1]);
+    }
+    return r;
+};
 /**
  * Atom parser class.
  * @constructor
  */
 serialization.AtomParser = Base.extend({
-	constructor : function() {
+    constructor : function() {
+	this.buffer = "";
+	this.offset = 0;
+	this.reset();
+    },
+    reset : function() {
+	this.type = 0;
+	this.length = -1;
+    },
+    feed : function(data) {
+	this.buffer += data;
+    },
+    /**
+     * Parse one or more Atom objects from a string.
+     * @returns An array of serialization#Atom objects.
+     * @param {String} str Input string that to parse.
+     */
+    parse : function(str) {
+	if (UTIL.stringp(str))
+	    this.buffer += str;
+
+	var ret = [];
+	var t = 0;
+	while (t = this._parse()) {
+	    ret.push(t);
+	}
+	return ret;
+    },
+    /*
+     // this is an alternative to the other _parse using RegExp.
+     // It performs as well as the one using indexOf.
+    _parse : function() {
+	var re = this.re, a;
+
+	if (!this.type) {
+	    var pos = re.lastIndex;
+	    var r = re.exec(this.buffer);
+	    if (!r) {
+		// TODO we somehow need to detect bad content here
+		re.lastIndex = pos;
+		return null;
+	    }
+	    this.type = r[1];
+	    this.length = parseInt(r[2]);
+	}
+
+	if (this.buffer.length >= this.length + re.lastIndex) {
+	    a = new serialization.Atom(this.type,
+		this.buffer.substr(re.lastIndex, this.length));
+	    re.lastIndex += this.length;
+	    this.reset();
+
+	    if (re.lastIndex == this.buffer.length) {
 		this.buffer = "";
-		this.offset = 0;
-		this.re = /(\w+) (\d+) /g;
-		this.reset();
-	},
-	reset : function() {
-		this.type = 0;
-		this.length = -1;
-	},
-	feed : function(data) {
-		this.buffer += data;
-	},
-	/**
-	 * Parse one or more Atom objects from a string.
-	 * @returns An array of serialization#Atom objects.
-	 * @param {String} str Input string that to parse.
-	 */
-	parse : function(str) {
-		if (UTIL.stringp(str))
-		    this.buffer += str;
-
-		var ret = [];
-		var t = 0;
-		while (t = this._parse()) {
-			ret.push(t);
-		}
-		return ret;
-	},
-	/*
-	 // this is an alternative to the other _parse using RegExp.
-	 // It performs as well as the one using indexOf.
-	_parse : function() {
-		var re = this.re, a;
-
-		if (!this.type) {
-		    var pos = re.lastIndex;
-		    var r = re.exec(this.buffer);
-		    if (!r) {
-			// TODO we somehow need to detect bad content here
-			re.lastIndex = pos;
-			return null;
-		    }
-		    this.type = r[1];
-		    this.length = parseInt(r[2]);
-		}
-
-		if (this.buffer.length >= this.length + re.lastIndex) {
-		    a = new serialization.Atom(this.type,
-			this.buffer.substr(re.lastIndex, this.length));
-		    re.lastIndex += this.length;
-		    this.reset();
-
-		    if (re.lastIndex == this.buffer.length) {
-			this.buffer = "";
-			re.lastIndex = 0;
-		    }
-		}
-
-		return a;
-	},
-	*/
-	_parse : function() {
-		var pos;
-		if (!this.type) {
-			pos = this.buffer.indexOf(" ", this.offset);
-
-			if (pos == -1) {
-			// check here for bogus data
-	//		if (re[0].search(/(_\w+)+/) != 0) {
-	//		    UTIL.error("bad atom\n");
-	//		}
-				return 0;
-			} else if (pos < 2) {
-				UTIL.error("bad atom.");
-			}
-
-			this.type = this.buffer.substring(this.offset, pos);
-			this.offset = pos+1;
-		}
-
-		if (this.length == -1) {
-			pos = this.buffer.indexOf(" ", this.offset);
-
-			if (pos == -1) {
-				return 0;
-			} else if (pos == this.offset) {
-				UTIL.error("bad atom.");
-			}
-
-			this.length = parseInt(this.buffer.substring(this.offset, pos));
-			if (this.length < 0 || this.length.toString() != this.buffer.substring(this.offset, pos)) {
-				UTIL.error("bad length in atom.\n");
-			}
-			this.offset = pos+1;
-		}
-
-		//UTIL.log("%d vs %d\n", this.length, this.buffer.length);
-		if (this.length + this.offset > this.buffer.length) {
-			// add a sanity check. we do not want superlarge data strings, i guess
-			return 0;
-		}
-
-		var a;
-
-		if (this.length + this.offset == this.buffer.length) {
-			a = new serialization.Atom(this.type, this.buffer.substr(this.offset));
-			this.buffer = "";
-			this.offset = 0;
-		} else {
-			a = new serialization.Atom(this.type, this.buffer.substr(this.offset,this.length));
-			this.offset += this.length;
-		}
-		this.reset();
-		
-		return a;
-	},
-	parse_method : function() {
-		var pos = this.buffer.indexOf(" ", this.offset);
-		if (-1 == pos) return 0;
-		var method = this.buffer.substring(this.offset, pos);
-		this.buffer = this.buffer.slice(this.offset+pos+1);
-		this.offset = 0;
-		return method;
+		re.lastIndex = 0;
+	    }
 	}
-});
-serialization.Base = Base.extend({
-	can_decode : function(atom) {
-		return atom.type == this.type; // TODO: inheritance
-	},
-	toString : function() {
-		return "serialization.Base("+this.type+")";
-	},
-	render : function(o) {
-	    return this.encode(o).render();
+
+	return a;
+    },
+    */
+    _parse : function() {
+	var pos;
+	if (!this.type) {
+	    pos = this.buffer.indexOf(" ", this.offset);
+
+	    if (pos == -1) {
+	    // check here for bogus data
+//		if (re[0].search(/(_\w+)+/) != 0) {
+//		    UTIL.error("bad atom\n");
+//		}
+		return 0;
+	    } else if (pos < 2) {
+		UTIL.error("bad atom.");
+	    }
+
+	    this.type = this.buffer.substring(this.offset, pos);
+	    this.offset = pos+1;
 	}
+
+	if (this.length == -1) {
+	    pos = this.buffer.indexOf(" ", this.offset);
+
+	    if (pos == -1) {
+		return 0;
+	    } else if (pos == this.offset) {
+		UTIL.error("bad atom.");
+	    }
+
+	    this.length = parseInt(this.buffer.substring(this.offset, pos));
+	    if (this.length < 0 || this.length.toString() != this.buffer.substring(this.offset, pos)) {
+		UTIL.error("bad length in atom.\n");
+	    }
+	    this.offset = pos+1;
+	}
+
+	//UTIL.log("%d vs %d\n", this.length, this.buffer.length);
+	if (this.length + this.offset > this.buffer.length) {
+	    // add a sanity check. we do not want superlarge data strings, i guess
+	    return 0;
+	}
+
+	var a;
+
+	if (this.length + this.offset == this.buffer.length) {
+	    a = new serialization.Atom(this.type, this.buffer.substr(this.offset));
+	    this.buffer = "";
+	    this.offset = 0;
+	} else {
+	    a = new serialization.Atom(this.type, this.buffer.substr(this.offset,this.length));
+	    this.offset += this.length;
+	}
+	this.reset();
+	
+	return a;
+    },
+    parse_method : function() {
+	var pos = this.buffer.indexOf(" ", this.offset);
+	if (-1 == pos) return 0;
+	var method = this.buffer.substring(this.offset, pos);
+	this.buffer = this.buffer.slice(this.offset+pos+1);
+	this.offset = 0;
+	return method;
+    }
 });
-serialization.Any = Base.extend({
-    can_decode : function(atom) { return atom instanceof serialization.Atom; },
-    can_encode : function(o) { return atom instanceof serialization.Atom; },
-    decode : function(atom) { return atom; },
-    encode : function(o) { return o; },
-    render : function(atom) { return atom.render(); }
+serialization.BaseClass = {
+    can_decode : function(atom) {
+	return atom.type == this.type; // TODO: inheritance
+    },
+    toString : function() {
+	return "serialization.Base("+this.type+")";
+    },
+    render : function(o) {
+	return this.encode(o).render();
+    },
+    extend : function(m) {
+    },
+    generate_decode : function(type, data, ret) {
+	var c = ret.scope.Extern(UTIL.make_method(this, this.decode));
+	return ret.Set(new lambda.Template("%%(new serialization.Atom(%%, %%))",
+					    c, type, data));
+    },
+    generate_can_decode : function(type, data, ret) {
+	var c = ret.scope.Extern(UTIL.make_method(this, this.can_decode));
+	return ret.Set(new lambda.Template("%%(new serialization.Atom(%%, %%))",
+					    c, type, data));
+    },
+    generate_can_encode : function(o, ret) {
+	var c = ret.scope.Extern(UTIL.make_method(this, this.can_encode));
+	return ret.Set(new lambda.Template("%%(%%)",
+					    c, o));
+    },
+    generate_encode : function(o, type, data) {
+	var b = new lambda.Block(data.scope);
+	var c = data.scope.Extern(UTIL.make_method(this, this.encode));
+	var t = data.scope.Var();
+
+	b.add(t.Set(new lambda.Template("%%(%%)", c, o)));
+	b.add(type.Set(t.Index("type")));
+	b.add(data.Set(t.Index("data")));
+	return b;
+    }
+};
+serialization.Base = Base.extend(serialization.BaseClass);
+serialization.Generated = Base.extend({
+    constructor : function() {
+	if (!this._decode) {
+	    var f = new lambda.Function();
+	    var ret = f.Var();
+	    f.block.add(this.generate_decode(f.$(1).Index("type"),
+					 f.$(1).Index("data"),
+					 ret));
+	    f.block.add(f.Return(ret));
+	    this._decode = f.compile();
+	}
+	if (!this._can_decode) {
+	    var f = new lambda.Function();
+	    var ret = f.Var();
+	    f.block.add(this.generate_can_decode(f.$(1).Index("type"),
+					 f.$(1).Index("data"),
+					 ret));
+	    f.block.add(f.Return(ret));
+	    this._can_decode = f.compile();
+	}
+	if (!this._encode) {
+	    var f = new lambda.Function();
+	    var ret = f.Var();
+	    var data = f.Var();
+	    f.block.add(this.generate_encode(f.$(1), ret, data));
+	    f.block.add("%% = new serialization.Atom(%%, %%)", ret, ret, data);
+	    f.block.add(f.Return(ret));
+	    this._encode = f.compile();
+	}
+	if (!this._can_encode) {
+	    var f = new lambda.Function();
+	    var ret = f.Var();
+	    f.block.add(this.generate_can_encode(f.$(1), ret));
+	    f.block.add(f.Return(ret));
+	    this._can_encode = f.compile();
+	}
+
+	if (!this._render) {
+	    var f = new lambda.Function();
+	    var ret = f.Var();
+	    var data = f.Var();
+	    f.block.add(this.generate_encode(f.$(1), ret, data));
+	    f.block.add("%% = %% +\" \"+ %%.length +\" \"+ %%", ret, ret, ret, data);
+	    f.block.add(f.Return(ret));
+	    this._render = f.compile();
+	}
+    },
+    toString : function() {
+	return "serialization.Generated("+this.type+")";
+    },
+    decode : function(atom) {
+	return this._decode(atom);
+    },
+    can_decode : function(atom) {
+	return this._can_decode(atom);
+    },
+    encode : function(o) {
+	return this._encode(o);
+    },
+    can_encode : function(o) {
+	return this._can_encode(o);
+    },
+    render : function(o) {
+	return this._render(o);
+    },
+    generate_can_decode : function(type, data, ret) {
+	return ret.Set(new lambda.Template("%% === %%", type, this.type));
+    },
+});
+serialization.Any = serialization.Generated.extend({
+    generate_can_decode : function(type, data, ret) {
+	return ret.Set(true);
+    },
+    generate_can_encode : function(o, ret) {
+	return ret.Set(new lambda.Template("%% instanceof serialization.Atom",
+					   o));
+    },
+    generate_decode : function(type, data, ret) {
+	return ret.Set(new lambda.Template("new serialization.Atom(%%,%%)",
+					   type, data));
+    },
+    generate_encode : function(o, type, data) {
+	var b = new lambda.Block(data.scope);
+	b.add(type.Set(o.Index("type")));
+	b.add(data.Set(o.Index("data")));
+	return b;
+    }
 });
 serialization.Polymorphic = serialization.Base.extend({
     constructor: function() {
@@ -238,7 +385,9 @@ serialization.Polymorphic = serialization.Base.extend({
 
 	if (types) for (var i = 0; i < types.length; i ++) {
 	    if (types[i].can_encode(o)) {
+		window.badfun = types[i].encode;
 		return types[i].encode(o);
+		delete window.badfun;
 	    }
 	}
 
@@ -261,141 +410,166 @@ serialization.Polymorphic = serialization.Base.extend({
 	}
     }
 });
-serialization.Date = serialization.Base.extend({
-	constructor: function(prog) { 
-		this.prog = prog||Date;
-		this.type = "_time";
-	},
-	can_encode : function(o) {
-		return o instanceof this.prog;
-	},
-	decode : function(atom) {
-		return new this.prog(1000*parseInt(atom.data));
-	},
-	encode : function(o) {
-		return new serialization.Atom("_time", Math.round(o.getTime()/1000).toString());
-	}
+serialization.Date = serialization.Generated.extend({
+    constructor: function(prog) { 
+	this.prog = prog;
+	this.type = "_time";
+	this.base();
+    },
+    generate_can_encode : function(o, ret) {
+	if (this.prog) {
+	    var c = o.scope.Extern(this.prog);
+	    return ret.Set(new lambda.Template("%% instanceof %%", o, c));
+	} else return ret.Set(new lambda.Template("%% instanceof Date", o));
+    },
+    generate_decode : function(type, data, ret) {
+	if (this.prog) {
+	    var c = ret.scope.Extern(this.prog);
+	    return ret.Set(new lambda.Template("(new %%(1000*parseInt(%%)))", c, data));
+	} else return ret.Set(new lambda.Template("(new Date(1000*parseInt(%%)))", data));
+    },
+    generate_encode : function(o, type, data) {
+	var b = new lambda.Block(data.scope);
+	b.add(type.Set(this.type));
+	b.add(data.Set(new lambda.Template("Math.round(%%.getTime()/1000).toString()", o)));
+	return b;
+				     
+    }
 });
-serialization.Singleton = serialization.Base.extend({
+serialization.Singleton = serialization.Generated.extend({
     constructor : function(type, value) {
 	this.type = type;
 	this.value = value;
+	this.base();
     },
-    can_encode : function(o) {
-	return o === this.value;
+    generate_can_encode : function(o, ret) {
+	var c = o.scope.Extern(this.value);
+	return ret.Set("%% === %%", o, c);
     },
-    decode : function(atom) {
-	return this.value;
+    generate_decode : function(type, data, ret) {
+	return ret.Set(type.scope.Extern(this.value));
     },
-    encode : function(o) {
-	return new serialization.Atom(this.type, "");
-    },
-    render : function(o) {
-	return this.type+" 0 ";
+    generate_encode : function(o, type, data) {
+	var b = new lambda.Block(data.scope);
+	b.add(type.Set(this.type));
+	b.add(data.Set(""));
+	return b;
     }
 });
-serialization.String = serialization.Base.extend({
-	constructor : function() { 
-		this.type = "_string";
-	},
-	can_encode : function(o) {
-		return typeof(o) == "string";
-	},
-	decode : function(atom) {
-		return UTF8.decode(atom.data);
-	},
-	encode : function(o) {
-		return new serialization.Atom("_string", UTF8.encode(o));
-	},
-	render : function(s) {
-		s = UTF8.encode(s);
-		return "_string "+s.length+" "+s;
-	}
+serialization.String = serialization.Generated.extend({
+    constructor : function() { 
+	this.type = "_string";
+	this.base();
+    },
+    generate_can_encode : function(o, ret) {
+	return ret.Set(new lambda.Template("typeof(%%) == %%", o, "string"));
+    },
+    generate_decode : function(type, data, ret) {
+	return ret.Set(new lambda.Template("UTF8.decode(%%)", data));
+    },
+    generate_encode : function(o, type, data) {
+	var b = new lambda.Block(data.scope);
+	b.add(type.Set(this.type));
+	b.add(data.Set(new lambda.Template("UTF8.encode(%%)", o)));
+	return b;
+    }
 });
-serialization.Integer = serialization.Base.extend({
-	constructor : function() { 
-		this.type = "_integer";
-	},
-	can_encode : function(o) {
-		return UTIL.intp(o);
-	},
-	decode : function(atom) {
-		return parseInt(atom.data);
-	},
-	encode : function(o) {
-		return new serialization.Atom("_integer", o.toString());
-	},
-	render : function(o) {
-		var s = o.toString();
-		return "_integer "+s.length+" "+s;
-	}
+serialization.Integer = serialization.Generated.extend({
+    constructor : function() { 
+	this.type = "_integer";
+	this.base();
+    },
+    generate_can_encode : function(o, ret) {
+	return ret.Set(new lambda.Template("%% instanceof \"number\" && %% % 1.0 == 0.0", o, o));
+    },
+    generate_decode : function(type, data, ret) {
+	return ret.Set(new lambda.Template("parseInt(%%)", data));
+    },
+    generate_encode : function(o, type, data) {
+	var b = new lambda.Block(data.scope);
+	b.add(type.Set(this.type));
+	b.add(data.Set(new lambda.Template("%%.toString()", o)));
+	return b;
+    }
 });
-serialization.Float = serialization.Base.extend({
-	constructor : function() { 
-		this.type = "_float";
-	},
-	can_encode : function(o) {
-		return UTIL.floatp(o);
-	},
-	decode : function(atom) {
-		return parseFloat(atom.data);
-	},
-	encode : function(o) {
-		return new serialization.Atom("_float", o.toString());
-	}
+serialization.Float = serialization.Generated.extend({
+    constructor : function() { 
+	this.type = "_float";
+	this.base();
+    },
+    generate_can_encode : function(o, ret) {
+	return ret.Set(new lambda.Template("UTIL.floatp(%%)", o));
+    },
+    generate_decode : function(type, data, ret) {
+	return ret.Set(new lambda.Template("parseFloat(%%)", data));
+    },
+    generate_encode : function(o, type, data) {
+	var b = new lambda.Block(data.scope);
+	b.add(type.Set(this.type));
+	b.add(data.Set(new lambda.Template("%%.toString()", o)));
+	return b;
+    }
 });
-serialization.Binary = serialization.Base.extend({
-	constructor : function() { 
-		this.type = "_binary";
-	},
-	can_encode : function(o) {
-		return UTIL.stringp(o);
-	},
-	decode : function(atom) {
-		return atom.data;
-	},
-	encode : function(o) {
-		return new serialization.Atom(this.type, o);
-	}
+serialization.Binary = serialization.Generated.extend({
+    constructor : function() { 
+	    this.type = "_binary";
+    },
+    generate_can_encode : function(o, ret) {
+	return ret.Set(new lambda.Template("UTIL.stringp(%%)", o));
+    },
+    generate_decode : function(type, data, ret) {
+	return ret.Set(data);
+    },
+    generate_encode : function(o, type, data) {
+	var b = new lambda.Block(data.scope);
+	b.add(type.Set(this.type));
+	b.add(data.Set(data));
+	return b;
+    }
 });
 serialization.Method = serialization.Binary.extend({
-	constructor : function(base) {
-	    this.base = base;
-	    this.type = "_method";
-	}
+    constructor : function() {
+	this.base();
+	this.type = "_method";
+    }
 });
 serialization.Image = serialization.Binary.extend({
 	constructor : function() {
 	    this.type = "_image";
 	},
-	can_encode : function(o) {
-	    return o instanceof Image && UTIL.has_prefix(o.src, "data:image/");
-	},
-	encode : function(o) {
-	    var pos = o.src.indexOf(",");
-	    if (pos == -1) UTIL.error("broken dataurl.\n");
-	    return this.base(UTIL.Base64.decode(o.src.substr(pos+1)));
-	},
-	decode : function(o) {
-	    var data = this.base(o);
-	    var img = new Image();
-	    img.src = UTIL.image_to_dataurl(data);
-	    return img;
-	}
+    generate_can_encode : function(o, ret) {
+	return ret.Set(new lambda.Template("%% instanceof Image && UTIL.has_prefix(%%.src, \"data:image/\")", o, o));
+    },
+    generate_decode : function(type, data, ret) {
+	var b = new lambda.Block(data.scope);
+	b.add(ret.Set(new lambda.Template("new Image()")));
+	b.add(ret.Index("src").Set(new lambda.Template("UTIL.image_to_dataurl(%%)", data)));
+	return b;
+    },
+    generate_encode : function(o, type, data) {
+	var pos = o.scope.Var();
+	var b = new lambda.Block(data.scope);
+	b.add(pos.Set(new lambda.Template("%%.src.indexOf(\",\")", o)));
+	b.If("%% === -1", pos)
+	    .add("UTIL.error(%%)","broken dataurl.\n");
+	b.add(o.Set(new lambda.Template("UTIL.Base64.decode(%%.src.substr(%%+1))", o, pos)));
+	b.add(this.base(o, type, data));
+	return b;
+    }
 });
 serialization.Uniform = serialization.Base.extend({
-	constructor : function() { 
-		this.type = "_uniform";
-	},
-	can_encode : function(o) {
-		return o instanceof mmp.Uniform;
-	},
-	decode : function(atom) {
-		return mmp.get_uniform(atom.data);
-	},
-	encode : function(o) {
-		return new serialization.Atom("_uniform", o.uniform);
-	}
+    constructor : function() { 
+	this.type = "_uniform";
+    },
+    can_encode : function(o) {
+	return o instanceof mmp.Uniform;
+    },
+    decode : function(atom) {
+	return mmp.get_uniform(atom.data);
+    },
+    encode : function(o) {
+	return new serialization.Atom("_uniform", o.uniform);
+    }
 });
 serialization.Mapping = serialization.Base.extend({
 	constructor : function(mtype, vtype) { 
@@ -410,43 +584,19 @@ serialization.Mapping = serialization.Base.extend({
 	can_encode : function(o) {
 	    return o instanceof this.constr;
 	},
-	can_decode : function(atom) {
-		//UTIL.log("%o %o\n", this, atom);
-		if (!this.base(atom)) return false;
-
-		var p = new serialization.AtomParser();
-		var l = p.parse(atom.data);
-
-
-		if (l.length & 1) return false;
-
-		for (var i = 0;i < l.length; i+=2) {
-			if (!this.mtype.can_decode(l[i])) {
-			    UTIL.log("%o cannot decode %o\n", this.mtype, l[i]);
-			    return false;
-			}
-			if (!this.vtype.can_decode(l[i+1])) {
-			    UTIL.log("%o cannot decode %o\n", this.mtype, l[i]);
-			    return false;
-			}
-		}
-
-		return true;
-	},
 	decode : function(atom) {
-		var p = new serialization.AtomParser();
-		var l = p.parse(atom.data);
-		var m = new this.constr();
+	    var l = serialization.parse_atoms(atom.data);
+	    var m = new this.constr();
 
-		if (l.length & 1) UTIL.error("Malformed mapping.\n");
-		
-		for (var i = 0;i < l.length; i+=2) {
-			var key = this.mtype.decode(l[i]);
-			var val = this.vtype.decode(l[i+1]);
-			m.set(key, val);
-		}
+	    if (l.length & 1) UTIL.error("Malformed mapping.\n");
+	    
+	    for (var i = 0;i < l.length; i+=2) {
+		    var key = this.mtype.decode(l[i]);
+		    var val = this.vtype.decode(l[i+1]);
+		    m.set(key, val);
+	    }
 
-		return m;
+	    return m;
 	},
 	encode : function(o) {
 		var str = "";
@@ -464,45 +614,44 @@ serialization.Mapping = serialization.Base.extend({
 });
 serialization.Object = serialization.Mapping.extend({
 	constructor : function(vtype) { 
-		this.base(new serialization.String(),
-			  vtype);
-		this.type = "_mapping";
+	    this.base(new serialization.String(),
+		      vtype);
+	    this.type = "_mapping";
 	},
 	toString : function() {
-		return "Object()";
+	    return "Object()";
 	},
 	can_encode : function(o) {
-		return UTIL.objectp(o);
+	    return UTIL.objectp(o);
 	},
 	decode : function(atom) {
-		var p = new serialization.AtomParser();
-		var l = p.parse(atom.data);
-		var m = {};
+	    var l = serialization.parse_atoms(atom.data);
+	    var m = {};
 
-		if (l.length & 1) UTIL.error("Malformed mapping.\n");
-		
-		for (var i = 0;i < l.length; i+=2) {
-			var key = this.mtype.decode(l[i]);
-			var val = this.vtype.decode(l[i+1]);
-			m[key] = val;
-		}
+	    if (l.length & 1) UTIL.error("Malformed mapping.\n");
+	    
+	    for (var i = 0;i < l.length; i+=2) {
+		var key = this.mtype.decode(l[i]);
+		var val = this.vtype.decode(l[i+1]);
+		m[key] = val;
+	    }
 
-		return m;
+	    return m;
 	},
 	encode : function(o) {
-		var ret = UTIL.keys(o);
+	    var ret = UTIL.keys(o);
 
-		for (var i = 0; i < ret.length; i++) {
-			var key = ret[i];
-			var val = o[key];
-			if (!this.mtype.can_encode(key) || !this.vtype.can_encode(val)) {
-				UTIL.error("Type"+key+" cannot encode "+key+"("+this.mtype.can_encode(key)+") : "+val+"("+this.vtype.can_encode(val)+")");
-			}
-
-			ret[i] = this.mtype.encode(key).render()
-			       + this.vtype.encode(val).render();	
+	    for (var i = 0; i < ret.length; i++) {
+		var key = ret[i];
+		var val = o[key];
+		if (!this.mtype.can_encode(key) || !this.vtype.can_encode(val)) {
+		    UTIL.error("Type"+key+" cannot encode "+key+"("+this.mtype.can_encode(key)+") : "+val+"("+this.vtype.can_encode(val)+")");
 		}
-		return new serialization.Atom(this.type, ret.join(""));
+
+		ret[i] = this.mtype.encode(key).render()
+		       + this.vtype.encode(val).render();	
+	    }
+	    return new serialization.Atom(this.type, ret.join(""));
 	}
 });
 serialization.OneTypedVars = serialization.Base.extend({
@@ -528,8 +677,7 @@ serialization.OneTypedVars = serialization.Base.extend({
 		return new serialization.Atom("_vars", l.join(""));
 	},
 	decode : function(atom) {
-		var p = new serialization.AtomParser();
-		var l = p.parse(atom.data);
+		var l = serialization.parse_atoms(atom.data);
 		var type = this.vtype;
 		var vars = new mmp.Vars();
 
@@ -588,114 +736,128 @@ serialization.Vars = serialization.Base.extend({
 		return vars;
 	}
 });
-serialization.Tuple = serialization.Base.extend({
-	constructor : function(type, p) {
-		this.types = Array.prototype.slice.call(arguments, 2);
-		//UTIL.log("arguments "+arguments);
-		//UTIL.log("types "+this.types);
-		this.type = type||"_tuple";
-		this.p = p;
-	},
-	decode : function(atom) {
-		var p = new serialization.AtomParser();
-		var l = p.parse(atom.data);
-
-		//UTIL.log("list: %o. atom: %o (%s)\n", l, atom, atom.data);
-
-		if (l.length != this.types.length) UTIL.error(this+": '"+atom+"' contains "+l.length+" (need "+this.types.length+")");
-		
-		for (var i = 0; i < l.length; i++) {
-			if (this.types[i].can_decode(l[i])) {
-				l[i] = this.types[i].decode(l[i]);
-			} else {
-				//UTIL.log("%o cannot decode %o\n", this.types[i], l[i]);
-				UTIL.error("%o: cannot decode %o at position %d", this, atom, i);
-			}
-		}
-
-		return this.p ? UTIL.create(this.p, l) : l;
-	},
-	toString : function() {
-		var l = this.types.concat();
-		for (var i = 0; i < l.length; i++) l[i] = l[i].toString();
-
-		return "Tuple("+l.join(", ")+")";
-	},
-	can_encode : function(l) {
-		if (this.p)
-		    return l instanceof this.p;
-		else
-		    return UTIL.arrayp(l) && l.length == this.types.length;
-	},
-	encode : function(l) {
-		var d = "";
-
-		if (this.p && !UTIL.arrayp(l)) {
-		    l = l.toArray();
-		}
-
-		if (l.length != this.types.length) UTIL.error("Cannot encode %o (wrong length) %o", l, this.types);
-
-		for (var i = 0; i < l.length; i++) {
-			//UTIL.log("encode(%o)", i);
-			d += this.types[i].render(l[i]);
-		}
-
-		return new serialization.Atom(this.type, d);
+serialization.Tuple = serialization.Generated.extend({
+    constructor : function(type, p) {
+	this.types = Array.prototype.slice.call(arguments, 2);
+	//UTIL.log("arguments "+arguments);
+	//UTIL.log("types "+this.types);
+	this.type = type||"_tuple";
+	this.p = p;
+	this.base();
+    },
+    generate_decode : function(type, data, ret) {
+	var b = new lambda.Block(data.scope);
+	var l = type.scope.Var();
+	b.add(l.Set(new lambda.Template("serialization.low_parse_atoms(%%)", data)));
+	for (var i = 0; i < this.types.length; i++) {
+	    b.add(this.types[i].generate_decode(l.Index(i*2), l.Index(2*i+1), l.Index(i)));
 	}
+	if (this.p) {
+	    var c = type.scope.Extern(this.p);
+	    b.add(ret.Set(new lambda.Template("UTIL.create(%%, %%.slice(0, %%))", c, l, this.types.length)));
+	} else {
+	    b.add(ret.Set(new lambda.Template("%%.slice(0, %%)", l, this.types.length)));
+	}
+
+	return b;
+    },
+    toString : function() {
+	var l = this.types.concat();
+	for (var i = 0; i < l.length; i++) l[i] = l[i].toString();
+
+	return "Tuple("+l.join(", ")+")";
+    },
+    generate_can_encode : function(o, ret) {
+	if (this.p) {
+	    var c = o.scope.Extern(this.p);
+	    return ret.Set(new lambda.Template("%% instanceof %%", o, c));
+	} else {
+	    return ret.Set(new lambda.Template("UTIL.arrayp(%%) && %%.length === %%", o, o, this.types.length));
+	}
+    },
+    generate_encode : function(o, type, data) {
+	var b = new lambda.Block(data.scope);
+	var l = type.scope.Array(this.types.length*3);
+
+	if (this.p) {
+	    b.If("!UTIL.arrayp(%%)", o).add(o.Set(
+		new lambda.Template("%%.toArray()", o)));
+	}
+
+	for (var i = 0; i < this.types.length; i++) {
+	    b.add(this.types[i].generate_encode(o.Index(i), l.Index(2*i),
+						l.Index(2*i+1)));
+	}
+	b.add(type.Set(this.type));
+	b.add(serialization.lambda.low_render_atoms(l, data));
+	b.add(data.Set(new lambda.Template("%%.join(\"\")", l)));
+
+	return b;
+    }
 });
-serialization.Struct = serialization.Tuple.extend({
-	constructor : function(type, m, constr) {
-		this.names = UTIL.keys(m);
-		this.names = this.names.sort();
-		this.constr = constr;
-		//UTIL.log(this.names);
-		var types = [];
-		for (var i = 0; i < this.names.length; i++) {
-		    //UTIL.log("pushing type %o\n", m[this.names[i]]);
-		    types.push(m[this.names[i]]);
-		}
-		this.base.apply(this, [type||"_struct", false ].concat(types));
-	},
-	decode : function(atom) {
-		var l = this.base(atom);
-		var ret = this.constr ? (new this.constr()) : {};
-
-		for (var i = 0; i < this.names.length; i++)
-		    if (l[i] !== undefined)
-			ret[this.names[i]] = l[i];
-		    else UTIL.log("ignoring %o %o in %o", l[i], this.names[i], atom);
-
-		if (UTIL.functionp(ret.atom_init)) ret.atom_init();
-		return ret;
-	},
-	toString : function() {
-		var l = this.types.concat();
-		for (var i = 0; i < l.length; i++) l[i] = l[i].toString();
-
-		return "Struct("+l.join(", ")+")";
-	},
-	can_encode : function(o) {
-		var t = UTIL.objectp(o) && (!this.constr || o instanceof this.constr);
-		if (o instanceof SyncDB.Row && !t) {
-		    UTIL.error("%o claims it cannot encode row: %o (%o)", this, o);
-		}
-		return t;
-	},
-	encode : function(o) {
-		var l = [];
-		for (var i = 0; i < this.names.length; i ++) {
-		    // maybe call if functionp()
-		    if (UTIL.functionp(o[this.names[i]])) {
-			l.push(UTIL.make_method(o, o[this.names[i]])());
-		    } else {
-			// if the field does not exist, we get undefined
-			// here
-			l.push(o[this.names[i]]);
-		    }
-		}
-		return this.base(l);
+serialization.Struct = serialization.Generated.extend({
+    constructor : function(type, m, constr) {
+	this.names = UTIL.keys(m);
+	this.names = this.names.sort();
+	this.constr = constr;
+	//UTIL.log(this.names);
+	var types = [];
+	for (var i = 0; i < this.names.length; i++) {
+	    //UTIL.log("pushing type "+ m[this.names[i]]);
+	    types.push(m[this.names[i]]);
 	}
+	this.types = types;
+	this.type = type||"_struct";
+	this.base();
+    },
+    generate_decode : function(type, data, ret) {
+	var b = new lambda.Block(data.scope);
+	var l = type.scope.Var();
+	b.add(l.Set(new lambda.Template("serialization.low_parse_atoms(%%)", data)));
+	if (this.constr) {
+	    var c = type.scope.Extern(this.constr);
+	    b.add(ret.Set(new lambda.Template("(new %%())", c)));
+	} else {
+	    b.add(ret.Set({}));
+	}
+
+	for (var i = 0; i < this.names.length; i++) {
+	    b.add(this.types[i].generate_decode(l.Index(2*i), l.Index(2*i+1),
+						ret.Index(this.names[i])));
+	}
+
+	if (this.constr)
+	    b.If("UTIL.functionp(%%.atom_init)", ret).add("%%.atom_init();", ret);
+	return b;
+    },
+    toString : function() {
+	    var l = this.types.concat();
+	    for (var i = 0; i < l.length; i++) l[i] = l[i].toString();
+
+	    return "Struct("+l.join(", ")+")";
+    },
+    generate_can_encode : function(o, ret) {
+	if (this.constr) {
+	    var c = o.scope.Extern(this.constr);
+	    return ret.Set(new lambda.Template("%% instanceof %%", o, c));
+	} else 
+	    return ret.Set(new lambda.Template("typeof(%%) === %%", o,
+					       "object"));
+    },
+    generate_encode : function(o, type, data) {
+	var l = o.scope.Array(this.types.length*2);	
+	var t = o.scope.Var();
+	var b = new lambda.Block(data.scope);
+	for (var i = 0; i < this.names.length; i ++) {
+	    b.add(t.Set(o.Index(this.names[i])));
+	    b.If("typeof(%%) === %%", t, "function").add(t.Set(new lambda.Template("%%.call(%%)", t, o)));
+	    b.add(this.types[i].generate_encode(t, l.Index(2*i),
+						l.Index(2*i+1)));
+	}
+	b.add(type.Set(this.type));
+	b.add(data.Set(new lambda.Template("%%.join(\"\")", l)));
+	return b;
+    }
 });
 serialization.generate_structs = function(m) {
     var p = new serialization.Polymorphic();
@@ -744,72 +906,106 @@ serialization.Packet = serialization.Tuple.extend({
 		return new mmp.Packet(l[0], l[1]);
 	}
 });
-serialization.Or = serialization.Base.extend({
-	constructor : function(t) {
-	    if (UTIL.arrayp(t))
-		this.types = t;
-	    else
-		this.types = Array.prototype.slice.apply(arguments);
-	},
-	toString : function() {
-		var l = this.types.concat();
-		for (var i = 0; i < l.length; i++) l[i] = l[i].toString();
+serialization.Or = serialization.Generated.extend({
+    constructor : function(t) {
+	if (UTIL.arrayp(t))
+	    this.types = t;
+	else
+	    this.types = Array.prototype.slice.apply(arguments);
+    },
+    toString : function() {
+	    var l = this.types.concat();
+	    for (var i = 0; i < l.length; i++) l[i] = l[i].toString();
 
-		return "Or("+l.join(", ")+")";
-	},
-	can_encode : function(o) {
-		for (var i = 0; i < this.types.length; i++) {
-			if (this.types[i].can_encode(o)) return true;
-		}
-		return false;
-	},
-	can_decode : function(atom) {
-		for (var i = 0; i < this.types.length; i++) {
-			if (this.types[i].can_decode(atom)) return true;
-			UTIL.log("%o cannot decode %o", this.types[i], atom);
-		}
-		return false;
-	},
-	decode : function(atom) {
-		for (var i = 0; i < this.types.length; i++) {
-			if (this.types[i].can_decode(atom)) {
-				return this.types[i].decode(atom);
-			}
-		}
-
-		UTIL.error("No type in %o to decode %o", this, atom);
-	},
-	encode : function(o) {
-		for (var i = 0; i < this.types.length; i++) {
-			if (this.types[i].can_encode(o)) {
-				return this.types[i].encode(o);
-			}
-		}
-
-		UTIL.error("No type in %o to encode %o", this, o);
+	    return "Or("+l.join(", ")+")";
+    },
+    generate_can_encode : function(o, ret) {
+	var b = new lambda.Block(o.scope);
+	var t = o.scope.Var();
+	for (var i = 0; i < this.types.length; i++) {
+	    b.add(this.types[i].generate_can_encode(o, t));
+	    var i = b.If("%%", t);
+	    i.add(ret.Set(true));
+	    i.add(b.Break());
 	}
+	b.add(ret.Set(false));
+	return b;
+    },
+    generate_can_decode : function(type, data, ret) {
+	var b = new lambda.Block(type.scope);
+	var t = type.scope.Var();
+	for (var i = 0; i < this.types.length; i++) {
+	    b.add(this.types[i].generate_can_encode(type, data, t));
+	    var i = b.If("%%", t);
+	    i.add(ret.Set(true));
+	    i.add(b.Break());
+	}
+	b.add(ret.Set(false));
+	return b;
+    },
+    generate_decode : function(type, data, ret) {
+	var b = new lambda.Block(type.scope);
+	var t = type.scope.Var();
+	for (var i = 0; i < this.types.length; i++) {
+	    b.add(this.types[i].generate_can_decode(type, data, t));
+	    var clause = b.If("%%", t);
+	    clause.add(this.types[i].generate_decode(type, data, ret));
+	    clause.add(b.Break());
+	}
+	b.add("UTIL.error(%%, %%, %%, %%)", "No type in %o to decode [%o, %o]", this, type, data);
+	return b;
+    },
+    generate_encode : function(o, type, data) {
+	var b = new lambda.Block(o.scope);
+	var t = o.scope.Var();
+	for (var i = 0; i < this.types.length; i++) {
+	    b.add(this.types[i].generate_can_encode(o, t));
+	    var clause = b.If("%%", t);
+	    clause.add(this.types[i].generate_encode(o, type, data));
+	    clause.add(b.Break());
+	}
+	b.add("UTIL.error(%%, %%, %%)", "No type in %o to encode %o", this, o);
+	return b;
+    }
 });
-serialization.Array = serialization.Base.extend({
-	constructor : function(type) { 
-		this.type = "_list";
-		this.etype = type;
-	},
-	can_encode : function(o) {
-		return o instanceof Array;
-	},
-	decode : function(atom) {
-		var p = new serialization.AtomParser();
-		var l = p.parse(atom.data);
-		for (var i = 0; i < l.length; i++) l[i] = this.etype.decode(l[i]);
-		return l;
-	},
-	encode : function(o) {
-		var str = "";
-		for (var i = 0; i < o.length; i++) {
-			str += this.etype.render(o[i]);
-		}
-		return new serialization.Atom(this.type, str);
-	}
+serialization.Array = serialization.Generated.extend({
+    constructor : function(type) { 
+	this.type = "_list";
+	this.etype = type;
+	this.base();
+    },
+    generate_can_encode : function(o, ret) {
+	return ret.Set(new lambda.Template("%% instanceof Array", o));
+    },
+    generate_decode : function(type, data, ret) {
+	var b = new lambda.Block(type.scope);
+	var l = type.scope.Var();
+	var r = type.scope.Array(new lambda.Template("new Array(%%.length/2)", l));
+	
+	b.add(l.Set(new lambda.Template("serialization.low_parse_atoms(%%)", data)));
+	b.add(r.Init());
+	var f = r.Foreach();
+	f.add(this.etype.generate_decode(
+		l.Index(new lambda.Template("%%*2", f.key)),
+		l.Index(new lambda.Template("%%*2+1", f.key)),
+		r.Index(f.key)));
+	b.add(f);
+	b.add(ret.Set(r));
+	return b;
+    },
+    generate_encode : function(o, type, data) {
+	var b = new lambda.Block(type.scope);
+	var l = type.scope.Array(new lambda.Template("new Array(%%*2)", o.Length()));
+	b.add(l.Init());
+	var f = lambda.Array.prototype.Foreach.call(o);
+	f.add(this.etype.generate_encode(o.Index(f.key),
+		    l.Index(new lambda.Template("%%*2", f.key)),
+		    l.Index(new lambda.Template("%%*2+1", f.key))));
+	b.add(f);
+	b.add(type.Set(this.type));
+	b.add(data.Set(new lambda.Template("%%.join(\"\")", l)));
+	return b;
+    }
 });
 serialization.SimpleSet = serialization.Array.extend({
 	constructor : function() {
