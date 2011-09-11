@@ -813,6 +813,11 @@ try {
     UTIL.App.has_local_storage = false;
 }
 try {
+    UTIL.App.has_indexedDB = !!(window.indexedDB);
+} catch (e) {
+    UTIL.App.has_indexedDB = false;
+}
+try {
     UTIL.App.audio = document.createElement('audio');
     UTIL.App.has_audio = !!UTIL.App.audio && !!UTIL.App.audio.canPlayType && !!UTIL.App.audio.play;
     UTIL.App.has_vorbis = UTIL.App.has_audio && UTIL.App.audio.canPlayType("audio/ogg") != "" && UTIL.App.audio.canPlayType("audio/ogg") != "no";
