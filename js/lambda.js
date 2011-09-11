@@ -132,7 +132,7 @@ lambda.Block = Base.extend({
     Break : function() {
 	return new lambda.Template("break %%", this.label());
     },
-    Function() {
+    Function : function() {
 	return new lambda.Function(UTIL.copy(this.symbols));
     }
 });
@@ -177,19 +177,6 @@ lambda.For = lambda.Loop.extend({
 				     tinit, tcheck, tloop);
     }
 });
-lambda.gen_decode = function(scope, type, value, ret) {
-    var loop = new lambda.AtomParse(scope, value);
-    var ret = scope.Array();
-    var i;
-    for (..) {
-	if (!i)
-	    i = loop.If("%% == %%", loop.type, types[i].type);
-	else 
-	    i = i.Else().If("%% == %%", loop.type, types[i].type)
-	i.add(types[i].gen_decode(scope, loop.type, loop.data, ret));
-    }
-    return loop;
-}
 lambda.Symbol = Base.extend({
     constructor : function(name) {
 	this.name = name;
