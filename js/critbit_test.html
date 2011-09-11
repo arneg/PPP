@@ -37,12 +37,6 @@
 		new CritBit.Test.Simple(keys).run();
 		new CritBit.Test.RangeSet(keys).run();
 	    }
-	    new CritBit.Test.RangeMinus().run();
-
-	    new CritBit.Test.Simple([ "a", "aa", "aaa", "aba", "bab", "bba" ].sort()).run();
-	    new CritBit.Test.Simple(UTIL.keys(window).concat(UTIL.keys(UTIL)).sort()).run();
-	    test(numbers(1000));
-	    test(dates(1000));
 	    function showTree(tree) {
 		var a = new Array(tree.depth());
 		for (var i = 0; i < a.length; i++) {
@@ -89,6 +83,14 @@
 		}
 		tins(tree, C0, i + 1, a);
 		tins(tree, C1, i + 1, a);
+	    }
+	    var run = function() {
+		new CritBit.Test.RangeMinus().run();
+
+		new CritBit.Test.Simple([ "a", "aa", "aaa", "aba", "bab", "bba" ].sort()).run();
+		new CritBit.Test.Simple(UTIL.keys(window).concat(UTIL.keys(UTIL)).sort()).run();
+		test(numbers(1000));
+		test(dates(1000));
 	    }
 	</script>
     </head>
