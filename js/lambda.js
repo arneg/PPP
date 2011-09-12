@@ -32,6 +32,9 @@ var lambda = {
 	}
     },
 };
+lambda.Beacon = function() {
+    return new lambda.Template("try { throw('Beacon!'); } catch(e) {}");
+};
 lambda.Scope = Base.extend({
     constructor : function(symbols) {
 	this.symbols = symbols||{};
@@ -59,6 +62,11 @@ lambda.Scope = Base.extend({
 	return new lambda.Template("return %%", o);
     }
 });
+lambda.Add = function() {
+    return UTIL.create(lambda.Template,
+	[ "((%%) "+UTIL.nchars("+ (%%) ", arguments.length-1)+")" ]
+	 .concat(Array.prototype.slice.call(arguments)));
+};
 lambda.Function = lambda.Scope.extend({
     constructor : function(symbols) {
 	this.base(symbols);
@@ -251,13 +259,25 @@ lambda.Symbol = Base.extend({
     },
     Index : function(key) {
 	var b = new UTIL.StringBuilder();
-	lambda.render_template(b, "%%[%%]", [this, key]);
+	lambda.render_template(b, "(%%)[%%]", [this, key]);
 	return new lambda.Symbol(b.get());
     },
     Length : function() {
 	var b = new UTIL.StringBuilder();
-	lambda.render_template(b, "%%.length", [this]);
+	lambda.render_template(b, "(%%).length", [this]);
 	return new lambda.Symbol(b.get());
+    },
+    Add : function() {
+	return lambda.Add.apply(lambda, [ this ]
+	     .concat(Array.prototype.slice.call(arguments)));
+    },
+    Increment : function() {
+	if (arguments.length) {
+	    return new lambda.Template("%% += %%",
+		this, lambda.Add.apply(lambda, Array.prototype.slice.call(arguments)));
+	} else {
+	    return new lambda.Template("++(%%)", this);
+	}
     }
 });
 lambda.Var = lambda.Symbol.extend({
@@ -289,12 +309,13 @@ lambda.Array = lambda.Var.extend({
 	}
 	this.base(scope, name, init);
     },
-    Foreach : function() {
+    Foreach : function(step) {
+	if (!step) step = 1;
 	var i = this.scope.Var();
 	var v = this.scope.Var();
 	var f = new lambda.For(this.scope, i.Set(0),
 			       new lambda.Template("%% < %%.length", i, this),
-			       new lambda.Template("%%++", i));
+			       new lambda.Template("%%+=%%", i, step));
 	f.add(v.Set(this.Index(i)));
 	f.key = i;
 	f.value = v;
