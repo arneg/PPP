@@ -1,11 +1,11 @@
-string type = "_binary";
+inherit .Base;
+
+void create(string type) {
+    ::create(type||"_binary");
+}
 
 int(0..1) can_encode(mixed a) {
     return stringp(a);
-}
-
-int(0..1) can_decode(Serialization.Atom a) {
-	return a->type == type;
 }
 
 string decode(Serialization.Atom a) {

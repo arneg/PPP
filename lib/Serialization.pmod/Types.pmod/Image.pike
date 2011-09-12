@@ -1,3 +1,5 @@
 inherit .Binary;
 
-string type = "_image";
+void create() {
+    ::create("_image");
+}
