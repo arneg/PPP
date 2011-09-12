@@ -19,7 +19,7 @@ serialization.lambda = {
     AtomRender : Base.extend({
 	constructor : function(scope, n) {
 	    this.scope = scope;
-	    this.C = scope.Array(new lambda.Template("new Array(%%)", arguments.length > 1 ? (UTIL.intp(n) ? 2*n : n) : []));
+	    this.C = scope.Array(new lambda.Template("new Array(%%)", arguments.length > 1 ? (UTIL.intp(n) ? 2*n : n) : 0));
 	    this.i = scope.Var(0);
 	},
 	render : function(t, o) {
@@ -32,7 +32,10 @@ serialization.lambda = {
 	    return b;
 	},
 	finish : function(ret) {
-	    return ret.Set(new lambda.Template("(%%).join(\"\")", this.C));
+	    var b = new lambda.Block(this.scope);
+	    b.add(ret.Set(new lambda.Template("(%%).join(\"\")", this.C)));
+	   // b.add(this.i.Set(0));
+	    return b;
 	},
 	Init : function() {
 	    return this.C.Init();
@@ -481,7 +484,7 @@ serialization.String = serialization.Generated.extend({
 	this.base();
     },
     generate_can_encode : function(o, ret) {
-	return ret.Set(new lambda.Template("typeof(%%) == %%", o, "string"));
+	return ret.Set(new lambda.Template("typeof(%%) === 'string'", o));
     },
     generate_decode : function(type, data, ret) {
 	return ret.Set(new lambda.Template("UTF8.decode(%%)", data));
@@ -534,7 +537,7 @@ serialization.Binary = serialization.Generated.extend({
 	    this.type = "_binary";
     },
     generate_can_encode : function(o, ret) {
-	return ret.Set(new lambda.Template("UTIL.stringp(%%)", o));
+	return ret.Set(new lambda.Template("typeof(%%) === 'string'", o));
     },
     generate_decode : function(type, data, ret) {
 	return ret.Set(data);
@@ -590,88 +593,93 @@ serialization.Uniform = serialization.Base.extend({
 	return new serialization.Atom("_uniform", o.uniform);
     }
 });
-serialization.Mapping = serialization.Base.extend({
-	constructor : function(mtype, vtype) { 
-		this.mtype = mtype;
-		this.vtype = vtype;
-		this.type = "_mapping";
-	},
-	constr : Mapping,
-	toString : function() {
-		return "Mapping()";
-	},
-	can_encode : function(o) {
-	    return o instanceof this.constr;
-	},
-	decode : function(atom) {
-	    var l = serialization.parse_atoms(atom.data);
-	    var m = new this.constr();
+serialization.Mapping = serialization.Generated.extend({
+    constructor : function(mtype, vtype) { 
+	this.mtype = mtype;
+	this.vtype = vtype;
+	this.type = "_mapping";
+    },
+    constr : Mapping,
+    toString : function() {
+	    return "Mapping()";
+    },
+    generate_can_encode : function(o, ret) {
+	var c = ret.scope.Extern(this.constr);
+	return ret.Set(new lambda.Template("%% instanceof %%", o, c));
+    },
+    generate_decode : function(type, data, ret) {
+	var loop;
+	var k = ret.scope.Var();
+	var v = ret.scope.Var();
+	var l = ret.scope.Array();
+	var c = ret.scope.Extern(this.constr);
+	var b = new lambda.Block(ret.scope);
+	b.add(l.Set(new lambda.Template("serialization.low_parse_atoms(%%)", data)));
+	b.add(ret.Set(new lambda.Template("new (%%)()", c)));
 
-	    if (l.length & 1) UTIL.error("Malformed mapping.\n");
-	    
-	    for (var i = 0;i < l.length; i+=2) {
-		    var key = this.mtype.decode(l[i]);
-		    var val = this.vtype.decode(l[i+1]);
-		    m.set(key, val);
-	    }
+	var f = l.Foreach(4);
+	f.add(this.mtype.generate_decode(l.Index(f.key), l.Index(f.key.Add(1)), k));
+	f.add(this.vtype.generate_decode(l.Index(f.key.Add(2)), l.Index(f.key.Add(3)), v));
+	f.add(new lambda.Template("(%%).set(%%, %%)", ret, k, v));
+	b.add(f);
 
-	    return m;
-	},
-	encode : function(o) {
-		var str = "";
+	return b;
+    },
+    generate_encode : function(o, type, data) {
+	var b = new lambda.Block(data.scope);
+	var buf = new serialization.lambda.AtomRender(data.scope);
+	var cb = data.scope.Function();
+	cb.block.add(buf.render(this.mtype, cb.$(1)));
+	cb.block.add(buf.render(this.vtype, cb.$(2)));
 
-		o.forEach(UTIL.make_method(this, function (key, val) {
-			if (!this.mtype.can_encode(key) || !this.vtype.can_encode(val)) {
-				UTIL.error("Type cannot encode "+key+"("+this.mtype.can_encode(key)+") : "+val+"("+this.vtype.can_encode(val)+")");
-			}
-
-			str += this.mtype.render(key);
-			str += this.vtype.render(val);
-		}));
-		return new serialization.Atom(this.type, str);
-	}
+	b.add(new lambda.Template("(%%).forEach(%%)", o, cb));
+	b.add(type.Set(this.type));
+	b.add(buf.finish(data));
+	return b;
+    }
 });
-serialization.Object = serialization.Mapping.extend({
-	constructor : function(vtype) { 
-	    this.base(new serialization.String(),
-		      vtype);
-	    this.type = "_mapping";
-	},
-	toString : function() {
-	    return "Object()";
-	},
-	can_encode : function(o) {
-	    return UTIL.objectp(o);
-	},
-	decode : function(atom) {
-	    var l = serialization.parse_atoms(atom.data);
-	    var m = {};
+serialization.Object = serialization.Generated.extend({
+    constructor : function(vtype) { 
+	this.vtype = vtype;
+	this.type = "_mapping";
+	this.base();
+    },
+    toString : function() {
+	return "Object()";
+    },
+    generate_can_encode : function(o, ret) {
+	return ret.Set(new lambda.Template("%% instanceof Object", o));
+    },
+    generate_decode : function(type, data, ret) {
+	var loop;
+	var k = ret.scope.Var();
+	var v = ret.scope.Var();
+	var l = ret.scope.Array();
+	var b = new lambda.Block(ret.scope);
+	b.add(l.Set(new lambda.Template("serialization.low_parse_atoms(%%)", data)));
+	b.add(ret.Set({}));
 
-	    if (l.length & 1) UTIL.error("Malformed mapping.\n");
-	    
-	    for (var i = 0;i < l.length; i+=2) {
-		var key = this.mtype.decode(l[i]);
-		var val = this.vtype.decode(l[i+1]);
-		m[key] = val;
-	    }
+	var f = l.Foreach(4);
+	f.add(serialization.string.generate_decode(l.Index(f.key), l.Index(f.key.Add(1)), k));
+	f.add(this.vtype.generate_decode(l.Index(f.key.Add(2)), l.Index(f.key.Add(3)), v));
+	f.add(ret.Index(k).Set(v));
+	b.add(f);
 
-	    return m;
-	},
-	encode : function(o) {
-	    var ret = UTIL.keys(o);
-
-	    for (var i = 0; i < ret.length; i++) {
-		var key = ret[i];
-		var val = o[key];
-		if (!this.mtype.can_encode(key) || !this.vtype.can_encode(val)) {
-		    UTIL.error("Type"+key+" cannot encode "+key+"("+this.mtype.can_encode(key)+") : "+val+"("+this.vtype.can_encode(val)+")");
-		}
-
-		ret[i] = this.mtype.encode(key).render()
-		       + this.vtype.encode(val).render();	
-	    }
-	    return new serialization.Atom(this.type, ret.join(""));
-	}
+	return b;
+    },
+    generate_encode : function(o, type, data) {
+	var buf = new serialization.lambda.AtomRender(o.scope);
+	var b = new lambda.Block(type.scope);
+	b.add(buf.Init());
+	if (this.vtype instanceof serialization.Range) b.add(lambda.Beacon());
+	var f = lambda.Mapping.prototype.Foreach.call(o);
+	f.add(buf.render(serialization.string, f.key));
+	f.add(buf.render(this.vtype, f.value));
+	b.add(f);
+	b.add(type.Set(this.type));
+	b.add(buf.finish(data));
+	return b;
+    }
 });
 serialization.OneTypedVars = serialization.Base.extend({
 	constructor : function(type) { 
@@ -791,15 +799,16 @@ serialization.Tuple = serialization.Generated.extend({
 	    var c = o.scope.Extern(this.p);
 	    return ret.Set(new lambda.Template("%% instanceof %%", o, c));
 	} else {
-	    return ret.Set(new lambda.Template("UTIL.arrayp(%%) && %%.length === %%", o, o, this.types.length));
+	    return ret.Set(new lambda.Template("(%%) instanceof Array && %%.length === %%", o, o, this.types.length));
 	}
     },
     generate_encode : function(o, type, data) {
 	var b = new lambda.Block(data.scope);
 	var buf = new serialization.lambda.AtomRender(data.scope);
+	b.add(buf.Init());
 
 	if (this.p) {
-	    b.If("!UTIL.arrayp(%%)", o).add(o.Set(
+	    b.If("!((%%) instanceof Array)", o).add(o.Set(
 		new lambda.Template("%%.toArray()", o)));
 	}
 
@@ -844,7 +853,7 @@ serialization.Struct = serialization.Generated.extend({
 	}
 
 	if (this.constr)
-	    b.If("UTIL.functionp(%%.atom_init)", ret).add("%%.atom_init();", ret);
+	    b.If("(%%.atom_init)", ret).add("%%.atom_init();", ret);
 	b.add(ret.Index("_atom_cache").Set(new lambda.Template("[ %%, %% ]",
 					    type, data)));
 	return b;
@@ -894,7 +903,7 @@ serialization.generate_structs = function(m) {
 	if (t.prototype._types) {
 	    types = UTIL.copy(t.prototype._types);
 	    for (var n in types) if (types.hasOwnProperty(n)) {
-		if (UTIL.functionp(types[n]))
+		if ((types[n]) instanceof Function)
 		    types[n] = types[n](p);
 	    }
 	} else types = {};
@@ -934,7 +943,7 @@ serialization.Packet = serialization.Tuple.extend({
 });
 serialization.Or = serialization.Generated.extend({
     constructor : function(t) {
-	if (UTIL.arrayp(t))
+	if (t instanceof Array)
 	    this.types = t;
 	else
 	    this.types = Array.prototype.slice.apply(arguments);

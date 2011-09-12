@@ -1,4 +1,4 @@
-/*
+#include "util.h"/*
 Copyright (C) 2008-2011  Arne Goedeke
 Copyright (C) 2008-2011  Tobias Josefowitz
 
@@ -174,11 +174,19 @@ UTIL.array_or = function(a, b) {
  * Creates and object of class myclass with the given array of arguments.
  */
 UTIL.create = function(myclass, args) {
-    return new (myclass.extend({
-	constructor : function(a) {
-	    this.base.apply(this, a);
-	}
-    }))(args);
+    if (myclass.extend)
+	return new (myclass.extend({
+	    constructor : function(a) {
+		this.base.apply(this, a);
+	    }
+	}))(args);
+    else {
+	var f = function() {
+	    myclass.apply(this, args);
+	};
+	f.prototype = myclass.prototype;
+	return new f();
+    }
 };
 /**
  * Wraps fun in a function running profiling.
@@ -288,7 +296,7 @@ UTIL.intp = function(i) { return (typeof(i) == "number" && i%1 == 0); };
 UTIL.floatp = function(i) { return (typeof(i) == "number" && i%1 != 0.0); };
 UTIL.numberp = function(i) { return typeof(i) == "number"; };
 UTIL.arrayp = function(a) { return (typeof(a) == "object" && a instanceof Array); };
-UTIL.stringp = function(s) { return (typeof(s) == "string"); };
+UTIL.stringp = function(s) { return STRINGP(s); };
 UTIL.functionp = function(f) { return (typeof(f) == "function" || f instanceof Function); };
 UTIL.objectp = function(o) { return typeof(o) == "object"; }
 /**
@@ -449,7 +457,7 @@ UTIL.render_into = function(node, template, vars) {
 	var a = UTIL.split_replace(reg, template, cb);
 
 	for (var i = 0; i < a.length; i++) {
-		if (UTIL.stringp(a[i])) node.appendChild(document.createTextNode(a[i]));
+		if (STRINGP(a[i])) node.appendChild(document.createTextNode(a[i]));
 		else if (UTIL.objectp(a[i])) node.appendChild(a[i]);
 	}
 };
@@ -858,7 +866,7 @@ delete UTIL.App.video;
  */
 UTIL.nchars = function(c, n) {
     if (n < 0) UTIL.error("bad argument");
-    var t = UTIL.stringp(c) ? c : String.fromCharCode(c);
+    var t = STRINGP(c) ? c : String.fromCharCode(c);
     var ret = "";
     while (n) {
 	if (n & 1) ret += t;
@@ -879,7 +887,7 @@ UTIL.sprintf_var = function(type, v, p, filler) {
 	    } else {
 		ret = v.toString(2);
 	    }
-	} else if (UTIL.stringp(v)) {
+	} else if (STRINGP(v)) {
 	    ret = "";
 	    for (var i = 0; i < v.length; i++) {
 		var b = v.charCodeAt(i).toString(2);
@@ -905,7 +913,7 @@ UTIL.sprintf_var = function(type, v, p, filler) {
 	ret = v.toString();
 	break;
     case 115 /* s */:
-	if (UTIL.stringp(v)) ret = v;
+	if (STRINGP(v)) ret = v;
 	break;
     }
     if (!filler) filler = 32;
@@ -951,7 +959,7 @@ if (window.console && window.console.log) {
     } else { //this is IE
 	UTIL.log = function(err) {
 	    try {
-		window.console.log(UTIL.stringp(err) ? err : (err.toString ? err.toString() : "UNKNOWN"));
+		window.console.log(STRINGP(err) ? err : (err.toString ? err.toString() : "UNKNOWN"));
 	    } catch (e) {}
 	};
 	UTIL.trace = function() {};

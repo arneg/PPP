@@ -8,7 +8,7 @@ var lambda = {
 		    throw("not enough arguments to '"+s+"'");
 		}
 		var v = a[++c];
-		if (UTIL.functionp(v)) {
+		if ((v) instanceof Function) {
 		    return v;
 		} else if (v instanceof lambda.Symbol
 			   || v instanceof lambda.Var) {
@@ -23,7 +23,7 @@ var lambda = {
 	    for (var i = 0; i < r.length; i++) {
 		if (UTIL.stringp(r[i])) {
 		    buf.add(r[i]);
-		} else if (UTIL.functionp(r[i])) {
+		} else if ((r[i]) instanceof Function) {
 		    r[i](buf);
 		} else if (UTIL.objectp(r[i]) && r[i].render) {
 		    r[i].render(buf);
@@ -140,15 +140,15 @@ lambda.Function = lambda.Scope.extend({
 	return this._this;
     }
 });
-lambda.Template = Base.extend({
-    constructor : function(s) {
-	this.s = s;
-	this.args = Array.prototype.slice.call(arguments, 1);
-    },
+lambda.Template = function(s) {
+    this.s = s;
+    this.args = Array.prototype.slice.call(arguments, 1);
+};
+lambda.Template.prototype = {
     render : function(buf) {
 	lambda.render_template(buf, this.s, this.args);
     }
-});
+};
 lambda.Block = Base.extend({
     constructor : function(scope) {
 	this.scope = scope;

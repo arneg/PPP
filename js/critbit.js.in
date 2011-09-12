@@ -793,17 +793,17 @@ CritBit.Tree = Base.extend({
 	return ret;
     }
 });
-CritBit.Range = Base.extend({
-    constructor : function(a, b, value) {
-	this.a = a;
-	this.b = b;
-	if (arguments.length > 1) {
-	    if (a >= b && !(a <= b))
-		UTIL.error("Bad range. Ends before it starts [%o..%o].\n", a, b);
-	    if (arguments.length > 2)
-		this.value = value;
-	}
-    },
+CritBit.Range = function(a, b, value) {
+    this.a = a;
+    this.b = b;
+    if (arguments.length > 1) {
+	if (a >= b && !(a <= b))
+	    UTIL.error("Bad range. Ends before it starts [%o..%o].\n", a, b);
+	if (arguments.length > 2)
+	    this.value = value;
+    }
+};
+CritBit.Range.prototype = {
     toArray : function() {
 	return [ this.a, this.b ];
     },
@@ -835,7 +835,7 @@ CritBit.Range = Base.extend({
     eq : function(o) {
 	return o.value == this.value && CritBit.eq(o.a, this.a) && CritBit.eq(o.b, this.b);
     }
-});
+};
 CritBit.min = function(a, b) {
     return CritBit.le(a, b) ? a : b;
 };
@@ -1087,7 +1087,7 @@ CritBit.MultiRangeSet = Base.extend({
 if (window.serialization) {
 serialization.Range = serialization.Tuple.extend({
     constructor : function(type, vtype) {
-	var m = [
+	var m= [
 	    "_range", CritBit.Range,
 	    type, type
 	];
