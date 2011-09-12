@@ -230,6 +230,13 @@ UTIL.safe = function(fun) {
 	};
     };
 };
+UTIL.cached = function(fun) {
+    var c = [ ];
+    return function() {
+	if (!c.length) c[0] = fun.apply(this, Array.prototype.slice.call(arguments));
+	return c[0];
+    };
+};
 UTIL.call_later = function(fun) {
     if (arguments.length > 1 && arguments[1]) {
 	fun = UTIL.make_method(arguments[1], fun);
@@ -447,7 +454,7 @@ UTIL.render_into = function(node, template, vars) {
 	}
 };
 UTIL.url_escape = function(s) {
-    	return escape(s).replace(/\+/g, "%2B").replace(/\//g, "%2F");
+    	return escape(s).replace(/\+/g, "%2B").replace(new RegExp("/", "g"), "%2F");
 };
 UTIL.make_url = function(url, vars) {
     	var list = [];
@@ -739,12 +746,16 @@ UTIL.EventAggregator = Base.extend({
 		var q = this.q;
 		delete this.q;
 		for (var i = 0; i < q.length; i++)
+#ifdef DEBUG
 		    try {
+#endif
 			q[i](this.result);
+#ifdef DEBUG
 		    } catch (e) {
 			UTIL.log("UTIL.EventAggregator: Function %o sucks because it gave error %o.",
 				 q[i], e);
 		    }
+#endif
 	    }
 	}
 });

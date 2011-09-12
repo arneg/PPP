@@ -16,6 +16,28 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 serialization = {};
 serialization.lambda = {
+    AtomRender : Base.extend({
+	constructor : function(scope, n) {
+	    this.scope = scope;
+	    this.C = scope.Array(new lambda.Template("new Array(%%)", arguments.length > 1 ? (UTIL.intp(n) ? 2*n : n) : []));
+	    this.i = scope.Var(0);
+	},
+	render : function(t, o) {
+	    var b = new lambda.Block(this.scope);
+	    var type = this.C.Index(this.i);
+	    var data = this.C.Index(this.i.Add(1));
+	    b.add(t.generate_encode(o, type, data));
+	    b.add(type.Increment(" ", data.Length(), " "));
+	    b.add(this.i.Increment(2));
+	    return b;
+	},
+	finish : function(ret) {
+	    return ret.Set(new lambda.Template("(%%).join(\"\")", this.C));
+	},
+	Init : function() {
+	    return this.C.Init();
+	}
+    })
 };
 /**
  * Atom class.
@@ -228,8 +250,6 @@ serialization.BaseClass = {
     render : function(o) {
 	return this.encode(o).render();
     },
-    extend : function(m) {
-    },
     generate_decode : function(type, data, ret) {
 	var c = ret.scope.Extern(UTIL.make_method(this, this.decode));
 	return ret.Set(new lambda.Template("%%(new serialization.Atom(%%, %%))",
@@ -259,6 +279,11 @@ serialization.BaseClass = {
 serialization.Base = Base.extend(serialization.BaseClass);
 serialization.Generated = Base.extend({
     constructor : function() {
+    },
+    toString : function() {
+	return "serialization.Generated("+this.type+")";
+    },
+    decode : function(atom) {
 	if (!this._decode) {
 	    var f = new lambda.Function();
 	    var ret = f.Var();
@@ -268,6 +293,9 @@ serialization.Generated = Base.extend({
 	    f.block.add(f.Return(ret));
 	    this._decode = f.compile();
 	}
+	return this._decode(atom);
+    },
+    can_decode : function(atom) {
 	if (!this._can_decode) {
 	    var f = new lambda.Function();
 	    var ret = f.Var();
@@ -277,6 +305,9 @@ serialization.Generated = Base.extend({
 	    f.block.add(f.Return(ret));
 	    this._can_decode = f.compile();
 	}
+	return this._can_decode(atom);
+    },
+    encode : function(o) {
 	if (!this._encode) {
 	    var f = new lambda.Function();
 	    var ret = f.Var();
@@ -286,6 +317,10 @@ serialization.Generated = Base.extend({
 	    f.block.add(f.Return(ret));
 	    this._encode = f.compile();
 	}
+	var t = this._encode(o);
+	return t;
+    },
+    can_encode : function(o) {
 	if (!this._can_encode) {
 	    var f = new lambda.Function();
 	    var ret = f.Var();
@@ -293,7 +328,9 @@ serialization.Generated = Base.extend({
 	    f.block.add(f.Return(ret));
 	    this._can_encode = f.compile();
 	}
-
+	return this._can_encode(o);
+    },
+    render : function(o) {
 	if (!this._render) {
 	    var f = new lambda.Function();
 	    var ret = f.Var();
@@ -303,23 +340,6 @@ serialization.Generated = Base.extend({
 	    f.block.add(f.Return(ret));
 	    this._render = f.compile();
 	}
-    },
-    toString : function() {
-	return "serialization.Generated("+this.type+")";
-    },
-    decode : function(atom) {
-	return this._decode(atom);
-    },
-    can_decode : function(atom) {
-	return this._can_decode(atom);
-    },
-    encode : function(o) {
-	return this._encode(o);
-    },
-    can_encode : function(o) {
-	return this._can_encode(o);
-    },
-    render : function(o) {
 	return this._render(o);
     },
     generate_can_decode : function(type, data, ret) {
@@ -385,9 +405,8 @@ serialization.Polymorphic = serialization.Base.extend({
 
 	if (types) for (var i = 0; i < types.length; i ++) {
 	    if (types[i].can_encode(o)) {
-		window.badfun = types[i].encode;
-		return types[i].encode(o);
-		delete window.badfun;
+		var t = types[i].encode(o);
+		return t;
 	    }
 	}
 
@@ -480,7 +499,7 @@ serialization.Integer = serialization.Generated.extend({
 	this.base();
     },
     generate_can_encode : function(o, ret) {
-	return ret.Set(new lambda.Template("%% instanceof \"number\" && %% % 1.0 == 0.0", o, o));
+	return ret.Set(new lambda.Template("typeof(%%) === \"number\" && %% % 1.0 == 0.0", o, o));
     },
     generate_decode : function(type, data, ret) {
 	return ret.Set(new lambda.Template("parseInt(%%)", data));
@@ -523,7 +542,7 @@ serialization.Binary = serialization.Generated.extend({
     generate_encode : function(o, type, data) {
 	var b = new lambda.Block(data.scope);
 	b.add(type.Set(this.type));
-	b.add(data.Set(data));
+	b.add(data.Set(o));
 	return b;
     }
 });
@@ -777,7 +796,7 @@ serialization.Tuple = serialization.Generated.extend({
     },
     generate_encode : function(o, type, data) {
 	var b = new lambda.Block(data.scope);
-	var l = type.scope.Array(this.types.length*3);
+	var buf = new serialization.lambda.AtomRender(data.scope);
 
 	if (this.p) {
 	    b.If("!UTIL.arrayp(%%)", o).add(o.Set(
@@ -785,12 +804,10 @@ serialization.Tuple = serialization.Generated.extend({
 	}
 
 	for (var i = 0; i < this.types.length; i++) {
-	    b.add(this.types[i].generate_encode(o.Index(i), l.Index(2*i),
-						l.Index(2*i+1)));
+	    b.add(buf.render(this.types[i], o.Index(i)));
 	}
 	b.add(type.Set(this.type));
-	b.add(serialization.lambda.low_render_atoms(l, data));
-	b.add(data.Set(new lambda.Template("%%.join(\"\")", l)));
+	b.add(buf.finish(data));
 
 	return b;
     }
@@ -828,6 +845,8 @@ serialization.Struct = serialization.Generated.extend({
 
 	if (this.constr)
 	    b.If("UTIL.functionp(%%.atom_init)", ret).add("%%.atom_init();", ret);
+	b.add(ret.Index("_atom_cache").Set(new lambda.Template("[ %%, %% ]",
+					    type, data)));
 	return b;
     },
     toString : function() {
@@ -848,11 +867,18 @@ serialization.Struct = serialization.Generated.extend({
 	var l = o.scope.Array(this.types.length*2);	
 	var t = o.scope.Var();
 	var b = new lambda.Block(data.scope);
+
+	var cache = b.If("!!(%%)", o.Index("_atom_cache"));
+	cache.add(type.Set(o.Index("_atom_cache").Index(0)));
+	cache.add(data.Set(o.Index("_atom_cache").Index(1)));
+	cache.add(b.Break());
+
 	for (var i = 0; i < this.names.length; i ++) {
 	    b.add(t.Set(o.Index(this.names[i])));
 	    b.If("typeof(%%) === %%", t, "function").add(t.Set(new lambda.Template("%%.call(%%)", t, o)));
 	    b.add(this.types[i].generate_encode(t, l.Index(2*i),
 						l.Index(2*i+1)));
+	    b.add(l.Index(2*i).Increment(" ", l.Index(2*i+1).Length(), " "));
 	}
 	b.add(type.Set(this.type));
 	b.add(data.Set(new lambda.Template("%%.join(\"\")", l)));
@@ -912,6 +938,7 @@ serialization.Or = serialization.Generated.extend({
 	    this.types = t;
 	else
 	    this.types = Array.prototype.slice.apply(arguments);
+	this.base();
     },
     toString : function() {
 	    var l = this.types.concat();
@@ -994,24 +1021,22 @@ serialization.Array = serialization.Generated.extend({
 	return b;
     },
     generate_encode : function(o, type, data) {
+	var buf = new serialization.lambda.AtomRender(o.scope, o.Length());
 	var b = new lambda.Block(type.scope);
-	var l = type.scope.Array(new lambda.Template("new Array(%%*2)", o.Length()));
-	b.add(l.Init());
+	b.add(buf.Init());
 	var f = lambda.Array.prototype.Foreach.call(o);
-	f.add(this.etype.generate_encode(o.Index(f.key),
-		    l.Index(new lambda.Template("%%*2", f.key)),
-		    l.Index(new lambda.Template("%%*2+1", f.key))));
+	f.add(buf.render(this.etype, o.Index(f.key)));
 	b.add(f);
 	b.add(type.Set(this.type));
-	b.add(data.Set(new lambda.Template("%%.join(\"\")", l)));
+	b.add(buf.finish(data));
 	return b;
     }
 });
 serialization.SimpleSet = serialization.Array.extend({
 	constructor : function() {
 	    this.base(new serialization.Or(
-					   new serialization.Integer(),
-					   new serialization.String()))
+					   serialization.integer,
+					   serialization.string))
 	},
 	can_encode : function(o) {
 	    return UTIL.objectp(o);
@@ -1032,3 +1057,7 @@ serialization.Undefined = new serialization.Singleton("_undefined", undefined);
 serialization.False = new serialization.Singleton("_false", false);
 serialization.True = new serialization.Singleton("_true", true);
 serialization.Boolean = new serialization.Or(serialization.True, serialization.False);
+serialization.integer = new serialization.Integer();
+serialization.string = new serialization.String();
+serialization.date = new serialization.Date();
+serialization.image = new serialization.Image();
