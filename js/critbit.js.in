@@ -804,6 +804,9 @@ CritBit.Range = Base.extend({
 		this.value = value;
 	}
     },
+    toArray : function() {
+	return [ this.a, this.b ];
+    },
     overlaps : function(range) {
 	return CritBit.le(range.a, this.b) && CritBit.ge(range.b, this.a);
 //	return (Math.max(range.a, this.a) <= Math.min(range.b, this.b));
