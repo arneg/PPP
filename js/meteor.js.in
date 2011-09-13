@@ -309,7 +309,7 @@ meteor.Connection.prototype = {
 	}
 	*/
 	//xhr.overrideMimeType("text/plain; charset=ISO-8859-1");
-	//if (xhr.overrideMimeType) xhr.overrideMimeType('text/plain; charset=x-user-defined');
+	if (UTIL.App.is_chrome && xhr.overrideMimeType) xhr.overrideMimeType('text/plain; charset=x-user-defined');
 	xhr.onreadystatechange = UTIL.make_method(this, this.new_incoming_state_change, xhr);
 	var cb = UTIL.make_method(this, function() {
 	    UTIL.log("connecting new_incoming timed out. dropping.\n");
