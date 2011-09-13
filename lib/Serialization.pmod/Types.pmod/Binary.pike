@@ -1,6 +1,6 @@
 inherit .Base;
 
-void create(string type) {
+void create(void|string type) {
     ::create(type||"_binary");
 }
 
