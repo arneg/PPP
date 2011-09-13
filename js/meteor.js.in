@@ -241,8 +241,8 @@ meteor.Channel.prototype = {
 meteor.Connection = function(url, vars, callback, error) {
     this.url = url;
     this.vars = vars;
-    if (UTIL.App.is_opera || UTIL.App.is_ie)
-	this.vars["utf8"] = "1";
+    if (UTIL.App.is_opera || UTIL.App.is_ie || UTIL.App.is_safari || eval("new XMLHttpRequest()").sendAsBinary)
+	this.vars.utf8 = "1";
     if (UTIL.App.is_ie) this.vars["autoclose"] = "1";
     this.buffer = "";
     this.callback = callback;
@@ -299,8 +299,6 @@ meteor.Connection.prototype = {
 	var xhr = eval("new XMLHttpRequest();");
 	this.new_incoming = xhr;
 
-	// this tries to detect the firefox case
-	if (xhr.sendAsBinary) this.vars.utf8 = 1;
 	this.vars.random = UTIL.get_random_key(6);
 	// this is a bloody hack!
 	xhr.open("POST", UTIL.make_url(this.url, this.vars), true);
