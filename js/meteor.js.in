@@ -300,7 +300,7 @@ meteor.Connection.prototype = {
 	this.new_incoming = xhr;
 
 	// this tries to detect the firefox case
-	if (xhr.overrideMimeType) this.vars.utf8 = 1;
+	if (xhr.sendAsBinary) this.vars.utf8 = 1;
 	this.vars.random = UTIL.get_random_key(6);
 	// this is a bloody hack!
 	xhr.open("POST", UTIL.make_url(this.url, this.vars), true);
