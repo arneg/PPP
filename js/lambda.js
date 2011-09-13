@@ -21,11 +21,11 @@ var lambda = {
 		}
 	    });
 	    for (var i = 0; i < r.length; i++) {
-		if (UTIL.stringp(r[i])) {
+		if (typeof(r[i]) === 'string') {
 		    buf.add(r[i]);
-		} else if ((r[i]) instanceof Function) {
+		} else if (r[i] instanceof Function) {
 		    r[i](buf);
-		} else if (UTIL.objectp(r[i]) && r[i].render) {
+		} else if (r[i] instanceof Object && r[i].render) {
 		    r[i].render(buf);
 		} else throw("dont know how to render "+ r[i]+" in '"+s+"'");
 	    }
@@ -192,10 +192,10 @@ lambda.Block = Base.extend({
 	));
     },
     add : function(o) {
-	if (UTIL.stringp(o)) {
+	if (!o) throw("missing argument to add!");
+	if (typeof(o) === 'string') {
 	    o = UTIL.create(lambda.Template, Array.prototype.slice.call(arguments));
 	}
-	if (!o) throw("missing argument to add!");
 	this.statements.push(o);
 	return o;
     },
@@ -315,7 +315,7 @@ lambda.Array = lambda.Var.extend({
 	var v = this.scope.Var();
 	var f = new lambda.For(this.scope, i.Set(0),
 			       new lambda.Template("%% < %%.length", i, this),
-			       new lambda.Template("%%+=%%", i, step));
+			       i.Increment(step));
 	f.add(v.Set(this.Index(i)));
 	f.key = i;
 	f.value = v;
@@ -335,22 +335,3 @@ lambda.Mapping = lambda.Var.extend({
 	return f;
     }
 });
-function f() {
-    var f = new lambda.Function();
-    var i = f.block.If("%% < 0", f.$(1));
-    i.add(f.Return(-1));
-    i.Else().add(f.Return(1));
-    return f;
-}
-function add(v) {
-    var f = new lambda.Function();
-    v = f.Extern(v);
-    var ret = f.Var(0);
-    var l = f.Arguments().Foreach();
-    l.add("%% += %%", ret, l.value);
-    f.block.add(l);
-    f.block.add("%% += %%", ret, v);
-    f.block.add(f.Return(ret));
-    return f;
-}
-var b = new UTIL.StringBuilder();
