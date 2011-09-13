@@ -131,7 +131,7 @@ serialization.AtomParser = Base.extend({
      * @param {String} str Input string that to parse.
      */
     parse : function(str) {
-	if (UTIL.stringp(str))
+	if (arguments.length)
 	    this.buffer += str;
 
 	var ret = [];
@@ -334,7 +334,8 @@ serialization.Generated = Base.extend({
 	    var ret = f.Var();
 	    var data = f.Var();
 	    f.block.add(this.generate_encode(f.$(1), ret, data));
-	    f.block.add("%% = %% +\" \"+ %%.length +\" \"+ %%", ret, ret, ret, data);
+	    f.block.add("%% += \" \"+ %%.length +\" \"+ %%", ret,
+			data, data);
 	    f.block.add(f.Return(ret));
 	    this._render = f.compile();
 	}
@@ -429,7 +430,8 @@ serialization.Polymorphic = serialization.Base.extend({
 });
 serialization.Date = serialization.Generated.extend({
     constructor: function(prog) { 
-	this.prog = prog;
+	if (arguments.length)
+	    this.prog = prog;
 	this.type = "_time";
 	this.base();
     },
