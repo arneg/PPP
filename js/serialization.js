@@ -79,18 +79,13 @@ serialization.parse_atom = function(s) {
 serialization.low_parse_atoms = function(s) {
     var ret = [];
     var i = 0;    
-    //var re = /(\w+) (\d+) /g;
-    var re = new RegExp("(\\w+) (\\d+) ", "g");
+    var re = /(\w+) (\d+) /g;
+    re.lastIndex = 0;
     var r, length;
-
-    // BUG: this line is needed since firefox seems to be too good
-    // at optimizing
-    //re.lastIndex = 0;
 
     while (i < s.length) {
 	r = re.exec(s);
 	if (!r) {
-	    window.s = s;
 	    UTIL.error("Bad atom!");
 	}
 	i = re.lastIndex;
