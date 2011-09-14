@@ -851,8 +851,7 @@ serialization.Struct = serialization.Generated.extend({
 
 	if (this.constr)
 	    b.If("(%%.atom_init)", ret).add("%%.atom_init();", ret);
-	b.add(ret.Index("_atom_cache").Set(new lambda.Template("[ %%, %% ]",
-					    type, data)));
+	//b.add(ret.Index("_atom_cache").Set(new lambda.Template("[ %%, %% ]", type, data)));
 	return b;
     },
     toString : function() {
@@ -874,10 +873,12 @@ serialization.Struct = serialization.Generated.extend({
 	var t = o.scope.Var();
 	var b = new lambda.Block(data.scope);
 
+	/*
 	var cache = b.If("!!(%%)", o.Index("_atom_cache"));
 	cache.add(type.Set(o.Index("_atom_cache").Index(0)));
 	cache.add(data.Set(o.Index("_atom_cache").Index(1)));
 	cache.add(b.Break());
+	*/
 
 	for (var i = 0; i < this.names.length; i ++) {
 	    b.add(t.Set(o.Index(this.names[i])));
