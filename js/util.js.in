@@ -232,8 +232,9 @@ UTIL.once = function(fun) {
  */
 UTIL.safe = function(fun) {
     return function() {
-	try { return fun.apply(window, Array.prototype.slice.call(arguments)); }
-	catch(e) {
+	try {
+	    return fun.apply(window, Array.prototype.slice.call(arguments));
+	} catch(e) {
 	    UTIL.log("safe call failed: %o", e);
 	};
     };
@@ -675,7 +676,11 @@ UTIL.Event = Base.extend({
 	var a = Array.prototype.slice.call(arguments);
 
 	for (var i = 0; i < this.q.length; i++) {
-	    this.q[i].apply(this, a);	    
+	    try {
+		this.q[i].apply(this, a);
+	    } catch(e) {
+		UTIL.log("calling %o failed: %o", this.q[i], e);
+	    }
 	}
     },
     trigger_later : function() {
@@ -816,9 +821,9 @@ UTIL.App.DST = UTIL.App.has_dst(new Date());
 UTIL.App.is_opera = !!window.opera;
 UTIL.App.is_ie = !!document.all && !UTIL.is_opera;
 // The following are copied from http://www.thespanner.co.uk/2009/01/29/detecting-browsers-javascript-hacks/
-UTIL.App.is_firefox = /a/[-1]=='a';
 UTIL.App.is_safari = /a/.__proto__=='//';
 UTIL.App.is_chrome = !!window.chrome;
+UTIL.App.is_firefox = false;
 UTIL.App.is_ipad = !!(navigator.userAgent.match(/iPad/));
 UTIL.App.is_iphone = !!(navigator.userAgent.match(/iPhone/));
 try {
