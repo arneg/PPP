@@ -61,8 +61,10 @@ meteor.Multiplexer.prototype = {
 
 	return this.channels[name] = new meteor.Channel(name, this.session, this);
     },
-    get_channel : function(name) {
-	return this.channels[name] || this.get_new_channel(name);
+    get_channel : function(name, cb) {
+	 var chan = this.channels[name] || this.get_new_channel(name);
+	if (cb) cb(chan);
+	return chan;
     },
     close_channel : function(name) {
 	if (this.has_channel(name)) {
