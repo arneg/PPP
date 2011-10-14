@@ -159,7 +159,10 @@ void invoke_later(function|object|program f, mixed ... args) {
 
 function combine_functions(function|object|program ... funs) {
     for (int i; i < sizeof(funs); i++)
-       if (!funs[i]) funs = funs[..i - 1] + funs[i + 1..];
+       if (!funs[i]) {
+	   funs = funs[..i - 1] + funs[i + 1..];
+	   i--;
+       }
 
     void _fun(mixed ... args) {
        foreach (funs;; function|object|program fun)
