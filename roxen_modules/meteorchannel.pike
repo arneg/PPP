@@ -2,6 +2,7 @@ constant module_type = MODULE_PROVIDER|MODULE_LOCATION|MODULE_TAG;
 constant module_name = "Webhaven: Meteor.Channel accepter";
 
 mapping(string:function) registered_channels = ([ ]);
+int cnt;
 
 inherit Meteor.SessionHandler;
 
@@ -12,6 +13,10 @@ void create() {
     defvar("location", Variable.Location("/meteor/",
 		    0, "Virtual Directory to connect meteor connections to",
 		    "Browsers have to connect to here when they fire up the meteor connection."));
+}
+
+string status() {
+    return sprintf("There are <b>%d</b> sessions.", sizeof(sessions));
 }
 
 mixed find_file(string file, RequestID r) {
