@@ -1087,3 +1087,65 @@ UTIL.StringBuilder = function() {
 	return ret.join("");
     };
 };
+
+UTIL.FunQueue = Base.extend({
+    constructor : function(m) {
+	this.q = [];
+	this.m = m;
+	this.cnt = 0;
+    },
+    queue : function() {
+	var m = this.m;
+	var v;
+
+	if (!this.cnt++) {
+	    for (var x in m) {
+		if (!m.hasOwnProperty(x)) continue;
+		v = m[x];
+		this.queuefun(v[0], x, v[1]);
+	    }
+	}
+    },
+    queuefun : function(obj, fun, minargs) {
+	var oldfun;
+
+	if (obj["::UTIL::" + fun]) throw("fun is prequeued.");
+
+	oldfun = obj[fun];
+	obj[fun] = UTIL.make_method(this, function() {
+	    if (arguments.length < minargs) {
+		return oldfun.apply(obj, Array.prototype.slice.call(arguments));
+	    }
+
+	    this.q.push(UTIL.make_method.apply(UTIL, [obj, oldfun].concat(Array.prototype.slice.call(arguments))));
+	});
+
+	obj["::UTIL::" + fun] = this;
+    },
+    dequeuefun : function(obj, fun) {
+	if (!obj["::UTIL::" + fun] || obj["::UTIL::" + fun] != this) throw("Not queued by me.");
+	delete obj["::UTIL::" + fun];
+	delete obj[fun];
+    },
+    dequeue : function() {
+	if (!--this.cnt) {
+	    var v, m = this.m;
+
+	    for (var x in m) {
+		if (!m.hasOwnProperty(x)) continue;
+		v = m[x];
+		this.dequeuefun(v[0], x);
+	    }
+
+	    this.flush();
+	}
+    },
+    flush : function() {
+	var q = this.q;
+
+	this.q = [];
+
+	for (var i = 0; i < q.length; i++)
+	    q[i]();
+    }
+});
