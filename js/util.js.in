@@ -1091,6 +1091,7 @@ UTIL.StringBuilder = function() {
 UTIL.FunQueue = Base.extend({
     constructor : function(m) {
 	this.q = [];
+	this.rq = [];
 	this.m = m;
 	this.cnt = 0;
     },
@@ -1108,24 +1109,31 @@ UTIL.FunQueue = Base.extend({
     },
     queuefun : function(obj, fun, minargs) {
 	var oldfun;
+	var me = this;
 
 	if (obj["::UTIL::" + fun]) throw("fun is prequeued.");
 
 	oldfun = obj[fun];
-	obj[fun] = UTIL.make_method(this, function() {
-	    if (arguments.length < minargs) {
-		return oldfun.apply(obj, Array.prototype.slice.call(arguments));
+	obj[fun] = function() {
+	    //UTIL.log("arguments.length of fun %s is %d. (%s)", fun, arguments.length, oldfun.toString());
+	    if (arguments.length >= minargs) {
+		//UTIL.log("queueing");
+		me.q.push(UTIL.make_method.apply(UTIL, [this, oldfun].concat(Array.prototype.slice.call(arguments))));
+	    } else {
+		var r;
+		UTIL.log("executing " + fun + "with "+Array.prototype.slice.call(arguments).join(", "));
+		r = oldfun.apply(this, Array.prototype.slice.call(arguments));
+		return r;
 	    }
-
-	    this.q.push(UTIL.make_method.apply(UTIL, [obj, oldfun].concat(Array.prototype.slice.call(arguments))));
-	});
+	};
+	obj[fun].oldfun = oldfun;
 
 	obj["::UTIL::" + fun] = this;
     },
     dequeuefun : function(obj, fun) {
 	if (!obj["::UTIL::" + fun] || obj["::UTIL::" + fun] != this) throw("Not queued by me.");
+	obj[fun] = obj[fun].oldfun;
 	delete obj["::UTIL::" + fun];
-	delete obj[fun];
     },
     dequeue : function() {
 	if (!--this.cnt) {
@@ -1141,11 +1149,35 @@ UTIL.FunQueue = Base.extend({
 	}
     },
     flush : function() {
-	var q = this.q;
+	var q, cnt;
 
+	if (cnt = this.cnt) {
+	    this.cnt = 1;
+	    this.dequeue();
+	    this.queue();
+	    this.cnt = cnt;
+	    return;
+	}
+
+	q = this.q;
 	this.q = [];
+
+	UTIL.log("FunQueue flushing %d entries.", q.length);
 
 	for (var i = 0; i < q.length; i++)
 	    q[i]();
+	
+	q = this.rq;
+	this.rq = [];
+
+	for (i = 0; i < q.length; i++) {
+	    try {
+		q[i]();
+	    } catch (e) {
+	    }
+	}
+    },
+    ready : function(cb) {
+	this.rq.push(cb);
     }
 });
