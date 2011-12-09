@@ -531,7 +531,7 @@ serialization.Float = serialization.Generated.extend({
 });
 serialization.Binary = serialization.Generated.extend({
     constructor : function() { 
-	    this.type = "_binary";
+	this.type = "_binary";
     },
     generate_can_encode : function(o, ret) {
 	return ret.Set(new lambda.Template("typeof(%%) === 'string'", o));
@@ -563,6 +563,7 @@ serialization.Image = serialization.Binary.extend({
 	var b = new lambda.Block(data.scope);
 	b.add(ret.Set(new lambda.Template("new Image()")));
 	b.add(ret.Index("src").Set(new lambda.Template("UTIL.image_to_dataurl(%%)", data)));
+	b.If("!%%", ret.Index("src")).add(ret.Set(null));
 	return b;
     },
     generate_encode : function(o, type, data) {
@@ -571,7 +572,7 @@ serialization.Image = serialization.Binary.extend({
 	b.add(pos.Set(new lambda.Template("%%.src.indexOf(\",\")", o)));
 	b.If("%% === -1", pos)
 	    .add("UTIL.error(%%)","broken dataurl.\n");
-	b.add(o.Set(new lambda.Template("UTIL.Base64.decode(%%.src.substr(%%+1))", o, pos)));
+	b.add(o.Set(new lambda.Template("UTIL.Base64.decode(%%.src.substr(%%))", o, pos.Add(1))));
 	b.add(this.base(o, type, data));
 	return b;
     }
