@@ -463,7 +463,7 @@ serialization.Singleton = serialization.Generated.extend({
     },
     generate_can_encode : function(o, ret) {
 	var c = o.scope.Extern(this.value);
-	return ret.Set("%% === %%", o, c);
+	return ret.Set(new lambda.Template("%% === %%", o, c));
     },
     generate_decode : function(type, data, ret) {
 	return ret.Set(type.scope.Extern(this.value));
