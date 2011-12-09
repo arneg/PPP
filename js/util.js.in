@@ -922,7 +922,7 @@ UTIL.sprintf_var = function(type, v, p, filler) {
 	break;
     }
     if (!filler) filler = 32;
-    if (!ret)
+    if (!STRINGP(ret))
 	UTIL.error("Bad type %s for %c", typeof(v), type);
     if (p && ret.length < p) {
 	ret = UTIL.nchars(filler, p - ret.length) + ret;
