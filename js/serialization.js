@@ -493,6 +493,24 @@ serialization.String = serialization.Generated.extend({
 	return b;
     }
 });
+serialization.JSON = serialization.Generated.extend({
+    constructor : function() {
+	this.type = "_json";
+	this.base();
+    },
+    generate_can_encode : function(o, ret) {
+	return ret.Set(new lambda.Template("true", o));
+    },
+    generate_decode : function(type, data, ret) {
+	return ret.Set(new lambda.Template("JSON.parse(UTF8.decode(%%))", data));
+    },
+    generate_encode : function(o, type, data) {
+	var b = new lambda.Block(data.scope);
+	b.add(type.Set(this.type));
+	b.add(data.Set(new lambda.Template("UTF8.encode(JSON.stringify(%%))", o)));
+	return b;
+    }
+});
 serialization.Integer = serialization.Generated.extend({
     constructor : function() { 
 	this.type = "_integer";
@@ -1067,5 +1085,6 @@ serialization.True = new serialization.Singleton("_true", true);
 serialization.Boolean = new serialization.Or(serialization.True, serialization.False);
 serialization.integer = new serialization.Integer();
 serialization.string = new serialization.String();
+serialization.json = new serialization.JSON();
 serialization.date = new serialization.Date();
 serialization.image = new serialization.Image();
