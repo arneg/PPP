@@ -67,7 +67,7 @@ mmp.Uniform = function(str) {
 			this.is_person = function() { return 0; }
 			this.is_room = function() { return 0; }
 		} else {
-			throw("Invalid uniform: " + this.str);
+			throw("Invalid uniform: " + this.uniform);
 		}
 
 		pos = str.indexOf("#");
