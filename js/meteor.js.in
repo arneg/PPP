@@ -240,9 +240,9 @@ meteor.Channel.prototype = {
  */
 meteor.Connection = function(url, vars, callback, error) {
     this.url = url;
-    this.vars = vars;
+    this.vars = vars || {};
     //if (UTIL.App.is_opera || UTIL.App.is_ie)
-	this.vars["utf8"] = "1";
+    this.vars["utf8"] = "1";
     if (UTIL.App.is_ie) this.vars["autoclose"] = "1";
     this.buffer = "";
     this.callback = callback;
