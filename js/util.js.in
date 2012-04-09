@@ -174,19 +174,11 @@ UTIL.array_or = function(a, b) {
  * Creates and object of class myclass with the given array of arguments.
  */
 UTIL.create = function(myclass, args) {
-    if (myclass.extend)
-	return new (myclass.extend({
-	    constructor : function(a) {
-		this.base.apply(this, a);
-	    }
-	}))(args);
-    else {
 	var f = function() {
 	    myclass.apply(this, args);
 	};
 	f.prototype = myclass.prototype;
 	return new f();
-    }
 };
 /**
  * Wraps fun in a function running profiling.

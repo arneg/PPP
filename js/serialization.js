@@ -233,7 +233,7 @@ serialization.AtomParser = Base.extend({
 	var pos = this.buffer.indexOf(" ", this.offset);
 	if (-1 == pos) return 0;
 	var method = this.buffer.substring(this.offset, pos);
-	this.buffer = this.buffer.slice(this.offset+pos+1);
+	this.buffer = this.buffer.slice(pos+1);
 	this.offset = 0;
 	return method;
     }

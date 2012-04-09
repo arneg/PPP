@@ -179,10 +179,10 @@ Widget.Fx.CSS = Widget.Base.extend({
 
 		//console.log("fading %o to %o with %o", this.node, to, this.fade_properties);
 		//this.fade_object = Uize.Fx.fadeStyle(this.node, null, to, this.fade_properties);
-		this.fade_object = Uize.Fx.fadeStyle(this.node, null, to, this.fade_properties.duration);
+		//this.fade_object = Uize.Fx.fadeStyle(this.node, null, to, this.fade_properties.duration);
 		if (this.onDone[to_state]) this.fade_object.wire("Done", UTIL.make_method(this, this.onDone[to_state], this.node));
 		if (this.onStart[to_state]) UTIL.make_method(this, this.onStart[to_state], this.node)();
-		this.fade_object.start();
+		//this.fade_object.start();
 	}
 });
 Widget.SlowFader = Widget.Fader.extend({
