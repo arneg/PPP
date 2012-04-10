@@ -224,8 +224,9 @@ UTIL.once = function(fun) {
  */
 UTIL.safe = function(fun) {
     return function() {
-	try { return fun.apply(window, Array.prototype.slice.call(arguments)); }
-	catch(e) {
+	try {
+	    return fun.apply(window, Array.prototype.slice.call(arguments));
+	} catch(e) {
 	    UTIL.log("safe call failed: %o", e);
 	};
     };
@@ -667,7 +668,11 @@ UTIL.Event = Base.extend({
 	var a = Array.prototype.slice.call(arguments);
 
 	for (var i = 0; i < this.q.length; i++) {
-	    this.q[i].apply(this, a);	    
+	    try {
+		this.q[i].apply(this, a);
+	    } catch(e) {
+		UTIL.log("calling %o failed: %o", this.q[i], e);
+	    }
 	}
     },
     trigger_later : function() {
@@ -808,9 +813,9 @@ UTIL.App.DST = UTIL.App.has_dst(new Date());
 UTIL.App.is_opera = !!window.opera;
 UTIL.App.is_ie = !!document.all && !UTIL.is_opera;
 // The following are copied from http://www.thespanner.co.uk/2009/01/29/detecting-browsers-javascript-hacks/
-UTIL.App.is_firefox = /a/[-1]=='a';
 UTIL.App.is_safari = /a/.__proto__=='//';
 UTIL.App.is_chrome = !!window.chrome;
+UTIL.App.is_firefox = false;
 UTIL.App.is_ipad = !!(navigator.userAgent.match(/iPad/));
 UTIL.App.is_iphone = !!(navigator.userAgent.match(/iPhone/));
 try {
@@ -909,7 +914,7 @@ UTIL.sprintf_var = function(type, v, p, filler) {
 	break;
     }
     if (!filler) filler = 32;
-    if (!ret)
+    if (!STRINGP(ret))
 	UTIL.error("Bad type %s for %c", typeof(v), type);
     if (p && ret.length < p) {
 	ret = UTIL.nchars(filler, p - ret.length) + ret;
@@ -1074,3 +1079,97 @@ UTIL.StringBuilder = function() {
 	return ret.join("");
     };
 };
+
+UTIL.FunQueue = Base.extend({
+    constructor : function(m) {
+	this.q = [];
+	this.rq = [];
+	this.m = m;
+	this.cnt = 0;
+    },
+    queue : function() {
+	var m = this.m;
+	var v;
+
+	if (!this.cnt++) {
+	    for (var x in m) {
+		if (!m.hasOwnProperty(x)) continue;
+		v = m[x];
+		this.queuefun(v[0], x, v[1]);
+	    }
+	}
+    },
+    queuefun : function(obj, fun, minargs) {
+	var oldfun;
+	var me = this;
+
+	if (obj["::UTIL::" + fun]) throw("fun is prequeued.");
+
+	oldfun = obj[fun];
+	obj[fun] = function() {
+	    //UTIL.log("arguments.length of fun %s is %d. (%s)", fun, arguments.length, oldfun.toString());
+	    if (arguments.length >= minargs) {
+		//UTIL.log("queueing");
+		me.q.push(UTIL.make_method.apply(UTIL, [this, oldfun].concat(Array.prototype.slice.call(arguments))));
+	    } else {
+		var r;
+		UTIL.log("executing " + fun + "with "+Array.prototype.slice.call(arguments).join(", "));
+		r = oldfun.apply(this, Array.prototype.slice.call(arguments));
+		return r;
+	    }
+	};
+	obj[fun].oldfun = oldfun;
+
+	obj["::UTIL::" + fun] = this;
+    },
+    dequeuefun : function(obj, fun) {
+	if (!obj["::UTIL::" + fun] || obj["::UTIL::" + fun] != this) throw("Not queued by me.");
+	obj[fun] = obj[fun].oldfun;
+	delete obj["::UTIL::" + fun];
+    },
+    dequeue : function() {
+	if (!--this.cnt) {
+	    var v, m = this.m;
+
+	    for (var x in m) {
+		if (!m.hasOwnProperty(x)) continue;
+		v = m[x];
+		this.dequeuefun(v[0], x);
+	    }
+
+	    this.flush();
+	}
+    },
+    flush : function() {
+	var q, cnt;
+
+	if (cnt = this.cnt) {
+	    this.cnt = 1;
+	    this.dequeue();
+	    this.queue();
+	    this.cnt = cnt;
+	    return;
+	}
+
+	q = this.q;
+	this.q = [];
+
+	UTIL.log("FunQueue flushing %d entries.", q.length);
+
+	for (var i = 0; i < q.length; i++)
+	    q[i]();
+	
+	q = this.rq;
+	this.rq = [];
+
+	for (i = 0; i < q.length; i++) {
+	    try {
+		q[i]();
+	    } catch (e) {
+	    }
+	}
+    },
+    ready : function(cb) {
+	this.rq.push(cb);
+    }
+});

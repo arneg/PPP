@@ -61,8 +61,10 @@ meteor.Multiplexer.prototype = {
 
 	return this.channels[name] = new meteor.Channel(name, this.session, this);
     },
-    get_channel : function(name) {
-	return this.channels[name] || this.get_new_channel(name);
+    get_channel : function(name, cb) {
+	 var chan = this.channels[name] || this.get_new_channel(name);
+	if (cb) cb(chan);
+	return chan;
     },
     close_channel : function(name) {
 	if (this.has_channel(name)) {
@@ -241,8 +243,8 @@ meteor.Channel.prototype = {
 meteor.Connection = function(url, vars, callback, error) {
     this.url = url;
     this.vars = vars || {};
-    //if (UTIL.App.is_opera || UTIL.App.is_ie)
-    this.vars["utf8"] = "1";
+    if (!eval("new XMLHttpRequest()").overrideMimeType)
+	this.vars.utf8 = "1";
     if (UTIL.App.is_ie) this.vars["autoclose"] = "1";
     this.buffer = "";
     this.callback = callback;
@@ -309,7 +311,7 @@ meteor.Connection.prototype = {
 	}
 	*/
 	//xhr.overrideMimeType("text/plain; charset=ISO-8859-1");
-	//if (xhr.overrideMimeType) xhr.overrideMimeType('text/plain; charset=x-user-defined');
+	if (xhr.overrideMimeType) xhr.overrideMimeType('text/plain; charset=x-user-defined');
 	xhr.onreadystatechange = UTIL.make_method(this, this.new_incoming_state_change, xhr);
 	var cb = UTIL.make_method(this, function() {
 	    UTIL.log("connecting new_incoming timed out. dropping.\n");
@@ -358,7 +360,7 @@ meteor.Connection.prototype = {
 			    meteor.lengthes.push([ length, str.length ]);
 			    meteor.counter++;
 			    
-#					if 0
+#					if 1
 			    var C = new Array(CHUNK), ret, i;
 			    var stop = Math.floor(str.length/CHUNK);
 			    var rest = str.length & (CHUNK - 1);

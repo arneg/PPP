@@ -114,9 +114,8 @@ lambda.Function = lambda.Scope.extend({
 	var ret = [];	
 	for (var i in this.symbols) {
 	    if (!this.symbols.hasOwnProperty(i)) continue;
-	    if (this.symbols[i] instanceof lambda.Var
-	      && !this.symbols[i].inited)
-		ret.push(this.symbols[i].Init());
+	    if (this.symbols[i] instanceof lambda.Var)
+		ret.push(this.symbols[i].inited ? new lambda.Template(i) : this.symbols[i].Init());
 	}
 	if (ret.length) {
 	    lambda.render_template(buf, "var %%"+UTIL.nchars(",%%", ret.length-1), ret);

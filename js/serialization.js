@@ -463,7 +463,7 @@ serialization.Singleton = serialization.Generated.extend({
     },
     generate_can_encode : function(o, ret) {
 	var c = o.scope.Extern(this.value);
-	return ret.Set("%% === %%", o, c);
+	return ret.Set(new lambda.Template("%% === %%", o, c));
     },
     generate_decode : function(type, data, ret) {
 	return ret.Set(type.scope.Extern(this.value));
@@ -490,6 +490,24 @@ serialization.String = serialization.Generated.extend({
 	var b = new lambda.Block(data.scope);
 	b.add(type.Set(this.type));
 	b.add(data.Set(new lambda.Template("UTF8.encode(%%)", o)));
+	return b;
+    }
+});
+serialization.JSON = serialization.Generated.extend({
+    constructor : function() {
+	this.type = "_json";
+	this.base();
+    },
+    generate_can_encode : function(o, ret) {
+	return ret.Set(new lambda.Template("true", o));
+    },
+    generate_decode : function(type, data, ret) {
+	return ret.Set(new lambda.Template("JSON.parse(UTF8.decode(%%))", data));
+    },
+    generate_encode : function(o, type, data) {
+	var b = new lambda.Block(data.scope);
+	b.add(type.Set(this.type));
+	b.add(data.Set(new lambda.Template("UTF8.encode(JSON.stringify(%%))", o)));
 	return b;
     }
 });
@@ -531,7 +549,7 @@ serialization.Float = serialization.Generated.extend({
 });
 serialization.Binary = serialization.Generated.extend({
     constructor : function() { 
-	    this.type = "_binary";
+	this.type = "_binary";
     },
     generate_can_encode : function(o, ret) {
 	return ret.Set(new lambda.Template("typeof(%%) === 'string'", o));
@@ -563,6 +581,7 @@ serialization.Image = serialization.Binary.extend({
 	var b = new lambda.Block(data.scope);
 	b.add(ret.Set(new lambda.Template("new Image()")));
 	b.add(ret.Index("src").Set(new lambda.Template("UTIL.image_to_dataurl(%%)", data)));
+	b.If("!%%", ret.Index("src")).add(ret.Set(null));
 	return b;
     },
     generate_encode : function(o, type, data) {
@@ -571,7 +590,7 @@ serialization.Image = serialization.Binary.extend({
 	b.add(pos.Set(new lambda.Template("%%.src.indexOf(\",\")", o)));
 	b.If("%% === -1", pos)
 	    .add("UTIL.error(%%)","broken dataurl.\n");
-	b.add(o.Set(new lambda.Template("UTIL.Base64.decode(%%.src.substr(%%+1))", o, pos)));
+	b.add(o.Set(new lambda.Template("UTIL.Base64.decode(%%.src.substr(%%))", o, pos.Add(1))));
 	b.add(this.base(o, type, data));
 	return b;
     }
@@ -851,8 +870,7 @@ serialization.Struct = serialization.Generated.extend({
 
 	if (this.constr)
 	    b.If("(%%.atom_init)", ret).add("%%.atom_init();", ret);
-	b.add(ret.Index("_atom_cache").Set(new lambda.Template("[ %%, %% ]",
-					    type, data)));
+	//b.add(ret.Index("_atom_cache").Set(new lambda.Template("[ %%, %% ]", type, data)));
 	return b;
     },
     toString : function() {
@@ -874,10 +892,12 @@ serialization.Struct = serialization.Generated.extend({
 	var t = o.scope.Var();
 	var b = new lambda.Block(data.scope);
 
+	/*
 	var cache = b.If("!!(%%)", o.Index("_atom_cache"));
 	cache.add(type.Set(o.Index("_atom_cache").Index(0)));
 	cache.add(data.Set(o.Index("_atom_cache").Index(1)));
 	cache.add(b.Break());
+	*/
 
 	for (var i = 0; i < this.names.length; i ++) {
 	    b.add(t.Set(o.Index(this.names[i])));
@@ -1065,5 +1085,6 @@ serialization.True = new serialization.Singleton("_true", true);
 serialization.Boolean = new serialization.Or(serialization.True, serialization.False);
 serialization.integer = new serialization.Integer();
 serialization.string = new serialization.String();
+serialization.json = new serialization.JSON();
 serialization.date = new serialization.Date();
 serialization.image = new serialization.Image();
