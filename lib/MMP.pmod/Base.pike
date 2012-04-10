@@ -89,6 +89,10 @@ int msg(MMP.Packet p, function callback) {
 }
 
 void send(MMP.Uniform target, Serialization.Atom m, void|mapping vars) {
+	if (target == uniform) {
+	    werror("dropping packet %O send to ourselves.\n", m);
+	    return;
+	}
 	object state = get_state(target);
 	int id = state->get_id();
 	if (!vars) vars = ([]);
