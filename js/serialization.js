@@ -934,15 +934,15 @@ serialization.Packet = serialization.Tuple.extend({
 	constructor : function(dtype) {
 		var uniform = new serialization.Uniform();
 		var integer = new serialization.Integer();
-		this.base("_mmp", false, dtype, new serialization.Vars({ 
+		this.base("_mmp", mmp.Packet, dtype, new serialization.Vars({
 			_timestamp : new serialization.Date(mmp.Date),
-			_source : uniform, 
-			_target : uniform, 
-			_context : uniform, 
-			_id : integer, 
-			_ack : integer, 
-			_sequence_max : integer, 
-			_sequence_pos : integer, 
+			_source : uniform,
+			_target : uniform,
+			_context : uniform,
+			_id : integer,
+			_ack : integer,
+			_sequence_max : integer,
+			_sequence_pos : integer,
 			_source_relay : uniform,
 			_tag : new serialization.String()
 		}));
@@ -952,10 +952,6 @@ serialization.Packet = serialization.Tuple.extend({
 	},
 	encode : function(o) {
 		return this.base([ o.data, o.vars ]);
-	},
-	decode : function(atom) {
-		var l = this.base(atom);
-		return new mmp.Packet(l[0], l[1]);
 	}
 });
 serialization.Or = serialization.Generated.extend({
