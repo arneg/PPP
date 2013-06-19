@@ -26,12 +26,12 @@ UTIL.Base64 = {
 	    c2 = s.charCodeAt(i++);
 
 	    BUF_PUTCHAR(m.charCodeAt(c1>>2));
-	    BUF_PUTCHAR(m.charCodeAt((c1&3<<4)| c2 >> 4));
-	    BUF_PUTCHAR(m.charCodeAt(c2&15)<<2);
+	    BUF_PUTCHAR(m.charCodeAt(((c1&3)<<4)|(c2 >> 4)));
+	    BUF_PUTCHAR(m.charCodeAt((c2&15)<<2));
 	    BUF_PUTCHAR(61);
 	} else if (r == 1) {
 	    BUF_PUTCHAR(m.charCodeAt(c1>>2));
-	    BUF_PUTCHAR(m.charCodeAt(c1&3<<4));
+	    BUF_PUTCHAR(m.charCodeAt((c1&3)<<4));
 	    BUF_PUTCHAR(61);
 	    BUF_PUTCHAR(61);
 	}
