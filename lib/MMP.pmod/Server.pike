@@ -11,8 +11,22 @@ mapping(MMP.Uniform:object) entities = ([]);
 mapping(string:MMP.Circuit) circuit_cache = set_weak_flag(([ ]), Pike.WEAK_VALUES);
 mapping(string:MMP.VirtualCircuit) vcircuit_cache = ([]);
 mapping(string:object) vhosts = ([ ]);
+mapping(string:object) vhost_ports = ([ ]);
 
 mapping(MMP.Uniform:object) channels = ([]);
+
+void shutdown() {
+    entities = ([]);
+    values(vhost_ports)->set_id(0);
+    values(vhost_ports)->close();
+    vhost_ports = ([]);
+    values(circuit_cache)->close();
+    circuit_cache = ([]);
+    vcircuit_cache = ([]);
+    vhosts = ([]);
+    channels = ([]);
+    out = 0;
+}
 
 void register_channel(MMP.Uniform u, object o) {
     channels[u] = o;
@@ -236,13 +250,15 @@ void bind(void|string ip, void|int port) {
     Stdio.Port p = Stdio.Port(port, accept, ip);
 
     if (p->errno()) {
-		werror("Cannot bind port %s:%d: %s\n", ip||"", port, strerror(p->errno()));
+	werror("Cannot bind port %s:%d: %s\n", ip||"", port, strerror(p->errno()));
     } else {
-		p->set_id(p);
-		// add the initial one first to keep hostnames
-		add_vhost(sprintf("%s:%d", ip||"0.0.0.0", port));
-		if (p->query_address() != sprintf("%s %d", ip||"0.0.0.0", port)) 
-			add_vhost(replace(p->query_address(), " ", ":"));
+	string s = sprintf("%s:%d", ip||"0.0.0.0", port);
+	p->set_id(p);
+	// add the initial one first to keep hostnames
+	add_vhost(s);
+	vhost_ports[s] = p;
+	if (p->query_address() != sprintf("%s %d", ip||"0.0.0.0", port)) 
+	    add_vhost(replace(p->query_address(), " ", ":"));
     }
 }
 
@@ -315,7 +331,7 @@ void add_vhost(string hip, void|object server) {
 }
 
 void remove_vhost(string hip) {
-    m_delete(vhosts, hip);
+    object o = m_delete(vhosts, hip);
 }
 
 void check_out(string hip) {
