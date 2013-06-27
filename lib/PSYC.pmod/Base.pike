@@ -45,7 +45,7 @@ class Traverse(array(function|int) to_call, array args, void|function callback) 
 
 		if (intp(to_call[pos])) res = to_call[pos];
 		else {
-		    werror("Calling %O\n", to_call[pos]);
+		    //werror("Calling %O\n", to_call[pos]);
 		    res = to_call[pos](@args, result);
 		}
 
@@ -111,6 +111,13 @@ void send(MMP.Uniform target, PSYC.Message|Serialization.Atom m, void|mapping va
 	m = message_signature->encode(m);
     }
     ::send(target, m, vars);
+}
+
+void mcast(Serialization.Atom|PSYC.Message m, void|string channel) {
+    if (object_program(m) == PSYC.Message) {
+	m = message_signature->encode(m);
+    }
+    ::mcast(m, channel);
 }
 
 void sendmsg(MMP.Uniform target, string method, void|string data, void|mapping m, void|function callback) {
