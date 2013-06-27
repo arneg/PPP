@@ -130,22 +130,6 @@ void sendreplymsg(MMP.Packet p, string method, void|string data, void|mapping m,
 	::sendreply(p, message_signature->encode(PSYC.Message(method, data, m)), vars);
 }
 
-int _request_retrieval(MMP.Packet p, PSYC.Message m, function callback) {
-    array ids = m["_ids"];
-    werror("%O: _request_retrieval(%d) of %O\n", p->source(), p["_id"], ids);
-
-    object state = get_state(p->source());
-
-    foreach (ids;;int i) {
-		MMP.Packet packet = state->cache[i];
-		werror("retransmission of %d\n", i);
-		if (!packet) werror("Packet with id %d not available for retransmission\n", i);
-		else server->msg(packet);
-    }
-
-    return PSYC.STOP;
-}
-
 int _message_public(MMP.Packet p, PSYC.Message m, function callback) {
    // werror("%O: _message_public(%d)\n", uniform, p["_id"]);
 	return PSYC.GOON;
