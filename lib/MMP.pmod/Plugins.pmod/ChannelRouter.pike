@@ -78,28 +78,31 @@ object get_channel(MMP.Uniform u) {
 }
 
 int _request_context_enter(MMP.Packet p, PSYC.Message m) {
+    MMP.Uniform supplicant = m->vars->_supplicant;
+    MMP.Uniform channel = m->vars->_channel;
+
     void cb(MMP.Packet rp, PSYC.Message rm) {
 	if (rm->method == "_notice_context_enter") {
 	    int id = rm->vars->_context_id;
 	    int max = rm->vars->_history_max;
-	    object chan = get_channel(m->vars->_channel);
+	    object chan = get_channel(channel);
 	    string token = chan->get_token(predef::max(0, id-max));
 	    sendreply(p, PSYC.Message(rm->method, rm->data, rm->vars + ([ "_token" : token, "_id" : predef::max(0, id-max) ])));
-	    get_channel(m->vars->_channel)->add_route(m->vars->_supplicant, this->server->get_route(m->vars->_supplicant));
+	    get_channel(channel)->add_route(supplicant, this->server->get_route(supplicant));
 	} else {
 	    sendreply(p, rm);
 	}
     };
 
-    if (!check_source(m->vars->_supplicant, p)) {
+    if (!check_source(supplicant, p)) {
 	    werror("unauthorized _request_context_enter (%O, %O)\n", m->vars, p->vars);
 	    return PSYC.STOP;
     }
 	
-    if (this->server->is_local(m->vars->_channel)) {
-	sendmsg(m->vars->_channel, "_request_context_enter", 0, ([ "_supplicant" : m->vars->_supplicant ]), cb);
+    if (this->server->is_local(channel)) {
+	sendmsg(channel, "_request_context_enter", 0, ([ "_supplicant" : supplicant ]), cb);
     } else {
-	MMP.Uniform target = this->server->get_uniform(m->vars->_channel->root);
+	MMP.Uniform target = this->server->get_uniform(channel->root);
 	send(target, m, 0, cb);
     }
 
@@ -107,6 +110,11 @@ int _request_context_enter(MMP.Packet p, PSYC.Message m) {
 }
 
 int _notice_context_leave(MMP.Packet p, PSYC.Message m) {
+    MMP.Uniform supplicant = m->vars->_supplicant;
+    MMP.Uniform channel = m->vars->_channel;
+
+    if (!supplicant || !channel) return PSYC.STOP;
+
     void cb(MMP.Packet rp, PSYC.Message rm) {
 	if (rm->method == "_notice_context_leave") {
 	    sendreply(p, rm);
@@ -115,17 +123,17 @@ int _notice_context_leave(MMP.Packet p, PSYC.Message m) {
 	}
     };
 
-    if (!check_source(m->vars->_supplicant, p)) {
+    if (!check_source(supplicant, p)) {
 	    werror("unauthorized _notice_context_leave (%O, %O)\n", m->vars, p->vars);
 	    return PSYC.STOP;
     }
 
-    get_channel(m->vars->_channel)->remove_route(m->vars->_supplicant, this->server->get_route(m->vars->_supplicant));
+    get_channel(channel)->remove_route(supplicant, this->server->get_route(supplicant));
 	
-    if (this->server->is_local(m->vars->_channel)) {
-	send(m->vars->_channel, m, 0, cb);
+    if (this->server->is_local(channel)) {
+	send(channel, m, 0, cb);
     } else {
-	MMP.Uniform target = this->server->get_uniform(m->vars->_channel->root);
+	MMP.Uniform target = this->server->get_uniform(channel->root);
 	send(target, m, 0, cb);
     }
 
