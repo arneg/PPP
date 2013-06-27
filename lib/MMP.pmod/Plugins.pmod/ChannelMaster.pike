@@ -56,7 +56,7 @@ int _notice_context_leave(MMP.Packet p, PSYC.Message m) {
     // TODO: remove from all channels, or this should be explicit
     get_channel()->remove_member(m->vars->_supplicant);
 
-    sendreplymsg(p, "_notice_context_enter");
+    sendreplymsg(p, "_notice_context_leave");
 
     return PSYC.STOP;
 }
