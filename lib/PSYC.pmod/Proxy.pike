@@ -19,20 +19,28 @@ inherit PSYC.Base;
 
 object session;
 object mmp_signature;
+MMP.Uniform linked_to;
+function close_cb;
 
 mapping(MMP.Uniform:int) clients = ([]);
 
-void create(object server, object uniform, object session) {
+void create(object server, object uniform, object session, function close_cb) {
 	::create(server, uniform);
 	mmp_signature = Packet(Atom());
 	session->cb = incoming;
-	session->error_cb = session_error;
+	session->set_errorcb(session_error);
 	this_program::session = session;
+	this_program::close_cb = close_cb;
 }
 
 void session_error(object session, string err) {
-    	// TODO: get rid of the proxy
-	werror("ERROR: %O %s\n", session, err);
+    // TODO: get rid of the proxy
+    werror("ERROR: %O %s\n", session, err);
+    session = 0;
+    if (linked_to) {
+	sendmsg(linked_to, "_request_unlink");
+    }
+    call_out(close_cb, 0, uniform);
 }
 
 void incoming(object session, Serialization.Atom atom) {
@@ -58,6 +66,10 @@ int msg(MMP.Packet p) {
 
 	if (p->data->type == "_mmp") {
 	    p = mmp_signature->decode(p->data);
+	}
+
+	if (p->data->method == "_notice_link") {
+	    linked_to = p["_source"];
 	}
 
 	mixed err = catch {
