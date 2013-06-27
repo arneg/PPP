@@ -121,7 +121,11 @@ int read(mixed id, string data) {
 }
 
 void close() {
-	werror("closing %O not implemented.\n", this);
+	socket->set_read_callback(0);
+	socket->set_close_callback(0);
+	socket->close();
+	socket = 0;
+	server = 0;
 }
 
 int on_close(mixed id) {
